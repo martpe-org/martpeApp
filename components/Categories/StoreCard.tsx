@@ -3,21 +3,53 @@ import ProductList from "./ProductList";
 import { router } from "expo-router";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 
-const StoreCard = ({ storeData, categoryFiltered }) => {
-  if (!storeData) {
-    return null;
-  } else {
-    console.log("store data:", storeData);
-  }
+interface StoreCardProps {
+  storeData?: {
+    id: string;
+    domain?: string;
+    catalogs?: any[];
+    descriptor?: {
+      name?: string;
+      images?: string[];
+      symbol?: string;
+    };
+    address?: {
+      street?: string;
+    };
+    geoLocation?: {
+      lat?: number;
+      lng?: number;
+    };
+    calculated_max_offer?: {
+      percent?: number;
+    };
+    time_to_ship_in_hours?: {
+      avg?: number;
+    };
+  };
+  categoryFiltered: string[];
+}
+
+const StoreCard: React.FC<StoreCardProps> = ({
+  storeData,
+  categoryFiltered,
+}) => {
+  if (!storeData) return null;
+
   const {
-    descriptor: { name, images, symbol },
+    descriptor = {},
     domain,
     id,
-    catalogs,
-    address: { street },
-    geoLocation: { lat, lng },
-    calculated_max_offer: { percent },
+    catalogs = [],
+    address = {},
+    geoLocation = {},
+    calculated_max_offer = {},
   } = storeData;
+
+  const { name = "", images = [], symbol = "" } = descriptor;
+  const { street = "" } = address;
+  const { lat, lng } = geoLocation;
+  const { percent = 0 } = calculated_max_offer;
 
   return (
     <View style={{ height: 390 }}>
@@ -30,18 +62,21 @@ const StoreCard = ({ storeData, categoryFiltered }) => {
           <View style={styles.header}>
             {/* store logo */}
             <View style={styles.logoContainer}>
-              <Image source={{ uri: symbol }} style={styles.logoImage} />
+              {symbol ? (
+                <Image source={{ uri: symbol }} style={styles.logoImage} />
+              ) : (
+                <View style={[styles.logoImage, { backgroundColor: '#eee' }]} />
+              )}
             </View>
             {/* store details */}
             <View style={styles.details}>
               <View style={styles.subDetails}>
-                <Text style={styles.brandText}>{name}</Text>
-                <Text style={styles.locationText}>{street} | 0.5 Km</Text>
+                <Text style={styles.brandText}>{name || "Unknown Store"}</Text>
+                <Text style={styles.locationText}>
+                  {street || "Unknown address"} | 0.5 Km
+                </Text>
                 {percent > 1 && (
-                  <Text style={styles.discountText}>
-                    {/* <Image source={require("../../assets/discount.png")} /> */}
-                    Upto {percent}% Off
-                  </Text>
+                  <Text style={styles.discountText}>Upto {percent}% Off</Text>
                 )}
               </View>
               <View style={styles.subDetails}>
@@ -58,6 +93,7 @@ const StoreCard = ({ storeData, categoryFiltered }) => {
           </View>
         </TouchableOpacity>
       </View>
+
       {/* store products info */}
       <View style={styles.productContainer}>
         <ProductList
@@ -70,40 +106,30 @@ const StoreCard = ({ storeData, categoryFiltered }) => {
   );
 };
 
+// ... keep the existing styles ...
 const styles = StyleSheet.create({
   containerWrapper: {
     marginVertical: 30,
     zIndex: 1,
   },
   container: {
-    // height: auto,
-    // marginHorizontal: 20,
-    // display: "flex",
-    // borderRadius: 10,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    // shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 2,
     backgroundColor: "white",
     height: 340,
   },
   header: {
-    display: "flex",
     flexDirection: "row",
     paddingHorizontal: 5,
   },
   details: {
-    display: "flex",
     flex: 1,
     flexDirection: "row",
     padding: 5,
     justifyContent: "space-between",
   },
   subDetails: {
-    display: "flex",
     flexDirection: "column",
     padding: 5,
   },
@@ -137,20 +163,14 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 130,
     height: 100,
-    top: -20, // +10,
-    // left: 25,
+    top: -20,
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: "#EEEEEE",
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 2,
-      height: 2,
-    },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.1,
-    // shadowRadius: 20,
     elevation: 2,
-    // position: "relative",
     backgroundColor: "white",
     zIndex: 2,
     marginLeft: 8,
@@ -158,18 +178,15 @@ const styles = StyleSheet.create({
   },
   logoImage: {
     flex: 1,
-    // resizeMode: "contain",
     resizeMode: "cover",
     width: "100%",
     height: "100%",
   },
   logoIcons: {
-    flex: 1,
     flexDirection: "row",
     padding: 5,
   },
   productContainer: {
-    //   position: "absolute",
     top: -280,
     zIndex: 2,
     backgroundColor: "#f8f7f390",

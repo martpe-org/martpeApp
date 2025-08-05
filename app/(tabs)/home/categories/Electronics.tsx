@@ -22,12 +22,12 @@ import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
 import { Feather } from "@expo/vector-icons";
 import FilterCard from "../../../../components/search/filterCard";
+
 const screenWidth = Dimensions.get("window").width;
 const domain = "ONDC:RET14";
 
 function Electronics() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-
   const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
   const [filterSelected, setFilterSelected] = useState({
     category: [],
@@ -40,15 +40,7 @@ function Electronics() {
   const [activeFilter, setActiveFilter] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const payload = {
-    domain: domain,
-    loc: {
-      lat: selectedAddress?.lat,
-      lng: selectedAddress?.lng,
-    },
-    // radius: 15000,
-    cityCode: "std:80",
-  };
+  
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const handleClosePress = () => bottomSheetRef.current?.close();
@@ -67,20 +59,40 @@ function Electronics() {
     []
   );
 
-  // will only fetch the data once after rendering
+  // Fetch data using the correct API pattern
   useEffect(() => {
-    async function domainDataFetch() {
-      const response = await fetchHomeByDomain(payload);
-      const { fetchHomeByDomain: data } = response || {};
-      const { stores, offers } = data || {};
-      setStoresData(stores);
-      setOffersData(offers);
-      setIsLoading(false);
-    }
-    domainDataFetch();
-  }, []);
+    async function fetchData() {
+      if (!selectedAddress?.lat || !selectedAddress?.lng) {
+        setIsLoading(false);
+        return;
+      }
 
-  const allCatalogs = storesData?.flatMap((store) => store.catalogs);
+      try {
+        const response = await fetchHomeByDomain(
+          selectedAddress.lat,
+          selectedAddress.lng,
+          selectedAddress.pincode || "110001", // Default pincode if not available
+          domain
+        );
+
+        if (response) {
+ setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+setOffersData(Array.isArray(response?.offers) ? response.offers : []);
+
+        }
+      } catch (error) {
+        console.error("Error fetching domain data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [selectedAddress]);
+
+const allCatalogs = Array.isArray(storesData)
+  ? storesData.flatMap((store) => store.catalogs || [])
+  : [];
 
   const uniqueCategoryIds = Array.from(
     new Set(allCatalogs?.map((catalog) => catalog?.category_id))
@@ -93,12 +105,12 @@ function Electronics() {
   const filteredStores = storesData.filter((store) => {
     const meetsCategoryCriteria =
       filterSelected.category.length == 0 ||
-      store.catalogs.some((catalog) =>
+      store.catalogs?.some((catalog) =>
         filterSelected.category.includes(catalog.category_id)
       );
     const meetsOfferCriteria =
       filterSelected.offers === 0 ||
-      store.calculated_max_offer.percent >= filterSelected.offers;
+      store.calculated_max_offer?.percent >= filterSelected.offers;
     const meetsDeliveryCriteria =
       filterSelected.delivery === 100 ||
       store?.time_to_ship_in_hours?.avg <= filterSelected.delivery;
@@ -136,11 +148,15 @@ function Electronics() {
   if (isLoading) {
     return <Loader />;
   }
-  // if (error) {
-  //   return <Text style={{ color: "black" }}>Error: {error.message}</Text>;
-  // }
+
   if (!storesData && !offersData) {
-    return <Text style={{ color: "black" }}>No data available</Text>;
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: "black", textAlign: "center", marginTop: 50 }}>
+          No data available
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -154,16 +170,19 @@ function Electronics() {
             showLocation={false}
           />
         </View>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          // contentContainerStyle={styles.sliderContent}
-          // showsHorizontalScrollIndicator={false}
-        >
-          {offersData?.map((data, index) => (
-            <OfferCard3 offerData={data} key={index} />
-          ))}
-        </ScrollView>
+
+        {/* Offers Section */}
+        {offersData && offersData.length > 0 && (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            {offersData.map((data, index) => (
+              <OfferCard3 offerData={data} key={index} />
+            ))}
+          </ScrollView>
+        )}
 
         <View>
           <View style={styles.subHeading}>
@@ -182,16 +201,15 @@ function Electronics() {
             style={styles.viewMoreButton}
           >
             <Text style={styles.viewMoreButtonText}>View More</Text>
-            <Image
-             // source={require("../assets/rightArrow.png")}
-              // style={styles.categoryImage}
-            />
           </TouchableOpacity>
+
           <View style={styles.subHeading}>
             <View style={styles.line} />
             <Text style={styles.subHeadingText}>Outlets Near me</Text>
             <View style={styles.line} />
           </View>
+
+          {/* Filter Section */}
           <ScrollView
             style={{
               flexDirection: "row",
@@ -200,7 +218,6 @@ function Electronics() {
             }}
             horizontal
           >
-            {/* <FilterBar /> */}
             <View
               style={{
                 flexDirection: "row",
@@ -329,6 +346,8 @@ function Electronics() {
               </ScrollView>
             </View>
           </ScrollView>
+
+          {/* Stores List */}
           {filteredStores?.map((storeData, id) => (
             <StoreCard3
               categoryFiltered={filterSelected?.category}
@@ -339,6 +358,8 @@ function Electronics() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Bottom Sheet for Filters */}
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}

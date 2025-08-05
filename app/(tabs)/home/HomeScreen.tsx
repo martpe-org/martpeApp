@@ -463,14 +463,7 @@ const HomeScreen = () => {
                   style={styles.seeAllButton}
                   onPress={() => router.push("/(tabs)/home/categories/Food")}
                 >
-                  {/* <Text style={styles.seeAllText}>
-                    See all
-                    <Entypo
-                      name="chevron-small-right"
-                      size={14}
-                      color="#FF9130"
-                    />
-                  </Text> */}
+            
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -497,14 +490,7 @@ const HomeScreen = () => {
                   style={styles.seeAllButton}
                   onPress={() => router.push("/(tabs)/home/categories/Grocery")}
                 >
-                  {/* <Text style={styles.seeAllText}>
-                    See all
-                    <Entypo
-                      name="chevron-small-right"
-                      size={14}
-                      color="#FF9130"
-                    />
-                  </Text> */}
+
                 </TouchableOpacity>
               </View>
               <FlatList

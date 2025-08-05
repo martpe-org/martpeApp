@@ -67,7 +67,7 @@ const ProductList = ({ storeId, catalogs, categoryFiltered }) => {
     return (
       <Pressable
         onPress={() => {
-          router.push(`(tabs)/home/productDetails/${id}`);
+          router.push(`../(tabs)/home/productDetails/${id}`);
         }}
         style={styles.product}
         key={id}

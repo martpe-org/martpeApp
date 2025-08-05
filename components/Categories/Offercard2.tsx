@@ -7,19 +7,32 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
+interface OfferDataType {
+  id?: string;
+  calculated_max_offer?: {
+    percent?: number;
+  };
+  descriptor?: {
+    name?: string;
+    images?: string[];
+    symbol?: string;
+  };
+}
+interface OfferCard2Props {
+  offerData: OfferDataType;
+}
 
-function OfferCard2({ offerData }) {
-  if (!offerData) {
-    return null;
-  } else {
-    console.log(offerData);
-  }
+const OfferCard2: React.FC<OfferCard2Props> = ({ offerData }) => {
+  if (!offerData) return null;
 
   const {
-    calculated_max_offer: { percent },
-    descriptor: { name, images, symbol },
-    id: id,
+    calculated_max_offer = {},
+    descriptor = {},
+    id = "",
   } = offerData;
+
+  const { percent = 0 } = calculated_max_offer;
+  const { name = "", images = [], symbol = "" } = descriptor;
 
   const containerHeight = 200;
   const screenWidth = Dimensions.get("window").width;
@@ -31,33 +44,36 @@ function OfferCard2({ offerData }) {
         { height: containerHeight, width: screenWidth },
       ]}
     >
-      <Image
-        source={{ uri: images[0] }}
-        // source={require('../../assets/offerCard3.png')}
-        style={styles.offerImageBg}
-        resizeMode="cover"
-      />
+      {images?.[0] && (
+        <Image
+          source={{ uri: images[0] }}
+          style={styles.offerImageBg}
+          resizeMode="cover"
+        />
+      )}
       <View style={styles.overlay}>
         <View style={styles.offerDescription}>
           <Text style={styles.discount}>Up to {Math.round(percent)}% Off</Text>
           <Text style={styles.discountDesc}>on products from {name}</Text>
-          {/* shop now button */}
+
           <TouchableOpacity
-            onPress={() => {
-              router.push(`/(tabs)/home/productListing/${id}`);
-            }}
+            onPress={() => router.push(`/(tabs)/home/productListing/${id}`)}
             style={styles.button}
           >
             <Text style={styles.buttonText}>Order Now</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.logoContainer}>
-          <Image source={{ uri: symbol }} style={styles.logoImage} />
-        </View>
+
+        {symbol && (
+          <View style={styles.logoContainer}>
+            <Image source={{ uri: symbol }} style={styles.logoImage} />
+          </View>
+        )}
       </View>
     </View>
   );
-}
+};
+
 
 export default OfferCard2;
 
@@ -65,7 +81,6 @@ const styles = StyleSheet.create({
   offerImageBg: {
     flex: 1,
     width: "100%",
-    // height: "100%",
   },
   container: {
     overflow: "hidden",

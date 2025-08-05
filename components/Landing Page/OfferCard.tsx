@@ -106,9 +106,10 @@ const OfferCard = ({ items }) => {
             {/* offer text */}
             <View style={styles.textContainer}>
               {/* offer header text */}
-              <Text style={styles.offerHeaderText}>
-                Upto {Math.ceil(item?.calculated_max_offer?.percent)}% Off
-              </Text>
+         <Text style={styles.offerHeaderText}>
+  Upto {Math.ceil(item?.calculated_max_offer?.percent ?? 0)}% Off
+</Text>
+
 
               {/* offer sub-header text */}
               <Text style={styles.offerSubHeaderText}>

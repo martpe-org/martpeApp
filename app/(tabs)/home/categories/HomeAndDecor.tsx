@@ -26,14 +26,7 @@ import { filters, offerData, deliveryData } from "../../../../constants/filters"
 import { Feather } from "@expo/vector-icons";
 import { Entypo } from "@expo/vector-icons";
 const domain = "ONDC:RET16";
-const payload = {
-  domain: domain,
-  loc: {
-    lat: 12.9716,
-    lng: 77.5946,
-  },
-  cityCode: "std:80",
-};
+
 
 function HomeAndDecor() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -81,21 +74,36 @@ function HomeAndDecor() {
     []
   );
 
-  // will only fetch the data once after rendering
-  useEffect(() => {
-    async function domainDataFetch() {
-      const response = await fetchHomeByDomain(payload);
-      const { fetchHomeByDomain: data } = response || {};
-      const { stores, offers } = data || {};
-      setStoresData(stores);
-      setOffersData(offers);
+ useEffect(() => {
+  async function fetchData() {
+    if (!selectedAddress?.lat || !selectedAddress?.lng) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetchHomeByDomain(
+        selectedAddress.lat,
+        selectedAddress.lng,
+        selectedAddress.pincode || "110001",
+        domain
+      );
+
+      setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
+    } catch (error) {
+      console.error("Error fetching home decor data:", error);
+    } finally {
       setIsLoading(false);
     }
-    domainDataFetch();
-  }, []);
+  }
 
-  const allCatalogs = storesData?.flatMap((store) => store.catalogs);
+  fetchData();
+}, [selectedAddress]);
 
+const allCatalogs = Array.isArray(storesData)
+  ? storesData.flatMap((store) => store?.catalogs || [])
+  : [];
   // Extract unique category_id values
   const uniqueCategoryIds = Array.from(
     new Set(allCatalogs?.map((catalog) => catalog?.category_id))
@@ -137,12 +145,12 @@ function HomeAndDecor() {
   const filteredStores = storesData.filter((store) => {
     const meetsCategoryCriteria =
       filterSelected.category.length == 0 ||
-      store.catalogs.some((catalog) =>
+      store?.catalogs?.some((catalog) =>
         filterSelected.category.includes(catalog.category_id)
       );
     const meetsOfferCriteria =
       filterSelected.offers === 0 ||
-      store.calculated_max_offer.percent >= filterSelected.offers;
+      store?.calculated_max_offer?.percent >= filterSelected.offers;
     const meetsDeliveryCriteria =
       filterSelected.delivery === 100 ||
       store?.time_to_ship_in_hours?.avg <= filterSelected.delivery;

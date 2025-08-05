@@ -39,15 +39,21 @@ const StoreCard2 = ({ storeData, categoryFiltered }) => {
   } else {
     console.log(storeData);
   }
-  const {
-    descriptor: { name, images, symbol },
-    domain,
-    id,
-    catalogs,
-    address: { street },
-    geoLocation: { lat, lng },
-    calculated_max_offer: { percent },
-  } = storeData;
+const {
+  descriptor = {},
+  domain,
+  id,
+  catalogs = [],
+  address = {},
+  geoLocation = {},
+  calculated_max_offer = {},
+} = storeData;
+
+const { name = "", images = [], symbol = "" } = descriptor;
+const { street = "" } = address;
+const { lat = 0, lng = 0 } = geoLocation;
+const { percent = 0 } = calculated_max_offer;
+
 
   return (
     <View style={{ height: 300, marginVertical: 20 }}>

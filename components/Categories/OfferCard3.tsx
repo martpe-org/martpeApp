@@ -8,14 +8,14 @@ import {
   Dimensions,
 } from "react-native";
 type OfferDataType = {
-  id: string;
-  calculated_max_offer: {
-    percent: number;
+  id?: string;
+  calculated_max_offer?: {
+    percent?: number;
   };
-  descriptor: {
-    name: string;
-    images: string[];
-    symbol: string;
+  descriptor?: {
+    name?: string;
+    images?: string[];
+    symbol?: string;
   };
 };
 
@@ -24,22 +24,32 @@ interface OfferCard3Props {
 }
 
 function OfferCard3({ offerData }: OfferCard3Props) {
-  if (!offerData) {
-    return null;
-  }
+  if (!offerData) return null;
 
-  const {
-    calculated_max_offer: { percent },
-    descriptor: { name, images, symbol },
-    id,
-  } = offerData;
+  const { calculated_max_offer, descriptor, id } = offerData;
+
+  const percent = calculated_max_offer?.percent ?? 0;
+  const name = descriptor?.name ?? "";
+  const images = descriptor?.images ?? [];
+  const symbol = descriptor?.symbol ?? "";
 
   const containerHeight = 200;
   const screenWidth = Dimensions.get("window").width;
 
   return (
-    <View style={[styles.container, { height: containerHeight, width: screenWidth }]}>
-      <Image source={{ uri: images[0] }} style={styles.imgBg} resizeMode="cover" />
+    <View
+      style={[
+        styles.container,
+        { height: containerHeight, width: screenWidth },
+      ]}
+    >
+      {images.length > 0 && (
+        <Image
+          source={{ uri: images[0] }}
+          style={styles.imgBg}
+          resizeMode="cover"
+        />
+      )}
       <View style={styles.overlay}>
         <View style={styles.offerDescription}>
           <Text style={styles.discount}>Up to {Math.round(percent)}% Off</Text>
@@ -47,19 +57,24 @@ function OfferCard3({ offerData }: OfferCard3Props) {
         </View>
         <TouchableOpacity
           onPressIn={() => {
-            router.push(`../(tabs)/home/productListing/${id}`);
+            if (id) {
+              router.push(`../(tabs)/home/productListing/${id}`);
+            }
           }}
           style={styles.button}
         >
           <Text style={styles.buttonText}>Order Now</Text>
         </TouchableOpacity>
-        <View style={styles.logoContainer}>
-          <Image source={{ uri: symbol }} style={styles.logoImage} />
-        </View>
+        {symbol && (
+          <View style={styles.logoContainer}>
+            <Image source={{ uri: symbol }} style={styles.logoImage} />
+          </View>
+        )}
       </View>
     </View>
   );
 }
+
 export default OfferCard3;
 
 const styles = StyleSheet.create({

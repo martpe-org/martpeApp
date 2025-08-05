@@ -37,7 +37,7 @@ export const fetchHomeByDomain = async (
 
     return (await res.json()) as FetchDomainType;
   } catch (error) {
-    console.log('Fetch homeby domain error ', error);
+    console.log('Fetch home-by domain error ', error);
     return null;
   }
 };

@@ -4,21 +4,44 @@ import ProductList2 from "./ProductList2";
 import { router } from "expo-router";
 import LikeButton from "../../components/common/likeButton";
 
-const StoreCard3 = ({ storeData, color, categoryFiltered }) => {
+const backgroundColors = {
+  red: "#FFF6F6",
+  yellow: "#FFFBEF",
+} as const;
+
+type AllowedColor = keyof typeof backgroundColors;
+interface StoreCard3Props {
+  storeData: any;
+  color: AllowedColor;
+  categoryFiltered: any;
+}
+
+const StoreCard3: React.FC<StoreCard3Props> = ({
+  storeData,
+  color,
+  categoryFiltered,
+}) => {
   if (!storeData) {
     return null;
   } else {
     console.log(storeData);
   }
-  const {
-    descriptor: { name, images, symbol },
-    domain,
-    id,
-    catalogs,
-    address: { street },
-    geoLocation: { lat, lng },
-    calculated_max_offer: { percent },
-  } = storeData;
+const {
+  descriptor = {},
+  domain,
+  id,
+  catalogs = [],
+  address = {},
+  geoLocation = {},
+  calculated_max_offer = {},
+} = storeData;
+
+const { name = "", images = [], symbol = "" } = descriptor;
+const { street = "Unknown Street" } = address;
+const { lat = 0, lng = 0 } = geoLocation;
+const { percent = 0 } = calculated_max_offer;
+
+
   const heartImages = {
     red: require("../../assets/heart-red.png"),
     yellow: require("../../assets/heart-yellow.png"),
@@ -41,13 +64,13 @@ const StoreCard3 = ({ storeData, color, categoryFiltered }) => {
             onPress={() => router.push(`/(tabs)/home/productListing/${id}`)}
             style={styles.header}
           >
-            <View style={styles.logoContainer}>
-              <Image
-                source={{ uri: symbol }}
-                // source={require("../../assets/patanjali.png")}
-                style={styles.logoImage}
-              />
-            </View>
+            <Image
+              source={
+                symbol ? { uri: symbol } : require("../../assets/patanjali.png")
+              }
+              style={styles.logoImage}
+            />
+
             <View style={styles.details}>
               <View style={styles.subDetails}>
                 <Text style={styles.brandText}>{name}</Text>

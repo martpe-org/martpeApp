@@ -1,30 +1,32 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { router, useLocalSearchParams } from "expo-router";
+import LottieView from "lottie-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ScrollView,
-  Text,
-  View,
-  StyleSheet,
   Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { widthPercentageToDP } from "react-native-responsive-screen";
+import PLPElectronics from "../../../../components/Product Listing Page/Electronics/PLPElectronics";
+import PLPFashion from "../../../../components/Product Listing Page/Fashion/PLPFashion";
 import PLPBanner from "../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
+import PLPFnB from "../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
 import Searchbox from "../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";
 import PLPGrocery from "../../../../components/Product Listing Page/Grocery/PLPGrocery";
-import PLPFnB from "../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
-import PLPFashion from "../../../../components/Product Listing Page/Fashion/PLPFashion";
 import PLPHomeAndDecor from "../../../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
 import PLPPersonalCare from "../../../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
-import PLPElectronics from "../../../../components/Product Listing Page/Electronics/PLPElectronics";
-import { getVendorById } from "../../../../gql/api/home/productListing"; //remove this
-import Loader from "../../../../components/common/Loader";
-
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { widthPercentageToDP } from "react-native-responsive-screen";
-import LottieView from "lottie-react-native";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
+import Loader from "../../../../components/common/Loader";
+import { fetchProductDetails } from "../../../../components/product/fetch-product";
+import { FetchProductDetail } from "../../../../components/product/fetch-product-type";
+import useDeliveryStore from "../../../../state/deliveryAddressStore";
+
+// Types
 interface Coords {
   accuracy: number;
   altitude: number;
@@ -41,27 +43,25 @@ interface UserLocation {
   timestamp: number;
 }
 
-interface Descriptor {
+// Types matching the component interfaces
+interface ComponentDescriptor {
   images: string[];
   name: string;
   symbol: string;
 }
 
-interface Quantity {
-  available: {
-    count: number;
-  };
-  maximum: {
-    count: number;
-  };
-}
-
-interface CatalogItem {
+interface ComponentCatalogItem {
   bpp_id: string;
   bpp_uri: string;
   catalog_id: string;
   category_id: string;
-  descriptor: Descriptor;
+  descriptor: {
+    images: string[];
+    long_desc: string;
+    name: string;
+    short_desc: string;
+    symbol: string;
+  };
   id: string;
   location_id: string;
   non_veg: boolean | null;
@@ -71,7 +71,14 @@ interface CatalogItem {
     offer_value: number | null;
     value: number;
   };
-  quantity: Quantity;
+  quantity: {
+    available: {
+      count: number;
+    };
+    maximum: {
+      count: number;
+    };
+  };
   provider_id: string;
   veg: boolean;
 }
@@ -84,8 +91,8 @@ interface VendorData {
     state?: string;
     street?: string;
   };
-  catalogs: CatalogItem[];
-  descriptor: Descriptor;
+  catalogs: ComponentCatalogItem[];
+  descriptor: ComponentDescriptor;
   fssai_license_no?: string;
   geoLocation: {
     lat: number;
@@ -106,6 +113,85 @@ interface VendorData {
   hyperLocal: boolean;
 }
 
+// Mock function to convert FetchProductDetail to VendorData format
+const convertToVendorData = (
+  productDetail: FetchProductDetail
+): VendorData | null => {
+  if (!productDetail) return null;
+
+  // Create a proper descriptor object matching ComponentDescriptor
+  const descriptor: ComponentDescriptor = {
+    images: productDetail.images || [],
+    name: productDetail.name || "",
+    symbol: productDetail.symbol || "",
+  };
+
+  // Create a mock catalog item from the product detail
+  const catalogItem: ComponentCatalogItem = {
+    bpp_id: productDetail.provider_id || "",
+    bpp_uri: "", // Not available in FetchProductDetail
+    catalog_id: productDetail.catalog_id || "",
+    category_id: productDetail.category_id || "",
+    descriptor: {
+      images: productDetail.images || [],
+      long_desc: productDetail.long_desc || "",
+      name: productDetail.name || "",
+      short_desc: productDetail.short_desc || "",
+      symbol: productDetail.symbol || "",
+    },
+    id: productDetail._id || "",
+    location_id: productDetail.location_id || "",
+    non_veg: false, // Not available in FetchProductDetail, defaulting to false
+    price: {
+      maximum_value:
+        productDetail.price?.maximum_value || productDetail.price?.value || 0,
+      offer_percent: productDetail.price?.offerPercent || null,
+      offer_value: null, // Not available in FetchProductDetail
+      value: productDetail.price?.value || 0,
+    },
+    quantity: {
+      available: {
+        count: productDetail.quantity || 0,
+      },
+      maximum: {
+        count: productDetail.quantity || 0,
+      },
+    },
+    provider_id: productDetail.provider_id || "",
+    veg: true, // Not available in FetchProductDetail, defaulting to true
+  };
+
+  return {
+    address: {
+      area_code: productDetail.store?.address?.area_code || "",
+      city: productDetail.store?.address?.city || "",
+      locality: productDetail.store?.address?.locality || "",
+      state: productDetail.store?.address?.state || "",
+      street: productDetail.store?.address?.street || "",
+    },
+    catalogs: [catalogItem], // Create array with single item
+    descriptor: descriptor,
+    fssai_license_no: productDetail.meta?.fssai_license_no || "",
+    geoLocation: {
+      lat: productDetail.gps?.lat || 0,
+      lng: productDetail.gps?.lon || 0,
+      point: {
+        coordinates: [productDetail.gps?.lon || 0, productDetail.gps?.lat || 0],
+        type: "Point",
+      },
+    },
+    storeSections: [productDetail.category || ""],
+    domain: productDetail.domain || "",
+    time_to_ship_in_hours: {
+      avg: productDetail.tts_in_h || 0,
+      max: productDetail.tts_in_h || 0,
+      min: productDetail.tts_in_h || 0,
+    },
+    panIndia: false, // This would need to be determined from your business logic
+    hyperLocal: true,
+  };
+};
+
 const PLP: React.FC = () => {
   const vendor = useLocalSearchParams();
   const animation = useRef(null);
@@ -124,7 +210,7 @@ const PLP: React.FC = () => {
     maxPrice: 0,
     discount: 0,
   });
-const [vendorData, setVendorData] = useState<VendorData | null>(null);
+  const [vendorData, setVendorData] = useState<VendorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [serviceable, setServiceable] = useState(false);
   const [searchString, setSearchString] = useState<string>("");
@@ -147,24 +233,42 @@ const [vendorData, setVendorData] = useState<VendorData | null>(null);
     []
   );
 
-  // will only fetch the data once after rendering
+  // Fetch vendor data
   useEffect(() => {
-    async function domainDataFetch() {
-      const payload = {
-        getVendorByIdId: vendor.id,
-      };
-      const response = await getVendorById(payload);
-      const { getVendorById: data } = response || {};
-      console.log("selected", selectedDetails);
-      setVendorData(data);
-      console.log(data.address.city, selectedDetails?.city);
-      checkServiceable(data);
-    }
-    domainDataFetch();
-  }, []);
+    async function fetchVendorData() {
+      if (!vendor.id) {
+        setIsLoading(false);
+        return;
+      }
 
-const checkServiceable = (vendorData: VendorData) => {
-    // Assuming selectedDetails is globally defined
+      try {
+        // Use the slug (vendor.id) directly as fetchProductDetails expects
+        const productDetail = await fetchProductDetails(vendor.id as string);
+
+        if (productDetail) {
+          const convertedData = convertToVendorData(productDetail);
+          if (convertedData) {
+            setVendorData(convertedData);
+            checkServiceable(convertedData);
+          } else {
+            setIsLoading(false);
+            setServiceable(false);
+          }
+        } else {
+          setIsLoading(false);
+          setServiceable(false);
+        }
+      } catch (error) {
+        console.error("Error fetching vendor data:", error);
+        setIsLoading(false);
+        setServiceable(false);
+      }
+    }
+
+    fetchVendorData();
+  }, [vendor.id]);
+
+  const checkServiceable = (vendorData: VendorData) => {
     const panIndia = vendorData?.panIndia;
     console.log("panIndia", panIndia);
     console.log("selectedDetails", selectedDetails);
@@ -190,12 +294,15 @@ const checkServiceable = (vendorData: VendorData) => {
   if (isLoading) {
     return <Loader />;
   }
-  // if (error) {
-  //   return <Text style={{ color: "black" }}>Error: {error.message}</Text>;
-  // }
+
   if (!vendorData) {
-    return <Text style={{ color: "black" }}>No data available</Text>;
+    return (
+      <View style={styles.contentContainer}>
+        <Text style={{ color: "black" }}>No data available</Text>
+      </View>
+    );
   }
+
   if (!serviceable) {
     return (
       <View
@@ -212,19 +319,13 @@ const checkServiceable = (vendorData: VendorData) => {
             autoPlay
             ref={animation}
             style={{
-              // flex: 1,
               width: widthPercentageToDP("100"),
-              // height: widthPercentageToDP("90"),
               backgroundColor: "#fff",
-              // borderColor: "#000",
-              // borderWidth: 1,
             }}
-            // Find more Lottie files at https://lottiefiles.com/featured
             source={require("../../../../assets/lottiefiles/no_store.json")}
           />
         </View>
 
-        {/*  Your cart is empty  */}
         <View style={{ height: 50, alignItems: "center" }}>
           <Text
             style={{
@@ -232,8 +333,6 @@ const checkServiceable = (vendorData: VendorData) => {
               fontWeight: "500",
               paddingHorizontal: Dimensions.get("screen").width * 0.1,
               textAlign: "center",
-              // marginBottom: 20,
-              // paddingBottom: 20,
               fontSize: 16,
             }}
           >
@@ -241,7 +340,6 @@ const checkServiceable = (vendorData: VendorData) => {
           </Text>
         </View>
 
-        {/* Continue Button */}
         <TouchableOpacity
           onPress={() => router.push("/address/SavedAddresses")}
           style={{
@@ -278,6 +376,7 @@ const checkServiceable = (vendorData: VendorData) => {
       </View>
     );
   }
+
   // Banner data
   const { locality, street, city, state, area_code } =
     vendorData?.address || {};
@@ -285,7 +384,8 @@ const checkServiceable = (vendorData: VendorData) => {
     .filter((data) => data)
     .join(", ");
 
-  const descriptor = vendorData?.descriptor;
+  const descriptor = vendorData?.descriptor || {};
+
   // Formatting the categories
   const storeCategories = vendorData.storeSections?.map((section) =>
     section
@@ -295,12 +395,14 @@ const checkServiceable = (vendorData: VendorData) => {
   );
   const storeSections = storeCategories?.join(", ") || "";
   const locationDetails = vendorData.geoLocation;
+
   // Dropdown data
   const catalog = vendorData.catalogs || [];
-  function getUniqueCategories(data: CatalogItem[]) {
+  function getUniqueCategories(data: ComponentCatalogItem[]) {
     return Array.from(new Set(data.map((item) => item.category_id)));
   }
   const dropdownHeaders = getUniqueCategories(catalog);
+
   // Footer data
   const fssaiLiscenseNo = vendorData.fssai_license_no || "";
 
@@ -312,8 +414,8 @@ const checkServiceable = (vendorData: VendorData) => {
           ["veg", "nonveg", "recommended", "topRated", "offers"].includes(
             key
           ) &&
-          typeof button[key] === "boolean" &&
-          button[key]
+          typeof (button as any)[key] === "boolean" &&
+          (button as any)[key]
             ? key
             : []
         )
@@ -329,7 +431,7 @@ const checkServiceable = (vendorData: VendorData) => {
     case "ONDC:RET10":
       ProductListingPage = (
         <PLPGrocery
-          providerId={vendor?.id}
+          providerId={vendor?.id as string}
           catalog={catalog}
           sidebarTitles={dropdownHeaders}
           searchString={searchString}
@@ -345,13 +447,12 @@ const checkServiceable = (vendorData: VendorData) => {
           vendorAddress={vendorAddress}
           catalog={catalog}
           dropdownHeaders={dropdownHeaders}
-          street={street}
+          street={street || ""}
           fssaiLiscenseNo={fssaiLiscenseNo}
-          providerId={vendor?.id}
+          providerId={vendor?.id as string}
           handleOpenModal={handleOpenPress}
           foodDetails={setFoodDetails}
           searchString={searchString}
-          handleOpenPress={handleOpenPress}
         />
       );
       break;
@@ -363,7 +464,7 @@ const checkServiceable = (vendorData: VendorData) => {
     case "ONDC:RET13":
       ProductListingPage = (
         <PLPPersonalCare
-          providerId={vendor.id}
+          providerId={vendor.id as string}
           catalog={catalog}
           sidebarTitles={dropdownHeaders}
           searchString={searchString}
@@ -371,10 +472,9 @@ const checkServiceable = (vendorData: VendorData) => {
       );
       break;
     case "ONDC:RET14":
-      // ProductListingPage = <PLPPersonalCare catalog={catalog} sidebarTitles={dropdownHeaders}/>
       ProductListingPage = (
         <PLPElectronics
-          providerId={vendor.id}
+          providerId={vendor.id as string}
           catalog={catalog}
           sidebarTitles={dropdownHeaders}
           searchString={searchString}
@@ -382,18 +482,18 @@ const checkServiceable = (vendorData: VendorData) => {
       );
       break;
     case "ONDC:RET15":
-      ProductListingPage = <Text>Create Elements for RET1</Text>;
+      ProductListingPage = <Text>Create Elements for RET15</Text>;
       break;
     case "ONDC:RET16":
       ProductListingPage = <PLPHomeAndDecor catalog={catalog} />;
       break;
 
     default:
-      ProductListingPage = <Text>Invaid Id</Text>;
+      ProductListingPage = <Text>Invalid Domain</Text>;
       break;
   }
 
-  const onInputChanged = (text) => {
+  const onInputChanged = (text: string) => {
     setSearchString(text);
   };
 
@@ -408,13 +508,13 @@ const checkServiceable = (vendorData: VendorData) => {
           geoLocation={locationDetails}
           userLocation={selectedDetails}
           userAddress={selectedDetails?.fullAddress}
-          vendorId={vendor.id}
+          vendorId={vendor.id as string}
         />
 
         {/* store search box */}
         <Searchbox
           search={onInputChanged}
-          placeHolder={descriptor.name}
+          placeHolder={descriptor.name || "Store"}
           catalog={catalog}
         />
 

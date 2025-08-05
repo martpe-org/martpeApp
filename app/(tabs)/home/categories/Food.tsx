@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import { FetchDomainType, HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
 import Search from "../../../../components/common/Search";
 import { foodCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
@@ -72,24 +73,12 @@ interface TimeToShip {
   [key: string]: any; // Allow additional time properties
 }
 
-// Use a more flexible approach for store data
-interface StoreData {
-  id?: string | number; // Make id optional and allow string or number
-  [key: string]: any; // Allow any additional properties from API
-}
-
-// If you know the exact structure expected by StoreCard4, use this instead:
-interface StoreCardProps {
+// Extend Store2 interface to match what components expect
+interface ExtendedStore extends Store2 {
   id: string;
-  name?: string;
-  description?: string;
-  image?: string;
-  location?: any;
-  rating?: number;
   catalogs?: Catalog[];
   calculated_max_offer?: CalculatedMaxOffer;
   time_to_ship_in_hours?: TimeToShip;
-  [key: string]: any;
 }
 
 const domain = "ONDC:RET11";
@@ -119,23 +108,14 @@ function Food() {
     discount: 0,
   });
   const containerHeight = 200;
-  const [storesData, setStoresData] = useState<any[]>([]);
-  const [offersData, setOffersData] = useState<any[]>([]);
+  const [storesData, setStoresData] = useState<ExtendedStore[]>([]);
+  const [offersData, setOffersData] = useState<HomeOfferType[]>([]);
   const [activeFilter, setActiveFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [bottonSheetIndex, setBottonSheetIndex] = useState(-1);
 
   const { userDetails, getUserDetails } = useUserDetails();
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  
-  const payload = {
-    domain: domain,
-    loc: {
-      lat: selectedAddress?.lat,
-      lng: selectedAddress?.lng,
-    },
-    cityCode: "std:80",
-  };
 
   useEffect(() => {
     getUserDetails();
@@ -174,26 +154,59 @@ function Food() {
     []
   );
 
+  // Transform Store2 to ExtendedStore format
+  const transformStoreData = (store: Store2): ExtendedStore => {
+    return {
+      ...store,
+      id: store.provider_id || store.slug || `store-${Date.now()}`,
+      catalogs: store.menu || [], // Assuming menu contains catalog data
+      calculated_max_offer: {
+        percent: store.maxStoreItemOfferPercent || 0,
+      },
+      time_to_ship_in_hours: {
+        avg: store.avg_tts_in_h || 0,
+      },
+    };
+  };
+
   // Fetch domain data
   useEffect(() => {
     async function domainDataFetch() {
+      if (!selectedAddress?.lat || !selectedAddress?.lng) {
+        console.log("No location data available");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetchHomeByDomain(payload);
-        const { fetchHomeByDomain: data } = response || {};
-        const { stores, offers } = data || {};
+        // Extract pincode from area_code or use a default
+        const pincode = selectedAddress?.pincode || "110001";
         
-        if (stores) {
-          const filteredStores: any[] = stores.filter(
-            (obj: any) => Object.keys(obj).length > 0
-          );
-          setStoresData(filteredStores);
-        }
+        const response = await fetchHomeByDomain(
+          selectedAddress.lat,
+          selectedAddress.lng,
+          pincode,
+          domain,
+          1, // page
+          20 // limit
+        );
         
-        if (offers) {
-          const filteredOffers = offers.filter(
-            (obj: any) => Object.keys(obj).length > 0
-          );
-          setOffersData(filteredOffers);
+        if (response) {
+          const { stores, offers } = response;
+          
+          if (stores?.items) {
+            const transformedStores = stores.items
+              .filter((store: Store2) => store && Object.keys(store).length > 0)
+              .map(transformStoreData);
+            setStoresData(transformedStores);
+          }
+          
+          if (offers) {
+            const filteredOffers = offers.filter(
+              (offer: HomeOfferType) => offer && Object.keys(offer).length > 0
+            );
+            setOffersData(filteredOffers);
+          }
         }
         
         setIsLoading(false);
@@ -202,11 +215,12 @@ function Food() {
         setIsLoading(false);
       }
     }
+    
     domainDataFetch();
-  }, []);
+  }, [selectedAddress]);
 
   // Flatten the catalogs from each store into a single array
-  const allCatalogs = storesData?.flatMap((store: any) => store?.catalogs || []) || [];
+  const allCatalogs = storesData?.flatMap((store: ExtendedStore) => store?.catalogs || []) || [];
 
   // Extract unique category_id values
   const uniqueCategoryIds: CategoryOption[] = Array.from(
@@ -247,11 +261,25 @@ function Food() {
     return <Loader />;
   }
 
-  if (!storesData && !offersData) {
-    return <Text style={{ color: "black" }}>No data available</Text>;
+  if (!storesData.length && !offersData.length) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Search
+            placeholder="Search for food.."
+            showBackArrow={true}
+            showLocation={false}
+            domain={domain}
+          />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: "black", fontSize: 16 }}>No restaurants available in your area</Text>
+        </View>
+      </View>
+    );
   }
 
-  const filteredStores = storesData.filter((store: any) => {
+  const filteredStores = storesData.filter((store: ExtendedStore) => {
     const meetsCategoryCriteria =
       filterSelected.category.length === 0 ||
       (store.catalogs && store.catalogs.some((catalog: any) =>
@@ -474,7 +502,7 @@ function Food() {
               backgroundColor: "#f8f9fa",
             }}
           >
-            {filteredStores.map((storeData: any, index: number) => (
+            {filteredStores.map((storeData: ExtendedStore, index: number) => (
               <StoreCard4
                 categoryFiltered={filterSelected?.category}
                 key={storeData?.id || index}
