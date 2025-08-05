@@ -24,6 +24,7 @@ import FilterCard from "../../../../components/search/filterCard";
 import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
 import { Feather } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 
 const domain = "ONDC:RET12";
 
@@ -189,21 +190,24 @@ export default Fashion;
 
 const styles = StyleSheet.create({
   container: {
+    display: "flex",
+    flexDirection: "column",
     flex: 1,
-    backgroundColor: "#fff",
   },
   headerContainer: {
     backgroundColor: "#fff",
-    paddingVertical: 10,
     alignItems: "center",
+    flexDirection: "row",
+    paddingVertical: 5,
   },
   subCategories: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    justifyContent: "center",
     flexWrap: "wrap",
-    marginHorizontal: 10,
+    marginHorizontal: 2,
   },
-  subCategory: {
+ subCategory: {
     position: "relative",
     margin: 5,
     height: 160,

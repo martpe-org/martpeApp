@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -20,7 +26,6 @@ import {
   personalCareCategoryData,
   electronicsCategoryData,
   homeAndDecorCategoryData,
-  // Import stores data
 } from "../../../constants/categories";
 import { Animated } from "react-native";
 import { fetchHome } from "../../../hook/fetch-home-data";
@@ -34,11 +39,9 @@ import * as Location from "expo-location";
 import { Ionicons, Entypo, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
-import OfferCard from "../../../components/Landing Page/OfferCard";
 import { getAddress } from "../../../utility/location";
 
 const windowWidth = Dimensions.get("window").width;
-const windowHeight = Dimensions.get("window").height;
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -47,6 +50,7 @@ const HomeScreen = () => {
     (state) => state.addDeliveryDetail
   );
 
+  // State variables
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null
   );
@@ -59,16 +63,24 @@ const HomeScreen = () => {
   const [isLoadingHomeData, setIsLoadingHomeData] = useState(false);
   const [restaurantsData, setRestaurantsData] = useState<DomainStore2[]>([]);
   const [storesData, setStoresData] = useState<DomainStore2[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
 
+  // Animation states
   const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
   const [searchTextIndex, setSearchTextIndex] = useState(0);
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
+  // Memoize expensive calculations
+  const hasLocationAndPincode = useMemo(() => {
+    return location && selectedDetails?.pincode;
+  }, [location, selectedDetails?.pincode]);
+
+  // Search text animation effect
   useEffect(() => {
     const interval = setInterval(() => {
       setSearchTextIndex((prevIndex) => (prevIndex + 1) % searchTexts.length);
     }, 5000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -83,96 +95,100 @@ const HomeScreen = () => {
 
   const translateY = scrollAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [10, -10], // Scrolls upward by 40 units
+    outputRange: [10, -10],
   });
 
-  useEffect(() => {
-    async function initHomePage() {
-      await askForLocationPermissions();
-    }
-    initHomePage();
-  }, []);
+  // Location permission and fetching
+  const askForLocationPermissions = useCallback(async (): Promise<void> => {
+    if (isLocationLoading) return; // Prevent multiple calls
 
-  const askForLocationPermissions = async (): Promise<void> => {
+    setIsLocationLoading(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Permission to access location was denied");
         return;
       }
-      const location = await Location.getCurrentPositionAsync();
-      setLocation(location);
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
     } catch (error) {
-      console.error(
-        "Error during the location permission and fetching:",
-        error
-      );
+      console.error("Error during location permission and fetching:", error);
+      setErrorMsg("Failed to get location");
+    } finally {
+      setIsLocationLoading(false);
     }
-  };
+  }, [isLocationLoading]);
 
-  const getCityName = async (
-    latitude: number,
-    longitude: number
-  ): Promise<void> => {
-    try {
-      const response = await getAddress(latitude, longitude);
-      const address = response?.data?.items[0]?.address;
-      addDeliveryDetail({
-        addressId: null,
-        city: address?.city || null,
-        state: address?.state || null,
-        fullAddress: `${address?.street || ""}, ${address?.city || ""}, ${
-          address?.postalCode || ""
-        }`,
-        name: "Current Location",
-        isDefault: false,
-        pincode: address?.postalCode || null,
-        lat: latitude,
-        lng: longitude,
-        streetName: address?.street || null,
-      });
-    } catch (error) {
-      console.error("Error during geocoding with API:", error);
-    }
-  };
+  // Get city name from coordinates
+  const getCityName = useCallback(
+    async (latitude: number, longitude: number): Promise<void> => {
+      try {
+        const response = await getAddress(latitude, longitude);
+        const address = response?.data?.items[0]?.address;
+        addDeliveryDetail({
+          addressId: null,
+          city: address?.city || null,
+          state: address?.state || null,
+          fullAddress: `${address?.street || ""}, ${address?.city || ""}, ${
+            address?.postalCode || ""
+          }`,
+          name: "Current Location",
+          isDefault: false,
+          pincode: address?.postalCode || null,
+          lat: latitude,
+          lng: longitude,
+          streetName: address?.street || null,
+        });
+      } catch (error) {
+        console.error("Error during geocoding with API:", error);
+      }
+    },
+    [addDeliveryDetail]
+  );
 
-  const getUserLocationDetails = async (): Promise<void> => {
+  // Get user location details
+  const getUserLocationDetails = useCallback(async (): Promise<void> => {
+    if (!location) return;
     try {
-      if (!location) return;
-      const { latitude, longitude } = location?.coords || {};
+      const { latitude, longitude } = location.coords;
       await getCityName(latitude, longitude);
     } catch (error) {
-      console.error(`Error in fetching the user location details`, error);
+      console.error("Error in fetching user location details:", error);
     }
-  };
+  }, [location, getCityName]);
 
-  // Fetch home data when location and delivery details are available
-  const fetchHomeData = async (): Promise<void> => {
-    if (!location || !selectedDetails?.pincode) return;
+  // Fetch home data - memoized to prevent infinite re-renders
+  const fetchHomeData = useCallback(async (): Promise<void> => {
+    if (!location || !selectedDetails?.pincode || isLoadingHomeData) {
+      console.log("Skipping fetch - missing requirements or already loading");
+      return;
+    }
 
+    console.log("Fetching home data...");
     setIsLoadingHomeData(true);
+
     try {
       const { latitude, longitude } = location.coords;
 
-      // Fetch restaurants from Food & Beverage domain
-      const restaurantData = await fetchHomeByDomain(
-        latitude,
-        longitude,
-        selectedDetails.pincode,
-        "ONDC:RET10", // Food & Beverage domain
-        1, // page
-        20 // limit
-      );
-
-      // Fetch stores from Grocery domain
-      const storeData = await fetchHomeByDomain(
-        latitude,
-        longitude,
-        selectedDetails.pincode,
-        "ONDC:RET12", // Grocery domain
-        1, // page
-        20 // limit
-      );
+      // Fetch both restaurant and store data in parallel
+      const [restaurantData, storeData] = await Promise.all([
+        fetchHomeByDomain(
+          latitude,
+          longitude,
+          selectedDetails.pincode,
+          "ONDC:RET10",
+          1,
+          20
+        ),
+        fetchHomeByDomain(
+          latitude,
+          longitude,
+          selectedDetails.pincode,
+          "ONDC:RET12",
+          1,
+          20
+        ),
+      ]);
 
       if (restaurantData) {
         setRestaurantDomainData(restaurantData);
@@ -183,175 +199,236 @@ const HomeScreen = () => {
         setStoreDomainData(storeData);
         setStoresData(storeData.stores?.items || []);
       }
+
+      setErrorMsg(null); // Clear any previous errors
     } catch (error) {
       console.error("Error fetching home data:", error);
+      setErrorMsg("Failed to load nearby stores");
     } finally {
       setIsLoadingHomeData(false);
     }
-  };
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    selectedDetails?.pincode,
+    isLoadingHomeData,
+  ]);
+
+  // Effects
+  useEffect(() => {
+    askForLocationPermissions();
+  }, []);
 
   useEffect(() => {
-    if (location) {
+    if (location && !selectedDetails?.city) {
       getUserLocationDetails();
     }
-  }, [location]);
+  }, [location, selectedDetails?.city, getUserLocationDetails]);
 
-  // Fetch home data when both location and delivery details are available
   useEffect(() => {
-    if (location && selectedDetails?.pincode) {
+    if (hasLocationAndPincode && !isLoadingHomeData) {
       fetchHomeData();
     }
-  }, [location, selectedDetails?.pincode]);
+  }, [hasLocationAndPincode, fetchHomeData]);
 
-  const handleLocationPress = () => {
+  // Event handlers
+  const handleLocationPress = useCallback(() => {
     router.push("../address/SavedAddresses");
-  };
+  }, [router]);
 
-  // Render functions for category sections
-  const renderFoodCategories = ({ item, index }) => {
-    if (index % 2 !== 0) return null;
-    const nextItem = foodCategoryData[index + 1];
-
-    return (
-      <View style={styles.categoryRow}>
-        <TouchableOpacity
-          onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
-          style={styles.categoryItem}
-        >
-          <Image source={{ uri: item.image }} style={styles.categoryImage} />
-          <Text style={styles.categoryName}>{item.name}</Text>
-        </TouchableOpacity>
-        {nextItem && (
-          <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
-            style={styles.categoryItem}
-          >
-            <Image
-              source={{ uri: nextItem.image }}
-              style={styles.categoryImage}
-            />
-            <Text style={styles.categoryName}>{nextItem.name}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  // Render function for nearby items (restaurants/stores)
-  const renderNearbyItem = ({ item }: { item: DomainStore2 }) => (
-    <TouchableOpacity
-      style={styles.nearbyCard}
-      onPress={() =>
-        router.push(`/(tabs)/home/productListing/${item.provider_id}`)
-      }
-    >
-      {/* Store Image */}
-      <View style={styles.nearbyImageContainer}>
-        <Image
-          source={{ uri: item.symbol || "https://via.placeholder.com/120x80" }}
-          style={styles.nearbyImage}
-          resizeMode="cover"
-        />
-        {/* Offer Badge */}
-        {item.offers && item.offers.length > 0 && (
-          <View style={styles.offerBadge}>
-            <Text style={styles.offerBadgeText}>
-              UPTO {item.maxStoreItemOfferPercent || "50"}% OFF
-            </Text>
-          </View>
-        )}
-        {/* Delivery Time Badge */}
-        {item.avg_tts_in_h && (
-          <View style={styles.timeBadge}>
-            <Ionicons name="time-outline" size={10} color="white" />
-            <Text style={styles.timeBadgeText}>
-              {Math.round(item.avg_tts_in_h * 24)} hrs
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Store Info */}
-      <View style={styles.nearbyInfo}>
-        <Text style={styles.nearbyName} numberOfLines={1}>
-          {item.name || "Unknown Store"}
-        </Text>
-        <Text style={styles.nearbyCategory} numberOfLines={1}>
-          {item.store_categories?.join(", ") ||
-            item.domain?.replace("ONDC:", "") ||
-            "Store"}
-        </Text>
-        <Text style={styles.nearbyAddress} numberOfLines={1}>
-          {item.address?.locality || item.address?.city || "Local Area"}
-        </Text>
-
-        {/* Rating and Distance */}
-        <View style={styles.nearbyBottomRow}>
-          {item.rating && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={12} color="#FFD700" />
-              <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-            </View>
-          )}
-          <Text style={styles.nearbyDistance}>
-            {item.distance_in_km ? `${item.distance_in_km.toFixed(1)} km` : ""}
-          </Text>
-          <View style={styles.statusContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor:
-                    item.status === "open" ? "#00C851" : "#FF4444",
-                },
-              ]}
-            />
-            <Text
-              style={[
-                styles.statusText,
-                { color: item.status === "open" ? "#00C851" : "#FF4444" },
-              ]}
-            >
-              {item.status === "open" ? "Open" : "Closed"}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
+  const handleCategoryPress = useCallback(
+    (item: any) => {
+      setActiveCategory(item.id);
+      router.push(`./categories/${item.link}`);
+    },
+    [router]
   );
 
-  const renderGroceryCategories = ({ item, index }) => {
-    if (index % 2 !== 0) return null;
-    const nextItem = groceriesCategoryData[index + 1];
+  const handleRetry = useCallback(() => {
+    if (hasLocationAndPincode) {
+      fetchHomeData();
+    } else {
+      askForLocationPermissions();
+    }
+  }, [hasLocationAndPincode, fetchHomeData, askForLocationPermissions]);
 
-    return (
-      <View style={styles.categoryRow}>
-        <TouchableOpacity
-          onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
-          style={styles.categoryItem}
-        >
-          <Image source={{ uri: item.image }} style={styles.categoryImage} />
-          <Text style={styles.categoryName}>{item.name}</Text>
-        </TouchableOpacity>
-        {nextItem && (
+  // Render functions
+  const renderCategoryItem = useCallback(
+    ({ item }: { item: any }) => (
+      <TouchableOpacity
+        style={[
+          styles.catCard,
+          activeCategory === item.id && styles.catCardActive,
+        ]}
+        onPress={() => handleCategoryPress(item)}
+      >
+        <Image source={item.image} style={styles.iconImg} />
+        <Text style={styles.catLabel} numberOfLines={1}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    ),
+    [activeCategory, handleCategoryPress]
+  );
+
+  const renderNearbyItem = useCallback(
+    ({ item }: { item: DomainStore2 }) => (
+      <TouchableOpacity
+        style={styles.nearbyCard}
+        onPress={() =>
+          router.push(`/(tabs)/home/productListing/${item.provider_id}`)
+        }
+      >
+        <View style={styles.nearbyImageContainer}>
+          <Image
+            source={{
+              uri: item.symbol || "https://via.placeholder.com/120x80",
+            }}
+            style={styles.nearbyImage}
+            resizeMode="cover"
+          />
+          {item.offers && item.offers.length > 0 && (
+            <View style={styles.offerBadge}>
+              <Text style={styles.offerBadgeText}>
+                UPTO {item.maxStoreItemOfferPercent || "50"}% OFF
+              </Text>
+            </View>
+          )}
+          {item.avg_tts_in_h && (
+            <View style={styles.timeBadge}>
+              <Ionicons name="time-outline" size={10} color="white" />
+              <Text style={styles.timeBadgeText}>
+                {Math.round(item.avg_tts_in_h * 24)} hrs
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.nearbyInfo}>
+          <Text style={styles.nearbyName} numberOfLines={1}>
+            {item.name || "Unknown Store"}
+          </Text>
+          <Text style={styles.nearbyCategory} numberOfLines={1}>
+            {item.store_categories?.join(", ") ||
+              item.domain?.replace("ONDC:", "") ||
+              "Store"}
+          </Text>
+          <Text style={styles.nearbyAddress} numberOfLines={1}>
+            {item.address?.locality || item.address?.city || "Local Area"}
+          </Text>
+
+          <View style={styles.nearbyBottomRow}>
+            {item.rating && (
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={12} color="#FFD700" />
+                <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+              </View>
+            )}
+            <Text style={styles.nearbyDistance}>
+              {item.distance_in_km
+                ? `${item.distance_in_km.toFixed(1)} km`
+                : ""}
+            </Text>
+            <View style={styles.statusContainer}>
+              <View
+                style={[
+                  styles.statusDot,
+                  {
+                    backgroundColor:
+                      item.status === "open" ? "#00C851" : "#FF4444",
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: item.status === "open" ? "#00C851" : "#FF4444" },
+                ]}
+              >
+                {item.status === "open" ? "Open" : "Closed"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    ),
+    [router]
+  );
+
+  const renderFoodCategories = useCallback(
+    ({ item, index }: { item: any; index: number }) => {
+      if (index % 2 !== 0) return null;
+      const nextItem = foodCategoryData[index + 1];
+
+      return (
+        <View style={styles.categoryRow}>
           <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
+            onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
             style={styles.categoryItem}
           >
-            <Image
-              source={{ uri: nextItem.image }}
-              style={styles.categoryImage}
-            />
-            <Text style={styles.categoryName}>{nextItem.name}</Text>
+            <Image source={{ uri: item.image }} style={styles.categoryImage} />
+            <Text style={styles.categoryName}>{item.name}</Text>
           </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
+          {nextItem && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`/(tabs)/home/result/${nextItem.name}`)
+              }
+              style={styles.categoryItem}
+            >
+              <Image
+                source={{ uri: nextItem.image }}
+                style={styles.categoryImage}
+              />
+              <Text style={styles.categoryName}>{nextItem.name}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    },
+    [router]
+  );
+
+  const renderGroceryCategories = useCallback(
+    ({ item, index }: { item: any; index: number }) => {
+      if (index % 2 !== 0) return null;
+      const nextItem = groceriesCategoryData[index + 1];
+
+      return (
+        <View style={styles.categoryRow}>
+          <TouchableOpacity
+            onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
+            style={styles.categoryItem}
+          >
+            <Image source={{ uri: item.image }} style={styles.categoryImage} />
+            <Text style={styles.categoryName}>{item.name}</Text>
+          </TouchableOpacity>
+          {nextItem && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`/(tabs)/home/result/${nextItem.name}`)
+              }
+              style={styles.categoryItem}
+            >
+              <Image
+                source={{ uri: nextItem.image }}
+                style={styles.categoryImage}
+              />
+              <Text style={styles.categoryName}>{nextItem.name}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    },
+    [router]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Red Header Section */}
         <View style={styles.redSection}>
           {/* Location */}
@@ -366,7 +443,7 @@ const HomeScreen = () => {
               style={{ marginRight: 16 }}
             />
             <Text style={styles.deliveryTxt}>Delivering to</Text>
-            {!selectedDetails?.city ? (
+            {isLocationLoading || (!selectedDetails?.city && location) ? (
               <ActivityIndicator
                 size="small"
                 color="white"
@@ -375,8 +452,8 @@ const HomeScreen = () => {
             ) : (
               <>
                 <Text style={styles.locationTxt} numberOfLines={1}>
-                  {selectedDetails.city}
-                  {selectedDetails.pincode
+                  {selectedDetails?.city || "Select Location"}
+                  {selectedDetails?.pincode
                     ? `, ${selectedDetails.pincode}`
                     : ""}
                 </Text>
@@ -430,23 +507,29 @@ const HomeScreen = () => {
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.catList}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.catCard}
-                onPress={() => router.push(`./categories/${item.link}`)}
-              >
-                <Image source={item.image} style={styles.iconImg} />
-                <Text style={styles.catLabel} numberOfLines={1}>
-                  {item.name}
-                </Text>
-              </TouchableOpacity>
-            )}
+            renderItem={renderCategoryItem}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
         </View>
 
         {/* White Content Section */}
         <View style={styles.whiteSection}>
-          {/* Loading indicator for home data */}
+          {/* Error Message */}
+          {errorMsg && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleRetry}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Loading indicator */}
           {isLoadingHomeData && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF9130" />
@@ -454,8 +537,8 @@ const HomeScreen = () => {
             </View>
           )}
 
-          {/* Restaurants Nearby Section */}
-          {restaurantsData?.length > 0 && (
+          {/* Restaurants Section */}
+          {!isLoadingHomeData && restaurantsData.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionTitleContainer}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
@@ -463,7 +546,8 @@ const HomeScreen = () => {
                   style={styles.seeAllButton}
                   onPress={() => router.push("/(tabs)/home/categories/Food")}
                 >
-            
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#FF9130" />
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -471,18 +555,19 @@ const HomeScreen = () => {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) =>
-                  `restaurant_${
-                    item.provider_id || item.vendor_id || item.location_id
-                  }_${index}`
+                 ( `restaurant_${item.provider_id || item.vendor_id}_${index}`)
                 }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderNearbyItem}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={5}
+                windowSize={5}
               />
             </View>
           )}
 
-          {/* Stores Nearby Section */}
-          {storesData?.length > 0 && (
+          {/* Stores Section */}
+          {!isLoadingHomeData && storesData.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionTitleContainer}>
                 <Text style={styles.sectionTitle}>Stores Near You</Text>
@@ -490,7 +575,8 @@ const HomeScreen = () => {
                   style={styles.seeAllButton}
                   onPress={() => router.push("/(tabs)/home/categories/Grocery")}
                 >
-
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#FF9130" />
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -498,28 +584,30 @@ const HomeScreen = () => {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) =>
-                  `store_${
-                    item.provider_id || item.vendor_id || item.location_id
-                  }_${index}`
+                 ( `store_${item.provider_id || item.vendor_id}_${index}`)
                 }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderNearbyItem}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={5}
+                windowSize={5}
               />
             </View>
           )}
 
-          {/* Show message when no data is available */}
+          {/* No Data Message */}
           {!isLoadingHomeData &&
-            restaurantsData?.length === 0 &&
-            storesData?.length === 0 &&
-            selectedDetails?.pincode && (
+            restaurantsData.length === 0 &&
+            storesData.length === 0 &&
+            hasLocationAndPincode && (
               <View style={styles.noDataContainer}>
+                <Ionicons name="storefront-outline" size={48} color="#ccc" />
                 <Text style={styles.noDataText}>
                   No stores or restaurants found in your area
                 </Text>
                 <TouchableOpacity
                   style={styles.retryButton}
-                  onPress={fetchHomeData}
+                  onPress={handleRetry}
                 >
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
@@ -646,7 +734,19 @@ const HomeScreen = () => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.personalCareContainer}>
                 {personalCareCategoryData.map((item, index) => (
-                  <TouchableOpacity key={index} style={styles.personalCareCard}>
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.personalCareCard}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(tabs)/home/result/[search]",
+                        params: {
+                          search: item.name,
+                          domainData: "ONDC:RET10",
+                        },
+                      });
+                    }}
+                  >
                     <View style={styles.personalCareImageContainer}>
                       <Image
                         source={{ uri: item.image }}
@@ -701,7 +801,19 @@ const HomeScreen = () => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.homeDecorContainer}>
                 {homeAndDecorCategoryData.map((item, index) => (
-                  <TouchableOpacity key={index} style={styles.homeDecorCard}>
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.homeDecorCard}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(tabs)/home/result/[search]",
+                        params: {
+                          search: item.name,
+                          domainData: "ONDC:RET10",
+                        },
+                      });
+                    }}
+                  >
                     <View style={styles.homeDecorImageContainer}>
                       <Image
                         source={{ uri: item.image }}
@@ -774,6 +886,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 18,
     width: 46,
+    borderRadius: 8, // Add border radius for better look
+    backgroundColor: "transparent", // Default background
+  },
+  catCardActive: {
+    backgroundColor: "#007AFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   iconImg: {
     width: 45,
@@ -995,8 +1120,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-
-  //
   sectionTitleContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1172,6 +1295,19 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 14,
     fontWeight: "500",
+  },
+  errorContainer: {
+    backgroundColor: "#ffebee",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f44336",
+  },
+  errorText: {
+    color: "#c62828",
+    fontSize: 14,
+    marginBottom: 8,
   },
 });
 
