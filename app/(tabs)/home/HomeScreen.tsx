@@ -65,16 +65,33 @@ const HomeScreen = () => {
   const [storesData, setStoresData] = useState<DomainStore2[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [hasLocationBeenFetched, setHasLocationBeenFetched] = useState(false);
+  const [hasHomeDataBeenFetched, setHasHomeDataBeenFetched] = useState(false);
 
   // Animation states
   const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
   const [searchTextIndex, setSearchTextIndex] = useState(0);
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
-  // Memoize expensive calculations
+  // Memoize expensive calculations with stable references
+  const locationCoords = useMemo(() => {
+    return location ? {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude
+    } : null;
+  }, [location?.coords?.latitude, location?.coords?.longitude]);
+
+  const selectedPincode = useMemo(() => {
+    return selectedDetails?.pincode || null;
+  }, [selectedDetails?.pincode]);
+
+  const selectedCity = useMemo(() => {
+    return selectedDetails?.city || null;
+  }, [selectedDetails?.city]);
+
   const hasLocationAndPincode = useMemo(() => {
-    return location && selectedDetails?.pincode;
-  }, [location, selectedDetails?.pincode]);
+    return locationCoords && selectedPincode;
+  }, [locationCoords, selectedPincode]);
 
   // Search text animation effect
   useEffect(() => {
@@ -91,35 +108,38 @@ const HomeScreen = () => {
       duration: 5000,
       useNativeDriver: true,
     }).start();
-  }, [searchTextIndex]);
+  }, [searchTextIndex, scrollAnim]);
 
   const translateY = scrollAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [10, -10],
   });
 
-  // Location permission and fetching
+  // Location permission and fetching - stable callback
   const askForLocationPermissions = useCallback(async (): Promise<void> => {
-    if (isLocationLoading) return; // Prevent multiple calls
+    if (isLocationLoading || hasLocationBeenFetched) return;
 
     setIsLocationLoading(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Permission to access location was denied");
+        setHasLocationBeenFetched(true);
         return;
       }
       const currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
+      setHasLocationBeenFetched(true);
     } catch (error) {
       console.error("Error during location permission and fetching:", error);
       setErrorMsg("Failed to get location");
+      setHasLocationBeenFetched(true);
     } finally {
       setIsLocationLoading(false);
     }
-  }, [isLocationLoading]);
+  }, [isLocationLoading, hasLocationBeenFetched]);
 
-  // Get city name from coordinates
+  // Get city name from coordinates - stable callback
   const getCityName = useCallback(
     async (latitude: number, longitude: number): Promise<void> => {
       try {
@@ -146,21 +166,19 @@ const HomeScreen = () => {
     [addDeliveryDetail]
   );
 
-  // Get user location details
+  // Get user location details - stable callback with proper dependencies
   const getUserLocationDetails = useCallback(async (): Promise<void> => {
-    if (!location) return;
+    if (!locationCoords) return;
     try {
-      const { latitude, longitude } = location.coords;
-      await getCityName(latitude, longitude);
+      await getCityName(locationCoords.latitude, locationCoords.longitude);
     } catch (error) {
       console.error("Error in fetching user location details:", error);
     }
-  }, [location, getCityName]);
+  }, [locationCoords, getCityName]);
 
-  // Fetch home data - memoized to prevent infinite re-renders
+  // Fetch home data - stable callback with proper dependencies
   const fetchHomeData = useCallback(async (): Promise<void> => {
-    if (!location || !selectedDetails?.pincode || isLoadingHomeData) {
-      console.log("Skipping fetch - missing requirements or already loading");
+    if (!locationCoords || !selectedPincode || isLoadingHomeData || hasHomeDataBeenFetched) {
       return;
     }
 
@@ -168,22 +186,20 @@ const HomeScreen = () => {
     setIsLoadingHomeData(true);
 
     try {
-      const { latitude, longitude } = location.coords;
-
       // Fetch both restaurant and store data in parallel
       const [restaurantData, storeData] = await Promise.all([
         fetchHomeByDomain(
-          latitude,
-          longitude,
-          selectedDetails.pincode,
+          locationCoords.latitude,
+          locationCoords.longitude,
+          selectedPincode,
           "ONDC:RET10",
           1,
           20
         ),
         fetchHomeByDomain(
-          latitude,
-          longitude,
-          selectedDetails.pincode,
+          locationCoords.latitude,
+          locationCoords.longitude,
+          selectedPincode,
           "ONDC:RET12",
           1,
           20
@@ -200,38 +216,39 @@ const HomeScreen = () => {
         setStoresData(storeData.stores?.items || []);
       }
 
-      setErrorMsg(null); // Clear any previous errors
+      setErrorMsg(null);
+      setHasHomeDataBeenFetched(true);
     } catch (error) {
       console.error("Error fetching home data:", error);
       setErrorMsg("Failed to load nearby stores");
     } finally {
       setIsLoadingHomeData(false);
     }
-  }, [
-    location?.coords?.latitude,
-    location?.coords?.longitude,
-    selectedDetails?.pincode,
-    isLoadingHomeData,
-  ]);
+  }, [locationCoords, selectedPincode, isLoadingHomeData, hasHomeDataBeenFetched]);
 
-  // Effects
+  // Reset home data fetch flag when location or pincode changes
+  useEffect(() => {
+    setHasHomeDataBeenFetched(false);
+  }, [locationCoords, selectedPincode]);
+
+  // Effects with stable dependencies
   useEffect(() => {
     askForLocationPermissions();
-  }, []);
+  }, [askForLocationPermissions]);
 
   useEffect(() => {
-    if (location && !selectedDetails?.city) {
+    if (locationCoords && !selectedCity) {
       getUserLocationDetails();
     }
-  }, [location, selectedDetails?.city, getUserLocationDetails]);
+  }, [locationCoords, selectedCity, getUserLocationDetails]);
 
   useEffect(() => {
-    if (hasLocationAndPincode && !isLoadingHomeData) {
+    if (hasLocationAndPincode && !isLoadingHomeData && !hasHomeDataBeenFetched) {
       fetchHomeData();
     }
-  }, [hasLocationAndPincode, fetchHomeData]);
+  }, [hasLocationAndPincode, isLoadingHomeData, hasHomeDataBeenFetched, fetchHomeData]);
 
-  // Event handlers
+  // Event handlers - stable callbacks
   const handleLocationPress = useCallback(() => {
     router.push("../address/SavedAddresses");
   }, [router]);
@@ -245,14 +262,17 @@ const HomeScreen = () => {
   );
 
   const handleRetry = useCallback(() => {
+    setHasHomeDataBeenFetched(false);
+    setErrorMsg(null);
     if (hasLocationAndPincode) {
       fetchHomeData();
     } else {
+      setHasLocationBeenFetched(false);
       askForLocationPermissions();
     }
   }, [hasLocationAndPincode, fetchHomeData, askForLocationPermissions]);
 
-  // Render functions
+  // Render functions - stable callbacks
   const renderCategoryItem = useCallback(
     ({ item }: { item: any }) => (
       <TouchableOpacity
@@ -443,7 +463,7 @@ const HomeScreen = () => {
               style={{ marginRight: 16 }}
             />
             <Text style={styles.deliveryTxt}>Delivering to</Text>
-            {isLocationLoading || (!selectedDetails?.city && location) ? (
+            {isLocationLoading || (!selectedCity && locationCoords) ? (
               <ActivityIndicator
                 size="small"
                 color="white"
@@ -452,10 +472,8 @@ const HomeScreen = () => {
             ) : (
               <>
                 <Text style={styles.locationTxt} numberOfLines={1}>
-                  {selectedDetails?.city || "Select Location"}
-                  {selectedDetails?.pincode
-                    ? `, ${selectedDetails.pincode}`
-                    : ""}
+                  {selectedCity || "Select Location"}
+                  {selectedPincode ? `, ${selectedPincode}` : ""}
                 </Text>
                 <Entypo name="chevron-down" size={18} color="white" />
               </>
@@ -544,10 +562,8 @@ const HomeScreen = () => {
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
                 <TouchableOpacity
                   style={styles.seeAllButton}
-                  onPress={() => router.push("/(tabs)/home/categories/Food")}
+                  onPress={() => router.push("../(tabs)/home/categories/Food")}
                 >
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#FF9130" />
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -573,10 +589,8 @@ const HomeScreen = () => {
                 <Text style={styles.sectionTitle}>Stores Near You</Text>
                 <TouchableOpacity
                   style={styles.seeAllButton}
-                  onPress={() => router.push("/(tabs)/home/categories/Grocery")}
+                  onPress={() => router.push("../(tabs)/home/categories/Grocery")}
                 >
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#FF9130" />
                 </TouchableOpacity>
               </View>
               <FlatList
