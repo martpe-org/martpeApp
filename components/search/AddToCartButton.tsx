@@ -1,67 +1,108 @@
-import React, { FC } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import React, { FC, useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
 import DynamicButton from "../common/DynamicButton";
-import { useCartStore } from "../../state/useCartStore";
+import { addToCartAction } from "../../state/addToCart";
+import { removeCartAction } from "../../state/removeCart";
+import { updateCartItemQtyAction } from "../../state/updateQty";
+import useUserDetails from "../../hook/useUserDetails";
+
 interface AddToCartButtonProps {
   storeId: string;
   itemId: string;
-  maxQuantity: number | string;
+  maxQuantity?: number;
 }
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const AddToCartButton: FC<AddToCartButtonProps> = ({
   storeId,
   itemId,
-  maxQuantity,
+  maxQuantity = 10,
 }) => {
-  const allCarts = useCartStore((state) => state.allCarts);
-  const cart = allCarts.find((cart) => cart.store.id === storeId);
-  const item = cart?.items?.find((item) => item?.itemId === itemId);
-  const itemCount = item?.quantity | 0;
+  const [itemCount, setItemCount] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const { authToken } = useUserDetails();
+
+  const increment = async () => {
+    if (itemCount >= maxQuantity || !authToken) return;
+    setLoading(true);
+    try {
+      if (itemCount === 0) {
+        const result = await addToCartAction(
+          {
+            store_id: storeId,
+            slug: itemId,
+            catalog_id: itemId,
+            qty: 1,
+            customizable: false,
+          },
+          authToken
+        );
+        if (result.success) setItemCount(1);
+      } else {
+        const result = await updateCartItemQtyAction(itemId, itemCount + 1);
+        if (result.success) setItemCount((prev) => prev + 1);
+      }
+    } catch (err) {
+      console.log("Increment failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const decrement = async () => {
+    if (itemCount <= 0 || !authToken) return;
+    setLoading(true);
+    try {
+      if (itemCount === 1) {
+        const result = await removeCartAction(storeId);
+        if (result.success) setItemCount(0);
+      } else {
+        const result = await updateCartItemQtyAction(itemId, itemCount - 1);
+        if (result.success) setItemCount((prev) => prev - 1);
+      }
+    } catch (err) {
+      console.log("Decrement failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <ActivityIndicator size="small" color="green" />;
+  }
 
   return (
     <View>
       {itemCount === 0 ? (
         <DynamicButton
-          // onPressItem={increment}
+          onPressItem={increment}
+          isNewItem={true}
           storeId={storeId}
           itemId={itemId}
-          isNewItem={true}
         >
-          <View
-            style={{
-              ...styles.addButton,
-              paddingVertical: 6.5,
-            }}
-          >
+          <View style={styles.addButton}>
             <Text style={styles.buttonText}>ADD</Text>
           </View>
         </DynamicButton>
       ) : (
-        <View style={{ ...styles.addButtonNext }}>
-          <DynamicButton
-            isUpdated={true}
-            isNewItem={false}
-            storeId={storeId}
-            quantity={itemCount - 1}
-            itemId={itemId}
-            // onPressItem={decrement}
-          >
-            <View style={{ ...styles.itemCountChangeButton }}>
+        <View style={styles.addButtonNext}>
+          <DynamicButton onPressItem={decrement} storeId={storeId} itemId={itemId}>
+            <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>-</Text>
             </View>
           </DynamicButton>
 
           <Text style={styles.itemCount}>{itemCount}</Text>
-          <DynamicButton
-            isUpdated={true}
-            isNewItem={false}
-            storeId={storeId}
-            itemId={itemId}
-            quantity={itemCount + 1}
-          >
-            <View style={{ ...styles.itemCountChangeButton }}>
+
+          <DynamicButton onPressItem={increment} storeId={storeId} itemId={itemId}>
+            <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>+</Text>
             </View>
           </DynamicButton>
@@ -76,7 +117,6 @@ export default AddToCartButton;
 const styles = StyleSheet.create({
   addButton: {
     backgroundColor: "white",
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -87,7 +127,6 @@ const styles = StyleSheet.create({
   },
   addButtonNext: {
     backgroundColor: "white",
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -95,7 +134,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     elevation: 2,
   },
-
   itemCountChangeButton: {
     flexDirection: "row",
     alignItems: "center",

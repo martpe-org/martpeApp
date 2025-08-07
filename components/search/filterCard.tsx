@@ -214,7 +214,7 @@ const FilterCard: FC<FilterCardProps> = ({
 
       <FilterFooter
         selectedFilter={selectedFilter}
-        filterSelected={filterSelected}
+        // filterSelected={filterSelected}
         selectOption={selectOption}
         setSelectedFilters={setSelectedFilter}
         closeFilter={closeFilter}

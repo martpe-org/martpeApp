@@ -75,10 +75,12 @@ const HomeScreen = () => {
 
   // Memoize expensive calculations with stable references
   const locationCoords = useMemo(() => {
-    return location ? {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude
-    } : null;
+    return location
+      ? {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }
+      : null;
   }, [location?.coords?.latitude, location?.coords?.longitude]);
 
   const selectedPincode = useMemo(() => {
@@ -178,7 +180,12 @@ const HomeScreen = () => {
 
   // Fetch home data - stable callback with proper dependencies
   const fetchHomeData = useCallback(async (): Promise<void> => {
-    if (!locationCoords || !selectedPincode || isLoadingHomeData || hasHomeDataBeenFetched) {
+    if (
+      !locationCoords ||
+      !selectedPincode ||
+      isLoadingHomeData ||
+      hasHomeDataBeenFetched
+    ) {
       return;
     }
 
@@ -224,7 +231,12 @@ const HomeScreen = () => {
     } finally {
       setIsLoadingHomeData(false);
     }
-  }, [locationCoords, selectedPincode, isLoadingHomeData, hasHomeDataBeenFetched]);
+  }, [
+    locationCoords,
+    selectedPincode,
+    isLoadingHomeData,
+    hasHomeDataBeenFetched,
+  ]);
 
   // Reset home data fetch flag when location or pincode changes
   useEffect(() => {
@@ -243,10 +255,19 @@ const HomeScreen = () => {
   }, [locationCoords, selectedCity, getUserLocationDetails]);
 
   useEffect(() => {
-    if (hasLocationAndPincode && !isLoadingHomeData && !hasHomeDataBeenFetched) {
+    if (
+      hasLocationAndPincode &&
+      !isLoadingHomeData &&
+      !hasHomeDataBeenFetched
+    ) {
       fetchHomeData();
     }
-  }, [hasLocationAndPincode, isLoadingHomeData, hasHomeDataBeenFetched, fetchHomeData]);
+  }, [
+    hasLocationAndPincode,
+    isLoadingHomeData,
+    hasHomeDataBeenFetched,
+    fetchHomeData,
+  ]);
 
   // Event handlers - stable callbacks
   const handleLocationPress = useCallback(() => {
@@ -563,20 +584,20 @@ const HomeScreen = () => {
                 <TouchableOpacity
                   style={styles.seeAllButton}
                   onPress={() => router.push("../(tabs)/home/categories/Food")}
-                >
-                </TouchableOpacity>
+                ></TouchableOpacity>
               </View>
               <FlatList
                 data={restaurantsData}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) =>
-                 ( `restaurant_${item.provider_id || item.vendor_id}_${index}`)
+                  `restaurant_${item.provider_id}_${index}`
                 }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderNearbyItem}
                 removeClippedSubviews={true}
                 maxToRenderPerBatch={5}
+                initialNumToRender={3}
                 windowSize={5}
               />
             </View>
@@ -589,21 +610,23 @@ const HomeScreen = () => {
                 <Text style={styles.sectionTitle}>Stores Near You</Text>
                 <TouchableOpacity
                   style={styles.seeAllButton}
-                  onPress={() => router.push("../(tabs)/home/categories/Grocery")}
-                >
-                </TouchableOpacity>
+                  onPress={() =>
+                    router.push("../(tabs)/home/categories/Grocery")
+                  }
+                ></TouchableOpacity>
               </View>
               <FlatList
                 data={storesData}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) =>
-                 ( `store_${item.provider_id || item.vendor_id}_${index}`)
+                  `store_${item.provider_id}_${index}`
                 }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderNearbyItem}
                 removeClippedSubviews={true}
                 maxToRenderPerBatch={5}
+                initialNumToRender={3}
                 windowSize={5}
               />
             </View>

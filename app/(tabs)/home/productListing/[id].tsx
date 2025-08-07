@@ -22,8 +22,10 @@ import PLPHomeAndDecor from "../../../../components/Product Listing Page/HomeAnd
 import PLPPersonalCare from "../../../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../components/common/Loader";
-import { fetchProductDetails } from "../../../../components/product/fetch-product";
-import { FetchProductDetail } from "../../../../components/product/fetch-product-type";
+import { fetchStoreDetails } from "../../../../store/fetch-store-details";
+import { fetchStoreItems } from "../../../../store/fetch-store-items";
+import { FetchStoreDetailsResponseType } from "../../../../store/fetch-store-details-type";
+import { FetchStoreItemsResponseType, StoreItem } from "../../../../store/fetch-store-items-type";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 
 // Types
@@ -113,82 +115,82 @@ interface VendorData {
   hyperLocal: boolean;
 }
 
-// Mock function to convert FetchProductDetail to VendorData format
+// Function to convert store data to VendorData format
 const convertToVendorData = (
-  productDetail: FetchProductDetail
+  storeDetails: FetchStoreDetailsResponseType,
+  storeItems: FetchStoreItemsResponseType
 ): VendorData | null => {
-  if (!productDetail) return null;
+  if (!storeDetails) return null;
 
   // Create a proper descriptor object matching ComponentDescriptor
   const descriptor: ComponentDescriptor = {
-    images: productDetail.images || [],
-    name: productDetail.name || "",
-    symbol: productDetail.symbol || "",
+    images: storeDetails.images || [],
+    name: storeDetails.name || "",
+    symbol: storeDetails.symbol || "",
   };
 
-  // Create a mock catalog item from the product detail
-  const catalogItem: ComponentCatalogItem = {
-    bpp_id: productDetail.provider_id || "",
-    bpp_uri: "", // Not available in FetchProductDetail
-    catalog_id: productDetail.catalog_id || "",
-    category_id: productDetail.category_id || "",
+  // Convert store items to catalog items
+  const catalogItems: ComponentCatalogItem[] = storeItems.results.map((item: StoreItem) => ({
+    bpp_id: item.provider_id || "",
+    bpp_uri: "", // Not available in StoreItem
+    catalog_id: item.catalog_id || "",
+    category_id: item.category_id || "",
     descriptor: {
-      images: productDetail.images || [],
-      long_desc: productDetail.long_desc || "",
-      name: productDetail.name || "",
-      short_desc: productDetail.short_desc || "",
-      symbol: productDetail.symbol || "",
+      images: item.images || [],
+      long_desc: item.short_desc || "", // Using short_desc as long_desc is not available
+      name: item.name || "",
+      short_desc: item.short_desc || "",
+      symbol: item.symbol || "",
     },
-    id: productDetail._id || "",
-    location_id: productDetail.location_id || "",
-    non_veg: false, // Not available in FetchProductDetail, defaulting to false
+    id: item.slug || "",
+    location_id: item.location_id || "",
+    non_veg: item.diet_type === "non_veg" || false,
     price: {
-      maximum_value:
-        productDetail.price?.maximum_value || productDetail.price?.value || 0,
-      offer_percent: productDetail.price?.offerPercent || null,
-      offer_value: null, // Not available in FetchProductDetail
-      value: productDetail.price?.value || 0,
+      maximum_value: item.price?.maximum_value || item.price?.value || 0,
+      offer_percent: item.price?.offerPercent || null,
+      offer_value: null, // Not available in StoreItem
+      value: item.price?.value || 0,
     },
     quantity: {
       available: {
-        count: productDetail.quantity || 0,
+        count: item.quantity || 0,
       },
       maximum: {
-        count: productDetail.quantity || 0,
+        count: item.quantity || 0,
       },
     },
-    provider_id: productDetail.provider_id || "",
-    veg: true, // Not available in FetchProductDetail, defaulting to true
-  };
+    provider_id: item.provider_id || "",
+    veg: item.diet_type === "veg" || item.diet_type !== "non_veg", // Default to veg if not explicitly non_veg
+  }));
 
   return {
     address: {
-      area_code: productDetail.store?.address?.area_code || "",
-      city: productDetail.store?.address?.city || "",
-      locality: productDetail.store?.address?.locality || "",
-      state: productDetail.store?.address?.state || "",
-      street: productDetail.store?.address?.street || "",
+      area_code: storeDetails.address?.area_code || "",
+      city: storeDetails.address?.city || "",
+      locality: storeDetails.address?.locality || "",
+      state: storeDetails.address?.state || "",
+      street: storeDetails.address?.street || "",
     },
-    catalogs: [catalogItem], // Create array with single item
+    catalogs: catalogItems,
     descriptor: descriptor,
-    fssai_license_no: productDetail.meta?.fssai_license_no || "",
+    fssai_license_no: storeDetails.fssai_license_no || "",
     geoLocation: {
-      lat: productDetail.gps?.lat || 0,
-      lng: productDetail.gps?.lon || 0,
+      lat: storeDetails.gps?.lat || 0,
+      lng: storeDetails.gps?.lon || 0,
       point: {
-        coordinates: [productDetail.gps?.lon || 0, productDetail.gps?.lat || 0],
+        coordinates: [storeDetails.gps?.lon || 0, storeDetails.gps?.lat || 0],
         type: "Point",
       },
     },
-    storeSections: [productDetail.category || ""],
-    domain: productDetail.domain || "",
+    storeSections: storeDetails.store_categories || [],
+    domain: storeDetails.domain || "",
     time_to_ship_in_hours: {
-      avg: productDetail.tts_in_h || 0,
-      max: productDetail.tts_in_h || 0,
-      min: productDetail.tts_in_h || 0,
+      avg: storeDetails.avg_tts_in_h || 0,
+      max: storeDetails.max_tts_in_h || storeDetails.avg_tts_in_h || 0,
+      min: storeDetails.avg_tts_in_h || 0, // Assuming min is same as avg since not available
     },
-    panIndia: false, // This would need to be determined from your business logic
-    hyperLocal: true,
+    panIndia: storeDetails.isPanindia || false,
+    hyperLocal: storeDetails.isHyperLocalOnly || false,
   };
 };
 
@@ -242,11 +244,16 @@ const PLP: React.FC = () => {
       }
 
       try {
-        // Use the slug (vendor.id) directly as fetchProductDetails expects
-        const productDetail = await fetchProductDetails(vendor.id as string);
+        const slug = vendor.id as string;
+        
+        // Fetch store details and items in parallel
+        const [storeDetails, storeItems] = await Promise.all([
+          fetchStoreDetails(slug),
+          fetchStoreItems(slug)
+        ]);
 
-        if (productDetail) {
-          const convertedData = convertToVendorData(productDetail);
+        if (storeDetails && storeItems) {
+          const convertedData = convertToVendorData(storeDetails, storeItems);
           if (convertedData) {
             setVendorData(convertedData);
             checkServiceable(convertedData);

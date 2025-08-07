@@ -1,4 +1,4 @@
-// import { AppImages } from "../assets/images"; // Uncomment when you have local assets
+ import  Images  from "../../../assets " ;
 import React, { useState } from "react";
 import {
   ActivityIndicator,

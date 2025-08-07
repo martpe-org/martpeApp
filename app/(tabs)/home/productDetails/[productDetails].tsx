@@ -47,7 +47,7 @@ const ProductDetails: FC = () => {
     );
   }, [productData]);
 
-  const sellerAddress = useMemo(() => {
+  const storeAddress = useMemo(() => {
     if (!productData?.store?.address) return "";
     const { locality, city, state } = productData.store.address;
     return [locality, city, state].filter(Boolean).join(", ");
@@ -191,7 +191,7 @@ const ProductDetails: FC = () => {
             bppId={productData.provider_id}
             domain={productData.domain}
             cityCode={productData.store?.address?.area_code || ""}
-            vendorId={productData.vendor_id}
+            storeId={productData.store_id}
             initialPrimaryVariant={
               (productData.unitized?.measure?.value || "") +
               (productData.unitized?.measure?.unit || "")
@@ -218,7 +218,7 @@ const ProductDetails: FC = () => {
           }
         />
 
-        {/* More by Seller - Only show if there are offers or related products */}
+        {/* More by Store - Only show if there are offers or related products */}
         {productData.offers && productData.offers.length > 0 && (
           <MoreBySeller
             originalId={productDetails}
@@ -235,7 +235,7 @@ const ProductDetails: FC = () => {
               },
             }))}
             sellerName={productData.store?.name || ""}
-            sellerDetails={sellerAddress}
+            sellerDetails={storeAddress}
             sellerSymbol={productData.store?.symbol || ""}
             sellerContact={
               productData.meta?.contact_details_consumer_care || ""
@@ -243,10 +243,10 @@ const ProductDetails: FC = () => {
           />
         )}
 
-        {/* Seller Details */}
+        {/* Store Details */}
         <SellerDetails
           sellerName={productData.store?.name || "Unknown Store"}
-          sellerDetails={sellerAddress || "No address available"}
+          sellerDetails={storeAddress || "No address available"}
           sellerSymbol={productData.store?.symbol}
           sellerContact={
             productData.meta?.contact_details_consumer_care ||

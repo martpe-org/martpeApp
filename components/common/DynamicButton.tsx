@@ -1,7 +1,10 @@
 import { useRef, FC, ReactNode } from "react";
 import { Animated, Pressable } from "react-native";
-import { useCartStore } from "../../state/useCartStore";
 import { useToast } from "react-native-toast-notifications";
+
+import { addToCartAction } from "../../state/addToCart";
+import { updateCartItemQtyAction } from "../../state/updateQty";
+import { removeCartAction } from "../../state/removeCart";
 
 interface DynamicButtonProps {
   children: ReactNode;
@@ -10,11 +13,9 @@ interface DynamicButtonProps {
   storeId?: string;
   itemId?: string;
   quantity?: number;
-  customizations?: [
-    {
-      id: string;
-    }
-  ];
+  customizations?: {
+    id: string;
+  }[];
   disabled?: boolean;
 }
 
@@ -24,17 +25,16 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   isUpdated,
   storeId,
   itemId,
-  quantity,
-  customizations,
+  quantity = 1,
+  customizations = [],
   disabled = false,
-  // onPressItem,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const toast = useToast();
-  const { addItem, updateItem, removeItem } = useCartStore();
+
   const animatePressIn = () => {
     Animated.spring(scale, {
-      toValue: 0.8,
+      toValue: 0.9,
       speed: 15,
       useNativeDriver: true,
     }).start();
@@ -51,27 +51,52 @@ const DynamicButton: FC<DynamicButtonProps> = ({
 
   const handlePress = async () => {
     try {
-      if (isNewItem) {
-        await addItem(storeId, itemId, 1, customizations);
-        // toast.show("New item added to cart", {
-        //   type: " success ",
-        //   placement: "bottom",
-        //   duration: 3000,
-        //   animationType: "slide-in",
-        // });
-        // confettiFire();
-      } else if (isUpdated && quantity > 0) {
-        await updateItem(storeId, itemId, quantity);
-      } else if (isUpdated) {
-        await removeItem(storeId, itemId);
-      } else {
-        console.log("This is a normal item");
+      if (!storeId || !itemId) {
+        toast.show("Missing storeId or itemId", { type: "danger" });
+        return;
       }
-    } catch (error) {
-      console.error("Error updating cart item:", error.message);
+
+      if (isNewItem) {
+        const res = await addToCartAction({
+          store_id: storeId,
+          slug: itemId,
+          catalog_id: itemId,
+          qty: 1,
+          customizable: customizations.length > 0,
+          customizations: customizations.map((c) => ({
+            groupId: c.id,
+            optionId: c.id,
+            name: "custom",
+          })),
+        });
+
+        if (res.success) {
+          toast.show("Added to cart", { type: "success" });
+        } else {
+          toast.show("Failed to add to cart", { type: "danger" });
+        }
+      } else if (isUpdated && quantity > 0) {
+        const res = await updateCartItemQtyAction(itemId, quantity);
+        if (res.success) {
+          toast.show("Updated cart", { type: "success" });
+        } else {
+          toast.show("Failed to update cart", { type: "danger" });
+        }
+      } else if (isUpdated && quantity <= 0) {
+        const res = await removeCartAction(storeId);
+        if (res.success) {
+          toast.show("Removed from cart", { type: "success" });
+        } else {
+          toast.show("Failed to remove item", { type: "danger" });
+        }
+      } else {
+        toast.show("Unhandled cart action", { type: "warning" });
+      }
+    } catch (error: any) {
+      console.error("DynamicButton error:", error?.message);
+      toast.show("Error updating cart", { type: "danger" });
     }
 
-    // onPressItem();
     animatePressOut();
   };
 
@@ -80,7 +105,7 @@ const DynamicButton: FC<DynamicButtonProps> = ({
       <Pressable
         onPressIn={animatePressIn}
         onPressOut={animatePressOut}
-        onPress={disabled ? () => {} : handlePress}
+        onPress={disabled ? undefined : handlePress}
       >
         {children}
       </Pressable>
