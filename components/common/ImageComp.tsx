@@ -1,4 +1,3 @@
- import  Images  from "../../../assets " ;
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +23,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });
 
@@ -31,14 +31,16 @@ type ImageInterface = {
   source: { uri: string } | number; // Support both URI and local images
   imageStyle?: ImageStyle;
   resizeMode?: ImageResizeMode;
+  fallbackSource?: { uri: string } | number; // Custom fallback image
 };
 
 const defaultProps = {
   resizeMode: "cover" as ImageResizeMode,
+  fallbackSource: { uri: "https://placehold.co/600x400?text=Image+Not+Available" }, // More reliable fallback
 };
 
 const ImageComp = (props: ImageInterface & typeof defaultProps) => {
-  const { source, imageStyle, resizeMode } = props;
+  const { source, imageStyle, resizeMode, fallbackSource } = props;
 
   const [isLoading, setIsLoading] = useState(
     typeof source === 'object' && source.uri ? true : false
@@ -47,21 +49,26 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
 
   // Determine the image source
   const getImageSource = () => {
-    if (isError) {
-      // Use a working placeholder service
-      return { uri: "https://picsum.photos/150/150?grayscale" };
-    }
-    
-    if (typeof source === 'object' && source.uri) {
-      return source;
-    }
-    
     if (typeof source === 'number') {
-      return source; // Local image
+      return source; // Local image - return as-is
     }
     
-    // Default fallback to a working placeholder
-    return { uri: "https://picsum.photos/150/150?grayscale" };
+    if (typeof source === 'object' && source.uri && !isError) {
+      return source; // Remote URI
+    }
+    
+    // Fallback options in order of preference:
+    // 1. Custom fallback from props
+    // 2. Default fallback from defaultProps
+    return fallbackSource || defaultProps.fallbackSource;
+  };
+
+  const handleError = (error: any) => {
+    console.log('Image load error:', error);
+    if (typeof source === 'object' && source.uri) {
+      setIsLoading(false);
+      setIsError(true);
+    }
   };
 
   return (
@@ -71,20 +78,14 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
         style={[styles.imageStyle, imageStyle]}
         resizeMode={resizeMode}
         onLoadStart={() => {
-          setIsLoading(true);
-          setIsError(false);
+          if (typeof source === 'object' && source.uri) {
+            setIsLoading(true);
+            setIsError(false);
+          }
         }}
-        onLoadEnd={() => {
-          setIsLoading(false);
-        }}
-        onError={({ nativeEvent: { error } }) => {
-          console.log('Image load error:', error);
-          setIsLoading(false);
-          setIsError(true);
-        }}
-        onLoad={() => {
-          setIsLoading(false);
-        }}
+        onLoadEnd={() => setIsLoading(false)}
+        onError={handleError}
+        onLoad={() => setIsLoading(false)}
       />
       {isLoading && (
         <View style={styles.loader}>

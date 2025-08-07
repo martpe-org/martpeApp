@@ -82,7 +82,7 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
     <View>
       {itemCount === 0 ? (
         <DynamicButton
-          onPressItem={increment}
+          onPress={increment}
           isNewItem={true}
           storeId={storeId}
           itemId={itemId}
@@ -93,7 +93,7 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
         </DynamicButton>
       ) : (
         <View style={styles.addButtonNext}>
-          <DynamicButton onPressItem={decrement} storeId={storeId} itemId={itemId}>
+          <DynamicButton onPress={decrement} storeId={storeId} itemId={itemId}>
             <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>-</Text>
             </View>
@@ -101,7 +101,7 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
 
           <Text style={styles.itemCount}>{itemCount}</Text>
 
-          <DynamicButton onPressItem={increment} storeId={storeId} itemId={itemId}>
+          <DynamicButton onPress={increment} storeId={storeId} itemId={itemId}>
             <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>+</Text>
             </View>

@@ -11,6 +11,7 @@ import {
 
 import AddToCart from "../../../../components/ProductDetails/AddToCart";
 import ImageCarousel from "../../../../components/ProductDetails/ImageCarousel";
+import ImageComp from "../../../../components/common/ImageComp";
 import MoreBySeller from "../../../../components/ProductDetails/MoreBySeller";
 import ProductHeader from "../../../../components/ProductDetails/ProductHeader";
 import ProductPricing from "../../../../components/ProductDetails/ProductPricing";

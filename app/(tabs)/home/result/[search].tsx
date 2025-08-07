@@ -1180,6 +1180,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.WHITE_COLOR,
     flex: 1,
+    marginBottom:20
   },
   headerContainer: {
     flexDirection: "column",
@@ -1233,9 +1234,11 @@ const styles = StyleSheet.create({
   },
   active: {
     paddingTop: 10,
+    paddingBottom: 10,
     width: "50%",
     borderBottomWidth: 2,
-    borderBottomColor: "#F05454",
+    borderBottomColor: "#77e68f",
+    backgroundColor: "#ffff",
   },
   inactive: {
     paddingTop: 10,
@@ -1245,7 +1248,7 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     textAlign: "center",
-    color: "#F05454",
+    color: "#479933",
     fontWeight: "500",
   },
   inactiveTabText: {
@@ -1259,9 +1262,9 @@ const styles = StyleSheet.create({
   },
   filtersScrollView: {
     flexDirection: "row",
-    marginVertical: Dimensions.get("screen").width * 0.02,
+    marginVertical: Dimensions.get("screen").width * 0.01,
     position: "relative",
-    marginHorizontal: Dimensions.get("screen").width * 0.03,
+    marginHorizontal: Dimensions.get("screen").width * 0.02,
   },
   filterButton: {
     borderWidth: 1,
