@@ -180,7 +180,7 @@ function Food() {
 
       try {
         // Extract pincode from area_code or use a default
-        const pincode = selectedAddress?.pincode || "110001";
+        const pincode = selectedAddress?.pincode || "110044";
         
         const response = await fetchHomeByDomain(
           selectedAddress.lat,
@@ -220,11 +220,13 @@ function Food() {
   }, [selectedAddress]);
 
   // Flatten the catalogs from each store into a single array
-  const allCatalogs = storesData?.flatMap((store: ExtendedStore) => store?.catalogs || []) || [];
+  const allCatalogs = Array.isArray(storesData) && storesData.length > 0
+    ? storesData.flatMap((store) => store?.catalogs || [])
+    : [];
 
   // Extract unique category_id values
   const uniqueCategoryIds: CategoryOption[] = Array.from(
-    new Set(allCatalogs?.map((catalog: Catalog) => catalog?.category_id).filter(Boolean))
+    new Set(allCatalogs.map((catalog) => catalog?.category_id).filter(Boolean))
   ).map((category_id, index) => ({
     id: index + 1,
     label: category_id as string,
@@ -279,72 +281,33 @@ function Food() {
     );
   }
 
-  const filteredStores = storesData.filter((store: ExtendedStore) => {
+  // Fixed filter logic matching Grocery.tsx pattern
+  const filteredStores: ExtendedStore[] = storesData.filter((store) => {
+    const hasValidCatalogs = Array.isArray(store?.catalogs);
+
     const meetsCategoryCriteria =
       filterSelected.category.length === 0 ||
-      (store.catalogs && store.catalogs.some((catalog: any) =>
-        filterSelected.category.includes(catalog.category_id)
-      ));
-    
+      (Array.isArray(store.catalogs) &&
+        store.catalogs.some(
+          (catalog) =>
+            typeof catalog?.category_id === "string" &&
+            filterSelected.category.includes(catalog.category_id)
+        ));
+
+    const offerPercent = store?.calculated_max_offer?.percent ?? 0;
     const meetsOfferCriteria =
-      filterSelected.offers === 0 ||
-      (store.calculated_max_offer?.percent !== undefined && 
-       store.calculated_max_offer.percent >= filterSelected.offers);
-    
+      filterSelected.offers === 0 || offerPercent >= filterSelected.offers;
+
+    const deliveryTime = store?.time_to_ship_in_hours?.avg ?? Infinity;
     const meetsDeliveryCriteria =
-      filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg !== undefined && 
-       store.time_to_ship_in_hours.avg <= filterSelected.delivery);
+      filterSelected.delivery === 100 || deliveryTime <= filterSelected.delivery;
 
-    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
+    return (
+      meetsCategoryCriteria &&
+      meetsOfferCriteria &&
+      meetsDeliveryCriteria
+    );
   });
-
-  const getFilterDisplayText = (filterName: string) => {
-    switch (filterName) {
-      case "Category":
-        return "Category " + (filterSelected.category.length > 0
-          ? `(${filterSelected.category.length})`
-          : "");
-      case "Offers":
-        return filterSelected.offers > 0
-          ? filterSelected.offers + "% and above"
-          : "Offers";
-      case "Delivery":
-        return filterSelected.delivery < 100
-          ? filterSelected.delivery + " or min "
-          : "Delivery";
-      default:
-        return filterName;
-    }
-  };
-
-  const isFilterActive = (filterName: string) => {
-    switch (filterName) {
-      case "Category":
-        return filterSelected.category.length > 0;
-      case "Offers":
-        return filterSelected.offers > 0;
-      case "Delivery":
-        return filterSelected.delivery < 100;
-      default:
-        return false;
-    }
-  };
-
-  const resetFilter = (filterName: string) => {
-    setFilterSelected(prev => ({
-      ...prev,
-      category: filterName === "Category" ? [] : prev.category,
-      offers: filterName === "Offers" ? 0 : prev.offers,
-      delivery: filterName === "Delivery" ? 100 : prev.delivery,
-    }));
-  };
-
-  const hasActiveFilters = () => {
-    return filterSelected.category.length > 0 ||
-           filterSelected.delivery !== 100 ||
-           filterSelected.offers !== 0;
-  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -404,36 +367,42 @@ function Food() {
           {/* section items: domain subcategories */}
           <View style={styles.subCategories}>{renderSubCategories()}</View>
 
-          {/* Filter Bar */}
-          <View
+          <View style={styles.subHeading}>
+            <Text style={styles.subHeadingText}>
+              {storesData?.length > 0
+                ? `Explore ${filteredStores?.length} Restaurants nearby`
+                : "No Nearby Restaurants Found"}
+            </Text>
+          </View>
+
+          {/* Filter Bar - Updated to match Grocery.tsx pattern */}
+          <ScrollView
+            horizontal
             style={{
               flexDirection: "row",
               marginHorizontal: 10,
               marginTop: 10,
             }}
           >
-            <ScrollView
-              style={{
-                flexDirection: "row",
-                marginVertical: Dimensions.get("screen").width * 0.02,
-                position: "relative",
-                marginHorizontal: Dimensions.get("screen").width * 0.03,
-              }}
-              horizontal
-            >
-              {filters.map((filter, index) => (
+            {filters.map((filter, index) => {
+              const isActive =
+                (filter.name === "Category" && filterSelected.category.length > 0) ||
+                (filter.name === "Offers" && filterSelected.offers > 0) ||
+                (filter.name === "Delivery" && filterSelected.delivery < 100);
+
+              return (
                 <TouchableOpacity
                   key={index}
                   style={{
                     borderWidth: 1,
-                    borderColor: isFilterActive(filter.name) ? "black" : "#EEEEEE",
+                    borderColor: isActive ? "black" : "#EEEEEE",
                     backgroundColor: "white",
                     borderRadius: 100,
-                    paddingHorizontal: Dimensions.get("screen").width * 0.03,
-                    paddingVertical: Dimensions.get("screen").width * 0.015,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginHorizontal: Dimensions.get("screen").width * 0.01,
+                    marginHorizontal: 5,
                     flexDirection: "row",
                   }}
                   onPress={() => {
@@ -444,55 +413,75 @@ function Food() {
                   }}
                 >
                   <Text style={{ color: "black", fontWeight: "600" }}>
-                    {getFilterDisplayText(filter.name)}
+                    {{
+                      Category:
+                        "Category " +
+                        (filterSelected.category.length > 0
+                          ? `(${filterSelected.category.length})`
+                          : ""),
+                      Offers:
+                        filterSelected.offers > 0
+                          ? `${filterSelected.offers}% and above`
+                          : "Offers",
+                      Delivery:
+                        filterSelected.delivery < 100
+                          ? `${filterSelected.delivery} or min`
+                          : "Delivery",
+                    }[filter?.name]}
                   </Text>
 
-                  <Pressable
-                    style={{
-                      display: isFilterActive(filter.name) ? "flex" : "none",
-                      marginLeft: 5,
-                    }}
-                    onPress={() => resetFilter(filter.name)}
-                  >
-                    <Feather name="x" size={16} color="black" />
-                  </Pressable>
+                  {isActive && (
+                    <Pressable
+                      style={{ marginLeft: 5 }}
+                      onPress={() => {
+                        setFilterSelected({
+                          category:
+                            filter.name === "Category"
+                              ? []
+                              : filterSelected.category,
+                          offers:
+                            filter.name === "Offers" ? 0 : filterSelected.offers,
+                          delivery:
+                            filter.name === "Delivery"
+                              ? 100
+                              : filterSelected.delivery,
+                        });
+                      }}
+                    >
+                      <Feather name="x" size={16} color="black" />
+                    </Pressable>
+                  )}
                 </TouchableOpacity>
-              ))}
-              
-              {hasActiveFilters() && (
-                <TouchableOpacity
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#F13A3A",
-                    backgroundColor: "white",
-                    borderRadius: 100,
-                    paddingHorizontal: Dimensions.get("screen").width * 0.03,
-                    paddingVertical: Dimensions.get("screen").width * 0.01,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginLeft: Dimensions.get("screen").width * 0.03,
-                  }}
-                  onPress={() => {
-                    setFilterSelected({
-                      category: [],
-                      offers: 0,
-                      delivery: 100,
-                    });
-                  }}
-                >
-                  <Text style={{ color: "#F13A3A" }}>Reset</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </View>
-          
-          <View style={styles.subHeading}>
-            <Text style={styles.subHeadingText}>
-              {storesData?.length > 0
-                ? `Explore ${filteredStores?.length} Restaurants nearby`
-                : "No Nearby Restaurants Found"}
-            </Text>
-          </View>
+              );
+            })}
+
+            {(filterSelected.category.length > 0 ||
+              filterSelected.delivery !== 100 ||
+              filterSelected.offers !== 0) && (
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#F13A3A",
+                  backgroundColor: "white",
+                  borderRadius: 100,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginLeft: 10,
+                }}
+                onPress={() => {
+                  setFilterSelected({
+                    category: [],
+                    offers: 0,
+                    delivery: 100,
+                  });
+                }}
+              >
+                <Text style={{ color: "#F13A3A" }}>Reset</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
           
           {/* restaurants info */}
           <View

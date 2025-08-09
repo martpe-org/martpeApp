@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState, useRef } from "react";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import {
   ScrollView,
   StyleSheet,
@@ -21,7 +21,7 @@ import Svg, {
   Stop,
   Rect,
 } from "react-native-svg";
-import Feather from "react-native-vector-icons/Feather";
+import { Feather } from '@expo/vector-icons';
 import { getDistance } from "geolib";
 import Constants from "expo-constants";
 
@@ -66,17 +66,14 @@ interface CatalogItem extends ProductSearchResult {
 interface Store extends StoreSearchResult {
   _id: string;
 }
-
 interface GroupedCatalogItems {
   [storeId: string]: CatalogItem[];
 }
-
 interface FilterState {
   category: string[];
   offers: number;
   delivery: number;
 }
-
 interface FoodDetailsState {
   images: string;
   long_desc: string;
@@ -91,7 +88,6 @@ interface FoodDetailsState {
   maxPrice: number;
   discount: number;
 }
-
 interface CustomizableGroupState {
   customizable: boolean;
   vendorId: string;
@@ -100,16 +96,13 @@ interface CustomizableGroupState {
   maxLimit: number;
   price: number;
 }
-
 interface SearchProps {
   domain: string;
 }
-
 interface ProductCardProps {
   storeName: string;
   products: CatalogItem[];
 }
-
 // Helper functions
 const groupByStoreId = (catalogs: CatalogItem[]): GroupedCatalogItems => {
   return catalogs?.reduce((acc: GroupedCatalogItems, product: CatalogItem) => {
@@ -121,7 +114,6 @@ const groupByStoreId = (catalogs: CatalogItem[]): GroupedCatalogItems => {
     return acc;
   }, {});
 };
-
 const getDistances = (
   lat1: number,
   lon1: number,
@@ -138,7 +130,6 @@ const getDistances = (
   );
   return distance;
 };
-
 // SVG Components
 const CircleSvg = () => {
   return (
@@ -149,7 +140,6 @@ const CircleSvg = () => {
     </View>
   );
 };
-
 const VegSvg = () => {
   return (
     <Svg width={11} height={11} fill="none">
@@ -166,7 +156,6 @@ const VegSvg = () => {
     </Svg>
   );
 };
-
 const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => {
   return (
     <View style={{ marginLeft: margin }}>
@@ -182,7 +171,6 @@ const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => {
     </View>
   );
 };
-
 const ClockSvg: FC<{ title: number }> = ({ title }) => {
   return (
     <Svg width={56} height={16} fill="none">
@@ -225,7 +213,6 @@ const ClockSvg: FC<{ title: number }> = ({ title }) => {
     </Svg>
   );
 };
-
 const Results: FC<SearchProps> = () => {
   const [isItem, setIsItem] = useState(true);
   const { search, domainData } = useGlobalSearchParams<{
@@ -874,7 +861,7 @@ const Results: FC<SearchProps> = () => {
             <Text
               style={!isItem ? styles.inactiveTabText : styles.activeTabText}
             >
-              Items
+              ITEMS
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -884,7 +871,7 @@ const Results: FC<SearchProps> = () => {
             <Text
               style={isItem ? styles.inactiveTabText : styles.activeTabText}
             >
-              Outlets
+              OUTLETS
             </Text>
           </TouchableOpacity>
         </View>

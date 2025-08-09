@@ -1,4 +1,4 @@
-import { AddressType } from '../common-types';
+import { AddressType } from "../../common-types";
 
 export interface FetchUserType {
   _id: string;

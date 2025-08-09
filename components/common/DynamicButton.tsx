@@ -11,6 +11,7 @@ interface DynamicButtonProps {
   isNewItem?: boolean;
   isUpdated?: boolean;
   storeId?: string;
+  onPress?: () => void;
   itemId?: string;
   quantity?: number;
   customizations?: {
@@ -21,6 +22,7 @@ interface DynamicButtonProps {
 
 const DynamicButton: FC<DynamicButtonProps> = ({
   children,
+  onPress,
   isNewItem,
   isUpdated,
   storeId,

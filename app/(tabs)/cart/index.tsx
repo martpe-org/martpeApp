@@ -93,9 +93,6 @@ if (isUserLoading || loading) {
             borderColor: "#eee",
           }}
         >
-          <Text style={{ fontSize: 30, fontWeight: "bold", color: "#000" }}>
-            Cart
-          </Text>
         </View>
 
         {/*  empty cart lottie */}
@@ -112,9 +109,12 @@ if (isUserLoading || loading) {
         </View>
 
         {/*  Your cart is empty  */}
-        <View style={{ height: 50, alignItems: "center" }}>
-          <Text style={{ color: "#909095", fontWeight: "600", fontSize: 20 }}>
+        <View style={{ height: 100, alignItems: "center" , justifyContent: "center"}}>
+          <Text style={{ color: "#292935", fontWeight: "600", fontSize: 20 }}>
             Your Cart is Empty.!
+          </Text>
+           <Text style={{ color: "#707077", fontWeight: "600", fontSize: 13, marginTop: 10 }}>
+            Looks like you have not added anything to your cart yet.
           </Text>
         </View>
 
@@ -122,12 +122,13 @@ if (isUserLoading || loading) {
         <TouchableOpacity
           onPress={() => router.push({ pathname: "../(tabs)/home" })}
           style={{
-            backgroundColor: "#030303",
+            backgroundColor: "#f14343",
             width: widthPercentageToDP("90"),
             paddingHorizontal: 20,
             paddingVertical: 10,
             borderRadius: 50,
             alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 20 }}>

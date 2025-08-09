@@ -58,6 +58,7 @@ export interface Store2 {
   symbol: string;
   orderTimings?: OrderTiming[];
   rating?: number;
+    store_name?: string;
   store_sub_categories?: string[];
   type: string;
   location_id: string;

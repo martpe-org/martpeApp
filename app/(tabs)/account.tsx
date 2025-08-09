@@ -14,7 +14,7 @@ import Fontisto from '@expo/vector-icons/Fontisto';
 const Profile = () => {
   const { removeUserDetails, userDetails, getUserDetails } = useUserDetails();
 
-  const [isProfileVisible, setProfileVisible] = useState(false);
+  const [isProfileVisible, setProfileVisible] = useState(true);
 
 
   useEffect(() => {

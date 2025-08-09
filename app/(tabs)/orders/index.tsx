@@ -64,7 +64,6 @@ const Orders = () => {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyHeader}>
-          <Text style={styles.emptyHeaderText}>Orders</Text>
         </View>
 
         <View style={styles.animationContainer}>
@@ -196,7 +195,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   shoppingButton: {
-    backgroundColor: "#030303",
+    backgroundColor: "#e73434",
     width: widthPercentageToDP("90"),
     paddingHorizontal: 20,
     paddingVertical: 10,

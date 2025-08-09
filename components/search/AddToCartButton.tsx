@@ -42,7 +42,7 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
             qty: 1,
             customizable: false,
           },
-          authToken
+          // authToken
         );
         if (result.success) setItemCount(1);
       } else {

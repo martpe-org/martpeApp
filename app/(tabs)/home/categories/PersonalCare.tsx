@@ -29,7 +29,7 @@ const domain = "ONDC:RET13";
 const domainColor = "#242929";
 const domainBorderColor = `${domainColor}80`;
 
-function PersonalCare() {
+function Beauty() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState("");
   const [filterSelected, setFilterSelected] = useState({ category: [], offers: 0, delivery: 100 });
@@ -204,7 +204,7 @@ function PersonalCare() {
   );
 }
 
-export default PersonalCare;
+export default Beauty;
 
 const styles = StyleSheet.create({
   container: {
@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     flexDirection: "row",
+    marginTop:25
   },
   subCategories: {
     flexDirection: "row",

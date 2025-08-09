@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
 import { widthPercentageToDP as wp } from "react-native-responsive-screen";
+import { createUser } from "../../components/user/create-user";
 import useUserDetails from "../../hook/useUserDetails";
-import { createUser } from "../../user/create-user";
 
 interface UserFormData {
   firstName: string;
@@ -31,10 +31,14 @@ interface FormValidation {
 }
 
 const SignUp: React.FC = () => {
-  const { saveUserDetails, isAuthenticated, isLoading: authLoading } = useUserDetails();
+  const {
+    saveUserDetails,
+    isAuthenticated,
+    isLoading: authLoading,
+  } = useUserDetails();
   const router = useRouter();
   const { mobileNumber } = useLocalSearchParams();
-  
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<UserFormData>({
     firstName: "",
@@ -42,7 +46,7 @@ const SignUp: React.FC = () => {
     email: "",
     phoneNumber: mobileNumber ? String(mobileNumber).replace(/^\+?91/, "") : "",
   });
-  
+
   const [validation, setValidation] = useState<FormValidation>({
     firstName: false,
     lastName: false,
@@ -72,13 +76,21 @@ const SignUp: React.FC = () => {
   const validateField = (field: keyof UserFormData, value: string): string => {
     switch (field) {
       case "firstName":
-        return value.trim().length >= 2 ? "" : "First name must be at least 2 characters";
+        return value.trim().length >= 2
+          ? ""
+          : "First name must be at least 2 characters";
       case "lastName":
-        return value.trim().length >= 2 ? "" : "Last name must be at least 2 characters";
+        return value.trim().length >= 2
+          ? ""
+          : "Last name must be at least 2 characters";
       case "email":
-        return emailRegex.test(value.trim()) ? "" : "Please enter a valid email address";
+        return emailRegex.test(value.trim())
+          ? ""
+          : "Please enter a valid email address";
       case "phoneNumber":
-        return /^\d{10}$/.test(value) ? "" : "Phone number must be exactly 10 digits";
+        return /^\d{10}$/.test(value)
+          ? ""
+          : "Phone number must be exactly 10 digits";
       default:
         return "";
     }
@@ -92,41 +104,45 @@ const SignUp: React.FC = () => {
     }
 
     // Update form data
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Validate field
     const error = validateField(field, value);
-    setFieldErrors(prev => ({
+    setFieldErrors((prev) => ({
       ...prev,
-      [field]: error
+      [field]: error,
     }));
 
     // Update validation state
-    setValidation(prev => ({
+    setValidation((prev) => ({
       ...prev,
-      [field]: error === ""
+      [field]: error === "",
     }));
   };
 
   // Check if form is valid
   const isFormValid = (): boolean => {
-    const baseValidation = validation.firstName && validation.lastName && validation.email;
-    
+    const baseValidation =
+      validation.firstName && validation.lastName && validation.email;
+
     // If mobile number came from previous screen, don't validate phone input
     if (mobileNumber) {
       return baseValidation;
     }
-    
+
     return baseValidation && validation.phoneNumber;
   };
 
   // Handle form submission
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      Alert.alert("Validation Error", "Please fill all required fields correctly");
+      Alert.alert(
+        "Validation Error",
+        "Please fill all required fields correctly"
+      );
       return;
     }
 
@@ -134,7 +150,7 @@ const SignUp: React.FC = () => {
 
     try {
       // Use phone from params if available, otherwise use form input
-      const phoneToUse = mobileNumber 
+      const phoneToUse = mobileNumber
         ? String(mobileNumber).replace(/^\+?91/, "")
         : formData.phoneNumber;
 
@@ -172,28 +188,28 @@ const SignUp: React.FC = () => {
 
         // Save user details using the hook
         await saveUserDetails(userDetails);
-        
+
         console.log("User details saved successfully, navigating to home");
-        
+
         // Navigate to home screen - router will handle this automatically due to auth state change
         // But we can also manually navigate to ensure immediate redirect
         router.replace("../(tabs)/home");
-        
       } else {
         // Handle API errors
-        const errorMessage = response.data?.error?.message || 
-                           response.data?.message || 
-                           "Registration failed. Please try again.";
+        const errorMessage =
+          response.data?.error?.message ||
+          response.data?.message ||
+          "Registration failed. Please try again.";
         Alert.alert("Registration Failed", errorMessage);
       }
-
     } catch (error: any) {
       console.error("Registration error:", error);
-      
+
       let errorMessage = "An unexpected error occurred. Please try again.";
-      
+
       if (error.message === "Network request failed") {
-        errorMessage = "Unable to connect to server. Please check your internet connection.";
+        errorMessage =
+          "Unable to connect to server. Please check your internet connection.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -222,7 +238,9 @@ const SignUp: React.FC = () => {
       >
         <View style={styles.content}>
           <Text style={styles.title}>Help us to get to know you</Text>
-          <Text style={styles.subtitle}>Please fill in your details to get started</Text>
+          <Text style={styles.subtitle}>
+            Please fill in your details to get started
+          </Text>
 
           <View style={styles.form}>
             {/* First Name Input */}
@@ -231,7 +249,7 @@ const SignUp: React.FC = () => {
               <TextInput
                 style={[
                   styles.input,
-                  fieldErrors.firstName ? styles.inputError : null
+                  fieldErrors.firstName ? styles.inputError : null,
                 ]}
                 placeholder="Enter your first name"
                 value={formData.firstName}
@@ -250,7 +268,7 @@ const SignUp: React.FC = () => {
               <TextInput
                 style={[
                   styles.input,
-                  fieldErrors.lastName ? styles.inputError : null
+                  fieldErrors.lastName ? styles.inputError : null,
                 ]}
                 placeholder="Enter your last name"
                 value={formData.lastName}
@@ -270,16 +288,20 @@ const SignUp: React.FC = () => {
                 <TextInput
                   style={[
                     styles.input,
-                    fieldErrors.phoneNumber ? styles.inputError : null
+                    fieldErrors.phoneNumber ? styles.inputError : null,
                   ]}
                   placeholder="Enter 10-digit phone number"
                   value={formData.phoneNumber}
-                  onChangeText={(text) => handleInputChange("phoneNumber", text)}
+                  onChangeText={(text) =>
+                    handleInputChange("phoneNumber", text)
+                  }
                   keyboardType="phone-pad"
                   maxLength={10}
                 />
                 {fieldErrors.phoneNumber ? (
-                  <Text style={styles.errorText}>{fieldErrors.phoneNumber}</Text>
+                  <Text style={styles.errorText}>
+                    {fieldErrors.phoneNumber}
+                  </Text>
                 ) : null}
               </View>
             )}
@@ -290,7 +312,7 @@ const SignUp: React.FC = () => {
               <TextInput
                 style={[
                   styles.input,
-                  fieldErrors.email ? styles.inputError : null
+                  fieldErrors.email ? styles.inputError : null,
                 ]}
                 placeholder="Enter your email address"
                 value={formData.email}
@@ -312,7 +334,7 @@ const SignUp: React.FC = () => {
                 {
                   backgroundColor: isFormValid() ? "#FB3E44" : "#cccccc",
                   opacity: isFormValid() ? 1 : 0.7,
-                }
+                },
               ]}
               onPress={handleSubmit}
               disabled={!isFormValid() || loading}
