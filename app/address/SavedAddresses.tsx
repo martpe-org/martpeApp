@@ -1,8 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import {
   Alert,
-  Dimensions,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -16,7 +14,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Loader from "../../components/common/Loader";
 import ShareButton from "../../components/common/Share";
 import { deleteAddress } from "../../components/address/deleteAddress";
-import { updateAddress } from "../../components/address/updateAddress";
 import Header from '../../components/address/AddressHeader';
 import Constants from 'expo-constants';
 import useUserDetails from '../../hook/useUserDetails';
@@ -82,14 +79,21 @@ const SavedAddresses: React.FC = () => {
   // Get user details and authentication status
   const { userDetails, isLoading: authLoading, isAuthenticated, checkAuthentication } = useUserDetails();
   
+  // Updated to use the new delivery store methods
+  const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
+  
   // states
-  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const [isLoading, setIsLoading] = useState(true);
   const [addresses, setAddresses] = useState<AddressType[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Get the access token from user details
   const authToken = userDetails?.accessToken || "";
+
+  // Load delivery details when component mounts
+  useEffect(() => {
+    loadDeliveryDetails();
+  }, []);
 
   // Check authentication status when component mounts
   useEffect(() => {
@@ -168,30 +172,6 @@ const SavedAddresses: React.FC = () => {
     ]
   );
 };
-
-  // const handleMarkAsDefault = async (addressId: string) => {
-  //   try {
-  //     // First, unmark all other addresses as default
-  //     const updatedAddresses = addresses.map(addr => ({
-  //       ...addr,
-  //       isDefault: addr.id === addressId
-  //     }));
-  //     setAddresses(updatedAddresses);
-
-  //     // Update on server
-  //     const result = await updateAddress(authToken);
-  //     if (result) {
-  //       await fetchUserAddresses();
-  //     } else {
-  //       Alert.alert("Error", "Failed to mark address as default");
-  //       await fetchUserAddresses(); // Revert to server state
-  //     }
-  //   } catch (error) {
-  //     console.error("Error marking address as default:", error);
-  //     Alert.alert("Error", "Failed to mark address as default");
-  //     await fetchUserAddresses(); // Revert to server state
-  //   }
-  // };
 
   const handleRetry = () => {
     if (authToken && isAuthenticated) {
@@ -273,7 +253,6 @@ const SavedAddresses: React.FC = () => {
                   isDefault={!!address.isDefault}
                   addressId={address.id}
                   onPress={handleDeleteAddress}
-                 // markAsDefault={handleMarkAsDefault}
                   pincode={address.pincode}
                   city={address.city}
                   state={address.state}
@@ -325,7 +304,6 @@ interface SavedAddressCard {
   city: string;
   pincode: string;
   onPress: (addressId: string) => void;
-  // markAsDefault: (addressId: string) => void;
   lat: number;
   lng: number;
   selectedDetails: any;
@@ -340,7 +318,6 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
     isDefault,
     addressId,
     onPress,
-    // markAsDefault,
     lat,
     lng,
     pincode,
@@ -349,12 +326,11 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
     state,
   } = props;
 
-  const addDeliveryDetail = useDeliveryStore(
-    (state) => state.addDeliveryDetail
-  );
+  // Updated to use the new addDeliveryDetail method
+  const { addDeliveryDetail } = useDeliveryStore();
 
-  const handleSelectDeliveryAddress = (addressId: string) => {
-    addDeliveryDetail({
+  const handleSelectDeliveryAddress = async (addressId: string) => {
+    const deliveryDetails = {
       addressId,
       city,
       state,
@@ -364,17 +340,18 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
       isDefault,
       lat,
       lng,
-    });
+    };
+    
+    // This will now save to AsyncStorage automatically
+    await addDeliveryDetail(deliveryDetails);
+    
+    console.log('Selected delivery address:', deliveryDetails);
     router.back();
   };
 
   const getAddressIcon = () => {
     switch (type) {
       case 'Home':
-        return <MaterialCommunityIcons name="home" size={24} color="#01884B" />;
-      case 'Work':
-        return <MaterialCommunityIcons name="briefcase" size={24} color="#FF6B35" />;
-      case 'FriendsAndFamily':
         return <MaterialCommunityIcons name="account-group" size={24} color="#8E44AD" />;
       default:
         return <MaterialCommunityIcons name="map-marker" size={24} color="#3498DB" />;
@@ -440,16 +417,6 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
           <TouchableOpacity style={styles.shareButton}>
             <ShareButton type="address" address={fullAddress} />
           </TouchableOpacity>
-          
-          {/* {!isDefault && (
-            <TouchableOpacity
-              onPress={() => markAsDefault(addressId)}
-              style={styles.defaultButton}
-            >
-              <MaterialCommunityIcons name="star-outline" size={16} color="#01884B" />
-              <Text style={styles.defaultButtonText}>Set as default</Text>
-            </TouchableOpacity>
-          )} */}
         </View>
 
         {/* deliver here */}
@@ -471,8 +438,6 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
     </View>
   );
 };
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   savedAddressesContainer: {

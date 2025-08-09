@@ -1,8 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -25,23 +21,20 @@ import {
 } from "../../../constants/categories";
 import { Animated } from "react-native";
 import { fetchHome } from "../../../hook/fetch-home-data";
-import {  Store2 } from "../../../hook/fetch-home-type";
+import { Store2 } from "../../../hook/fetch-home-type";
 import { Ionicons, Entypo, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
 import { useHomeDataStore } from "../../../components/user/homeDataStore";
 
-
 const windowWidth = Dimensions.get("window").width;
 
 const HomeScreen = () => {
   const router = useRouter();
-  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
+  const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
 
   // State variables
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  // const [restaurantsData, setRestaurantsData] = useState<Store2[]>([]);
-  // const [storesData, setStoresData] = useState<Store2[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const {
     homeDataFetched,
@@ -49,32 +42,43 @@ const HomeScreen = () => {
     restaurantsData,
     storesData,
     setRestaurantsData,
-    setStoresData
+    setStoresData,
   } = useHomeDataStore();
 
   // Animation states
   const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
   const [searchTextIndex, setSearchTextIndex] = useState(0);
-  const scrollAnim = useRef(new Animated.Value(0)).current;
 
-  // Search text animation effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSearchTextIndex((prevIndex) => (prevIndex + 1) % searchTexts.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const words = searchTexts[searchTextIndex].split(" ");
+  const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
+ 
 
+  // Animate words when index changes
   useEffect(() => {
-    scrollAnim.setValue(0);
-    Animated.timing(scrollAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: true,
-    }).start();
+    wordAnimations.forEach((anim) => anim.setValue(0)); // reset
+    Animated.stagger(
+      150,
+      wordAnimations.map((anim) =>
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        })
+      )
+    ).start();
   }, [searchTextIndex]);
 
- useEffect(() => {
+  // Change text every few seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+  useEffect(() => {
+    loadDeliveryDetails();
+  }, []);
+  useEffect(() => {
     if (!homeDataFetched) {
       fetchHomeData();
     }
@@ -95,12 +99,6 @@ const HomeScreen = () => {
       setIsLoading(false);
     }
   };
-
-  const translateY = scrollAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [10, -10],
-  });
-
   // Event handlers
   const handleLocationPress = () => {
     router.push("../address/SavedAddresses");
@@ -174,9 +172,11 @@ const HomeScreen = () => {
               {item.rating ? item.rating.toFixed(1) : "4.2"}
             </Text>
           </View>
-          
+
           <Text style={styles.restaurantDeliveryTime}>
-            {item.avg_tts_in_h ? `${Math.round(item.avg_tts_in_h * 60)} mins` : "30-40 mins"}
+            {item.avg_tts_in_h
+              ? `${Math.round(item.avg_tts_in_h * 60)} mins`
+              : "30-40 mins"}
           </Text>
         </View>
 
@@ -208,74 +208,84 @@ const HomeScreen = () => {
     </TouchableOpacity>
   );
 
-const renderNearbyItem = ({ item }: { item: Store2 }) => {
-  // Determine if it's a restaurant
-  const isRestaurant = item.type === "restaurant" || item.domain?.includes("Restaurant");
+  const renderNearbyItem = ({ item }: { item: Store2 }) => {
+    // Determine if it's a restaurant
+    const isRestaurant =
+      item.type === "restaurant" || item.domain?.includes("Restaurant");
 
-  // Safe title
-  const title = item.store_name || item.name || "Unnamed";
+    // Safe title
+    const title = item.store_name || item.name || "Unnamed";
 
-  // Safe category
-  const category = item.store_sub_categories?.join(", ") 
-    || item.domain?.replace("ONDC:", "") 
-    || (isRestaurant ? "Restaurant" : "Store");
+    // Safe category
+    const category =
+      item.store_sub_categories?.join(", ") ||
+      item.domain?.replace("ONDC:", "") ||
+      (isRestaurant ? "Restaurant" : "Store");
 
-  // Safe distance
-  const distance = typeof item.distance_in_km === "number"
-    ? `${item.distance_in_km.toFixed(1)} km`
-    : "";
+    // Safe distance
+    const distance =
+      typeof item.distance_in_km === "number"
+        ? `${item.distance_in_km.toFixed(1)} km`
+        : "";
 
-  // Safe rating
-  const rating = typeof item.rating === "number" && !isNaN(item.rating)
-    ? item.rating.toFixed(1)
-    : null;
+    // Safe rating
+    const rating =
+      typeof item.rating === "number" && !isNaN(item.rating)
+        ? item.rating.toFixed(1)
+        : null;
 
-  return (
-    <TouchableOpacity 
-      style={styles.nearbyCard}
-      onPress={() => router.push(`/(tabs)/home/productListing/${item.provider_id}`)}
-    >
-      <View style={styles.nearbyImageContainer}>
-        <Image
-          source={{
-            uri: item.symbol || "https://via.placeholder.com/120x80",
-          }}
-          style={styles.nearbyImage}
-          resizeMode="cover"
-        />
-        {item.offers && item.offers.length > 0 && (
-          <View style={styles.offerBadge}>
-            <Text style={styles.offerBadgeText}>
-              UPTO {item.maxStoreItemOfferPercent || "50"}% OFF
-            </Text>
-          </View>
-        )}
-      </View>
+    return (
+      <TouchableOpacity
+        style={styles.nearbyCard}
+        onPress={() =>
+          router.push(`/(tabs)/home/productListing/${item.provider_id}`)
+        }
+      >
+        <View style={styles.nearbyImageContainer}>
+          <Image
+            source={{
+              uri: item.symbol || "https://via.placeholder.com/120x80",
+            }}
+            style={styles.nearbyImage}
+            resizeMode="cover"
+          />
+          {item.offers && item.offers.length > 0 && (
+            <View style={styles.offerBadge}>
+              <Text style={styles.offerBadgeText}>
+                UPTO {item.maxStoreItemOfferPercent || "50"}% OFF
+              </Text>
+            </View>
+          )}
+        </View>
 
-      <View style={styles.nearbyInfo}>
-        <Text style={styles.nearbyName} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.nearbyCategory} numberOfLines={1}>
-          {category}
-        </Text>
-        {distance !== "" && (
-          <Text style={styles.nearbyDistance}>
-            {distance}
+        <View style={styles.nearbyInfo}>
+          <Text style={styles.nearbyName} numberOfLines={1}>
+            {title}
           </Text>
-        )}
-        {rating && (
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.ratingText}>{rating}</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-};
+          <Text style={styles.nearbyCategory} numberOfLines={1}>
+            {category}
+          </Text>
+          {distance !== "" && (
+            <Text style={styles.nearbyDistance}>{distance}</Text>
+          )}
+          {rating && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={styles.ratingText}>{rating}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
-  const renderFoodCategories = ({ item, index }: { item: any; index: number }) => {
+  const renderFoodCategories = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => {
     if (index % 2 !== 0) return null;
     const nextItem = foodCategoryData[index + 1];
 
@@ -290,9 +300,7 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
         </TouchableOpacity>
         {nextItem && (
           <TouchableOpacity
-            onPress={() =>
-              router.push(`/(tabs)/home/result/${nextItem.name}`)
-            }
+            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
             style={styles.categoryItem}
           >
             <Image
@@ -306,7 +314,13 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
     );
   };
 
-  const renderGroceryCategories = ({ item, index }: { item: any; index: number }) => {
+  const renderGroceryCategories = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => {
     if (index % 2 !== 0) return null;
     const nextItem = groceriesCategoryData[index + 1];
 
@@ -321,9 +335,7 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
         </TouchableOpacity>
         {nextItem && (
           <TouchableOpacity
-            onPress={() =>
-              router.push(`/(tabs)/home/result/${nextItem.name}`)
-            }
+            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
             style={styles.categoryItem}
           >
             <Image
@@ -356,17 +368,26 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
               color="white"
               style={{ marginRight: 16 }}
             />
-        <Text style={styles.deliveryTxt}>Delivering to</Text>
-  <Text style={styles.locationTxt} numberOfLines={1}>
-    {selectedDetails?.city || "Select Location"}
-    {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
-  </Text>
-  <Entypo name="chevron-down" size={18} color="white" />
-</TouchableOpacity>
+            <Text style={styles.deliveryTxt}>Delivering to</Text>
+            <Text style={styles.locationTxt} numberOfLines={1}>
+              {selectedDetails?.city || "Select Location"}
+              {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
+            </Text>
+            <Entypo name="chevron-down" size={18} color="white" />
+          </TouchableOpacity>
 
           {/* Search Bar */}
           <TouchableOpacity
-            style={styles.searchBar}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#f2f2f2",
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              marginHorizontal: 1,
+              marginTop: 10,
+            }}
             onPress={() => router.push("../search")}
             activeOpacity={0.9}
           >
@@ -376,29 +397,31 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
               color="#555"
               style={{ marginRight: 8 }}
             />
-            <View
-              style={{
-                flexDirection: "row",
-                flex: 1,
-                overflow: "hidden",
-                alignItems: "center",
-              }}
-            >
+            <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
               <Text style={{ color: "#8E8A8A", fontSize: 16 }}>
                 Search for{" "}
               </Text>
-              <View style={{ overflow: "hidden", flex: 1 }}>
+              {words.map((word, idx) => (
                 <Animated.Text
+                  key={idx}
                   style={{
+                    opacity: wordAnimations[idx],
+                    transform: [
+                      {
+                        translateY: wordAnimations[idx].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [10, 0],
+                        }),
+                      },
+                    ],
                     color: "#8E8A8A",
                     fontSize: 16,
-                    transform: [{ translateY }],
-                    width: windowWidth,
+                    marginRight: 4,
                   }}
                 >
-                  {searchTexts[searchTextIndex]}
+                  {word}
                 </Animated.Text>
-              </View>
+              ))}
             </View>
           </TouchableOpacity>
 
@@ -710,7 +733,7 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 10,
   },
   deliveryTxt: {
     color: "white",
@@ -730,7 +753,7 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   catList: {
-    marginTop: 13,
+    marginTop: 10,
   },
   catCard: {
     alignItems: "center",

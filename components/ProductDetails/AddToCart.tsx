@@ -28,7 +28,7 @@ const AddToCart: FC<AddToCartProps> = ({
 
   return (
     <View style={styles.container}>
-      {itemCount == 0 ? (
+      {itemCount === 0 ? (
         <DynamicButton
           isNewItem={true}
           storeId={storeId}
