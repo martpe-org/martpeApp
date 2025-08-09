@@ -29,6 +29,8 @@ import {  Store2 } from "../../../hook/fetch-home-type";
 import { Ionicons, Entypo, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
+import { useHomeDataStore } from "../../../components/user/homeDataStore";
+
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -38,9 +40,17 @@ const HomeScreen = () => {
 
   // State variables
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [restaurantsData, setRestaurantsData] = useState<Store2[]>([]);
-  const [storesData, setStoresData] = useState<Store2[]>([]);
+  // const [restaurantsData, setRestaurantsData] = useState<Store2[]>([]);
+  // const [storesData, setStoresData] = useState<Store2[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const {
+    homeDataFetched,
+    setHomeDataFetched,
+    restaurantsData,
+    storesData,
+    setRestaurantsData,
+    setStoresData
+  } = useHomeDataStore();
 
   // Animation states
   const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
@@ -64,21 +74,20 @@ const HomeScreen = () => {
     }).start();
   }, [searchTextIndex]);
 
-  // Fetch home data once on component mount
-  useEffect(() => {
-    fetchHomeData();
-  }, []);
+ useEffect(() => {
+    if (!homeDataFetched) {
+      fetchHomeData();
+    }
+  }, [homeDataFetched]);
 
   const fetchHomeData = async () => {
     setIsLoading(true);
     try {
-      // Use default coordinates for Bengaluru if you want static data
-      // You can replace these with any coordinates you prefer
       const data = await fetchHome(12.9716, 77.5946, "560001");
-      
       if (data) {
         setRestaurantsData(data.restaurants || []);
         setStoresData(data.stores || []);
+        setHomeDataFetched(true);
       }
     } catch (error) {
       console.error("Error fetching home data:", error);
@@ -347,13 +356,13 @@ const renderNearbyItem = ({ item }: { item: Store2 }) => {
               color="white"
               style={{ marginRight: 16 }}
             />
-            <Text style={styles.deliveryTxt}>Delivering to</Text>
-            <Text style={styles.locationTxt} numberOfLines={1}>
-              {selectedDetails?.city || "Select Location"}
-              {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
-            </Text>
-            <Entypo name="chevron-down" size={18} color="white" />
-          </TouchableOpacity>
+        <Text style={styles.deliveryTxt}>Delivering to</Text>
+  <Text style={styles.locationTxt} numberOfLines={1}>
+    {selectedDetails?.city || "Select Location"}
+    {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
+  </Text>
+  <Entypo name="chevron-down" size={18} color="white" />
+</TouchableOpacity>
 
           {/* Search Bar */}
           <TouchableOpacity
