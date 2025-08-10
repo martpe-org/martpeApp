@@ -14,9 +14,9 @@ interface ServicesProps {
   storeId: string;
 }
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-const SecureTransactionsSvg = (props) => (
+const SecureTransactionsSvg = (props : any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -50,7 +50,7 @@ const SecureTransactionsSvg = (props) => (
     </G>
   </Svg>
 );
-const Return = (props) => (
+const Return = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={22}
@@ -64,7 +64,7 @@ const Return = (props) => (
     />
   </Svg>
 );
-const Truck = (props) => (
+const Truck = (props: any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -86,7 +86,7 @@ const Truck = (props) => (
     />
   </Svg>
 );
-const CashonDelivery = (props) => (
+const CashonDelivery = (props :any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}

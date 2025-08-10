@@ -51,7 +51,6 @@ const HomeScreen = () => {
 
   const words = searchTexts[searchTextIndex].split(" ");
   const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
- 
 
   // Animate words when index changes
   useEffect(() => {
@@ -703,12 +702,63 @@ const HomeScreen = () => {
           </View>
 
           {/* Footer Section */}
-          <View style={styles.footerSection}>
-            <Text style={styles.footerTitle}>Made With ❤️</Text>
-            <Text style={styles.footerSubtitle}>In Bengaluru</Text>
-            <Text style={styles.footerDescription}>
-              Your one-stop marketplace for everything you need
-            </Text>
+          <View style={styles.footerContainer}>
+            {/* Header */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.headerTitle}>
+                Only all-in-one marketplace
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                with <Text style={styles.greenText}>zero platform fees!</Text>
+              </Text>
+            </View>
+
+            {/* Main Image */}
+            <View style={styles.imageContainer}>
+              <Image
+                source={require("../../../assets/tabs/footer.webp")} // Replace with your local image path
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
+            </View>
+
+            {/* Feature Cards */}
+            <View style={styles.cardsContainer}>
+              <View style={styles.cardRow}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Zero Platform</Text>
+                  <Text style={styles.cardTitle}>Fees</Text>
+                  <Text style={styles.cardDescription}>
+                    Enjoy shopping without any additional fees.
+                  </Text>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>6 Categories</Text>
+                  <Text style={styles.cardDescription}>
+                    Currently offering grocery, food, interior, electronics,
+                    personal care, and home decor.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.cardRow}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>5 Lakh+ Sellers</Text>
+                  <Text style={styles.cardDescription}>
+                    Items curated from over 5 lakh sellers across India.
+                  </Text>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Monetize Your</Text>
+                  <Text style={styles.cardTitle}>Experience</Text>
+                  <Text style={styles.cardDescription}>
+                    Turn your shopping into rewarding experiences.
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -733,7 +783,6 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
   },
   deliveryTxt: {
     color: "white",
@@ -753,7 +802,7 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   catList: {
-    marginTop: 10,
+    marginTop: 5,
   },
   catCard: {
     alignItems: "center",
@@ -968,30 +1017,72 @@ const styles = StyleSheet.create({
     maxWidth: 90,
   },
   // Footer Section
-  footerSection: {
-    backgroundColor: "#f8f9fa",
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    marginTop: 20,
-    borderRadius: 16,
+ footerContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
-  footerTitle: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#303030",
-    marginBottom: 8,
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  footerSubtitle: {
+  headerTitle: {
     fontSize: 20,
-    fontWeight: "300",
-    color: "#303030",
-    marginBottom: 12,
+    fontWeight: '600',
+    color: '#2563EB', // Blue color
+    textAlign: 'center',
+    lineHeight: 28,
   },
-  footerDescription: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
+  headerSubtitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  greenText: {
+    color: '#10B981', // Green color
+  },
+  imageContainer: {
+    marginBottom: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  mainImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  cardsContainer: {
+    gap: 10,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#Ffff',
+    padding: 15,
+    borderRadius: 12,
+    maxHeight: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 20,
+    marginHorizontal: 5,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: '#6B7280',
     lineHeight: 20,
   },
   sectionTitleContainer: {
@@ -1000,15 +1091,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     paddingHorizontal: 0,
-  },
-  seeAllButton: {
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  seeAllText: {
-    color: "#FF9130",
-    fontSize: 14,
-    fontWeight: "500",
   },
   nearbyListContainer: {
     paddingHorizontal: 16,

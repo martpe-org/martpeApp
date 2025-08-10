@@ -1,7 +1,7 @@
-'use server';
+import Constants from 'expo-constants';
+import { getAsyncStorageItem } from '../.../../utility/asyncStorage';
 
-import { SelectedCustomizationType } from '@/lib/api/user/fetch-user-type';
-import { cookies } from 'next/headers';
+const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export async function updateCartItemCustomizationsAction(
   cartItemId: string,
@@ -11,33 +11,36 @@ export async function updateCartItemCustomizationsAction(
   selected_customizations: SelectedCustomizationType[]
 ) {
   try {
-    const cookieStore = await cookies();
-    const authToken = cookieStore.get('auth-token')?.value;
-
-    const response = await fetch(
-      `${process.env.BACKEND_BASE_URL}/carts/update-item`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({
-          cartItemId,
-          qty,
-          product_slug,
-          product_price,
-          selected_customizations,
-          update_target: 'customization'
-        }),
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    if (!response.ok) {
-      throw new Error();
+    const authToken = await getAsyncStorageItem('auth-token');
+    if (!authToken) {
+      throw new Error('No auth token found');
     }
+
+    const response = await fetch(`${BASE_URL}/carts/update-item`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        cartItemId,
+        qty,
+        product_slug,
+        product_price,
+        selected_customizations,
+        update_target: 'customization'
+      }),
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      console.log('update cart item customizations notok:', response.status, data);
+      throw new Error('Failed to update cart item customizations');
+    }
+
     return { success: true };
   } catch (e) {
-    console.log('delete addr action error:', e);
+    console.log('update cart item customizations action error:', e);
     return { success: false };
   }
 }
