@@ -26,7 +26,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     bgColor + "0.7486)",
     bgColor + "0.1)",
   ];
-  const { height } = useWindowDimensions();
 
   sidebarTitles = sidebarTitles.map((title) =>
     title

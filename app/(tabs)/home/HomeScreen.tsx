@@ -72,6 +72,30 @@ export default function HomeScreen() {
   const [restaurantsData, setRestaurantsData] = useState<Store2[]>([]);
   const [storesData, setStoresData] = useState<Store2[]>([]);
 
+  // --- Fetch home data using react-query with hardcoded lat and lng ---
+//   const {
+//   data: homeData,
+//   isLoading,
+//   error,
+//   refetch,
+// } = useQuery({
+//   queryKey: [
+//     "homeData",
+//     selectedDetails?.latitude ?? 12.9716,
+//     selectedDetails?.longitude ?? 77.5946,
+//     selectedDetails?.pincode ?? "560001",
+//   ],
+//   queryFn: () =>
+//     fetchHome(
+//       selectedDetails?.latitude ?? 12.9716,
+//       selectedDetails?.longitude ?? 77.5946,
+//       selectedDetails?.pincode ?? "560001"
+//     ),
+//   staleTime: 1000 * 60 * 5, // 5 minutes
+//   enabled: true,
+//   retry: 1,
+// });
+
 const {
   data: homeData,
   isLoading,

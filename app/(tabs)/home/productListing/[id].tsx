@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 import PLPElectronics from "../../../../components/Product Listing Page/Electronics/PLPElectronics";
-import PLPFashion from "../../../../components/Product Listing Page/Fashion/PLPFashion";
+import PLPFashion from "../../../../components/Product Listing Page/Fashion/PLPFashion"; //
 import PLPBanner from "../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
 import PLPFnB from "../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
 import Searchbox from "../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";

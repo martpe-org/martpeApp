@@ -1,7 +1,6 @@
-import DynamicButton from "../../components/common/DynamicButton";
 import ImageComp from "../../components/common/ImageComp";
 import React, { FC } from "react";
-import { View, Text, Dimensions, StyleSheet, Pressable } from "react-native";
+import { View, Text, Dimensions, StyleSheet} from "react-native";
 import AddToCart from "./AddToCart";
 import { FontAwesome } from "@expo/vector-icons";
 import LikeButton from "../../components/common/likeButton";

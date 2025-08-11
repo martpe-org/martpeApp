@@ -46,5 +46,3 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
 };
 
 export default PLPHomeAndDecor;
-
-const styles = StyleSheet.create({});
