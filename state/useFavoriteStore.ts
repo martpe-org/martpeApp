@@ -1,72 +1,51 @@
 import { create } from "zustand";
-import {
-  addProductFavorite,
-  removeFavorite,
-  removeVendorFavorite,
-  addVendorFavorite,
-} from "../gql/favorites/favorite";
-import { initFavorite } from "./state-init/init-favorites";
+import { initFavorites } from "./state-init/init-favorites";
+import  {updateFavAction}  from "../components/fav/updateFav";
+import { setAsyncStorageItem } from "../utility/asyncStorage";
+import { FavoriteType } from "../components/fav/fetch-favs-type";
 
-// Optional: Replace `any` with your actual Product and Vendor types
-type Product = any;
-type Vendor = any;
+const FAVORITES_KEY = "favorites_data";
 
-type Favorite = {
-  products: Product[];
-  vendors: Vendor[];
-};
-
-type State = {
-  allFavorites: Favorite;
-};
-
-type Action = {
+interface FavoriteStore {
+  allFavorites: FavoriteType;
+  loadFavorites: () => Promise<void>;
   addFavorite: (productId: string) => Promise<void>;
   removeFavorite: (productId: string) => Promise<void>;
-  addVendorFavorite: (vendorId: string) => Promise<void>;
-  removeVendorFavorite: (vendorId: string) => Promise<void>;
-};
+}
 
-const initialState: State = {
-  allFavorites: {
-    products: [],
-    vendors: [],
-  },
-};
+export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
+  allFavorites: { products: [] },
 
-export const useFavoriteStore = create<State & Action>((set) => ({
-  ...initialState,
-  addFavorite: async (productId) => {
+  loadFavorites: async () => {
+    const favorites = await initFavorites();
+    set({ allFavorites: favorites });
+  },
+
+  addFavorite: async (productId: string) => {
     try {
-      await addProductFavorite(productId);
-      initFavorite(); // This should internally call `set` to update state
+      const result = await updateFavAction(productId, true );
+      if (result) {
+        const updatedFavorites = { products: [...get().allFavorites.products, { id: productId }] };
+        set({ allFavorites: updatedFavorites });
+        await setAsyncStorageItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
+      }
     } catch (error) {
-      console.error("Error adding item to favorites:", error, productId);
+      console.error("Error adding favorite:", error);
     }
   },
-  removeFavorite: async (productId) => {
+
+  removeFavorite: async (productId: string) => {
     try {
-      await removeFavorite(productId);
-      initFavorite();
-      console.log("Removed from favorites");
+      const result = await updateFavAction(productId, false);
+      if (result) {
+        const updatedFavorites = {
+          products: get().allFavorites.products.filter((item : any) => item.id !== productId),
+        };
+        set({ allFavorites: updatedFavorites });
+        await setAsyncStorageItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
+      }
     } catch (error) {
-      console.error("Error removing item from favorites:", error);
-    }
-  },
-  addVendorFavorite: async (vendorId) => {
-    try {
-      await addVendorFavorite(vendorId);
-      initFavorite();
-    } catch (error) {
-      console.error("Error adding vendor to favorites:", error);
-    }
-  },
-  removeVendorFavorite: async (vendorId) => {
-    try {
-      await removeVendorFavorite(vendorId);
-      initFavorite();
-    } catch (error) {
-      console.error("Error removing vendor from favorites:", error);
+      console.error("Error removing favorite:", error);
     }
   },
 }));

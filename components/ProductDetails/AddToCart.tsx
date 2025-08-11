@@ -7,8 +7,19 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 interface AddToCartProps {
   price: number;
   storeId: string;
-  itemId: string;
+  slug: string; // Changed from itemId to slug to match API
+  catalogId: string; // Added catalog ID required by API
   maxLimit: number;
+  customizable?: boolean; // Added for API compatibility
+  customizations?: { 
+    _id?: string; // Added missing _id property
+    id?: string; // Alternative id property name
+    groupId?: string; 
+    group_id?: string; // Alternative property name
+    optionId?: string; 
+    option_id?: string; // Alternative property name
+    name: string; 
+  }[]; // Added for customizations with flexible property names
 }
 
 const { width, height } = Dimensions.get("window");
@@ -16,13 +27,26 @@ const { width, height } = Dimensions.get("window");
 const AddToCart: FC<AddToCartProps> = ({
   price,
   storeId,
-  itemId,
+  slug,
+  catalogId,
   maxLimit,
+  customizable = false,
+  customizations = [],
 }) => {
   const allCarts = useCartStore((state) => state.allCarts);
   const cart = allCarts.find((cart) => cart.store.id === storeId);
-  const item = cart?.items?.find((item) => item?.itemId === itemId);
-  const itemCount = item?.quantity | 0;
+  
+  // Find item by product_slug instead of itemId
+  const item = cart?.items?.find((item) => item?.product_slug === slug);
+  const itemCount = item?.qty || 0; // Changed from quantity to qty
+
+  // Normalize customizations to match API expected format
+  const normalizedCustomizations = customizations.map(custom => ({
+    _id: custom._id || custom.id,
+    groupId: custom.groupId || custom.group_id || '',
+    optionId: custom.optionId || custom.option_id || '',
+    name: custom.name
+  }));
 
   console.log("added item count", itemCount);
 
@@ -32,8 +56,11 @@ const AddToCart: FC<AddToCartProps> = ({
         <DynamicButton
           isNewItem={true}
           storeId={storeId}
-          itemId={itemId}
+          slug={slug} // Updated prop name
+          catalogId={catalogId} // Added catalog ID
           quantity={1}
+          customizable={customizable}
+          customizations={normalizedCustomizations}
         >
           <View
             style={{
@@ -72,13 +99,17 @@ const AddToCart: FC<AddToCartProps> = ({
             alignItems: "center",
           }}
         >
-          {/* increment button */}
+          {/* decrement button */}
           <DynamicButton
             isUpdated={true}
             isNewItem={false}
             storeId={storeId}
             quantity={itemCount - 1}
-            itemId={itemId}
+            slug={slug} // Updated prop name
+            catalogId={catalogId} // Added catalog ID
+            cartItemId={item?._id} // Added cart item ID for updates
+            customizable={customizable}
+            customizations={normalizedCustomizations}
           >
             <View
               style={{
@@ -111,13 +142,18 @@ const AddToCart: FC<AddToCartProps> = ({
             </Text>
           </View>
 
+          {/* increment button */}
           {itemCount < maxLimit ? (
             <DynamicButton
               isUpdated={true}
               isNewItem={false}
               storeId={storeId}
               quantity={itemCount + 1}
-              itemId={itemId}
+              slug={slug} // Updated prop name
+              catalogId={catalogId} // Added catalog ID
+              cartItemId={item?._id} // Added cart item ID for updates
+              customizable={customizable}
+              customizations={normalizedCustomizations}
             >
               <View
                 style={{
@@ -133,8 +169,12 @@ const AddToCart: FC<AddToCartProps> = ({
               isNewItem={false}
               storeId={storeId}
               quantity={itemCount + 1}
-              itemId={itemId}
+              slug={slug} // Updated prop name
+              catalogId={catalogId} // Added catalog ID
+              cartItemId={item?._id} // Added cart item ID for updates
               disabled={true}
+              customizable={customizable}
+              customizations={normalizedCustomizations}
             >
               <View
                 style={{

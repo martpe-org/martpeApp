@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Animated,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { fetchHome } from "../../../hook/fetch-home-data";
+import useDeliveryStore from "../../../state/deliveryAddressStore";
+import { Store2 } from "../../../hook/fetch-home-type";
+import * as Location from 'expo-location';
 import {
   categoryData,
   foodCategoryData,
@@ -19,42 +26,23 @@ import {
   electronicsCategoryData,
   homeAndDecorCategoryData,
 } from "../../../constants/categories";
-import { Animated } from "react-native";
-import { fetchHome } from "../../../hook/fetch-home-data";
-import { Store2 } from "../../../hook/fetch-home-type";
 import { Ionicons, Entypo, FontAwesome6 } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import useDeliveryStore from "../../../state/deliveryAddressStore";
-import { useHomeDataStore } from "../../../components/user/homeDataStore";
 
 const windowWidth = Dimensions.get("window").width;
 
-const HomeScreen = () => {
+export default function HomeScreen() {
   const router = useRouter();
   const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
 
-  // State variables
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const {
-    homeDataFetched,
-    setHomeDataFetched,
-    restaurantsData,
-    storesData,
-    setRestaurantsData,
-    setStoresData,
-  } = useHomeDataStore();
-
-  // Animation states
+  // --- UI animation state (search placeholder) ---
   const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
   const [searchTextIndex, setSearchTextIndex] = useState(0);
-
   const words = searchTexts[searchTextIndex].split(" ");
   const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
 
-  // Animate words when index changes
   useEffect(() => {
-    wordAnimations.forEach((anim) => anim.setValue(0)); // reset
+    // animate words when index changes
+    wordAnimations.forEach((anim) => anim.setValue(0));
     Animated.stagger(
       150,
       wordAnimations.map((anim) =>
@@ -67,48 +55,100 @@ const HomeScreen = () => {
     ).start();
   }, [searchTextIndex]);
 
-  // Change text every few seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
   useEffect(() => {
     loadDeliveryDetails();
   }, []);
-  useEffect(() => {
-    if (!homeDataFetched) {
-      fetchHomeData();
-    }
-  }, [homeDataFetched]);
 
-  const fetchHomeData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchHome(12.9716, 77.5946, "560001");
-      if (data) {
-        setRestaurantsData(data.restaurants || []);
-        setStoresData(data.stores || []);
-        setHomeDataFetched(true);
+  // --- local UI state used by render functions ---
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [restaurantsData, setRestaurantsData] = useState<Store2[]>([]);
+  const [storesData, setStoresData] = useState<Store2[]>([]);
+
+const {
+  data: homeData,
+  isLoading,
+  error,
+  refetch,
+} = useQuery({
+  queryKey: [
+    "homeData",
+    selectedDetails?.lat,
+    selectedDetails?.lng,
+    selectedDetails?.pincode,
+  ],
+  queryFn: async () => {
+    let lat = selectedDetails?.lat;
+    let lng = selectedDetails?.lng;
+    let pin = selectedDetails?.pincode;
+
+    // If no saved location, use device GPS
+    if (!lat || !lng || !pin) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        throw new Error("Location permission denied");
       }
-    } catch (error) {
-      console.error("Error fetching home data:", error);
-    } finally {
-      setIsLoading(false);
+      const location = await Location.getCurrentPositionAsync({});
+      lat = location.coords.latitude;
+      lng = location.coords.longitude;
+
+      // Optional: reverse geocode to get pincode
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lng,
+      });
+      pin = address.postalCode || "";
     }
-  };
-  // Event handlers
+
+    return fetchHome(lat, lng, pin);
+  },
+  staleTime: 1000 * 60 * 5, // 5 minutes
+  enabled: true,
+  retry: 1,
+});
+// Animation value for "No Data" messages
+const fadeAnim = useRef(new Animated.Value(0)).current;
+
+// Animate when no data is found
+useEffect(() => {
+  if (homeData) {
+    if ((!homeData.restaurants?.length) || (!homeData.stores?.length)) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0); // reset
+    }
+  }
+}, [homeData]);
+
+  // Sync query result to local state so existing UI (FlatLists) can use restaurantsData/storesData
+  useEffect(() => {
+    if (homeData) {
+      setRestaurantsData(Array.isArray(homeData.restaurants) ? homeData.restaurants : []);
+      setStoresData(Array.isArray(homeData.stores) ? homeData.stores : []);
+    }
+  }, [homeData]);
+
+  // --- handlers ---
   const handleLocationPress = () => {
     router.push("../address/SavedAddresses");
   };
 
   const handleCategoryPress = (item: any) => {
-    setActiveCategory(item.id);
+    setActiveCategory(item.id?.toString?.() ?? item.id);
     router.push(`./categories/${item.link}`);
   };
 
-  // Render functions
+  // --- render helpers (kept largely the same as your original) ---
   const renderCategoryItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
@@ -117,6 +157,7 @@ const HomeScreen = () => {
       ]}
       onPress={() => handleCategoryPress(item)}
     >
+      {/* item.image might be a local require or uri */}
       <Image source={item.image} style={styles.iconImg} />
       <Text style={styles.catLabel} numberOfLines={1}>
         {item.name}
@@ -142,7 +183,7 @@ const HomeScreen = () => {
         {item.offers && item.offers.length > 0 && (
           <View style={styles.restaurantOfferBadge}>
             <Text style={styles.restaurantOfferText}>
-              {item.maxStoreItemOfferPercent || "20"}% OFF
+              {item.maxStoreItemOfferPercent ?? "20"}% OFF
             </Text>
           </View>
         )}
@@ -158,24 +199,22 @@ const HomeScreen = () => {
 
       <View style={styles.restaurantInfo}>
         <Text style={styles.restaurantName} numberOfLines={1}>
-          {item.name || "Unknown Restaurant"}
+          {item.name ?? "Unknown Restaurant"}
         </Text>
         <Text style={styles.restaurantCuisine} numberOfLines={1}>
-          {item.store_sub_categories?.join(", ") || "Multi Cuisine"}
+          {item.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
         </Text>
 
         <View style={styles.restaurantDetailsRow}>
           <View style={styles.restaurantRating}>
             <Ionicons name="star" size={12} color="#FFD700" />
             <Text style={styles.restaurantRatingText}>
-              {item.rating ? item.rating.toFixed(1) : "4.2"}
+              {typeof item.rating === "number" ? item.rating.toFixed(1) : "4.2"}
             </Text>
           </View>
 
           <Text style={styles.restaurantDeliveryTime}>
-            {item.avg_tts_in_h
-              ? `${Math.round(item.avg_tts_in_h * 60)} mins`
-              : "30-40 mins"}
+            {item.avg_tts_in_h ? `${Math.round(item.avg_tts_in_h * 60)} mins` : "30-40 mins"}
           </Text>
         </View>
 
@@ -187,10 +226,7 @@ const HomeScreen = () => {
             <View
               style={[
                 styles.restaurantStatusDot,
-                {
-                  backgroundColor:
-                    item.status === "open" ? "#00C851" : "#FF4444",
-                },
+                { backgroundColor: item.status === "open" ? "#00C851" : "#FF4444" },
               ]}
             />
             <Text
@@ -208,30 +244,14 @@ const HomeScreen = () => {
   );
 
   const renderNearbyItem = ({ item }: { item: Store2 }) => {
-    // Determine if it's a restaurant
-    const isRestaurant =
-      item.type === "restaurant" || item.domain?.includes("Restaurant");
-
-    // Safe title
     const title = item.store_name || item.name || "Unnamed";
-
-    // Safe category
     const category =
       item.store_sub_categories?.join(", ") ||
       item.domain?.replace("ONDC:", "") ||
-      (isRestaurant ? "Restaurant" : "Store");
-
-    // Safe distance
+      (item.type === "restaurant" ? "Restaurant" : "Store");
     const distance =
-      typeof item.distance_in_km === "number"
-        ? `${item.distance_in_km.toFixed(1)} km`
-        : "";
-
-    // Safe rating
-    const rating =
-      typeof item.rating === "number" && !isNaN(item.rating)
-        ? item.rating.toFixed(1)
-        : null;
+      typeof item.distance_in_km === "number" ? `${item.distance_in_km.toFixed(1)} km` : "";
+    const rating = typeof item.rating === "number" && !isNaN(item.rating) ? item.rating.toFixed(1) : null;
 
     return (
       <TouchableOpacity
@@ -242,16 +262,14 @@ const HomeScreen = () => {
       >
         <View style={styles.nearbyImageContainer}>
           <Image
-            source={{
-              uri: item.symbol || "https://via.placeholder.com/120x80",
-            }}
+            source={{ uri: item.symbol || "https://via.placeholder.com/120x80" }}
             style={styles.nearbyImage}
             resizeMode="cover"
           />
           {item.offers && item.offers.length > 0 && (
             <View style={styles.offerBadge}>
               <Text style={styles.offerBadgeText}>
-                UPTO {item.maxStoreItemOfferPercent || "50"}% OFF
+                UPTO {item.maxStoreItemOfferPercent ?? "50"}% OFF
               </Text>
             </View>
           )}
@@ -264,9 +282,7 @@ const HomeScreen = () => {
           <Text style={styles.nearbyCategory} numberOfLines={1}>
             {category}
           </Text>
-          {distance !== "" && (
-            <Text style={styles.nearbyDistance}>{distance}</Text>
-          )}
+          {distance !== "" && <Text style={styles.nearbyDistance}>{distance}</Text>}
           {rating && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color="#FFD700" />
@@ -277,8 +293,7 @@ const HomeScreen = () => {
       </TouchableOpacity>
     );
   };
-
-  const renderFoodCategories = ({
+ const renderFoodCategories = ({
     item,
     index,
   }: {
@@ -347,26 +362,14 @@ const HomeScreen = () => {
       </View>
     );
   };
-
+  // --- Main render ---
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Red Header Section */}
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Red header */}
         <View style={styles.redSection}>
-          {/* Location */}
-          <TouchableOpacity
-            style={styles.locationRow}
-            onPress={handleLocationPress}
-          >
-            <FontAwesome6
-              name="location-pin-lock"
-              size={18}
-              color="white"
-              style={{ marginRight: 16 }}
-            />
+          <TouchableOpacity style={styles.locationRow} onPress={handleLocationPress}>
+            <FontAwesome6 name="location-pin-lock" size={18} color="white" style={{ marginRight: 16 }} />
             <Text style={styles.deliveryTxt}>Delivering to</Text>
             <Text style={styles.locationTxt} numberOfLines={1}>
               {selectedDetails?.city || "Select Location"}
@@ -375,7 +378,6 @@ const HomeScreen = () => {
             <Entypo name="chevron-down" size={18} color="white" />
           </TouchableOpacity>
 
-          {/* Search Bar */}
           <TouchableOpacity
             style={{
               flexDirection: "row",
@@ -390,16 +392,9 @@ const HomeScreen = () => {
             onPress={() => router.push("../search")}
             activeOpacity={0.9}
           >
-            <Ionicons
-              name="search"
-              size={20}
-              color="#555"
-              style={{ marginRight: 8 }}
-            />
+            <Ionicons name="search" size={20} color="#555" style={{ marginRight: 8 }} />
             <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
-              <Text style={{ color: "#8E8A8A", fontSize: 16 }}>
-                Search for{" "}
-              </Text>
+              <Text style={{ color: "#8E8A8A", fontSize: 16 }}>Search for{" "}</Text>
               {words.map((word, idx) => (
                 <Animated.Text
                   key={idx}
@@ -424,7 +419,6 @@ const HomeScreen = () => {
             </View>
           </TouchableOpacity>
 
-          {/* Categories */}
           <FlatList
             data={categoryData}
             horizontal
@@ -432,61 +426,78 @@ const HomeScreen = () => {
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.catList}
             renderItem={renderCategoryItem}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            windowSize={10}
           />
         </View>
 
-        {/* White Content Section */}
+        {/* White content */}
         <View style={styles.whiteSection}>
-          {/* Restaurants Section */}
-          {restaurantsData.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
-                <Text style={styles.sectionTitle}>Restaurants Near You</Text>
-              </View>
-              <FlatList
-                data={restaurantsData}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) =>
-                  `restaurant_${item.provider_id}_${index}`
-                }
-                contentContainerStyle={styles.nearbyList}
-                renderItem={renderRestaurantItem}
-                removeClippedSubviews={true}
-                maxToRenderPerBatch={5}
-                initialNumToRender={3}
-                windowSize={5}
-              />
-            </View>
-          )}
+        {isLoading && (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>Loading...</Text>
+    </View>
+  )}
 
-          {/* Stores Section */}
-          {storesData.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
-                <Text style={styles.sectionTitle}>Stores Near You</Text>
-              </View>
-              <FlatList
-                data={storesData}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) =>
-                  `store_${item.provider_id}_${index}`
-                }
-                contentContainerStyle={styles.nearbyList}
-                renderItem={renderNearbyItem}
-                removeClippedSubviews={true}
-                maxToRenderPerBatch={5}
-                initialNumToRender={3}
-                windowSize={5}
-              />
-            </View>
-          )}
+  {error && (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorText}>Something went wrong loading data.</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+        <Text style={styles.retryButtonText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  )}
 
-          {/* Groceries Section */}
+  {/* Restaurants */}
+  {restaurantsData.length > 0 ? (
+    <View style={styles.section}>
+      <View style={styles.sectionTitleContainer}>
+        <Text style={styles.sectionTitle}>Restaurants Near You</Text>
+      </View>
+      <FlatList
+        data={restaurantsData}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => `restaurant_${item.provider_id}_${index}`}
+        contentContainerStyle={styles.nearbyList}
+        renderItem={renderRestaurantItem}
+      />
+    </View>
+  ) : (
+    !isLoading && (
+      <Animated.View style={{ opacity: fadeAnim, alignItems: "center", marginVertical: 20 }}>
+        <Ionicons name="restaurant-outline" size={40} color="#999" />
+        <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
+          No restaurants found in your area
+        </Text>
+      </Animated.View>
+    )
+  )}
+
+  {/* Stores */}
+  {storesData.length > 0 ? (
+    <View style={styles.section}>
+      <View style={styles.sectionTitleContainer}>
+        <Text style={styles.sectionTitle}>Stores Near You</Text>
+      </View>
+      <FlatList
+        data={storesData}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => `store_${item.provider_id}_${index}`}
+        contentContainerStyle={styles.nearbyList}
+        renderItem={renderNearbyItem}
+      />
+    </View>
+  ) : (
+    !isLoading && (
+      <Animated.View style={{ opacity: fadeAnim, alignItems: "center", marginVertical: 20 }}>
+        <Ionicons name="storefront-outline" size={40} color="#999" />
+        <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
+          No stores found in your area
+        </Text>
+      </Animated.View>
+    )
+  )}
+   {/* Groceries Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
               <View style={styles.headerLine} />
@@ -1341,7 +1352,7 @@ const styles = StyleSheet.create({
   },
   restaurantCuisine: {
     fontSize: 13,
-    color: "#7A7A7A",
+      color: "#7A7A7A",
     marginBottom: 8,
     textTransform: "capitalize",
   },
@@ -1396,5 +1407,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-
-export default HomeScreen;

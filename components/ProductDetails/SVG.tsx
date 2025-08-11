@@ -1,6 +1,6 @@
 import * as React from "react";
 import Svg, { Path } from "react-native-svg";
-export const Heart = (props) => (
+export const Heart = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -16,7 +16,7 @@ export const Heart = (props) => (
     />
   </Svg>
 );
-export const Share = (props) => (
+export const Share = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={19}
@@ -30,7 +30,7 @@ export const Share = (props) => (
     />
   </Svg>
 );
-export const Discount = (props) => (
+export const Discount = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={16}
@@ -48,7 +48,7 @@ export const Discount = (props) => (
     />
   </Svg>
 );
-export const LeftArrow = (props) => (
+export const LeftArrow = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={16}

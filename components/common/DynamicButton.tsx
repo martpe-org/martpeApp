@@ -2,9 +2,7 @@ import { useRef, FC, ReactNode } from "react";
 import { Animated, Pressable } from "react-native";
 import { useToast } from "react-native-toast-notifications";
 
-import { addToCartAction } from "../../state/addToCart";
-import { updateCartItemQtyAction } from "../../state/updateQty";
-import { removeCartAction } from "../../state/removeCart";
+import { useCartStore } from "../../state/useCartStore";
 
 interface DynamicButtonProps {
   children: ReactNode;
@@ -12,10 +10,19 @@ interface DynamicButtonProps {
   isUpdated?: boolean;
   storeId?: string;
   onPress?: () => void;
-  itemId?: string;
+  slug?: string; // Changed from itemId to slug
+  catalogId?: string; // Added catalog ID
+  cartItemId?: string; // Added for update operations
   quantity?: number;
+  customizable?: boolean; // Added customizable flag
   customizations?: {
-    id: string;
+    _id?: string;
+    id?: string;
+    groupId?: string;
+    group_id?: string;
+    optionId?: string;
+    option_id?: string;
+    name: string;
   }[];
   disabled?: boolean;
 }
@@ -26,13 +33,19 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   isNewItem,
   isUpdated,
   storeId,
-  itemId,
+  slug,
+  catalogId,
+  cartItemId,
   quantity = 1,
+  customizable = false,
   customizations = [],
   disabled = false,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const toast = useToast();
+  
+  // Get cart store actions
+  const { addItem, updateItemQuantity, removeCartItems, removeCart } = useCartStore();
 
   const animatePressIn = () => {
     Animated.spring(scale, {
@@ -53,43 +66,80 @@ const DynamicButton: FC<DynamicButtonProps> = ({
 
   const handlePress = async () => {
     try {
-      if (!storeId || !itemId) {
-        toast.show("Missing storeId or itemId", { type: "danger" });
+      if (onPress) {
+        onPress();
+        return;
+      }
+
+      if (!storeId) {
+        toast.show("Missing storeId", { type: "danger" });
         return;
       }
 
       if (isNewItem) {
-        const res = await addToCartAction({
-          store_id: storeId,
-          slug: itemId,
-          catalog_id: itemId,
-          qty: 1,
-          customizable: customizations.length > 0,
-          customizations: customizations.map((c) => ({
-            groupId: c.id,
-            optionId: c.id,
-            name: "custom",
-          })),
-        });
+        // Adding new item to cart
+        if (!slug || !catalogId) {
+          toast.show("Missing product information", { type: "danger" });
+          return;
+        }
 
-        if (res.success) {
+        // Normalize customizations for API
+        const normalizedCustomizations = customizations.map(custom => ({
+          groupId: custom.groupId || custom.group_id || '',
+          optionId: custom.optionId || custom.option_id || '',
+          name: custom.name
+        }));
+
+        const success = await addItem(
+          storeId,
+          slug,
+          catalogId,
+          1, // Always add 1 item initially
+          customizable,
+          normalizedCustomizations
+        );
+
+        if (success) {
           toast.show("Added to cart", { type: "success" });
         } else {
           toast.show("Failed to add to cart", { type: "danger" });
         }
-      } else if (isUpdated && quantity > 0) {
-        const res = await updateCartItemQtyAction(itemId, quantity);
-        if (res.success) {
-          toast.show("Updated cart", { type: "success" });
+      } else if (isUpdated) {
+        if (quantity > 0) {
+          // Update quantity
+          if (!cartItemId) {
+            toast.show("Missing cart item ID", { type: "danger" });
+            return;
+          }
+
+          const success = await updateItemQuantity(cartItemId, quantity);
+          
+          if (success) {
+            toast.show("Updated cart", { type: "success" });
+          } else {
+            toast.show("Failed to update cart", { type: "danger" });
+          }
         } else {
-          toast.show("Failed to update cart", { type: "danger" });
-        }
-      } else if (isUpdated && quantity <= 0) {
-        const res = await removeCartAction(storeId);
-        if (res.success) {
-          toast.show("Removed from cart", { type: "success" });
-        } else {
-          toast.show("Failed to remove item", { type: "danger" });
+          // Remove item (quantity is 0 or negative)
+          if (cartItemId) {
+            // Remove specific cart item
+            const success = await removeCartItems([cartItemId]);
+            
+            if (success) {
+              toast.show("Removed from cart", { type: "success" });
+            } else {
+              toast.show("Failed to remove item", { type: "danger" });
+            }
+          } else {
+            // Remove entire cart for this store
+            const success = await removeCart(storeId);
+            
+            if (success) {
+              toast.show("Removed from cart", { type: "success" });
+            } else {
+              toast.show("Failed to remove from cart", { type: "danger" });
+            }
+          }
         }
       } else {
         toast.show("Unhandled cart action", { type: "warning" });
@@ -108,6 +158,8 @@ const DynamicButton: FC<DynamicButtonProps> = ({
         onPressIn={animatePressIn}
         onPressOut={animatePressOut}
         onPress={disabled ? undefined : handlePress}
+        disabled={disabled}
+        style={disabled ? { opacity: 0.5 } : undefined}
       >
         {children}
       </Pressable>

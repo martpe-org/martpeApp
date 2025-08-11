@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View, Share } from "react-native";
+import React from "react";
+import { TouchableOpacity, Share, Alert } from "react-native";
 import useUserDetails from "../../hook/useUserDetails";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 interface ShareProps {
   productId?: string;
   productName?: string;
@@ -13,7 +14,7 @@ interface ShareProps {
   address?: string;
 }
 
-const ShareButton = ({
+const ShareButton: React.FC<ShareProps> = ({
   productId,
   productName,
   storeId,
@@ -23,43 +24,37 @@ const ShareButton = ({
   size,
   address,
 }) => {
-  const { userDetails, getUserDetails } = useUserDetails();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  useEffect(() => {
-    getUserDetails().then(() => setIsLoading(false));
-    console.log("User details from app:", userDetails);
-  }, []);
+  const { userDetails } = useUserDetails();
 
-  function getMessage(
-    type,
-    username,
-    productName,
-    storeName,
-    productId,
-    storeId,
-    address
-  ) {
+  const getMessage = (
+    type: string,
+    username: string,
+    productName?: string,
+    storeName?: string,
+    productId?: string,
+    storeId?: string,
+    address?: string
+  ) => {
     switch (type) {
       case "item":
         return `Hey! ${username} has shared *${productName}* from *${storeName}* outlet on the app! Click on the link to view the product: https://www.martpe.in/(tabs)/home/productDetails/${productId}`;
       case "outlet":
-        return `Hey! ${username} has shared *${storeName}* outlet on the app! Click on the link to view the outlet: 
-        https://www.martpe.in/(tabs)/home/productListing/${storeId}`;
+        return `Hey! ${username} has shared *${storeName}* outlet on the app! Click on the link to view the outlet: https://www.martpe.in/(tabs)/home/productListing/${storeId}`;
       default:
-        return `Hey! ${username} has shared address:  ${address} on the app! Click to the link : https://www.martpe.in/addAddress`;
+        return `Hey! ${username} has shared address: ${address} on the app! Click to the link : https://www.martpe.in/addAddress`;
     }
-  }
+  };
 
   const shareMessage = async () => {
-    if (isLoading) {
+    if (!userDetails) {
+      Alert.alert("Please log in to share");
       return;
     }
-    const username = userDetails.firstName;
     try {
-      const result = await Share.share({
+      await Share.share({
         message: getMessage(
           type,
-          username,
+          userDetails.firstName,
           productName,
           storeName,
           productId,
@@ -67,18 +62,8 @@ const ShareButton = ({
           address
         ),
       });
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // shared with activity type of result.activityType
-        } else {
-          // shared
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // dismissed
-      }
-    } catch (error) {
-      alert(error.message);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
     }
   };
 
@@ -86,7 +71,7 @@ const ShareButton = ({
     <TouchableOpacity onPress={shareMessage}>
       <MaterialCommunityIcons
         name="share-variant"
-        size={size ? size : 24}
+        size={size || 24}
         color="#000"
       />
     </TouchableOpacity>
