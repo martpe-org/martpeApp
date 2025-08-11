@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import GroceryCardContainer from "./GroceryCardContainer";
 import HorizontalNavbar from "./HorizontalNavbar";
 
@@ -91,18 +91,21 @@ const PLPGrocery: React.FC<PLPGroceryProps> = ({
         onFilterSelect={handleCategorySelect}
         domainColor="rgba(240, 255, 197, 1)"
       />
-      <GroceryCardContainer
-        catalog={catalog}
-        searchString={searchString}
-        selectedCategory={selectedCategoryDemo}
-        providerId={providerId}
-      />
+   <GroceryCardContainer
+  catalog={catalog as unknown as {
+    category_id: string;
+    descriptor: { images: string[]; name: string };
+    price: { value: number };
+    id: string;
+    quantity: { maximum: { count: number }; available: { count: number } };
+  }[]}
+  searchString={searchString}
+ selectedCategory={selectedCategoryDemo ?? undefined}  providerId={providerId}
+/>
+
     </View>
   );
 };
 
 export default PLPGrocery;
 
-const styles = StyleSheet.create({
-  groceryContainer: {},
-});

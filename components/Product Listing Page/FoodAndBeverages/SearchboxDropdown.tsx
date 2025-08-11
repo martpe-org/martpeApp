@@ -2,13 +2,15 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import SearchboxDropdownItem from "./SearchboxDropdownItem";
 
+interface SuggestionItem {
+  image: string;
+  name: string;
+  id: string;
+}
+
 interface SearchboxDropdownProps {
-  suggestions: Array<{
-    image: string;
-    name: string;
-    id: string;
-    search: (text: string) => void;
-  }>;
+  suggestions: SuggestionItem[];
+  search: (text: string) => void;
 }
 
 const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({

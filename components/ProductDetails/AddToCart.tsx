@@ -7,8 +7,9 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 interface AddToCartProps {
   price: number;
   storeId: string;
-  slug: string; // Changed from itemId to slug to match API
-  catalogId: string; // Added catalog ID required by API
+  slug?: string; // Changed from itemId to slug to match API
+   itemId?: string;  
+  catalogId?: string; // Added catalog ID required by API
   maxLimit: number;
   customizable?: boolean; // Added for API compatibility
   customizations?: { 

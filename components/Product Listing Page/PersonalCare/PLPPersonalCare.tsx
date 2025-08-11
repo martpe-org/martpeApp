@@ -113,14 +113,10 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
 
   return (
     <View>
-      {/* <SidebarNavigation
-      domainColor="rgba(255, 211, 237, 1)"
-        sidebarTitles={sidebarTitles}
-        onSelectCategory={handleCategorySelect}
-      /> */}
       <HorizontalNavbar
         navbarTitles={buttons}
         domainColor="rgba(255, 211, 237, 1)"
+        onFilterSelect={handleCategorySelect}
       />
 
       <PersonalCareCardContainer
@@ -132,6 +128,5 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
   );
 };
 
-const styles = StyleSheet.create({});
 
 export default PLPPersonalCare;

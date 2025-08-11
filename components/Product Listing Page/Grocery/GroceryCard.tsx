@@ -27,8 +27,9 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 }) => {
   const allCarts = useCartStore((state) => state.allCarts);
   const cart = allCarts.find((cart) => cart.store.id === providerId);
-  const item = cart?.items?.find((item) => item?.itemId === id);
-  const itemCount = item?.quantity | 0;
+const cartItem = cart?.items?.find((item) => item.product_slug === id);
+const itemCount = cartItem?.qty ?? 0;
+
   useEffect(() => {
     console.log(id);
   });
@@ -61,11 +62,11 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           </Text>
         </View>
       </View>
-      {itemCount == 0 ? (
+      {itemCount === 0 ? (
         <View style={styles.buttonGroup}>
           <DynamicButton
             storeId={providerId}
-            itemId={id}
+            slug={id}
             quantity={1}
             isNewItem={true}
           >
@@ -78,7 +79,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         <View style={styles.buttonGroup}>
           <DynamicButton
             storeId={providerId}
-            itemId={id}
+            slug={id}
             quantity={itemCount - 1}
             isUpdated={true}
           >
@@ -88,7 +89,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           {itemCount < maxLimit ? (
             <DynamicButton
               storeId={providerId}
-              itemId={id}
+              slug={id}
               quantity={itemCount + 1}
               isUpdated={true}
             >
@@ -97,7 +98,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           ) : (
             <DynamicButton
               storeId={providerId}
-              itemId={id}
+              slug={id}
               quantity={itemCount + 1}
               isUpdated={true}
               disabled={true}

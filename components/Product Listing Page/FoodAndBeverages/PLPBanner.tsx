@@ -1,11 +1,10 @@
 import React from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import PLPBannerCard from "./PLPBannerCard";
 import { getDistance } from "geolib";
 import { router } from "expo-router";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import useDeliveryStore from "../../../state/deliveryAddressStore";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+
 
 interface Point {
   coordinates: number[];
@@ -30,7 +29,8 @@ interface PLPBannerProps {
   userLocation: any;
   searchbox?: boolean;
   userAddress: string;
-  vendorId: string;
+  productId: string;
+  vendorId?: string;
 }
 
 const PLPBanner: React.FC<PLPBannerProps> = ({
@@ -41,7 +41,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
   userLocation,
   searchbox,
   userAddress,
-  vendorId,
+  productId,
 }) => {
   const bgImg = descriptor?.images?.[0] || descriptor?.symbol;
   // const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
@@ -87,7 +87,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         distance={distance}
         delivery="Free Delivery"
         userAddress={userAddress}
-        vendorId={vendorId}
+        productId={productId}
       />
     </View>
   );

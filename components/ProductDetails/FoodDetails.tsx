@@ -19,26 +19,26 @@ interface FoodDetailsProps {
     discount: number;
     maxPrice: number;
   };
-  closeFilter: () => void;
 }
+const defaultImage =
+  "https://www.foodiesfeed.com/wp-content/uploads/2019/04/mae-mu-oranges-ice-915x1372.jpg";
 
 const FoodDetailsComponent: FC<FoodDetailsProps> = ({
   foodDetails,
-  closeFilter,
 }) => {
   return (
     <View style={styles.contentContainer}>
-      <ImageComp
-        source={
-            (foodDetails?.images && foodDetails.images[0]) ||
-            "https://www.foodiesfeed.com/wp-content/uploads/2019/04/mae-mu-oranges-ice-915x1372.jpg"}
-        imageStyle={{
-          height: Dimensions.get("screen").height * 0.3,
-          width: Dimensions.get("screen").width * 0.9,
-          borderRadius: 10,
-        }}
-        resizeMode="cover"
-      />
+     <ImageComp
+  source={{
+    uri: foodDetails?.images?.[0] || defaultImage,
+  }}
+  imageStyle={{
+    height: Dimensions.get("screen").height * 0.3,
+    width: Dimensions.get("screen").width * 0.9,
+    borderRadius: 10,
+  }}
+  resizeMode="cover"
+/>
       <View
         style={{
           flexDirection: "row",

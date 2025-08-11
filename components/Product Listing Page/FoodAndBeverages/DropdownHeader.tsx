@@ -2,43 +2,14 @@ import React, { useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, View } from "react-native";
 import Dropdown from "./Dropdown";
 import { Entypo } from "@expo/vector-icons";
-
-interface Descriptor {
-  images: string[];
-  name: string;
-  symbol: string;
-}
-
-interface Price {
-  maximum_value: number;
-  offer_percent: number | null;
-  offer_value: number | null;
-  value: number;
-}
-
-interface CatalogItem {
-  bpp_id: string;
-  bpp_uri: string;
-  catalog_id: string;
-  category_id: string;
-  descriptor: Descriptor;
-  id: string;
-  location_id: string;
-  non_veg: boolean | null;
-  price: Price;
-  provider_id: string;
-  veg: boolean;
-  provider: {
-    id: string;
-  };
-}
+import { CatalogItem } from "../../../state/types"; // ✅ unified import
 
 interface DropdownHeaderProps {
-  dropdownHeaders: string[];
+ dropdownHeaders: string[];
   dropdownData: CatalogItem[];
   providerId: string;
   searchString: string;
-  handleOpenModal: () => void;
+  handleOpenPress: () => void;
   foodDetails: (data: any) => void;
 }
 
@@ -50,8 +21,7 @@ const DropdownHeader: React.FC<DropdownHeaderProps> = ({
   foodDetails,
   searchString,
 }) => {
-  // For toggling the dropdowns
-  const [dropdownStates, setDropdownStates] = useState(
+  const [dropdownStates, setDropdownStates] = useState<Record<string, boolean>>(
     dropdownHeaders.reduce((acc, header) => {
       acc[header] = true;
       return acc;
@@ -59,64 +29,51 @@ const DropdownHeader: React.FC<DropdownHeaderProps> = ({
   );
 
   const toggleDropdown = (header: string) => {
-    setDropdownStates((prevStates) => ({
-      ...prevStates,
-      [header]: !prevStates[header],
+    setDropdownStates((prev) => ({
+      ...prev,
+      [header]: !prev[header],
     }));
   };
 
-  // For getting the count of items in each category
-  const getCountForCategory = (category: string) => {
-    const filteredItems = dropdownData.filter(
-      (item) => item.category_id === category
-    );
-    return filteredItems.length;
-  };
+  const getCountForCategory = (category: string) =>
+    dropdownData.filter((item) => item.category_id === category).length;
 
   return (
     <View>
-      {dropdownHeaders.map((item, idx) => {
+      {dropdownHeaders.map((item) => {
         const headerTitle = item
           .replace(/_/g, " ")
-          .replace(/\b\w/g, (c) => c.toLowerCase())
           .replace(/^\w/, (c) => c.toUpperCase());
+
         return (
-          <View key={idx} style={{}}>
+          <View key={item}>
             <TouchableOpacity
               activeOpacity={0.9}
               style={{
                 ...styles.categoriesHeader_container,
                 borderWidth: dropdownStates[item] ? 0 : 0.5,
-                // paddingVertical: dropdownStates[item] ? 10 : 20,
               }}
               onPress={() => toggleDropdown(item)}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
+              <View style={styles.headerRow}>
                 <Text style={styles.headerText}>
-                  {headerTitle + " (" + getCountForCategory(item) + ")"}
+                  {`${headerTitle} (${getCountForCategory(item)})`}
                 </Text>
-
-                {dropdownStates[item] ? (
-                  <Entypo name="chevron-small-up" size={24} color="black" />
-                ) : (
-                  <Entypo name="chevron-small-down" size={24} color="black" />
-                )}
+                <Entypo
+                  name={
+                    dropdownStates[item]
+                      ? "chevron-small-up"
+                      : "chevron-small-down"
+                  }
+                  size={24}
+                  color="black"
+                />
               </View>
             </TouchableOpacity>
+
             {dropdownStates[item] && (
               <Dropdown
-                data={
-                  dropdownData.filter(
-                    (dropdownItem) => dropdownItem.category_id === item
-                  ) || []
-                }
-                key={idx}
+                data={dropdownData}
                 isVisible={true}
                 providerId={providerId}
                 handleOpenPress={handleOpenPress}
@@ -139,14 +96,14 @@ const styles = StyleSheet.create({
     borderColor: "#D0D0D0",
     borderRadius: 5,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   headerText: {
     fontSize: 13,
     fontWeight: "900",
-  },
-  itemCountText: {
-    fontSize: 14,
-    fontWeight: "900",
-    marginLeft: 10,
   },
 });
 

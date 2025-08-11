@@ -4,6 +4,7 @@ import HeaderTabs from "./HeaderTabs";
 import DropdownHeader from "./DropdownHeader";
 import PLPFooter from "./PLPFooter";
 
+
 interface Descriptor {
   images: string[];
   name: string;
@@ -32,17 +33,13 @@ interface CatalogItem {
     value: number;
   };
   quantity: {
-    available: {
-      count: number;
-    };
-    maximum: {
-      count: number;
-    };
+    available: { count: number };
+    maximum: { count: number };
   };
   provider_id: string;
   veg: boolean;
+  quality?: number; // ✅ Added to match DropdownHeader
 }
-
 interface PLPFnBProps {
   descriptor: Descriptor;
   catalog: CatalogItem[];
@@ -51,10 +48,9 @@ interface PLPFnBProps {
   buttonTitles: string[];
   street: string;
   fssaiLiscenseNo: string;
-  providerId: string | string[];
-  handleOpenModal: () => void;
+  providerId: string ;
+  handleOpenPress: () => void;
   searchString: string;
-
   foodDetails: (data: any) => void;
 }
 
@@ -77,7 +73,7 @@ const PLPFnB: React.FC<PLPFnBProps> = ({
         <HeaderTabs buttonTitles={buttonTitles} />
         <DropdownHeader
           dropdownHeaders={dropdownHeaders}
-          dropdownData={catalog}
+          dropdownData={catalog as any}
           providerId={providerId}
           handleOpenPress={handleOpenPress}
           foodDetails={foodDetails}

@@ -1,8 +1,6 @@
 import { FC } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import FashionCard from "./FashionCard";
-import { View } from "react-native";
-import { widthPercentageToDP } from "react-native-responsive-screen";
 
 interface CatalogItem {
   bpp_id: string;

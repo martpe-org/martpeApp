@@ -1,25 +1,19 @@
-import { useState, FC } from "react";
+import { FC } from "react";
 import { View } from "react-native";
 import FashionCategories from "./FashionCategories";
 import PLPCardContainer from "./PLPCardContainer";
 
 interface PLPFashionProps {
-  headers: string[];
   catalog: any[];
+    headers: string[];
+
 }
 
-const PLPFashion: FC<PLPFashionProps> = ({ headers, catalog }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  //
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-  };
+const PLPFashion: FC<PLPFashionProps> = ({ catalog ,headers}) => {
   return (
     <View style={{ backgroundColor: "#fff" }}>
-      <FashionCategories
-        onFilterSelect={handleCategorySelect}
-        headers={headers}
-      />
+      {/* FashionCategories already has its own data & state */}
+      <FashionCategories />
       <PLPCardContainer
         domainColor="rgba(163, 251, 251, 1)"
         catalog={catalog}

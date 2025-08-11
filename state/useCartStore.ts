@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { addToCartAction, AddToCartResponseType } from "./addToCart";
+import { addToCartAction } from "./addToCart";
 import { removeCartAction } from "./removeCart";
 import { removeCartItemsAction } from "./removeCartItems";
 import { updateCartItemQtyAction } from "./updateQty";

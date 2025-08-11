@@ -449,18 +449,19 @@ const PLP: React.FC = () => {
     case "ONDC:RET11":
       ProductListingPage = (
         <PLPFnB
-          buttonTitles={buttonTitles}
-          descriptor={descriptor}
-          vendorAddress={vendorAddress}
-          catalog={catalog}
-          dropdownHeaders={dropdownHeaders}
-          street={street || ""}
-          fssaiLiscenseNo={fssaiLiscenseNo}
-          providerId={vendor?.id as string}
-          handleOpenModal={handleOpenPress}
-          foodDetails={setFoodDetails}
-          searchString={searchString}
-        />
+  buttonTitles={buttonTitles}
+  descriptor={descriptor}
+  vendorAddress={vendorAddress}
+  catalog={catalog}
+  dropdownHeaders={dropdownHeaders}
+  street={street || ""}
+  fssaiLiscenseNo={fssaiLiscenseNo}
+  providerId={vendor?.id as string}
+  handleOpenPress={handleOpenPress} // ✅ matches interface
+  foodDetails={setFoodDetails}
+  searchString={searchString}
+/>
+
       );
       break;
     case "ONDC:RET12":
@@ -514,8 +515,9 @@ const PLP: React.FC = () => {
           storeSections={storeSections}
           geoLocation={locationDetails}
           userLocation={selectedDetails}
-          userAddress={selectedDetails?.fullAddress}
-          vendorId={vendor.id as string}
+  userAddress={selectedDetails?.fullAddress ?? ""} 
+vendorId={(vendor.id as string) ?? ""}
+productId={foodDetails.itemId}
         />
 
         {/* store search box */}
