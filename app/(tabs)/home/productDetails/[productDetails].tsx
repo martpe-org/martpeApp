@@ -41,8 +41,7 @@ const ProductDetails: FC = () => {
   const maxLimit = useMemo(() => {
     if (!productData) return 1;
     return Math.min(
-      productData.quantity || 1,
-      // Add fallback for available quantity if it exists in your data structure
+      productData.quantity ?? 1,
       100 // default fallback
     );
   }, [productData]);
@@ -85,18 +84,15 @@ const ProductDetails: FC = () => {
     [productDetails]
   );
 
-  // Initial data fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Pull to refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData(false);
   }, [fetchData]);
 
-  // Retry handler
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
@@ -111,7 +107,7 @@ const ProductDetails: FC = () => {
         <View style={styles.headerContainer}>
           <Search
             placeholder="Search for anything.."
-            showBackArrow={true}
+            showBackArrow
             showLocation={false}
           />
         </View>
@@ -131,7 +127,7 @@ const ProductDetails: FC = () => {
         <View style={styles.headerContainer}>
           <Search
             placeholder="Search for anything.."
-            showBackArrow={true}
+            showBackArrow
             showLocation={false}
           />
         </View>
@@ -147,7 +143,7 @@ const ProductDetails: FC = () => {
       <View style={styles.headerContainer}>
         <Search
           placeholder="Search for anything.."
-          showBackArrow={true}
+          showBackArrow
           showLocation={false}
         />
       </View>
@@ -157,8 +153,8 @@ const ProductDetails: FC = () => {
         category={productData.category}
         storeName={productData.store?.name || "Unknown Store"}
         productId={productDetails}
-        quantity={productData.unitized?.measure?.value}
-        unit={productData.unitized?.measure?.unit}
+        quantity={Number(productData.unitized?.measure?.value) || 0} // ✅ Safe number
+        unit={productData.unitized?.measure?.unit || ""}
       />
 
       <ScrollView
@@ -169,38 +165,36 @@ const ProductDetails: FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Image Carousel */}
-        {productData.images && productData.images.length > 0 && (
-          <ImageCarousel url={productData.images} />
+        {(productData.images?.length ?? 0) > 0 && (
+          <ImageCarousel url={productData.images!} /> // ✅ Non-null assertion after check
         )}
 
-        {/* Product Pricing */}
-        <ProductPricing
-          storeName={productData.store?.name || "Unknown Store"}
-          storeId={productData.store_id}
-          description={productData.short_desc || "No description available"}
-          maxPrice={productData.price?.maximum_value}
-          price={productData.price?.value || 0}
-          discount={productData.price?.offerPercent || 0}
-        />
+      <ProductPricing
+  storeName={productData.store?.name || "Unknown Store"}
+  storeId={productData.store_id}
+  description={productData.short_desc || "No description available"}
+  maxPrice={productData.price?.maximum_value ?? 0} // ✅ always a number
+  price={productData.price?.value || 0}
+  discount={productData.price?.offerPercent || 0}
+/>
 
-        {/* Variant Group - Only show if variants exist */}
-        {productData.parent_item_id && productData.variants && (
-          <VariantGroup
-            parentId={productData.parent_item_id}
-            locationId={productData.location_id}
-            bppId={productData.provider_id}
-            domain={productData.domain}
-            cityCode={productData.store?.address?.area_code || ""}
-            storeId={productData.store_id}
-            initialPrimaryVariant={
-              (productData.unitized?.measure?.value || "") +
-              (productData.unitized?.measure?.unit || "")
-            }
-            attributes={productData.attributes}
-            variants={productData.variants}
-            selectedProductId={productDetails}
-          />
-        )}
+
+        {/* Variant Group */}
+        {productData.parent_item_id &&
+          Array.isArray(productData.variants) &&
+          productData.variants.length > 0 && (
+            <VariantGroup
+              slug={productData.slug}
+              parentId={productData.parent_item_id}
+              storeId={productData.store_id}
+              initialPrimaryVariant={
+                (productData.unitized?.measure?.value || "") +
+                (productData.unitized?.measure?.unit || "")
+              }
+              variants={productData.variants}
+              selectedProductId={productDetails}
+            />
+          )}
 
         {/* Services */}
         <Services
@@ -208,18 +202,15 @@ const ProductDetails: FC = () => {
           storeId={productData.store_id}
           returnableDays={
             productData.meta?.return_window
-              ? parseInt(productData.meta.return_window.replace(/\D/g, "")) ||
-                10
+              ? parseInt(productData.meta.return_window.replace(/\D/g, "")) || 10
               : 10
           }
           isReturnable={productData.meta?.returnable || false}
-          isCashOnDeliveryAvailable={
-            productData.meta?.available_on_cod || false
-          }
+          isCashOnDeliveryAvailable={productData.meta?.available_on_cod || false}
         />
 
-        {/* More by Store - Only show if there are offers or related products */}
-        {productData.offers && productData.offers.length > 0 && (
+        {/* More by Store */}
+        {Array.isArray(productData.offers) && productData.offers.length > 0 && (
           <MoreBySeller
             originalId={productDetails}
             products={productData.offers.map((offer) => ({
@@ -237,9 +228,7 @@ const ProductDetails: FC = () => {
             sellerName={productData.store?.name || ""}
             sellerDetails={storeAddress}
             sellerSymbol={productData.store?.symbol || ""}
-            sellerContact={
-              productData.meta?.contact_details_consumer_care || ""
-            }
+            sellerContact={productData.meta?.contact_details_consumer_care || ""}
           />
         )}
 
@@ -247,25 +236,25 @@ const ProductDetails: FC = () => {
         <SellerDetails
           sellerName={productData.store?.name || "Unknown Store"}
           sellerDetails={storeAddress || "No address available"}
-          sellerSymbol={productData.store?.symbol}
+          sellerSymbol={productData.store?.symbol || ""}
           sellerContact={
             productData.meta?.contact_details_consumer_care ||
             "Contact information not available"
           }
         />
 
-        {/* Add some bottom padding to prevent overlap with sticky footer */}
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Sticky Add to Cart */}
       <View style={styles.stickyFooter}>
         <AddToCart
-          storeId={productData.store_id}
-          itemId={productDetails}
-          price={productData.price?.value || 0}
-          maxLimit={maxLimit}
-        />
+  storeId={productData.store_id}
+  slug={String(productDetails)} // Pass as slug instead of itemId
+  catalogId={productData.catalog_id} // Ensure you have this from API
+  price={productData.price?.value || 0}
+  maxLimit={maxLimit}
+/>
       </View>
     </SafeAreaView>
   );
@@ -285,10 +274,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
   },
@@ -302,10 +288,7 @@ const styles = StyleSheet.create({
     right: 10,
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },

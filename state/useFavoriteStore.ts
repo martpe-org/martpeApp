@@ -1,13 +1,12 @@
 import { create } from "zustand";
-import { initFavorites } from "./state-init/init-favorites";
-import  {updateFavAction}  from "../components/fav/updateFav";
-import { setAsyncStorageItem } from "../utility/asyncStorage";
-import { FavoriteType } from "../components/fav/fetch-favs-type";
+import { getAsyncStorageItem, setAsyncStorageItem } from "../utility/asyncStorage";
+import { updateFavAction } from "../components/fav/updateFav"; // adjust path
+import { initFavorites } from "./state-init/init-favorites"; // adjust path
 
 const FAVORITES_KEY = "favorites_data";
 
 interface FavoriteStore {
-  allFavorites: FavoriteType;
+  allFavorites: { products: { id: string }[] };
   loadFavorites: () => Promise<void>;
   addFavorite: (productId: string) => Promise<void>;
   removeFavorite: (productId: string) => Promise<void>;
@@ -23,9 +22,22 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
 
   addFavorite: async (productId: string) => {
     try {
-      const result = await updateFavAction(productId, true );
-      if (result) {
-        const updatedFavorites = { products: [...get().allFavorites.products, { id: productId }] };
+      const token = await getAsyncStorageItem("authToken");
+      if (!token) {
+        console.error("No auth token found. Cannot update favorites.");
+        return;
+      }
+
+      const result = await updateFavAction(token, {
+        action: "add",
+        entity: "product",
+        slug: productId,
+      });
+
+      if (result?.success) {
+        const updatedFavorites = {
+          products: [...get().allFavorites.products, { id: productId }],
+        };
         set({ allFavorites: updatedFavorites });
         await setAsyncStorageItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
       }
@@ -36,10 +48,21 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
 
   removeFavorite: async (productId: string) => {
     try {
-      const result = await updateFavAction(productId, false);
-      if (result) {
+      const token = await getAsyncStorageItem("authToken");
+      if (!token) {
+        console.error("No auth token found. Cannot update favorites.");
+        return;
+      }
+
+      const result = await updateFavAction(token, {
+        action: "remove",
+        entity: "product",
+        slug: productId,
+      });
+
+      if (result?.success) {
         const updatedFavorites = {
-          products: get().allFavorites.products.filter((item : any) => item.id !== productId),
+          products: get().allFavorites.products.filter((p) => p.id !== productId),
         };
         set({ allFavorites: updatedFavorites });
         await setAsyncStorageItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));

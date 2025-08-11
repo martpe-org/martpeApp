@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
 import Svg, { Mask, Path, G } from "react-native-svg";
 import useDeliveryStore from "../../state/deliveryAddressStore";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 
 interface ServicesProps {
@@ -16,7 +16,7 @@ interface ServicesProps {
 
 const { width } = Dimensions.get("window");
 
-const SecureTransactionsSvg = (props : any) => (
+const SecureTransactionsSvg = (props: any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -50,7 +50,7 @@ const SecureTransactionsSvg = (props : any) => (
     </G>
   </Svg>
 );
-const Return = (props:any) => (
+const Return = (props: any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={22}
@@ -86,7 +86,7 @@ const Truck = (props: any) => (
     />
   </Svg>
 );
-const CashonDelivery = (props :any) => (
+const CashonDelivery = (props: any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -259,11 +259,7 @@ const Services: FC<ServicesProps> = ({
               }}
             >
               {/* <Truck /> */}
-              <MaterialCommunityIcons
-                name="truck-fast-outline"
-                size={24}
-                color={iconColor}
-              />
+              <Truck color={iconColor} />
             </View>
             <Text style={{ fontSize: 12, textAlign: "center" }}>
               Free delivery
@@ -304,11 +300,7 @@ const Services: FC<ServicesProps> = ({
               }}
             >
               {/* <CashonDelivery /> */}
-              <MaterialCommunityIcons
-                name="cash-marker"
-                size={24}
-                color={iconColor}
-              />
+              <CashonDelivery color={iconColor} />
             </View>
             <Text style={{ fontSize: 12, textAlign: "center" }}>
               Cash on Delivery

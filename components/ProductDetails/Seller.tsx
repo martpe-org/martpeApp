@@ -8,7 +8,7 @@ interface SellerDetailsProps {
   sellerContact: string;
 }
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const SellerDetails: FC<SellerDetailsProps> = ({
   sellerDetails,
@@ -46,6 +46,8 @@ const SellerDetails: FC<SellerDetailsProps> = ({
           borderRadius: 4,
         }}
       />
+      <Text style={styles.title}>Store Name</Text>
+      <Text style={styles.details}>{storeName}</Text>
 
       <Text style={styles.title}>Seller Details</Text>
       <Text style={styles.details}>{sellerDetails}</Text>

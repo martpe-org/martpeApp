@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import { cache } from "react";
 
 const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
@@ -9,7 +8,7 @@ type UpdateFavParams = {
   slug: string;
 };
 
-export const updateFavAction = cache(async (
+export const updateFavAction = async (
   authToken: string,
   { action, entity, slug }: UpdateFavParams
 ): Promise<{ success: boolean }> => {
@@ -20,14 +19,10 @@ export const updateFavAction = cache(async (
 
     const response = await fetch(`${BASE_URL}/users/favs`, {
       method: 'PUT',
-      body: JSON.stringify({
-        action,
-        entity,
-        slug
-      }),
+      body: JSON.stringify({ action, entity, slug }),
       headers: {
         Authorization: `Bearer ${authToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
 
@@ -40,4 +35,4 @@ export const updateFavAction = cache(async (
     console.error('updateFavAction error:', e);
     return { success: false };
   }
-});
+};

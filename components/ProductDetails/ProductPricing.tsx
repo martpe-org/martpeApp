@@ -18,7 +18,7 @@ interface ProductPricingProps {
   storeId: string;
 }
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const ProductPricing: FC<ProductPricingProps> = ({
   storeName,

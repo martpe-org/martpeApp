@@ -22,7 +22,7 @@ interface AddToCartProps {
   }[]; // Added for customizations with flexible property names
 }
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const AddToCart: FC<AddToCartProps> = ({
   price,
