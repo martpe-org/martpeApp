@@ -12,24 +12,24 @@ import {
   View,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import PLPElectronics from "../../components/Product Listing Page/Electronics/PLPElectronics";
-import PLPFashion from "../../components/Product Listing Page/Fashion/PLPFashion"; //
-import PLPBanner from "../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
-import PLPFnB from "../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
-import Searchbox from "../../components/Product Listing Page/FoodAndBeverages/Searchbox";
-import PLPGrocery from "../../components/Product Listing Page/Grocery/PLPGrocery";
-import PLPHomeAndDecor from "../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
-import PLPPersonalCare from "../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
-import FoodDetailsComponent from "../../components/ProductDetails/FoodDetails";
-import Loader from "../../components/common/Loader";
-import { fetchStoreDetails } from "../../store/fetch-store-details";
-import { fetchStoreItems } from "../../store/fetch-store-items";
-import { FetchStoreDetailsResponseType } from "../../store/fetch-store-details-type";
+import PLPElectronics from "../../../../../components/Product Listing Page/Electronics/PLPElectronics";
+import PLPFashion from "../../../../../components/Product Listing Page/Fashion/PLPFashion"; //
+import PLPBanner from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
+import PLPFnB from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
+import Searchbox from "../../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";
+import PLPGrocery from "../../../../../components/Product Listing Page/Grocery/PLPGrocery";
+import PLPHomeAndDecor from "../../../../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
+import PLPPersonalCare from "../../../../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
+import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
+import Loader from "../../../../../components/common/Loader";
+import { fetchStoreDetails } from "../../../../../store/fetch-store-details";
+import { fetchStoreItems } from "../../../../../store/fetch-store-items";
+import { FetchStoreDetailsResponseType } from "../../../../../store/fetch-store-details-type";
 import {
   FetchStoreItemsResponseType,
   StoreItem,
-} from "../../store/fetch-store-items-type";
-import useDeliveryStore from "../../state/deliveryAddressStore";
+} from "../../../../../store/fetch-store-items-type";
+import useDeliveryStore from "../../../../../state/deliveryAddressStore";
 
 // Types matching the component interfaces
 interface ComponentDescriptor {
@@ -313,7 +313,7 @@ const PLP: React.FC = () => {
               width: widthPercentageToDP("100"),
               backgroundColor: "#fff",
             }}
-            source={require("../../../../assets/lottiefiles/no_store.json")}
+            source={require("../../../../../assets/lottiefiles/no_store.json")}
           />
         </View>
 

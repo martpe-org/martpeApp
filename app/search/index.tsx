@@ -195,37 +195,38 @@ const SearchScreen: React.FC = () => {
     }
   };
 
-  const handleSearchSubmit = async (): Promise<void> => {
-    if (inputValue.length < 3) return;
-    await saveSearchTerm(inputValue);
+const handleSearchSubmit = async (): Promise<void> => {
+  if (inputValue.length < 3) return;
+  await saveSearchTerm(inputValue);
+  router.push({
+    pathname: "/(tabs)/home/result/[search]",
+    params: {
+      search: inputValue,
+      domainData: domain,
+    },
+  });
+};
+
+const handleSuggestionPress = async (
+  suggestion: SuggestionsType
+): Promise<void> => {
+  await saveSearchTerm(suggestion.name);
+
+  if (suggestion.type === "store" || suggestion.type === "vendor") {
+    // Navigate to store/vendor page
+    router.push(`/(tabs)/home/result/productListing/${suggestion.slug}`);
+  } else {
+    // Navigate to search results
     router.push({
-      pathname: "../(tabs)/home/result/[search]",
+      pathname: "/(tabs)/home/result/[search]",
       params: {
-        search: inputValue,
-        domainData: domain,
+        search: suggestion.name,
+        domainData: domain || suggestion.domain,
       },
     });
-  };
+  }
+};
 
-  const handleSuggestionPress = async (
-    suggestion: SuggestionsType
-  ): Promise<void> => {
-    await saveSearchTerm(suggestion.name);
-
-    if (suggestion.type === "store" || suggestion.type === "vendor") {
-      // Navigate to store/vendor page
-      router.push(`../../productListing/${suggestion.slug}`);
-    } else {
-      // Navigate to search results
-      router.push({
-        pathname: "../result/[search]",
-        params: {
-          search: suggestion.name,
-          domainData: domain || suggestion.domain,
-        },
-      });
-    }
-  };
 
   const getItemTypeLabel = (type: string, domain: string): string => {
     if (type === "store" || type === "vendor") {

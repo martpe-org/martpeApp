@@ -40,7 +40,7 @@ export const useRenderFunctions = () => {
     <TouchableOpacity
       style={styles.restaurantCard}
       onPress={() =>
-        router.push(`../..(tabs)home/productListing/${item.slug}`)
+  router.push(`/(tabs)/home/result/productListing/${item.slug}`)
       }
     >
       <View style={styles.restaurantImageContainer}>
@@ -128,7 +128,7 @@ export const useRenderFunctions = () => {
       <TouchableOpacity
         style={styles.nearbyCard}
         onPress={() =>
-          router.push(`../(tabs)/home/productListing/${item.slug}`)
+  router.push(`/(tabs)/home/result/productListing/${item.slug}`)
         }
       >
         <View style={styles.nearbyImageContainer}>

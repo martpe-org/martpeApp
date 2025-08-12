@@ -9,18 +9,18 @@ import {
   View,
 } from "react-native";
 
-import AddToCart from "../../components/ProductDetails/AddToCart";
-import ImageCarousel from "../../components/ProductDetails/ImageCarousel";
-import MoreBySeller from "../../components/ProductDetails/MoreBySeller";
-import ProductHeader from "../../components/ProductDetails/ProductHeader";
-import ProductPricing from "../../components/ProductDetails/ProductPricing";
-import SellerDetails from "../../components/ProductDetails/Seller";
-import Services from "../../components/ProductDetails/Services";
-import VariantGroup from "../../components/ProductDetails/VariantGroup";
-import Loader from "../../components/common/Loader";
-import Search from "../../components/common/Search";
-import { fetchProductDetails } from "../../components/product/fetch-product";
-import { FetchProductDetail } from "../../components/product/fetch-product-type";
+import AddToCart from "../../../../../components/ProductDetails/AddToCart";
+import ImageCarousel from "../../../../../components/ProductDetails/ImageCarousel";
+import MoreBySeller from "../../../../../components/ProductDetails/MoreBySeller";
+import ProductHeader from "../../../../../components/ProductDetails/ProductHeader";
+import ProductPricing from "../../../../../components/ProductDetails/ProductPricing";
+import SellerDetails from "../../../../../components/ProductDetails/Seller";
+import Services from "../../../../../components/ProductDetails/Services";
+import VariantGroup from "../../../../../components/ProductDetails/VariantGroup";
+import Loader from "../../../../../components/common/Loader";
+import Search from "../../../../../components/common/Search";
+import { fetchProductDetails } from "../../../../../components/product/fetch-product";
+import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
 
 interface ProductDetailsParams {
   productDetails: string;
