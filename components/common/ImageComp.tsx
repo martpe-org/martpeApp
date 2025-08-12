@@ -21,71 +21,50 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.5)",
   },
 });
 
 type ImageInterface = {
-  source: { uri: string } | number; // Support both URI and local images
+  source: { uri: string } | number;
   imageStyle?: ImageStyle;
   resizeMode?: ImageResizeMode;
-  fallbackSource?: { uri: string } | number; // Custom fallback image
+  fallbackSource?: { uri: string } | number;
 };
 
 const defaultProps = {
   resizeMode: "cover" as ImageResizeMode,
-  fallbackSource: { uri: "https://placehold.co/600x400?text=Image+Not+Available" }, // More reliable fallback
+  fallbackSource: require("../../assets/images/no-image.png"), // use PNG for compatibility
 };
 
 const ImageComp = (props: ImageInterface & typeof defaultProps) => {
   const { source, imageStyle, resizeMode, fallbackSource } = props;
 
   const [isLoading, setIsLoading] = useState(
-    typeof source === 'object' && source.uri ? true : false
+    typeof source === "object" && !!source.uri
   );
-  const [isError, setIsError] = useState(false);
+  const [finalSource, setFinalSource] = useState(source);
+  const [hasErrored, setHasErrored] = useState(false);
 
-  // Determine the image source
-  const getImageSource = () => {
-    if (typeof source === 'number') {
-      return source; // Local image - return as-is
+  const handleError = () => {
+    // Prevent infinite loop if fallback also fails
+    if (!hasErrored) {
+      setHasErrored(true);
+      setFinalSource(fallbackSource || defaultProps.fallbackSource);
     }
-    
-    if (typeof source === 'object' && source.uri && !isError) {
-      return source; // Remote URI
-    }
-    
-    // Fallback options in order of preference:
-    // 1. Custom fallback from props
-    // 2. Default fallback from defaultProps
-    return fallbackSource || defaultProps.fallbackSource;
-  };
-
-  const handleError = (error: any) => {
-    console.log('Image load error:', error);
-    if (typeof source === 'object' && source.uri) {
-      setIsLoading(false);
-      setIsError(true);
-    }
+    setIsLoading(false);
   };
 
   return (
     <View style={styles.container}>
       <Image
-        source={getImageSource()}
+        source={finalSource}
         style={[styles.imageStyle, imageStyle]}
         resizeMode={resizeMode}
-        onLoadStart={() => {
-          if (typeof source === 'object' && source.uri) {
-            setIsLoading(true);
-            setIsError(false);
-          }
-        }}
+        onError={handleError} // No console.log to keep terminal clean
         onLoadEnd={() => setIsLoading(false)}
-        onError={handleError}
-        onLoad={() => setIsLoading(false)}
       />
       {isLoading && (
         <View style={styles.loader}>

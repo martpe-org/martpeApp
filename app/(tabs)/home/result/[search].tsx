@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState, useRef } from "react";
-import { MaterialCommunityIcons } from '@expo/vector-icons'; 
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import {
   ScrollView,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   View,
   Dimensions,
   TextInput,
-  Pressable,
 } from "react-native";
 import { useGlobalSearchParams, router } from "expo-router";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
@@ -21,9 +20,6 @@ import Svg, {
   Stop,
   Rect,
 } from "react-native-svg";
-import { Feather } from '@expo/vector-icons';
-import { getDistance } from "geolib";
-import Constants from "expo-constants";
 
 import { Colors } from "../../../../theme";
 import ImageComp from "../../../../components/common/ImageComp";
@@ -33,47 +29,33 @@ import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import CustomizationGroup from "../../../../components/ProductDetails/CustomizationGroup";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
 import FilterCard from "../../../../components/search/filterCard";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import {
   filters,
   offerData,
   deliveryData,
 } from "../../../../constants/filters";
 
-// Import the search functions
+// Import search functions and types
 import { searchProducts } from "../../../search/search-products";
 import { searchStores } from "../../../search/search-stores";
-import { SearchProductsResponseType, ProductSearchResult } from "../../../search/search-products-type";
-import { SearchStoresResponseType, StoreSearchResult } from "../../../search/search-stores-type";
+import { ProductSearchResult } from "../../../search/search-products-type";
+import { StoreSearchResult } from "../../../search/search-stores-type";
 
-const windowWidth = Dimensions.get("window").width;
 const { width } = Dimensions.get("window");
 const snapInterval = width * 0.72;
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
-// Updated Types to match the imported types
+// Types
 interface SearchResult {
   catalogs: ProductSearchResult[];
   stores: StoreSearchResult[];
 }
 
-// Update CatalogItem to match ProductSearchResult
-interface CatalogItem extends ProductSearchResult {
-  _id: string;
-}
-
-// Update Store to match StoreSearchResult  
-interface Store extends StoreSearchResult {
-  _id: string;
-}
-interface GroupedCatalogItems {
-  [storeId: string]: CatalogItem[];
-}
 interface FilterState {
   category: string[];
   offers: number;
   delivery: number;
 }
+
 interface FoodDetailsState {
   images: string;
   long_desc: string;
@@ -88,6 +70,7 @@ interface FoodDetailsState {
   maxPrice: number;
   discount: number;
 }
+
 interface CustomizableGroupState {
   customizable: boolean;
   vendorId: string;
@@ -96,83 +79,70 @@ interface CustomizableGroupState {
   maxLimit: number;
   price: number;
 }
-interface SearchProps {
-  domain: string;
-}
-interface ProductCardProps {
-  storeName: string;
-  products: CatalogItem[];
-}
+
 // Helper functions
-const groupByStoreId = (catalogs: CatalogItem[]): GroupedCatalogItems => {
-  return catalogs?.reduce((acc: GroupedCatalogItems, product: CatalogItem) => {
+const groupByStoreId = (catalogs: ProductSearchResult[]) => {
+  return catalogs?.reduce((acc, product) => {
     const storeId = product.store_id;
-    if (!acc[storeId]) {
-      acc[storeId] = [];
-    }
+    if (!acc[storeId]) acc[storeId] = [];
     acc[storeId].push(product);
     return acc;
-  }, {});
+  }, {} as Record<string, ProductSearchResult[]>);
 };
-const getDistances = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const distance = Number(
-    (
-      getDistance(
-        { latitude: lat1, longitude: lon1 },
-        { latitude: lat2, longitude: lon2 }
-      ) / 1000
-    ).toFixed(1)
-  );
-  return distance;
+
+const getDomainName = (domain: string): string => {
+  const domainMap: Record<string, string> = {
+    "ONDC:RET10": "Grocery",
+    "ONDC:RET11": "F&B",
+    "ONDC:RET12": "Fashion",
+    "ONDC:RET13": "BPC",
+    "ONDC:RET14": "Electronics",
+    "ONDC:RET16": "Home & Decor",
+  };
+  return domainMap[domain] || domain;
 };
+
 // SVG Components
-const CircleSvg = () => {
-  return (
-    <View style={{ marginHorizontal: 4 }}>
-      <Svg width={5} height={5} fill="none">
-        <Circle cx={2.5} cy={2.5} r={2.5} fill="#000" />
-      </Svg>
-    </View>
-  );
-};
-const VegSvg = () => {
-  return (
-    <Svg width={11} height={11} fill="none">
-      <Rect
-        width={10}
-        height={10}
-        x={0.5}
-        y={0.5}
-        fill="#fff"
-        stroke="#1DA578"
-        rx={1.5}
-      />
-      <Circle cx={5.5} cy={5.5} r={2.063} fill="#1DA578" />
+const CircleSvg = () => (
+  <View style={{ marginHorizontal: 4 }}>
+    <Svg width={5} height={5} fill="none">
+      <Circle cx={2.5} cy={2.5} r={2.5} fill="#000" />
     </Svg>
-  );
-};
-const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => {
-  return (
-    <View style={{ marginLeft: margin }}>
-      <Svg width={24} height={24} fill="none">
-        <Path
-          stroke="#000"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M5 12h14M12 5l7 7-7 7"
-        />
-      </Svg>
-    </View>
-  );
-};
-const ClockSvg: FC<{ title: number }> = ({ title }) => {
-  return (
+  </View>
+);
+
+const VegSvg = () => (
+  <Svg width={11} height={11} fill="none">
+    <Rect
+      width={10}
+      height={10}
+      x={0.5}
+      y={0.5}
+      fill="#fff"
+      stroke="#1DA578"
+      rx={1.5}
+    />
+    <Circle cx={5.5} cy={5.5} r={2.063} fill="#1DA578" />
+  </Svg>
+);
+
+const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => (
+  <View style={{ marginLeft: margin }}>
+    <Svg width={24} height={24} fill="none">
+      <Path
+        stroke="#000"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 12h14M12 5l7 7-7 7"
+      />
+    </Svg>
+  </View>
+);
+
+// Update the ClockSvg component
+const ClockSvg: FC<{ title: number }> = ({ title }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
     <Svg width={56} height={16} fill="none">
       <Path
         fill="url(#a)"
@@ -197,23 +167,22 @@ const ClockSvg: FC<{ title: number }> = ({ title }) => {
           <Stop offset={1} stopColor="#D9D9D9" stopOpacity={0} />
         </LinearGradient>
       </Defs>
-      <Text
-        style={{
-          color: "#666464",
-          textAlign: "center",
-          flexDirection: "row",
-          alignItems: "center",
-          fontSize: 12,
-          marginLeft: 12,
-          paddingLeft: 4,
-        }}
-      >
-        {Math.round(title * 60)} min
-      </Text>
     </Svg>
-  );
-};
-const Results: FC<SearchProps> = () => {
+    <Text
+      style={{
+        color: "#666464",
+        textAlign: "center",
+        fontSize: 12,
+        marginLeft: 12,
+        paddingLeft: 4,
+      }}
+    >
+      {Math.round(title * 60)} min
+    </Text>
+  </View>
+);
+
+const Results: FC = () => {
   const [isItem, setIsItem] = useState(true);
   const { search, domainData } = useGlobalSearchParams<{
     search: string;
@@ -227,7 +196,7 @@ const Results: FC<SearchProps> = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
+//  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
   const [filterSelected, setFilterSelected] = useState<FilterState>({
     category: [],
     offers: 0,
@@ -251,17 +220,7 @@ const Results: FC<SearchProps> = () => {
     discount: 0,
   });
 
-  const renderBackdrop = React.useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        {...props}
-      />
-    ),
-    []
-  );
-  const [CustomizableGroup, setCustomizableGroup] =
+  const [customizableGroup, setCustomizableGroup] =
     useState<CustomizableGroupState>({
       customizable: false,
       vendorId: "",
@@ -277,7 +236,17 @@ const Results: FC<SearchProps> = () => {
   const handleClosePress = () => bottomSheetRef.current?.close();
   const handleOpenPress = () => bottomSheetRef.current?.expand();
 
-  // Updated fetchSearchResults function
+  const renderBackdrop = React.useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        {...props}
+      />
+    ),
+    []
+  );
+
   const fetchSearchResults = async () => {
     if (!search || !selectedDetails?.lat || !selectedDetails?.lng) return;
 
@@ -285,46 +254,30 @@ const Results: FC<SearchProps> = () => {
     setError(null);
 
     try {
-      // Convert selectedDetails.lng to selectedDetails.lon to match API expectations
       const searchInput = {
         lat: selectedDetails.lat,
-        lon: selectedDetails.lng, // Note: API expects 'lon' but store has 'lng'
-        pincode: selectedDetails.pincode || "110001", // Provide default pincode if not available
+        lon: selectedDetails.lng,
+        pincode: selectedDetails.pincode || "110001",
         query: search,
         domain: domainData,
         page: 1,
         size: 50,
       };
 
-      // Fetch both products and stores concurrently
       const [productsResponse, storesResponse] = await Promise.all([
         searchProducts(searchInput),
         searchStores(searchInput),
       ]);
 
-      // Handle the responses
-      const catalogsData = productsResponse?.results || [];
-      const storesData = storesResponse?.results || [];
-
-      // Map the results to match existing interface expectations
-      const mappedCatalogs: CatalogItem[] = catalogsData.map((item) => ({
-        ...item,
-        _id: item.symbol, // Map symbol to _id for compatibility
-        custom_group: item.directlyLinkedCustomGroupIds || [],
-      }));
-
-      const mappedStores: Store[] = storesData.map((store) => ({
-        ...store,
-        _id: store.symbol, // Map symbol to _id for compatibility
-      }));
-
       setSearchResults({
-        catalogs: mappedCatalogs,
-        stores: mappedStores,
+        catalogs: productsResponse?.results || [],
+        stores: storesResponse?.results || [],
       });
 
-      // Check if we should show stores tab
-      if (mappedCatalogs.length === 0 && mappedStores.length > 0) {
+      if (
+        (productsResponse?.results || []).length === 0 &&
+        (storesResponse?.results || []).length > 0
+      ) {
         setIsItem(false);
       }
     } catch (err) {
@@ -343,314 +296,154 @@ const Results: FC<SearchProps> = () => {
   const storesData = searchResults.stores;
 
   const CategoryAvailable = Array.from(
-    new Set(catalogsData?.map((item: CatalogItem) => item.category_id))
+    new Set(catalogsData?.map((item) => item.category_id))
   ).map((category: string, index: number) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
-  const ProductCard: FC<ProductCardProps> = ({ storeName, products }) => {
+  const doesProductMatchFilters = (product: ProductSearchResult): boolean => {
+    const isCategoryMatch =
+      filterSelected.category.length === 0 ||
+      filterSelected.category.includes(product.category_id);
+    const isOfferMatch =
+      (product.price.offerPercent || 0) >= filterSelected.offers;
+    const isDeliveryMatch = (product.tts_in_h || 0) <= filterSelected.delivery;
+    return isCategoryMatch && isOfferMatch && isDeliveryMatch;
+  };
+
+  const ProductCard: FC<{
+    storeName: string;
+    products: ProductSearchResult[];
+  }> = ({ storeName, products }) => {
     const firstProduct = products[0];
     if (!firstProduct?.store) return null;
 
     const store = firstProduct.store;
-    const domainName = getDomainName(firstProduct.domain); // Use domain from product, not store
-
-    const doesProductMatchFilters = (product: CatalogItem): boolean => {
-      const isCategoryMatch =
-        filterSelected.category.length === 0 ||
-        filterSelected.category.includes(product.category_id);
-
-      // For offers, we should check both product-level and potentially store-level offers
-      const productOfferPercent = product.price.offerPercent || 0;
-      const isOfferMatch = productOfferPercent >= filterSelected.offers;
-
-      // Use tts_in_h from product level
-      const isDeliveryMatch = (product.tts_in_h || 0) <= filterSelected.delivery;
-
-      return isCategoryMatch && isOfferMatch && isDeliveryMatch;
-    };
-
+    const domainName = getDomainName(firstProduct.domain);
     const filteredProducts = products.filter(doesProductMatchFilters);
 
     if (filteredProducts.length === 0) return null;
 
-    if (domainName === "F&B") {
-      return (
-        <View style={[styles.card, { marginVertical: 10 }]}>
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: "row" }}>
-              <View style={styles.storeImageContainer}>
-                <ImageComp
-                  source={{
-                    uri:
-                      store.symbol ||
-                      "https://via.placeholder.com/150?text=Store",
-                  }}
-                  imageStyle={styles.storeImage}
-                  resizeMode="cover"
-                />
+    const renderFoodCard = () => (
+      <View style={[styles.card, { marginVertical: 10 }]}>
+        <View style={styles.cardHeader}>
+          <View style={{ flexDirection: "row" }}>
+            <View style={styles.storeImageContainer}>
+              <ImageComp
+                source={{
+                  uri:
+                    store.symbol ||
+                    "https://via.placeholder.com/150?text=Store",
+                }}
+                imageStyle={styles.storeImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={styles.storeInfo}>
+              <Text style={styles.providerName}>{store.name}</Text>
+              <View style={styles.storeMetrics}>
+                <View style={styles.ratingContainer}>
+                  <Text style={styles.ratingText}>{store.rating || "4.2"}</Text>
+                  <MaterialCommunityIcons
+                    color="#FFC700"
+                    size={16}
+                    name="star"
+                  />
+                </View>
+                <CircleSvg />
+                <ClockSvg title={firstProduct.tts_in_h || 1} />
+                <CircleSvg />
+                <Text style={styles.domainName}>
+                  {firstProduct.distance_in_km.toFixed(1)}km
+                </Text>
               </View>
-              <View style={styles.storeInfo}>
-                <Text style={styles.providerName}>{store.name}</Text>
-                <View style={styles.storeMetrics}>
-                  <View style={styles.ratingContainer}>
-                    <Text style={styles.ratingText}>{store.rating || "4.2"}</Text>
-                    <MaterialCommunityIcons
-                      color="#FFC700"
-                      size={16}
-                      name="star"
+              {(firstProduct.price.offerPercent || 0) > 0 && (
+                <Text style={styles.offerText}>
+                  Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
+                </Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(`./productListing/${store.slug}`)
+            }
+          >
+            <ForwardArrowSvg margin={70} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={snapInterval}
+          decelerationRate="fast"
+          style={styles.scrollViewStyle}
+          contentContainerStyle={{ paddingHorizontal: 10 }}
+        >
+          {filteredProducts.map((product, index) => (
+            <View key={index} style={styles.productItemFood}>
+              <TouchableOpacity style={styles.foodItemContainer}>
+                <View>
+                  <View style={styles.productImageContainer}>
+                    <ImageComp
+                      source={{
+                        uri:
+                          product.images?.[0] ||
+                          "https://via.placeholder.com/150?text=Product",
+                      }}
+                      imageStyle={styles.productImageFood}
+                      resizeMode="cover"
                     />
                   </View>
-                  <CircleSvg />
-                  <ClockSvg title={firstProduct.tts_in_h || 1} />
-                  <CircleSvg />
-                  <Text style={styles.domainName}>
-                    {firstProduct.distance_in_km.toFixed(1)}km
-                  </Text>
-                </View>
-                {(firstProduct.price.offerPercent || 0) > 0 && (
-                  <Text style={styles.offerText}>
-                    Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                router.push(`../(tabs)/home/productListing/${store.slug}`);
-              }}
-            >
-              <ForwardArrowSvg margin={70} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={snapInterval}
-            decelerationRate="fast"
-            style={styles.scrollViewStyle}
-            contentContainerStyle={{ paddingHorizontal: 10 }}
-          >
-            {filteredProducts.map((product: CatalogItem, index: number) => (
-              <View key={index} style={styles.productItemFood}>
-                <Pressable style={styles.foodItemContainer}>
-                  <View>
-                    <View style={styles.productImageContainer}>
-                      <ImageComp
-                        source={{
-                          uri:
-                            product.images?.[0] ||
-                            "https://via.placeholder.com/150?text=Product",
+                  <View style={styles.addButtonArea}>
+                    {product.customizable ? (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCustomizableGroup({
+                            customizable: product.customizable || false,
+                            vendorId: product.store_id,
+                            customGroup:
+                              product.directlyLinkedCustomGroupIds || [],
+                            itemId: product.symbol,
+                            maxLimit: product.quantity || 1,
+                            price: product.price.value,
+                          });
+                          setIsFilterVisible(false);
+                          setFoodDetails({ ...foodDetails, visible: false });
+                          handleOpenPress();
                         }}
-                        imageStyle={styles.productImageFood}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <View style={styles.addButtonArea}>
-                      {product.customizable ? (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setCustomizableGroup({
-                              customizable: product.customizable || false,
-                              vendorId: product.store_id,
-                              customGroup: product.custom_group || [],
-                              itemId: product.symbol, // Use symbol as itemId
-                              maxLimit: product.quantity || 1,
-                              price: product.price.value,
-                            });
-                            setIsFilterVisible(false);
-                            setFoodDetails({ ...foodDetails, visible: false });
-                            handleOpenPress();
-                          }}
+                      >
+                        <View
+                          style={[styles.addButton, { paddingVertical: 6.5 }]}
                         >
-                          <View
-                            style={[styles.addButton, { paddingVertical: 6.5 }]}
-                          >
-                            <Text style={styles.addButtonText}>{"ADD"}</Text>
-                          </View>
-                          <Text style={styles.customizableText}>
-                            Customizable
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <AddToCartButton
-                          storeId={product.store_id}
-                          itemId={product.symbol}
-                          maxQuantity={product.quantity || 1}
-                        />
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.productDetails}>
-                    <View style={styles.vegIndicator}>
-                      <VegSvg />
-                      <Text style={styles.bestSellerText}>
-                        {product.recommended ? "Best Seller" : ""}
-                      </Text>
-                    </View>
-
-                    <Text style={styles.productNameFood}>{product.name}</Text>
-
-                    <View style={{ flexDirection: "row" }}>
-                      <Text style={styles.priceText}>
-                        ₹{product.price.value}
-                      </Text>
-                      {product.price.offerPercent && (
-                        <>
-                          <Text style={styles.originalPriceText}>
-                            ₹{product.price.maximum_value}
-                          </Text>
-                          <Text style={styles.offerPercentText}>
-                            {Math.ceil(product.price.offerPercent)}% Off
-                          </Text>
-                        </>
-                      )}
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.moreInfoButton}
-                      onPress={() => {
-                        setFoodDetails({
-                          images: product.images?.[0] || "",
-                          long_desc: product.short_desc || "",
-                          name: product.name,
-                          short_desc: product.short_desc || "",
-                          symbol: product.symbol,
-                          price: product.price.value.toString(),
-                          storeId: product.store_id,
-                          itemId: product.symbol,
-                          discount: product.price.offerPercent || 0,
-                          maxPrice: product.price.maximum_value || 0,
-                          visible: true,
-                          maxQuantity: product.quantity || 1,
-                        });
-                        handleOpenPress();
-                        setCustomizableGroup({
-                          ...CustomizableGroup,
-                          customizable: false,
-                        });
-                        setIsFilterVisible(false);
-                      }}
-                    >
-                      <Text style={styles.moreInfoText}>More Info</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.productRating}>
-                      <Text style={styles.ratingText}>{product.rating || "4.2"}</Text>
-                      <MaterialCommunityIcons
-                        color="#FFC700"
-                        size={16}
-                        name="star"
+                          <Text style={styles.addButtonText}>ADD</Text>
+                        </View>
+                        <Text style={styles.customizableText}>
+                          Customizable
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <AddToCartButton
+                        storeId={product.store_id}
+                        itemId={product.symbol}
+                        maxQuantity={product.quantity || 1}
                       />
-                    </View>
+                    )}
                   </View>
-                </Pressable>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    }
-
-    // Grocery domain
-    if (domainName === "Grocery") {
-      return (
-        <View style={[styles.card]}>
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: "row" }}>
-              <View style={styles.storeImageContainer}>
-                <ImageComp
-                  source={{
-                    uri:
-                      store.symbol ||
-                      "https://via.placeholder.com/150?text=Store",
-                  }}
-                  imageStyle={styles.storeImage}
-                  resizeMode="cover"
-                />
-              </View>
-              <View style={{ marginLeft: 10 }}>
-                <View
-                  style={{ flexDirection: "row", alignItems: "flex-start" }}
-                >
-                  <Text style={styles.providerName}>{store.name}</Text>
-                  <View style={{ alignItems: "center", flexDirection: "row" }}>
-                    <CircleSvg />
-                    <ClockSvg title={firstProduct.tts_in_h || 1} />
-                    <CircleSvg />
-                  </View>
-                  <Text style={styles.domainName}>
-                    {firstProduct.distance_in_km.toFixed(1)}km
-                  </Text>
                 </View>
-                {(firstProduct.price.offerPercent || 0) > 0 && (
-                  <Text style={styles.offerText}>
-                    Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
-                  </Text>
-                )}
-              </View>
-            </View>
 
-            <TouchableOpacity
-              onPress={() => {
-                router.push(`../(tabs)/home/productListing/${store.slug}`);
-              }}
-            >
-              <ForwardArrowSvg margin={30} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={snapInterval}
-            decelerationRate="fast"
-            style={styles.scrollViewStyle}
-          >
-            {products.map((product: CatalogItem, index: number) => (
-              <Pressable
-                onPress={() => {
-                  router.push(`../(tabs)/home/productDetails/${product.slug}`);
-                }}
-                key={index}
-                style={styles.productItem}
-              >
-                <View style={styles.groceryImageContainer}>
-                  <ImageComp
-                    source={{
-                      uri:
-                        product.images?.[0] ||
-                        "https://via.placeholder.com/150?text=Product",
-                    }}
-                    imageStyle={styles.groceryImage}
-                    resizeMode="cover"
-                  />
-                </View>
-                <View style={styles.addButtonContainer}>
-                  <AddToCartButton
-                    storeId={product.store_id}
-                    itemId={product.symbol}
-                  />
-                </View>
-                <View style={styles.groceryProductDetails}>
-                  <Text style={styles.productName}>{product.name}</Text>
-
-                  <View style={styles.unitContainer}>
-                    <Text style={styles.unitText}>
-                      {product.unitized?.measure?.value}
-                    </Text>
-                    <Text style={styles.unitText}>
-                      {product.unitized?.measure?.unit}
+                <View style={styles.productDetails}>
+                  <View style={styles.vegIndicator}>
+                    <VegSvg />
+                    <Text style={styles.bestSellerText}>
+                      {product.recommended ? "Best Seller" : ""}
                     </Text>
                   </View>
-
+                  <Text style={styles.productNameFood}>{product.name}</Text>
                   <View style={{ flexDirection: "row" }}>
                     <Text style={styles.priceText}>₹{product.price.value}</Text>
                     {product.price.offerPercent && (
@@ -664,136 +457,260 @@ const Results: FC<SearchProps> = () => {
                       </>
                     )}
                   </View>
+                  <TouchableOpacity
+                    style={styles.moreInfoButton}
+                    onPress={() => {
+                      setFoodDetails({
+                        images: product.images?.[0] || "",
+                        long_desc: product.short_desc || "",
+                        name: product.name,
+                        short_desc: product.short_desc || "",
+                        symbol: product.symbol,
+                        price: product.price.value.toString(),
+                        storeId: product.store_id,
+                        itemId: product.symbol,
+                        discount: product.price.offerPercent || 0,
+                        maxPrice: product.price.maximum_value || 0,
+                        visible: true,
+                        maxQuantity: product.quantity || 1,
+                      });
+                      handleOpenPress();
+                      setCustomizableGroup({
+                        ...customizableGroup,
+                        customizable: false,
+                      });
+                      setIsFilterVisible(false);
+                    }}
+                  >
+                    <Text style={styles.moreInfoText}>More Info</Text>
+                  </TouchableOpacity>
+                  <View style={styles.productRating}>
+                    <Text style={styles.ratingText}>
+                      {product.rating || "4.2"}
+                    </Text>
+                    <MaterialCommunityIcons
+                      color="#FFC700"
+                      size={16}
+                      name="star"
+                    />
+                  </View>
                 </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    }
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
 
-    // Other domains (Fashion, Electronics, etc.)
-    const otherDomains = ["Fashion", "Electronics", "Home & Decor", "BPC"];
-    if (otherDomains.includes(domainName)) {
-      return (
-        <View style={[styles.card, { marginTop: 10 }]}>
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: "row" }}>
-              <View style={styles.storeImageContainer}>
-                <ImageComp
-                  source={{
-                    uri:
-                      store.symbol ||
-                      "https://via.placeholder.com/150?text=Store",
-                  }}
-                  imageStyle={styles.storeImage}
-                  resizeMode="cover"
-                />
-              </View>
-              <View style={{ marginHorizontal: 10 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={styles.providerName}>{store.name}</Text>
+    const renderGroceryCard = () => (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={{ flexDirection: "row" }}>
+            <View style={styles.storeImageContainer}>
+              <ImageComp
+                source={{
+                  uri:
+                    store.symbol ||
+                    "https://via.placeholder.com/150?text=Store",
+                }}
+                imageStyle={styles.storeImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={{ marginLeft: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+                <Text style={styles.providerName}>{store.name}</Text>
+                <View style={{ alignItems: "center", flexDirection: "row" }}>
                   <CircleSvg />
                   <ClockSvg title={firstProduct.tts_in_h || 1} />
                   <CircleSvg />
-                  <Text style={styles.domainName}>
-                    {firstProduct.distance_in_km.toFixed(1)}km
+                </View>
+                <Text style={styles.domainName}>
+                  {firstProduct.distance_in_km.toFixed(1)}km
+                </Text>
+              </View>
+              {(firstProduct.price.offerPercent || 0) > 0 && (
+                <Text style={styles.offerText}>
+                  Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
+                </Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(`./productListing/${store.slug}`)
+            }
+          >
+            <ForwardArrowSvg margin={30} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={snapInterval}
+          decelerationRate="fast"
+          style={styles.scrollViewStyle}
+        >
+          {products.map((product, index) => (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`./productDetails/${product.slug}`)
+              }
+              key={index}
+              style={styles.productItem}
+            >
+              <View style={styles.groceryImageContainer}>
+                <ImageComp
+                  source={{
+                    uri:
+                      product.images?.[0] ||
+                      "https://via.placeholder.com/150?text=Product",
+                  }}
+                  imageStyle={styles.groceryImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={styles.addButtonContainer}>
+                <AddToCartButton
+                  storeId={product.store_id}
+                  itemId={product.symbol}
+                />
+              </View>
+              <View style={styles.groceryProductDetails}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <View style={styles.unitContainer}>
+                  <Text style={styles.unitText}>
+                    {product.unitized?.measure?.value}
+                  </Text>
+                  <Text style={styles.unitText}>
+                    {product.unitized?.measure?.unit}
                   </Text>
                 </View>
-                {(firstProduct.price.offerPercent || 0) > 0 && (
-                  <Text style={styles.offerText}>
-                    Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
+                <View style={{ flexDirection: "row" }}>
+                  <Text style={styles.priceText}>₹{product.price.value}</Text>
+                  {product.price.offerPercent && (
+                    <>
+                      <Text style={styles.originalPriceText}>
+                        ₹{product.price.maximum_value}
+                      </Text>
+                      <Text style={styles.offerPercentText}>
+                        {Math.ceil(product.price.offerPercent)}% Off
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+
+    const renderOtherDomainsCard = () => (
+      <View style={[styles.card, { marginTop: 10 }]}>
+        <View style={styles.cardHeader}>
+          <View style={{ flexDirection: "row" }}>
+            <View style={styles.storeImageContainer}>
+              <ImageComp
+                source={{
+                  uri:
+                    store.symbol ||
+                    "https://via.placeholder.com/150?text=Store",
+                }}
+                imageStyle={styles.storeImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={{ marginHorizontal: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.providerName}>{store.name}</Text>
+                <CircleSvg />
+                <ClockSvg title={firstProduct.tts_in_h || 1} />
+                <CircleSvg />
+                <Text style={styles.domainName}>
+                  {firstProduct.distance_in_km.toFixed(1)}km
+                </Text>
+              </View>
+              {(firstProduct.price.offerPercent || 0) > 0 && (
+                <Text style={styles.offerText}>
+                  Upto {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
+                </Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(`./productListing/${store.slug}`)
+            }
+          >
+            <ForwardArrowSvg margin={30} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={snapInterval}
+          decelerationRate="fast"
+          style={styles.scrollViewStyle}
+        >
+          {products.map((product, index) => (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`./productDetails/${product.slug}`)
+              }
+              key={index}
+              style={styles.productItem}
+            >
+              <View style={styles.otherDomainImageContainer}>
+                <ImageComp
+                  source={{
+                    uri:
+                      product.images?.[0] ||
+                      "https://via.placeholder.com/150?text=Product",
+                  }}
+                  imageStyle={styles.otherDomainImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={styles.otherDomainProductDetails}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <View style={{ flexDirection: "row" }}>
+                  {product.price.maximum_value &&
+                    product.price.maximum_value > product.price.value && (
+                      <Text style={styles.originalPriceText}>
+                        ₹{Math.ceil(product.price.maximum_value)}
+                      </Text>
+                    )}
+                  <Text style={styles.priceText}>
+                    ₹{Math.ceil(product.price.value)}
+                  </Text>
+                </View>
+                {product.price.offerPercent && (
+                  <Text style={styles.offerPercentBold}>
+                    {Math.ceil(product.price.offerPercent)}% off
                   </Text>
                 )}
               </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                router.push(`../(tabs)/home/productListing/${store.slug}`);
-              }}
-            >
-              <ForwardArrowSvg margin={30} />
             </TouchableOpacity>
-          </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
 
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={snapInterval}
-            decelerationRate="fast"
-            style={styles.scrollViewStyle}
-          >
-            {products.map((product: CatalogItem, index: number) => (
-              <Pressable
-                onPress={() => {
-                  router.push(`../(tabs)/home/productDetails/${product.slug}`);
-                }}
-                key={index}
-                style={styles.productItem}
-              >
-                <View style={styles.otherDomainImageContainer}>
-                  <ImageComp
-                    source={{
-                      uri:
-                        product.images?.[0] ||
-                        "https://via.placeholder.com/150?text=Product",
-                    }}
-                    imageStyle={styles.otherDomainImage}
-                    resizeMode="cover"
-                  />
-                </View>
-
-                <View style={styles.otherDomainProductDetails}>
-                  <Text style={styles.productName}>{product.name}</Text>
-
-                  <View style={{ flexDirection: "row" }}>
-                    {product.price.maximum_value &&
-                      product.price.maximum_value > product.price.value && (
-                        <Text style={styles.originalPriceText}>
-                          ₹{Math.ceil(product.price.maximum_value)}
-                        </Text>
-                      )}
-                    <Text style={styles.priceText}>
-                      ₹{Math.ceil(product.price.value)}
-                    </Text>
-                  </View>
-
-                  {product.price.offerPercent && (
-                    <Text style={styles.offerPercentBold}>
-                      {Math.ceil(product.price.offerPercent)}% off
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    }
-
+    if (domainName === "F&B") return renderFoodCard();
+    if (domainName === "Grocery") return renderGroceryCard();
+    if (["Fashion", "Electronics", "Home & Decor", "BPC"].includes(domainName))
+      return renderOtherDomainsCard();
     return null;
-  };
-
-  // Helper function to get domain name
-  const getDomainName = (domain: string): string => {
-    const domainMap: Record<string, string> = {
-      "ONDC:RET10": "Grocery",
-      "ONDC:RET11": "F&B",
-      "ONDC:RET12": "Fashion",
-      "ONDC:RET13": "BPC",
-      "ONDC:RET14": "Electronics",
-      "ONDC:RET16": "Home & Decor",
-    };
-    return domainMap[domain] || domain;
   };
 
   const productsByStore = groupByStoreId(catalogsData);
 
-  if (isLoading) {
-    return <Loader />;
-  }
+  if (isLoading) return <Loader />;
 
   if (error) {
     return (
@@ -819,12 +736,9 @@ const Results: FC<SearchProps> = () => {
         </View>
 
         <TouchableOpacity
-          onPress={() => {
-            router.push({
-              pathname: "/search",
-              params: { domain: domainData },
-            });
-          }}
+          onPress={() =>
+            router.push({ pathname: "/search", params: { domain: domainData } })
+          }
           style={styles.searchContainer}
         >
           <TextInput
@@ -902,13 +816,10 @@ const Results: FC<SearchProps> = () => {
                   onPress={() => {
                     handleOpenPress();
                     setActiveFilter(filter?.name);
-                    setFoodDetails({
-                      ...foodDetails,
-                      visible: false,
-                    });
+                    setFoodDetails({ ...foodDetails, visible: false });
                     setIsFilterVisible(true);
                     setCustomizableGroup({
-                      ...CustomizableGroup,
+                      ...customizableGroup,
                       customizable: false,
                     });
                   }}
@@ -933,7 +844,7 @@ const Results: FC<SearchProps> = () => {
                     }
                   </Text>
 
-                  <Pressable
+                  <TouchableOpacity
                     style={[
                       styles.filterClearButton,
                       {
@@ -949,12 +860,9 @@ const Results: FC<SearchProps> = () => {
                       },
                     ]}
                     onPress={() => {
-                      setFoodDetails({
-                        ...foodDetails,
-                        visible: false,
-                      });
+                      setFoodDetails({ ...foodDetails, visible: false });
                       setCustomizableGroup({
-                        ...CustomizableGroup,
+                        ...customizableGroup,
                         customizable: false,
                       });
                       setFilterSelected({
@@ -972,7 +880,7 @@ const Results: FC<SearchProps> = () => {
                     }}
                   >
                     <Feather name="x" size={16} color="black" />
-                  </Pressable>
+                  </TouchableOpacity>
                 </TouchableOpacity>
               ))}
 
@@ -981,13 +889,13 @@ const Results: FC<SearchProps> = () => {
                 filterSelected.offers !== 0) && (
                 <TouchableOpacity
                   style={styles.resetButton}
-                  onPress={() => {
+                  onPress={() =>
                     setFilterSelected({
                       category: [],
                       offers: 0,
                       delivery: 100,
-                    });
-                  }}
+                    })
+                  }
                 >
                   <Text style={styles.resetButtonText}>Reset</Text>
                 </TouchableOpacity>
@@ -1054,63 +962,61 @@ const Results: FC<SearchProps> = () => {
           )}
 
           <ScrollView contentContainerStyle={styles.content}>
-            {storesData.map((store: Store, index: number) => {
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    router.push(`../(tabs)/home/productListing/${store.slug}`);
-                  }}
-                  key={index}
-                  style={styles.storeCard}
-                >
-                  <View>
-                    <ImageComp
-                      source={{
-                        uri:
-                          store.symbol ||
-                          "https://via.placeholder.com/150?text=Store",
-                      }}
-                      imageStyle={styles.storeCardImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={styles.storeCardDetails}>
-                    <Text style={styles.storeCardName}>{store.name}</Text>
-                    <View style={styles.storeCardMetrics}>
-                      <View style={styles.storeCardRating}>
-                        <MaterialCommunityIcons
-                          name="star"
-                          size={18}
-                          color="#FFD523"
-                        />
-                        <Text style={styles.storeCardRatingText}>
-                          {store.rating || "4.2"}
+            {storesData.map((store, index) => (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`../../productListing/${store.slug}`)
+                }
+                key={index}
+                style={styles.storeCard}
+              >
+                <View>
+                  <ImageComp
+                    source={{
+                      uri:
+                        store.symbol ||
+                        "https://via.placeholder.com/150?text=Store",
+                    }}
+                    imageStyle={styles.storeCardImage}
+                    resizeMode="cover"
+                  />
+                </View>
+                <View style={styles.storeCardDetails}>
+                  <Text style={styles.storeCardName}>{store.name}</Text>
+                  <View style={styles.storeCardMetrics}>
+                    <View style={styles.storeCardRating}>
+                      <MaterialCommunityIcons
+                        name="star"
+                        size={18}
+                        color="#FFD523"
+                      />
+                      <Text style={styles.storeCardRatingText}>
+                        {store.rating || "4.2"}
+                      </Text>
+                      {Math.ceil(store.maxStoreItemOfferPercent || 0) > 0 && (
+                        <Text style={styles.storeCardOffer}>
+                          Upto {Math.ceil(store.maxStoreItemOfferPercent || 0)}%
+                          Off
                         </Text>
-                        {Math.ceil(store.maxStoreItemOfferPercent || 0) > 0 ? (
-                          <Text style={styles.storeCardOffer}>
-                            Upto {Math.ceil(store.maxStoreItemOfferPercent || 0)}%
-                            Off
-                          </Text>
-                        ) : null}
-                      </View>
-                    </View>
-
-                    <View style={{ flexDirection: "column" }}>
-                      <Text style={styles.storeCardAddress}>
-                        <MaterialCommunityIcons name="map-marker" />
-                        {store.address.street ? `${store.address.street}, ` : ""}
-                        {store.address.city}
-                      </Text>
-
-                      <Text style={styles.storeCardDelivery}>
-                        <MaterialCommunityIcons name="truck" /> 
-                        {store.distance_in_km.toFixed(1)}km • {Math.round((store.avg_tts_in_h || 1) * 60)} min
-                      </Text>
+                      )}
                     </View>
                   </View>
-                </TouchableOpacity>
-              );
-            })}
+
+                  <View style={{ flexDirection: "column" }}>
+                    <Text style={styles.storeCardAddress}>
+                      <MaterialCommunityIcons name="map-marker" />
+                      {store.address.street ? `${store.address.street}, ` : ""}
+                      {store.address.city}
+                    </Text>
+                    <Text style={styles.storeCardDelivery}>
+                      <MaterialCommunityIcons name="truck" />
+                      {store.distance_in_km.toFixed(1)}km •{" "}
+                      {Math.round((store.avg_tts_in_h || 1) * 60)} min
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
       )}
@@ -1134,26 +1040,30 @@ const Results: FC<SearchProps> = () => {
             deliveryData={deliveryData}
             setActiveOption={setActiveFilter}
             closeFilter={handleClosePress}
-            setFilterSelected={setFilterSelected}
+            selectOption={(value) => {
+              setFilterSelected(value);
+              handleClosePress();
+            }}
           />
         )}
 
         {foodDetails?.visible && (
-          <FoodDetailsComponent
-            closeFilter={handleClosePress}
-            foodDetails={foodDetails}
-          />
+          <FoodDetailsComponent foodDetails={foodDetails} />
         )}
 
-        {CustomizableGroup.customizable && (
+        {customizableGroup.customizable && (
           <CustomizationGroup
-            customGroup={CustomizableGroup.customGroup}
-            customizable={CustomizableGroup.customizable}
-            vendorId={CustomizableGroup.vendorId}
-            itemId={CustomizableGroup.itemId}
-            maxLimit={CustomizableGroup.maxLimit}
-            price={CustomizableGroup.price}
+            customGroup={customizableGroup.customGroup}
+            customizable={customizableGroup.customizable}
+            vendorId={customizableGroup.vendorId}
+            itemId={customizableGroup.itemId}
+            maxLimit={customizableGroup.maxLimit}
+            price={customizableGroup.price}
             closeFilter={handleClosePress}
+            providerId=""
+            domain=""
+            cityCode=""
+            bppId=""
           />
         )}
       </BottomSheet>
@@ -1167,13 +1077,13 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.WHITE_COLOR,
     flex: 1,
-    marginBottom:20
+    marginBottom: 20,
   },
   headerContainer: {
     flexDirection: "column",
     paddingVertical: 10,
     backgroundColor: Colors.WHITE_COLOR,
-    marginTop:20
+    marginTop: 20,
   },
   headerRow: {
     alignItems: "center",
@@ -1323,10 +1233,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     marginRight: 4,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.43,
     shadowRadius: 9.51,
     height: Dimensions.get("screen").width * 0.15,
@@ -1377,16 +1284,13 @@ const styles = StyleSheet.create({
   },
   scrollViewStyle: {
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.36,
     shadowRadius: 6.68,
     elevation: 11,
   },
   productItemFood: {
-    width: windowWidth * 0.7,
+    width: width * 0.7,
     borderColor: "#ACAAAA",
     borderWidth: 1,
     marginLeft: Dimensions.get("window").width * 0.03,
@@ -1461,7 +1365,7 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 14,
     textAlign: "left",
-    width: windowWidth * 0.3,
+    width: width * 0.3,
     marginRight: 10,
     fontWeight: "500",
   },
@@ -1498,7 +1402,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   productItem: {
-    width: windowWidth * 0.42,
+    width: width * 0.42,
     borderColor: "#ACAAAA",
     borderWidth: 1,
     marginLeft: Dimensions.get("window").width * 0.02,
@@ -1622,5 +1526,3 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
-
-

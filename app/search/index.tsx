@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 
 import {
-  FlatList,
   SafeAreaView,
   StyleSheet,
   TouchableOpacity,
@@ -9,10 +8,9 @@ import {
   Dimensions,
   View,
   ScrollView,
-  Pressable,
   ActivityIndicator,
 } from "react-native";
-import { Feather, AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Colors, Fonts } from "../../theme";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,7 +22,7 @@ import {
   setAsyncStorageItem,
 } from "../../utility/asyncStorage";
 import { fetchSearchSuggesstions } from "./fetch-suggest";
-import { FetchSuggestionsType, SuggestionsType } from "./fetch-suggest-type";
+import {  SuggestionsType } from "./fetch-suggest-type";
 import useDeliveryStore from "../../state/deliveryAddressStore";
 
 const { width, height } = Dimensions.get("window");
@@ -45,7 +43,6 @@ const SearchScreen: React.FC = () => {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestionsType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [streetName, setStreetName] = useState<string>("");
   const [searchTextIndex, setSearchTextIndex] = useState<number>(0);
   const selectedDetails = useDeliveryStore(
     (state) => state.selectedDetails
@@ -217,11 +214,11 @@ const SearchScreen: React.FC = () => {
 
     if (suggestion.type === "store" || suggestion.type === "vendor") {
       // Navigate to store/vendor page
-      router.push(`../(tabs)/home/productListing/${suggestion.slug}`);
+      router.push(`../../productListing/${suggestion.slug}`);
     } else {
       // Navigate to search results
       router.push({
-        pathname: "../(tabs)/home/result/[search]",
+        pathname: "../result/[search]",
         params: {
           search: suggestion.name,
           domainData: domain || suggestion.domain,
@@ -324,7 +321,7 @@ const SearchScreen: React.FC = () => {
                 onPress={() => {
                   setInputValue(search);
                   router.push({
-                    pathname: "../(tabs)/home/result/[search]",
+                    pathname: "../result/[search]",
                     params: {
                       search: search,
                       domainData: domain,
@@ -367,7 +364,7 @@ const SearchScreen: React.FC = () => {
               >
                 {suggestions.map(
                   (suggestion: SuggestionsType, index: number) => (
-                    <Pressable
+                    <TouchableOpacity
                       onPress={() => handleSuggestionPress(suggestion)}
                       style={styles.searchRow}
                       key={`${suggestion.slug}-${index}`}
@@ -407,7 +404,7 @@ const SearchScreen: React.FC = () => {
                         </View>
                         <GotoArrow />
                       </View>
-                    </Pressable>
+                    </TouchableOpacity>
                   )
                 )}
               </ScrollView>

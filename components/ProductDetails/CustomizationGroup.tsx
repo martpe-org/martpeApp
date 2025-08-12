@@ -1,4 +1,4 @@
-import React, { FC, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,56 @@ import {
   TextInput,
   Pressable,
 } from "react-native";
-import { useGraphQLQuery } from "../../gql/queries/useGraphql/useGraphql";
 import AddToCart from "./AddToCart";
 
 import { MaterialCommunityIcons, AntDesign, Feather } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native-paper";
+
+// Types for the customization data
+interface CustomizationOption {
+  child?: {
+    id: string;
+  };
+  descriptor: {
+    name: string;
+  };
+  price?: {
+    value: number;
+  };
+  quantity?: {
+    available: {
+      count: number;
+    };
+  };
+  related?: string;
+  type?: string;
+  group?: {
+    default?: boolean;
+    id: string;
+  };
+  tags?: {
+    code: string;
+    list: {
+      code: string;
+      value: string;
+    }[];
+  }[];
+}
+
+interface CustomizationData {
+  descriptor: {
+    name: string;
+  };
+  options: CustomizationOption[];
+  custom_group_id: string;
+  config: {
+    input: "text" | "select";
+    max: number;
+    min: number;
+    seq: number;
+  };
+}
+
 interface CustomizationGroupProps {
   customizable: boolean;
   customGroup: string[] | null;
@@ -26,6 +71,45 @@ interface CustomizationGroupProps {
   closeFilter: () => void;
 }
 
+// Mock function to simulate API call - replace with your actual API call
+const fetchCustomizations = async (customGroup: string[], vendorId: string): Promise<CustomizationData[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Mock data - replace with actual API call
+  return [
+    {
+      descriptor: {
+        name: "Size Options"
+      },
+      options: [
+        {
+          descriptor: { name: "Small" },
+          group: { id: "size_1" },
+          price: { value: 0 }
+        },
+        {
+          descriptor: { name: "Medium" },
+          group: { id: "size_2" },
+          price: { value: 50 }
+        },
+        {
+          descriptor: { name: "Large" },
+          group: { id: "size_3" },
+          price: { value: 100 }
+        }
+      ],
+      custom_group_id: customGroup[0],
+      config: {
+        input: "select",
+        max: 1,
+        min: 1,
+        seq: 1
+      }
+    }
+  ];
+};
+
 const CustomizationGroup: FC<CustomizationGroupProps> = ({
   customizable,
   customGroup,
@@ -35,83 +119,51 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
   maxLimit,
   closeFilter,
 }) => {
-  const [activeCustomGroup, setActiveCustomGroup] = React.useState<string>(
-    customGroup[0]
+  const [activeCustomGroup, setActiveCustomGroup] = useState<string>(
+    customGroup?.[0] || ""
   );
-  const [nextCustomGroup, setNextCustomGroup] = React.useState<string>("");
-  const [selectedCustomizations, setSelectedCustomizations] = React.useState<
-    Array<string>
-  >([]);
-  const [finalCustomizations, setFinalCustomizations] = React.useState<
-    Array<{}>
-  >([]);
-  const [isLoad, setIsLoad] = React.useState<boolean>(true);
+  const [nextCustomGroup, setNextCustomGroup] = useState<string>("");
+  const [selectedCustomizations, setSelectedCustomizations] = useState<Array<string>>([]);
+  const [finalCustomizations, setFinalCustomizations] = useState<Array<{}>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [data, setData] = useState<CustomizationData[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const [step, setStep] = React.useState<number>(0);
-  const [selected, setSelected] = React.useState<string>("");
-  const [multipleSelected, setMultipleSelected] = React.useState([]);
-  const [addedSelected, setAddedSelected] = React.useState([]);
-  const { data, isLoading, error } = useGraphQLQuery(
-    `query GetCustomizations($customGroup: [String!]!, $vendorId: String!) {
-      getCustomizations(custom_group: $customGroup, vendor_id: $vendorId) {
-         descriptor {
-                name
-              }
-              options {
-                child {
-                  id
-                }
-                descriptor {
-                  name
-                }
-                price {
-                  value
-                }
-                quantity {
-                  available {
-                    count
-                  }
-                }
-                related
-                type
-                group {
-                  default
-                  id
-                }
-                tags {
-                  code
-                  list {
-                    code
-                    value
-                  }
-                }
-              }
-              custom_group_id
-              config {
-                input
-                max
-                min
-                seq
-              }
+  const [step, setStep] = useState<number>(0);
+  const [selected, setSelected] = useState<string>("");
+  const [multipleSelected, setMultipleSelected] = useState<string[]>([]);
+  const [addedSelected, setAddedSelected] = useState<any[]>([]);
+
+  // Fetch customizations data
+  useEffect(() => {
+    const loadCustomizations = async () => {
+      if (!customGroup || !vendorId) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const result = await fetchCustomizations(customGroup, vendorId as string);
+        setData(result);
+      } catch (err) {
+        setError("Failed to load customizations");
+        console.error("Error fetching customizations:", err);
+      } finally {
+        setIsLoading(false);
       }
-    }`,
-    {
-      customGroup: customGroup,
-      vendorId: vendorId,
-    }
-  );
+    };
+
+    loadCustomizations();
+  }, [customGroup, vendorId]);
 
   useEffect(() => {
-    setActiveCustomGroup(customGroup[0]);
+    if (customGroup?.[0]) {
+      setActiveCustomGroup(customGroup[0]);
+    }
     setSelectedCustomizations([]);
     setFinalCustomizations([]);
     setStep(0);
     console.log("customizable", customGroup, vendorId, step);
-    console.log(
-      "selectedCustomizations",
-      activeCustomGroup,
-      selectedCustomizations
-    );
+    console.log("selectedCustomizations", activeCustomGroup, selectedCustomizations);
   }, [customGroup]);
 
   const handleAddCustomization = (
@@ -139,15 +191,6 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
     console.log("selectedCustomizations", selectedCustomizations);
   };
 
-  if (customGroup === null) return null;
-  if (isLoading)
-    return (
-      <View>
-        <ActivityIndicator size="large" color="#FB3E44" />
-      </View>
-    );
-  if (error) return <Text>We couldnt find any customizations </Text>;
-
   const handleNext = () => {
     const newFinalCustomizations = [
       ...finalCustomizations,
@@ -165,12 +208,30 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
   };
 
   const handlePrevious = () => {
-    const newFinalCustomizations = finalCustomizations.slice(0, -1); // Remove the last set of customizations
+    const newFinalCustomizations = finalCustomizations.slice(0, -1);
     setFinalCustomizations(newFinalCustomizations);
 
-    setActiveCustomGroup(customGroup[step - 1] || customGroup[0]);
+    setActiveCustomGroup(customGroup?.[step - 1] || customGroup?.[0] || "");
     setStep((prevStep) => (prevStep > 0 ? prevStep - 1 : 0));
   };
+
+  if (customGroup === null) return null;
+  
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FB3E44" />
+      </View>
+    );
+  }
+  
+  if (error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 16, color: 'red' }}>We could not find any customizations</Text>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -178,8 +239,6 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
         paddingHorizontal: Dimensions.get("screen").width * 0.03,
         height: "100%",
         flex: 1,
-        // backgroundColor: "black",
-        // marginTop: -20,
       }}
     >
       {customizable ? (
@@ -199,14 +258,14 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
           >
             Customize as per your taste
           </Text>
-          <Pressable onPress={closeFilter}>
+          <TouchableOpacity onPress={closeFilter}>
             <AntDesign
               name="close"
               size={18}
               style={{ fontWeight: "600" }}
               color="black"
             />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -215,8 +274,9 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
           borderBottomColor: "black",
           borderBottomWidth: 0.2,
         }}
-      ></View>
-      {data.getCustomizations.map((item, idx) => {
+      />
+      
+      {data.map((item, idx) => {
         return (
           <View key={idx}>
             {item.custom_group_id === activeCustomGroup ? (
@@ -256,27 +316,20 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                         <Pressable
                           onPress={() => {
                             handleAddCustomization(
-                              option?.child?.id,
-                              option?.group?.id
+                              option?.child?.id || null,
+                              option?.group?.id || ""
                             );
                             if (item.config.max > 1) {
                               setMultipleSelected((currentSelected) => {
                                 if (
-                                  currentSelected.includes(
-                                    option.descriptor.name
-                                  ) ||
+                                  currentSelected.includes(option.descriptor.name) ||
                                   multipleSelected.length >= item.config.max
                                 ) {
-                                  // Item is already selected, so remove it from the array
                                   return currentSelected.filter(
                                     (name) => name !== option.descriptor.name
                                   );
                                 } else {
-                                  // Item is not selected, so add it to the array
-                                  return [
-                                    ...currentSelected,
-                                    option.descriptor.name,
-                                  ];
+                                  return [...currentSelected, option.descriptor.name];
                                 }
                               });
                             } else {
@@ -296,8 +349,8 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                               />
                             </>
                           ) : null}
-                          {item.config.input === "select" &&
-                          item.config.max == 1 ? (
+                          
+                          {item.config.input === "select" && item.config.max === 1 ? (
                             <View
                               style={{
                                 flexDirection: "row",
@@ -329,13 +382,13 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                                       backgroundColor: "#FB3E44",
                                       borderRadius: 15,
                                     }}
-                                  ></View>
+                                  />
                                 )}
                               </View>
                             </View>
                           ) : null}
-                          {item.config.input === "select" &&
-                          item.config.max > 1 ? (
+                          
+                          {item.config.input === "select" && item.config.max > 1 ? (
                             <View
                               style={{
                                 flexDirection: "row",
@@ -360,14 +413,8 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                                   justifyContent: "center",
                                 }}
                               >
-                                {multipleSelected.includes(
-                                  option.descriptor.name
-                                ) && (
-                                  <Feather
-                                    name="check"
-                                    size={12}
-                                    color="#FB3E44"
-                                  />
+                                {multipleSelected.includes(option.descriptor.name) && (
+                                  <Feather name="check" size={12} color="#FB3E44" />
                                 )}
                               </View>
                             </View>
@@ -377,6 +424,7 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                     );
                   })}
                 </View>
+                
                 <View
                   style={{
                     position: "absolute",
@@ -400,10 +448,8 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                             flexDirection: "row",
                             alignItems: "center",
                             justifyContent: "center",
-                            paddingHorizontal:
-                              Dimensions.get("screen").width * 0.05,
-                            paddingVertical:
-                              Dimensions.get("screen").width * 0.03,
+                            paddingHorizontal: Dimensions.get("screen").width * 0.05,
+                            paddingVertical: Dimensions.get("screen").width * 0.03,
                             borderRadius: 4,
                             marginBottom: 10,
                           }}
@@ -412,7 +458,7 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                             style={{
                               color: "white",
                               fontSize: 16,
-                              fontWeight: 600,
+                              fontWeight: "600",
                             }}
                           >
                             Previous
@@ -422,27 +468,18 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                       <TouchableOpacity
                         onPress={() => {
                           setActiveCustomGroup(nextCustomGroup);
-                          setAddedSelected([
-                            ...addedSelected,
-                            selectedCustomizations,
-                          ]);
+                          setAddedSelected([...addedSelected, selectedCustomizations]);
                           setStep(step + 1);
                           handleNext();
-                          console.log(
-                            finalCustomizations,
-                            "finalCustomizations"
-                          );
+                          console.log(finalCustomizations, "finalCustomizations");
                         }}
                         style={{
                           backgroundColor: "#0e8910",
                           flexDirection: "row",
                           alignItems: "center",
                           justifyContent: "center",
-
-                          paddingHorizontal:
-                            Dimensions.get("screen").width * 0.05,
-                          paddingVertical:
-                            Dimensions.get("screen").width * 0.03,
+                          paddingHorizontal: Dimensions.get("screen").width * 0.05,
+                          paddingVertical: Dimensions.get("screen").width * 0.03,
                           borderRadius: 4,
                         }}
                       >
@@ -466,16 +503,15 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                               selectedCustomizations[step - 1]
                             );
                             setStep(step - 1);
+                            handlePrevious();
                           }}
                           style={{
                             backgroundColor: "#FB3E44",
                             flexDirection: "row",
                             alignItems: "center",
                             justifyContent: "center",
-                            paddingHorizontal:
-                              Dimensions.get("screen").width * 0.05,
-                            paddingVertical:
-                              Dimensions.get("screen").width * 0.03,
+                            paddingHorizontal: Dimensions.get("screen").width * 0.05,
+                            paddingVertical: Dimensions.get("screen").width * 0.03,
                             borderRadius: 4,
                             marginBottom: 10,
                           }}
@@ -484,7 +520,7 @@ const CustomizationGroup: FC<CustomizationGroupProps> = ({
                             style={{
                               color: "white",
                               fontSize: 16,
-                              fontWeight: 600,
+                              fontWeight: "600",
                             }}
                           >
                             Previous

@@ -12,38 +12,24 @@ import {
   View,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import PLPElectronics from "../../../../components/Product Listing Page/Electronics/PLPElectronics";
-import PLPFashion from "../../../../components/Product Listing Page/Fashion/PLPFashion"; //
-import PLPBanner from "../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
-import PLPFnB from "../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
-import Searchbox from "../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";
-import PLPGrocery from "../../../../components/Product Listing Page/Grocery/PLPGrocery";
-import PLPHomeAndDecor from "../../../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
-import PLPPersonalCare from "../../../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
-import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
-import Loader from "../../../../components/common/Loader";
-import { fetchStoreDetails } from "../../../../store/fetch-store-details";
-import { fetchStoreItems } from "../../../../store/fetch-store-items";
-import { FetchStoreDetailsResponseType } from "../../../../store/fetch-store-details-type";
-import { FetchStoreItemsResponseType, StoreItem } from "../../../../store/fetch-store-items-type";
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
-
-// Types
-interface Coords {
-  accuracy: number;
-  altitude: number;
-  altitudeAccuracy: number;
-  heading: number;
-  latitude: number;
-  longitude: number;
-  speed: number;
-}
-
-interface UserLocation {
-  coords: Coords;
-  mocked?: boolean;
-  timestamp: number;
-}
+import PLPElectronics from "../../components/Product Listing Page/Electronics/PLPElectronics";
+import PLPFashion from "../../components/Product Listing Page/Fashion/PLPFashion"; //
+import PLPBanner from "../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
+import PLPFnB from "../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
+import Searchbox from "../../components/Product Listing Page/FoodAndBeverages/Searchbox";
+import PLPGrocery from "../../components/Product Listing Page/Grocery/PLPGrocery";
+import PLPHomeAndDecor from "../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
+import PLPPersonalCare from "../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
+import FoodDetailsComponent from "../../components/ProductDetails/FoodDetails";
+import Loader from "../../components/common/Loader";
+import { fetchStoreDetails } from "../../store/fetch-store-details";
+import { fetchStoreItems } from "../../store/fetch-store-items";
+import { FetchStoreDetailsResponseType } from "../../store/fetch-store-details-type";
+import {
+  FetchStoreItemsResponseType,
+  StoreItem,
+} from "../../store/fetch-store-items-type";
+import useDeliveryStore from "../../state/deliveryAddressStore";
 
 // Types matching the component interfaces
 interface ComponentDescriptor {
@@ -130,38 +116,40 @@ const convertToVendorData = (
   };
 
   // Convert store items to catalog items
-  const catalogItems: ComponentCatalogItem[] = storeItems.results.map((item: StoreItem) => ({
-    bpp_id: item.provider_id || "",
-    bpp_uri: "", // Not available in StoreItem
-    catalog_id: item.catalog_id || "",
-    category_id: item.category_id || "",
-    descriptor: {
-      images: item.images || [],
-      long_desc: item.short_desc || "", // Using short_desc as long_desc is not available
-      name: item.name || "",
-      short_desc: item.short_desc || "",
-      symbol: item.symbol || "",
-    },
-    id: item.slug || "",
-    location_id: item.location_id || "",
-    non_veg: item.diet_type === "non_veg" || false,
-    price: {
-      maximum_value: item.price?.maximum_value || item.price?.value || 0,
-      offer_percent: item.price?.offerPercent || null,
-      offer_value: null, // Not available in StoreItem
-      value: item.price?.value || 0,
-    },
-    quantity: {
-      available: {
-        count: item.quantity || 0,
+  const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
+    (item: StoreItem) => ({
+      bpp_id: item.provider_id || "",
+      bpp_uri: "", // Not available in StoreItem
+      catalog_id: item.catalog_id || "",
+      category_id: item.category_id || "",
+      descriptor: {
+        images: item.images || [],
+        long_desc: item.short_desc || "", // Using short_desc as long_desc is not available
+        name: item.name || "",
+        short_desc: item.short_desc || "",
+        symbol: item.symbol || "",
       },
-      maximum: {
-        count: item.quantity || 0,
+      id: item.slug || "",
+      location_id: item.location_id || "",
+      non_veg: item.diet_type === "non_veg" || false,
+      price: {
+        maximum_value: item.price?.maximum_value || item.price?.value || 0,
+        offer_percent: item.price?.offerPercent || null,
+        offer_value: null, // Not available in StoreItem
+        value: item.price?.value || 0,
       },
-    },
-    provider_id: item.provider_id || "",
-    veg: item.diet_type === "veg" || item.diet_type !== "non_veg", // Default to veg if not explicitly non_veg
-  }));
+      quantity: {
+        available: {
+          count: item.quantity || 0,
+        },
+        maximum: {
+          count: item.quantity || 0,
+        },
+      },
+      provider_id: item.provider_id || "",
+      veg: item.diet_type === "veg" || item.diet_type !== "non_veg", // Default to veg if not explicitly non_veg
+    })
+  );
 
   return {
     address: {
@@ -219,11 +207,7 @@ const PLP: React.FC = () => {
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const handleClosePress = () => bottomSheetRef.current?.close();
   const handleOpenPress = () => bottomSheetRef.current?.expand();
-  const handleCollapsePress = () => bottomSheetRef.current?.collapse();
-  const snapeToIndex = (index: number) =>
-    bottomSheetRef.current?.snapToIndex(index);
   const renderBackdrop = React.useCallback(
     (props: any) => (
       <BottomSheetBackdrop
@@ -245,11 +229,11 @@ const PLP: React.FC = () => {
 
       try {
         const slug = vendor.id as string;
-        
+
         // Fetch store details and items in parallel
         const [storeDetails, storeItems] = await Promise.all([
           fetchStoreDetails(slug),
-          fetchStoreItems(slug)
+          fetchStoreItems(slug),
         ]);
 
         if (storeDetails && storeItems) {
@@ -348,7 +332,7 @@ const PLP: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push("/address/SavedAddresses")}
+          onPress={() => router.push("../address/SavedAddresses")}
           style={{
             backgroundColor: "#030303",
             width: widthPercentageToDP("90"),
@@ -449,19 +433,18 @@ const PLP: React.FC = () => {
     case "ONDC:RET11":
       ProductListingPage = (
         <PLPFnB
-  buttonTitles={buttonTitles}
-  descriptor={descriptor}
-  vendorAddress={vendorAddress}
-  catalog={catalog}
-  dropdownHeaders={dropdownHeaders}
-  street={street || ""}
-  fssaiLiscenseNo={fssaiLiscenseNo}
-  providerId={vendor?.id as string}
-  handleOpenPress={handleOpenPress} // ✅ matches interface
-  foodDetails={setFoodDetails}
-  searchString={searchString}
-/>
-
+          buttonTitles={buttonTitles}
+          descriptor={descriptor}
+          vendorAddress={vendorAddress}
+          catalog={catalog}
+          dropdownHeaders={dropdownHeaders}
+          street={street || ""}
+          fssaiLiscenseNo={fssaiLiscenseNo}
+          providerId={vendor?.id as string}
+          handleOpenPress={handleOpenPress} // ✅ matches interface
+          foodDetails={setFoodDetails}
+          searchString={searchString}
+        />
       );
       break;
     case "ONDC:RET12":
@@ -515,9 +498,9 @@ const PLP: React.FC = () => {
           storeSections={storeSections}
           geoLocation={locationDetails}
           userLocation={selectedDetails}
-  userAddress={selectedDetails?.fullAddress ?? ""} 
-vendorId={(vendor.id as string) ?? ""}
-productId={foodDetails.itemId}
+          userAddress={selectedDetails?.fullAddress ?? ""}
+          vendorId={(vendor.id as string) ?? ""}
+          productId={foodDetails.itemId}
         />
 
         {/* store search box */}

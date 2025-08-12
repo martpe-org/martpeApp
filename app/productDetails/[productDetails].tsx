@@ -9,18 +9,18 @@ import {
   View,
 } from "react-native";
 
-import AddToCart from "../../../../components/ProductDetails/AddToCart";
-import ImageCarousel from "../../../../components/ProductDetails/ImageCarousel";
-import MoreBySeller from "../../../../components/ProductDetails/MoreBySeller";
-import ProductHeader from "../../../../components/ProductDetails/ProductHeader";
-import ProductPricing from "../../../../components/ProductDetails/ProductPricing";
-import SellerDetails from "../../../../components/ProductDetails/Seller";
-import Services from "../../../../components/ProductDetails/Services";
-import VariantGroup from "../../../../components/ProductDetails/VariantGroup";
-import Loader from "../../../../components/common/Loader";
-import Search from "../../../../components/common/Search";
-import { fetchProductDetails } from "../../../../components/product/fetch-product";
-import { FetchProductDetail } from "../../../../components/product/fetch-product-type";
+import AddToCart from "../../components/ProductDetails/AddToCart";
+import ImageCarousel from "../../components/ProductDetails/ImageCarousel";
+import MoreBySeller from "../../components/ProductDetails/MoreBySeller";
+import ProductHeader from "../../components/ProductDetails/ProductHeader";
+import ProductPricing from "../../components/ProductDetails/ProductPricing";
+import SellerDetails from "../../components/ProductDetails/Seller";
+import Services from "../../components/ProductDetails/Services";
+import VariantGroup from "../../components/ProductDetails/VariantGroup";
+import Loader from "../../components/common/Loader";
+import Search from "../../components/common/Search";
+import { fetchProductDetails } from "../../components/product/fetch-product";
+import { FetchProductDetail } from "../../components/product/fetch-product-type";
 
 interface ProductDetailsParams {
   productDetails: string;
@@ -169,15 +169,14 @@ const ProductDetails: FC = () => {
           <ImageCarousel url={productData.images!} /> // ✅ Non-null assertion after check
         )}
 
-      <ProductPricing
-  storeName={productData.store?.name || "Unknown Store"}
-  storeId={productData.store_id}
-  description={productData.short_desc || "No description available"}
-  maxPrice={productData.price?.maximum_value ?? 0} // ✅ always a number
-  price={productData.price?.value || 0}
-  discount={productData.price?.offerPercent || 0}
-/>
-
+        <ProductPricing
+          storeName={productData.store?.name || "Unknown Store"}
+          storeId={productData.store_id}
+          description={productData.short_desc || "No description available"}
+          maxPrice={productData.price?.maximum_value ?? 0} // ✅ always a number
+          price={productData.price?.value || 0}
+          discount={productData.price?.offerPercent || 0}
+        />
 
         {/* Variant Group */}
         {productData.parent_item_id &&
@@ -202,11 +201,14 @@ const ProductDetails: FC = () => {
           storeId={productData.store_id}
           returnableDays={
             productData.meta?.return_window
-              ? parseInt(productData.meta.return_window.replace(/\D/g, "")) || 10
+              ? parseInt(productData.meta.return_window.replace(/\D/g, "")) ||
+                10
               : 10
           }
           isReturnable={productData.meta?.returnable || false}
-          isCashOnDeliveryAvailable={productData.meta?.available_on_cod || false}
+          isCashOnDeliveryAvailable={
+            productData.meta?.available_on_cod || false
+          }
         />
 
         {/* More by Store */}
@@ -228,7 +230,9 @@ const ProductDetails: FC = () => {
             sellerName={productData.store?.name || ""}
             sellerDetails={storeAddress}
             sellerSymbol={productData.store?.symbol || ""}
-            sellerContact={productData.meta?.contact_details_consumer_care || ""}
+            sellerContact={
+              productData.meta?.contact_details_consumer_care || ""
+            }
           />
         )}
 
@@ -249,12 +253,12 @@ const ProductDetails: FC = () => {
       {/* Sticky Add to Cart */}
       <View style={styles.stickyFooter}>
         <AddToCart
-  storeId={productData.store_id}
-  slug={String(productDetails)} // Pass as slug instead of itemId
-  catalogId={productData.catalog_id} // Ensure you have this from API
-  price={productData.price?.value || 0}
-  maxLimit={maxLimit}
-/>
+          storeId={productData.store_id}
+          slug={String(productDetails)} // Pass as slug instead of itemId
+          catalogId={productData.catalog_id} // Ensure you have this from API
+          price={productData.price?.value || 0}
+          maxLimit={maxLimit}
+        />
       </View>
     </SafeAreaView>
   );
