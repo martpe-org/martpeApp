@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { fetchCarts } from "./fetch-carts";
 import { FetchCartType } from "./fetch-carts-type";
 import useUserDetails from "../../../hook/useUserDetails";
+import { useCartStore } from "../../../state/useCartStore"; // ✅ Import the store
 
 function calculateTotals(cartData: FetchCartType[]) {
   const totalCarts = cartData.length;
@@ -29,7 +30,9 @@ function calculateTotals(cartData: FetchCartType[]) {
 const CartScreen = () => {
   const router = useRouter();
   const animation = useRef(null);
-  const [carts, setCarts] = useState<FetchCartType[]>([]);
+  
+  // ✅ Use Zustand store instead of local state
+  const { allCarts, setAllCarts } = useCartStore();
   const [loading, setLoading] = useState(true);
 
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
@@ -38,7 +41,7 @@ const CartScreen = () => {
   const loadCarts = async () => {
     if (!authToken) {
       console.log("No auth token available");
-      setCarts([]);
+      setAllCarts([]); // ✅ Update store instead of local state
       setLoading(false);
       return;
     }
@@ -46,13 +49,13 @@ const CartScreen = () => {
       setLoading(true);
       const fetchedCarts = await fetchCarts(authToken);
       if (fetchedCarts) {
-        setCarts(fetchedCarts);
+        setAllCarts(fetchedCarts); // ✅ Update store instead of local state
       } else {
-        setCarts([]);
+        setAllCarts([]); // ✅ Update store instead of local state
       }
     } catch (error) {
       console.error("Error fetching carts:", error);
-      setCarts([]);
+      setAllCarts([]); // ✅ Update store instead of local state
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,8 @@ const CartScreen = () => {
     );
   }
 
-  if (!carts || carts.length === 0) {
+  // ✅ Use allCarts from store instead of local carts state
+  if (!allCarts || allCarts.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.animationContainer}>
@@ -105,14 +109,15 @@ const CartScreen = () => {
     );
   }
 
-  const { totalCarts, totalItems } = calculateTotals(carts);
+  // ✅ Use allCarts from store
+  const { totalCarts, totalItems } = calculateTotals(allCarts);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.title}>
         <BackArrow onPress={() => router.back()} />
         <Text style={styles.titleText}>
-          {carts.length > 1 ? "My Carts" : "My Cart"}
+          {allCarts.length > 1 ? "My Carts" : "My Cart"}
         </Text>
       </View>
 
@@ -127,7 +132,7 @@ const CartScreen = () => {
 
       <View style={styles.listWrapper}>
         <FlashList
-          data={[...carts].reverse()}
+          data={[...allCarts].reverse()} // ✅ Use allCarts from store
           renderItem={({ item }) => (
             <CartCard
               id={item._id}
@@ -136,6 +141,7 @@ const CartScreen = () => {
             />
           )}
           estimatedItemSize={83}
+          keyExtractor={(item) => item._id} // ✅ Add key extractor for better performance
         />
       </View>
     </ScrollView>

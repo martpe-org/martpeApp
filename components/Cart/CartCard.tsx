@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,43 +13,32 @@ import useDeliveryStore from "../../state/deliveryAddressStore";
 import useUserDetails from "../../hook/useUserDetails";
 import { getDistance } from "geolib";
 import { FontAwesome } from "@expo/vector-icons";
+import { FetchCartStore, CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 
 interface CartCardProps {
   id: string;
-  store: {
-    id?: string;
-    _id?: string;
-    descriptor?: {
-      name?: string;
-      symbol?: string;
-    };
-    address?: {
-      street?: string;
-    };
-    geoLocation?: {
-      lat?: string | number;
-      lng?: string | number;
-    };
-  };
-  items: any[];
+  store: FetchCartStore;
+  items: CartItemType[];
 }
 
 const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
   const { removeCart } = useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-  const { authToken } = useUserDetails();
+  const { userDetails } = useUserDetails();
+  const authToken = userDetails?.accessToken;
+  
+  const [isRemoving, setIsRemoving] = useState(false);
 
-  const storeId = store?.id || store?._id || "";
-
-  const storeName = store?.descriptor?.name || "Unknown Store";
-  const storeSymbol = store?.descriptor?.symbol;
-  const storeAddress = store?.address?.street;
-  const storeLocation = store?.geoLocation;
+  const storeId = store._id;
+  const storeName = store.name;
+  const storeSymbol = store.symbol;
+  const storeAddress = store.address?.street;
+  const storeLocation = store.gps;
 
   const distance = useMemo(() => {
     if (
       !storeLocation?.lat ||
-      !storeLocation?.lng ||
+      !storeLocation?.lon ||
       !selectedDetails?.lat ||
       !selectedDetails?.lng
     ) {
@@ -61,7 +50,7 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
           getDistance(
             {
               latitude: Number(storeLocation.lat),
-              longitude: Number(storeLocation.lng),
+              longitude: Number(storeLocation.lon),
             },
             {
               latitude: Number(selectedDetails.lat),
@@ -87,6 +76,8 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
   };
 
   const handleCloseButton = () => {
+    if (isRemoving) return; // Prevent multiple calls
+    
     Alert.alert(
       "Remove Cart",
       "Are you sure you want to remove this cart and all its items?",
@@ -96,20 +87,28 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
+            if (isRemoving) return; // Double-check
+            
             try {
               if (!authToken) {
                 Alert.alert("Login Required", "Please login to remove cart.");
                 return;
               }
-            if (storeId) { // <-- id is your cartId from props
-  const success = await removeCart(storeId, authToken);
-  if (!success) {
-    Alert.alert("Error", "Failed to remove cart. Please try again.");
-  }
-}
+              
+              setIsRemoving(true);
+              console.log("Starting cart removal for store:", storeId);
+              
+              const success = await removeCart(storeId, authToken);
+              if (!success) {
+                Alert.alert("Error", "Failed to remove cart. Please try again.");
+              } else {
+                console.log("Cart removal successful");
+              }
             } catch (error) {
               console.error("Error deleting the cart", error);
               Alert.alert("Error", "Failed to remove cart. Please try again.");
+            } finally {
+              setIsRemoving(false);
             }
           },
         },
@@ -164,9 +163,10 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
         </View>
 
         <TouchableOpacity
-          style={styles.closeIcon}
+          style={[styles.closeIcon, isRemoving && { opacity: 0.5 }]}
           onPress={handleCloseButton}
           activeOpacity={0.7}
+          disabled={isRemoving}
         >
           <FontAwesome
             name="trash-o"

@@ -14,34 +14,16 @@ import { router } from "expo-router";
 import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
 import { AntDesign } from "@expo/vector-icons";
 import useUserDetails from "../../hook/useUserDetails";
+import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 
 interface CartItemsProps {
   cartId: string;
-  storeId: string; // must be actual store ID from backend
-  items: any[];
-}
-
-interface CartItem {
-  itemId: string;
-  details?: {
-    descriptor?: {
-      name?: string;
-      symbol?: string;
-    };
-    price?: {
-      value?: number;
-      maximum_value?: number;
-    };
-    quantity?: {
-      maximum?: { count?: number };
-      available?: { count?: number };
-    };
-  };
-  quantity: number;
+  storeId: string;
+  items: CartItemType[];
 }
 
 const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
-  const { removeCartItems, updateItemQuantity, removeCart } = useCartStore();
+  const { removeCartItems, removeCart, updateQty } = useCartStore();
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
 
@@ -52,14 +34,22 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     []
   );
 
-  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
-    if (!authToken || !itemId || newQuantity < 0) return;
+  const handleQuantityChange = async (cartItemId: string, qty: number) => {
+    if (!authToken || !cartItemId || qty < 0) return;
 
-    setIsUpdating(itemId);
+    setIsUpdating(cartItemId);
     try {
-      const success = await updateItemQuantity(itemId, newQuantity, authToken);
+      console.log("Updating item quantity:", cartItemId, "to:", qty);
+
+      const success = await updateQty(cartItemId, qty, authToken);
+
       if (!success) {
-        Alert.alert("Error", "Failed to update item quantity. Please try again.");
+        Alert.alert(
+          "Error",
+          "Failed to update item quantity. Please try again."
+        );
+      } else {
+        console.log("Quantity updated successfully");
       }
     } catch (error) {
       console.error("Error updating item quantity", error);
@@ -69,43 +59,43 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!authToken || !itemId) return;
+  const handleDeleteItem = async (cartItemId: string) => {
+    if (!authToken || !cartItemId) return;
 
-   if (items?.length === 1) {
-  Alert.alert(
-    "Remove Cart",
-    "This is the last item in your cart. Removing it will delete the entire cart. Are you sure?",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            if (!cartId) {
-              Alert.alert("Error", "Missing cart ID for removal.");
-              return;
-            }
-            const success = await removeCart(storeId, authToken);
-            if (!success) {
-              Alert.alert("Error", "Failed to remove cart. Please try again.");
-            }
-          } catch (error) {
-            console.error("Error deleting cart:", error);
-            Alert.alert("Error", "Failed to remove cart. Please try again.");
-          }
-        },
-      },
-    ]
-  );
-}
- else {
-      // Remove only this item
+    if (items?.length === 1) {
+      Alert.alert(
+        "Remove Cart",
+        "This is the last item in your cart. Removing it will delete the entire cart. Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                console.log("Removing entire cart for store:", storeId);
+                const success = await removeCart(storeId, authToken);
+                if (!success) {
+                  Alert.alert("Error", "Failed to remove cart. Please try again.");
+                } else {
+                  console.log("Cart removed successfully");
+                }
+              } catch (error) {
+                console.error("Error deleting cart:", error);
+                Alert.alert("Error", "Failed to remove cart. Please try again.");
+              }
+            },
+          },
+        ]
+      );
+    } else {
       try {
-        const success = await removeCartItems([itemId], authToken);
+        console.log("Removing single item:", cartItemId);
+        const success = await removeCartItems([cartItemId], authToken);
         if (!success) {
           Alert.alert("Error", "Failed to remove item. Please try again.");
+        } else {
+          console.log("Item removed successfully");
         }
       } catch (error) {
         console.error("Error deleting cart item:", error);
@@ -114,22 +104,17 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     }
   };
 
-  const renderCartItem = ({ item }: { item: CartItem }) => {
-    if (!item || !item.details) return null;
+  const renderCartItem = ({ item }: { item: CartItemType }) => {
+    if (!item) return null;
 
-    const { itemId, details, quantity } = item;
-    const descriptor = details.descriptor || {};
-    const price = details.price || {};
-    const quantityInfo = details.quantity || {};
-    const maxInfo = quantityInfo.maximum || {};
-    const availableInfo = quantityInfo.available || {};
-
-    const name = descriptor.name || "Unknown Item";
-    const symbol = descriptor.symbol;
-    const value = price.value || 0;
-    const maximum_value = price.maximum_value || value;
-    const maxCount = maxInfo.count || 999;
-    const availableCount = availableInfo.count || 999;
+    const itemId = item._id; // this is the cartItemId
+    const name = item.product.name || "Unknown Item";
+    const symbol = item.product.symbol;
+    const value = item.unit_price || 0;
+    const maximum_value = item.unit_max_price || value;
+    const quantity = item.qty;
+    const maxCount = item.product.quantity || 999;
+    const availableCount = item.product.instock ? maxCount : 0;
 
     const maxLimit = Math.min(maxCount, availableCount);
     const isItemUpdating = isUpdating === itemId;
@@ -167,19 +152,23 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
               <Text style={styles.quantityText}>x {quantity}</Text>
 
               <Text style={styles.itemTotalCostText}>
-                {formatCurrency(value * quantity)}
+                {formatCurrency(item.total_price)}
               </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.cartItemQuantityContainer}>
+          {/* Decrement button */}
           <TouchableOpacity
             onPress={() => {
               if (isItemUpdating) return;
-              quantity > 1
-                ? handleQuantityChange(itemId, quantity - 1)
-                : handleDeleteItem(itemId);
+
+              if (quantity > 1) {
+                handleQuantityChange(itemId, quantity - 1);
+              } else {
+                handleDeleteItem(itemId);
+              }
             }}
             disabled={isItemUpdating}
             activeOpacity={0.7}
@@ -189,6 +178,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
 
           <Text style={styles.quantity}>{quantity}</Text>
 
+          {/* Increment button */}
           {quantity < maxLimit ? (
             <TouchableOpacity
               onPress={() => {
@@ -215,14 +205,8 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     let totalSavings = 0;
 
     items.forEach((item) => {
-      if (!item?.details?.price) return;
-
-      const value = item.details.price.value || 0;
-      const maximum_value = item.details.price.maximum_value || value;
-      const quantity = item.quantity || 0;
-
-      cost += value * quantity;
-      totalSavings += (maximum_value - value) * quantity;
+      cost += item.total_price;
+      totalSavings += item.total_max_price - item.total_price;
     });
 
     return { totalCost: cost, savings: totalSavings };
@@ -248,9 +232,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
             data={items}
             renderItem={renderCartItem}
             estimatedItemSize={83}
-            keyExtractor={(item) =>
-              item?.itemId?.toString() || Math.random().toString()
-            }
+            keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
           />
         </View>
@@ -278,7 +260,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
           style={styles.addMoreContainer}
           onPress={() => {
             if (storeId) {
-              router.push(`./(tabs)/home/productListing/${storeId}`);
+              router.push(`./home/result/productListing/${storeId}`);
             }
           }}
           activeOpacity={0.7}
@@ -307,6 +289,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     </ScrollView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

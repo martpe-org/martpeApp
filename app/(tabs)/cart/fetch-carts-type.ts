@@ -50,7 +50,6 @@ interface Product {
 interface Price {
   currency: string;
   value: number;
-
   maximum_value?: number;
   offerPercent?: number;
 }
@@ -63,6 +62,8 @@ interface SelectedCustomization {
 
 export interface FetchCartStore {
   _id: string;
+  name: string; // Fixed: Added required name field
+  symbol?: string; // Fixed: Made symbol optional
   address: Address;
   avg_tts_in_h: number;
   context: FetchCartStoreContext;
@@ -71,30 +72,23 @@ export interface FetchCartStore {
   fssai_license_no?: string;
   gps: Gps;
   holidays: any[];
-
   itemsAt: number;
   location_id: string;
   long_desc: string;
   maxRadius: number;
   max_tts_in_h: number;
-  name: string;
   orderTimings?: OrderTiming[];
   provider_id: string;
   provider_status: string;
-
   rating: number;
   short_desc: string;
   slug: string;
   status: string;
-
-  symbol: string;
   type: string;
   vendor_id: string;
   maxStoreItemOfferPercent?: number;
-
   createdAt: string;
   updatedAt: string;
-
   offers: any[];
 }
 
