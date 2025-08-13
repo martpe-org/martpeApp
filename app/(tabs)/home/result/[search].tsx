@@ -41,7 +41,7 @@ import { searchStores } from "../../../search/search-stores";
 import { ProductSearchResult } from "../../../search/search-products-type";
 import { StoreSearchResult } from "../../../search/search-stores-type";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const snapInterval = width * 0.72;
 
 // Types
@@ -126,7 +126,7 @@ const VegSvg = () => (
   </Svg>
 );
 
-const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => (
+const ForwardArrowSvg: FC<{ margin?: number }> = ({ margin = 0 }) => (
   <View style={{ marginLeft: margin }}>
     <Svg width={24} height={24} fill="none">
       <Path
@@ -140,9 +140,8 @@ const ForwardArrowSvg: FC<{ margin: number }> = ({ margin }) => (
   </View>
 );
 
-// Update the ClockSvg component
 const ClockSvg: FC<{ title: number }> = ({ title }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  <View style={{ flexDirection: "row", alignItems: "center" }}>
     <Svg width={56} height={16} fill="none">
       <Path
         fill="url(#a)"
@@ -196,7 +195,6 @@ const Results: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-//  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
   const [filterSelected, setFilterSelected] = useState<FilterState>({
     category: [],
     offers: 0,
@@ -329,7 +327,7 @@ const Results: FC = () => {
     const renderFoodCard = () => (
       <View style={[styles.card, { marginVertical: 10 }]}>
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: "row" }}>
+          <View style={styles.storeInfoContainer}>
             <View style={styles.storeImageContainer}>
               <ImageComp
                 source={{
@@ -342,7 +340,9 @@ const Results: FC = () => {
               />
             </View>
             <View style={styles.storeInfo}>
-              <Text style={styles.providerName}>{store.name}</Text>
+              <Text style={styles.providerName} numberOfLines={2}>
+                {store.name}
+              </Text>
               <View style={styles.storeMetrics}>
                 <View style={styles.ratingContainer}>
                   <Text style={styles.ratingText}>{store.rating || "4.2"}</Text>
@@ -355,7 +355,7 @@ const Results: FC = () => {
                 <CircleSvg />
                 <ClockSvg title={firstProduct.tts_in_h || 1} />
                 <CircleSvg />
-                <Text style={styles.domainName}>
+                <Text style={styles.distanceText}>
                   {firstProduct.distance_in_km.toFixed(1)}km
                 </Text>
               </View>
@@ -367,11 +367,10 @@ const Results: FC = () => {
             </View>
           </View>
           <TouchableOpacity
-            onPress={() =>
-              router.push(`./productListing/${store.slug}`)
-            }
+            style={styles.arrowContainer}
+            onPress={() => router.push(`./productListing/${store.slug}`)}
           >
-            <ForwardArrowSvg margin={70} />
+            <ForwardArrowSvg />
           </TouchableOpacity>
         </View>
 
@@ -382,12 +381,12 @@ const Results: FC = () => {
           snapToInterval={snapInterval}
           decelerationRate="fast"
           style={styles.scrollViewStyle}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
+          contentContainerStyle={styles.scrollViewContent}
         >
           {filteredProducts.map((product, index) => (
             <View key={index} style={styles.productItemFood}>
               <TouchableOpacity style={styles.foodItemContainer}>
-                <View>
+                <View style={styles.foodImageSection}>
                   <View style={styles.productImageContainer}>
                     <ImageComp
                       source={{
@@ -429,8 +428,10 @@ const Results: FC = () => {
                     ) : (
                       <AddToCartButton
                         storeId={product.store_id}
-                        itemId={product.symbol}
+                        slug={product.slug} // ✅ actual product slug
+                        catalogId={product.catalog_id} // ✅ actual catalog ID from backend
                         maxQuantity={product.quantity || 1}
+                        customizable={product.customizable}
                       />
                     )}
                   </View>
@@ -443,8 +444,10 @@ const Results: FC = () => {
                       {product.recommended ? "Best Seller" : ""}
                     </Text>
                   </View>
-                  <Text style={styles.productNameFood}>{product.name}</Text>
-                  <View style={{ flexDirection: "row" }}>
+                  <Text style={styles.productNameFood} numberOfLines={2}>
+                    {product.name}
+                  </Text>
+                  <View style={styles.priceContainer}>
                     <Text style={styles.priceText}>₹{product.price.value}</Text>
                     {product.price.offerPercent && (
                       <>
@@ -505,7 +508,7 @@ const Results: FC = () => {
     const renderGroceryCard = () => (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: "row" }}>
+          <View style={styles.storeInfoContainer}>
             <View style={styles.storeImageContainer}>
               <ImageComp
                 source={{
@@ -517,15 +520,14 @@ const Results: FC = () => {
                 resizeMode="cover"
               />
             </View>
-            <View style={{ marginLeft: 10 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <Text style={styles.providerName}>{store.name}</Text>
-                <View style={{ alignItems: "center", flexDirection: "row" }}>
-                  <CircleSvg />
-                  <ClockSvg title={firstProduct.tts_in_h || 1} />
-                  <CircleSvg />
-                </View>
-                <Text style={styles.domainName}>
+            <View style={styles.storeInfo}>
+              <Text style={styles.providerName} numberOfLines={2}>
+                {store.name}
+              </Text>
+              <View style={styles.storeMetrics}>
+                <ClockSvg title={firstProduct.tts_in_h || 1} />
+                <CircleSvg />
+                <Text style={styles.distanceText}>
                   {firstProduct.distance_in_km.toFixed(1)}km
                 </Text>
               </View>
@@ -537,11 +539,10 @@ const Results: FC = () => {
             </View>
           </View>
           <TouchableOpacity
-            onPress={() =>
-              router.push(`./productListing/${store.slug}`)
-            }
+            style={styles.arrowContainer}
+            onPress={() => router.push(`./productListing/${store.slug}`)}
           >
-            <ForwardArrowSvg margin={30} />
+            <ForwardArrowSvg />
           </TouchableOpacity>
         </View>
 
@@ -552,12 +553,11 @@ const Results: FC = () => {
           snapToInterval={snapInterval}
           decelerationRate="fast"
           style={styles.scrollViewStyle}
+          contentContainerStyle={styles.scrollViewContent}
         >
           {products.map((product, index) => (
             <TouchableOpacity
-              onPress={() =>
-                router.push(`./productDetails/${product.slug}`)
-              }
+              onPress={() => router.push(`./productDetails/${product.slug}`)}
               key={index}
               style={styles.productItem}
             >
@@ -575,11 +575,16 @@ const Results: FC = () => {
               <View style={styles.addButtonContainer}>
                 <AddToCartButton
                   storeId={product.store_id}
-                  itemId={product.symbol}
+                  slug={product.slug} // ✅ actual product slug
+                  catalogId={product.catalog_id} // ✅ actual catalog ID from backend
+                  maxQuantity={product.quantity || 1}
+                  customizable={product.customizable}
                 />
               </View>
               <View style={styles.groceryProductDetails}>
-                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productName} numberOfLines={2}>
+                  {product.name}
+                </Text>
                 <View style={styles.unitContainer}>
                   <Text style={styles.unitText}>
                     {product.unitized?.measure?.value}
@@ -588,7 +593,7 @@ const Results: FC = () => {
                     {product.unitized?.measure?.unit}
                   </Text>
                 </View>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.priceContainer}>
                   <Text style={styles.priceText}>₹{product.price.value}</Text>
                   {product.price.offerPercent && (
                     <>
@@ -611,7 +616,7 @@ const Results: FC = () => {
     const renderOtherDomainsCard = () => (
       <View style={[styles.card, { marginTop: 10 }]}>
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: "row" }}>
+          <View style={styles.storeInfoContainer}>
             <View style={styles.storeImageContainer}>
               <ImageComp
                 source={{
@@ -623,13 +628,14 @@ const Results: FC = () => {
                 resizeMode="cover"
               />
             </View>
-            <View style={{ marginHorizontal: 10 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={styles.providerName}>{store.name}</Text>
-                <CircleSvg />
+            <View style={styles.storeInfo}>
+              <Text style={styles.providerName} numberOfLines={2}>
+                {store.name}
+              </Text>
+              <View style={styles.storeMetrics}>
                 <ClockSvg title={firstProduct.tts_in_h || 1} />
                 <CircleSvg />
-                <Text style={styles.domainName}>
+                <Text style={styles.distanceText}>
                   {firstProduct.distance_in_km.toFixed(1)}km
                 </Text>
               </View>
@@ -641,11 +647,10 @@ const Results: FC = () => {
             </View>
           </View>
           <TouchableOpacity
-            onPress={() =>
-              router.push(`./productListing/${store.slug}`)
-            }
+            style={styles.arrowContainer}
+            onPress={() => router.push(`./productListing/${store.slug}`)}
           >
-            <ForwardArrowSvg margin={30} />
+            <ForwardArrowSvg />
           </TouchableOpacity>
         </View>
 
@@ -656,12 +661,11 @@ const Results: FC = () => {
           snapToInterval={snapInterval}
           decelerationRate="fast"
           style={styles.scrollViewStyle}
+          contentContainerStyle={styles.scrollViewContent}
         >
           {products.map((product, index) => (
             <TouchableOpacity
-              onPress={() =>
-                router.push(`./productDetails/${product.slug}`)
-              }
+              onPress={() => router.push(`./productDetails/${product.slug}`)}
               key={index}
               style={styles.productItem}
             >
@@ -677,8 +681,10 @@ const Results: FC = () => {
                 />
               </View>
               <View style={styles.otherDomainProductDetails}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <View style={{ flexDirection: "row" }}>
+                <Text style={styles.productName} numberOfLines={2}>
+                  {product.name}
+                </Text>
+                <View style={styles.priceContainer}>
                   {product.price.maximum_value &&
                     product.price.maximum_value > product.price.value && (
                       <Text style={styles.originalPriceText}>
@@ -715,9 +721,7 @@ const Results: FC = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: "red", textAlign: "center", margin: 20 }}>
-          {error}
-        </Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -727,11 +731,12 @@ const Results: FC = () => {
       {/* Header */}
       <View style={styles.headerContainer}>
         <View style={styles.headerRow}>
-          <Feather
-            name="arrow-left"
-            style={styles.headerLeftIcon}
+          <TouchableOpacity
             onPress={() => router.back()}
-          />
+            style={styles.backButton}
+          >
+            <Feather name="arrow-left" size={25} color={Colors.BLACK_COLOR} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Anything you want</Text>
         </View>
 
@@ -792,7 +797,7 @@ const Results: FC = () => {
       </View>
 
       {isItem ? (
-        <View>
+        <View style={styles.itemsContainer}>
           {/* Filters */}
           <View style={styles.filtersContainer}>
             <ScrollView style={styles.filtersScrollView} horizontal>
@@ -938,7 +943,7 @@ const Results: FC = () => {
           </View>
         </View>
       ) : (
-        <View>
+        <View style={styles.outletsContainer}>
           <View style={styles.cardContainer}>
             <Text
               style={[
@@ -970,7 +975,7 @@ const Results: FC = () => {
                 key={index}
                 style={styles.storeCard}
               >
-                <View>
+                <View style={styles.storeCardImageContainer}>
                   <ImageComp
                     source={{
                       uri:
@@ -982,7 +987,9 @@ const Results: FC = () => {
                   />
                 </View>
                 <View style={styles.storeCardDetails}>
-                  <Text style={styles.storeCardName}>{store.name}</Text>
+                  <Text style={styles.storeCardName} numberOfLines={2}>
+                    {store.name}
+                  </Text>
                   <View style={styles.storeCardMetrics}>
                     <View style={styles.storeCardRating}>
                       <MaterialCommunityIcons
@@ -1002,8 +1009,8 @@ const Results: FC = () => {
                     </View>
                   </View>
 
-                  <View style={{ flexDirection: "column" }}>
-                    <Text style={styles.storeCardAddress}>
+                  <View style={styles.storeCardAddressContainer}>
+                    <Text style={styles.storeCardAddress} numberOfLines={2}>
                       <MaterialCommunityIcons name="map-marker" />
                       {store.address.street ? `${store.address.street}, ` : ""}
                       {store.address.city}
@@ -1077,28 +1084,26 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.WHITE_COLOR,
     flex: 1,
-    marginBottom: 20,
   },
   headerContainer: {
     flexDirection: "column",
     paddingVertical: 10,
     backgroundColor: Colors.WHITE_COLOR,
-    marginTop: 20,
+    paddingTop: 40,
   },
   headerRow: {
     alignItems: "center",
     flexDirection: "row",
-    marginHorizontal: Dimensions.get("screen").width * 0.03,
+    marginHorizontal: width * 0.03,
   },
-  headerLeftIcon: {
-    color: Colors.BLACK_COLOR,
+  backButton: {
+    padding: 5,
     marginRight: 15,
-    fontSize: 25,
   },
   headerTitle: {
     color: Colors.BLACK_COLOR,
-    textAlign: "center",
     fontSize: 16,
+    flex: 1,
   },
   searchContainer: {
     backgroundColor: Colors.WHITE_COLOR,
@@ -1108,37 +1113,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 13,
     marginTop: 10,
-    marginHorizontal: Dimensions.get("screen").width * 0.03,
+    marginHorizontal: width * 0.03,
   },
   searchInput: {
     height: 50,
-    borderColor: "white",
-    borderWidth: 2,
-    borderRadius: 10,
-    width: width * 0.6,
-    paddingHorizontal: 20,
-    paddingLeft: 10,
-    color: "#8E8A8A",
-    textAlign: "left",
     flex: 1,
+    paddingHorizontal: 15,
+    color: "#8E8A8A",
   },
   searchIcon: {
-    paddingRight: 20,
+    paddingHorizontal: 15,
   },
   tabContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 10,
   },
   active: {
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingVertical: 10,
     width: "50%",
     borderBottomWidth: 2,
     borderBottomColor: "#77e68f",
     backgroundColor: "#ffff",
   },
   inactive: {
-    paddingTop: 10,
+    paddingVertical: 10,
     width: "50%",
     borderBottomWidth: 2,
     borderBottomColor: "gray",
@@ -1152,31 +1151,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "black",
   },
+  itemsContainer: {
+    flex: 1,
+  },
+  outletsContainer: {
+    flex: 1,
+  },
   filtersContainer: {
-    flexDirection: "row",
-    marginHorizontal: 10,
-    marginTop: 10,
+    marginHorizontal: width * 0.03,
+    marginVertical: 10,
   },
   filtersScrollView: {
     flexDirection: "row",
-    marginVertical: Dimensions.get("screen").width * 0.01,
-    position: "relative",
-    marginHorizontal: Dimensions.get("screen").width * 0.02,
   },
   filterButton: {
     borderWidth: 1,
     backgroundColor: "white",
     borderRadius: 100,
-    paddingHorizontal: Dimensions.get("screen").width * 0.03,
-    paddingVertical: Dimensions.get("screen").width * 0.015,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: Dimensions.get("screen").width * 0.01,
+    marginRight: 10,
     flexDirection: "row",
   },
   filterButtonText: {
     color: "black",
     fontWeight: "600",
+    fontSize: 12,
   },
   filterClearButton: {
     marginLeft: 5,
@@ -1186,21 +1188,22 @@ const styles = StyleSheet.create({
     borderColor: "#F13A3A",
     backgroundColor: "white",
     borderRadius: 100,
-    paddingHorizontal: Dimensions.get("screen").width * 0.03,
-    paddingVertical: Dimensions.get("screen").width * 0.01,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: Dimensions.get("screen").width * 0.03,
   },
   resetButtonText: {
     color: "#F13A3A",
+    fontWeight: "600",
+    fontSize: 12,
   },
   resultsContainer: {
-    paddingBottom: Dimensions.get("screen").height * 0.17,
+    flex: 1,
   },
   content: {
     backgroundColor: Colors.WHITE_COLOR,
-    paddingBottom: Dimensions.get("screen").width * 0.25,
+    paddingBottom: 100,
   },
   cardContainer: {
     flexDirection: "row",
@@ -1210,9 +1213,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: Colors.GREY_COLOR,
     paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    margin: 20,
+    fontSize: 16,
   },
   card: {
-    flex: 1,
     backgroundColor: Colors.WHITE_COLOR,
     shadowColor: "#002751",
     shadowOffset: { width: 0, height: 0 },
@@ -1226,29 +1235,34 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 10,
-    marginHorizontal: Dimensions.get("window").width * 0.03,
+    marginHorizontal: width * 0.03,
+  },
+  storeInfoContainer: {
+    flexDirection: "row",
+    flex: 1,
+    alignItems: "flex-start",
   },
   storeImageContainer: {
     backgroundColor: "white",
-    marginRight: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.43,
     shadowRadius: 9.51,
-    height: Dimensions.get("screen").width * 0.15,
-    width: Dimensions.get("screen").width * 0.15,
+    height: width * 0.15,
+    width: width * 0.15,
     elevation: 2,
     borderRadius: 4,
   },
   storeImage: {
-    aspectRatio: 1,
-    height: Dimensions.get("screen").width * 0.15,
-    width: Dimensions.get("screen").width * 0.15,
+    height: width * 0.15,
+    width: width * 0.15,
     borderRadius: 4,
   },
   storeInfo: {
     marginLeft: 10,
+    flex: 1,
     flexDirection: "column",
     alignItems: "flex-start",
   },
@@ -1256,15 +1270,16 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 14,
     fontWeight: "500",
-    maxWidth: Dimensions.get("window").width * 0.3,
+    flexWrap: "wrap",
   },
   storeMetrics: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    marginTop: 4,
   },
   ratingContainer: {
     flexDirection: "row",
-    marginTop: 4,
     alignItems: "center",
   },
   ratingText: {
@@ -1273,7 +1288,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginRight: 2,
   },
-  domainName: {
+  distanceText: {
     color: "black",
     fontSize: 13,
   },
@@ -1281,6 +1296,12 @@ const styles = StyleSheet.create({
     color: "#00BC66",
     fontSize: 13,
     fontWeight: "500",
+    marginTop: 2,
+  },
+  arrowContainer: {
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollViewStyle: {
     shadowColor: "#000",
@@ -1289,11 +1310,14 @@ const styles = StyleSheet.create({
     shadowRadius: 6.68,
     elevation: 11,
   },
+  scrollViewContent: {
+    paddingHorizontal: 10,
+  },
   productItemFood: {
     width: width * 0.7,
     borderColor: "#ACAAAA",
     borderWidth: 1,
-    marginLeft: Dimensions.get("window").width * 0.03,
+    marginRight: 15,
     borderRadius: 10,
     flexDirection: "column",
     alignItems: "center",
@@ -1303,6 +1327,10 @@ const styles = StyleSheet.create({
   foodItemContainer: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    width: "100%",
+  },
+  foodImageSection: {
     alignItems: "center",
   },
   productImageContainer: {
@@ -1351,27 +1379,34 @@ const styles = StyleSheet.create({
   },
   productDetails: {
     flex: 1,
+    padding: 10,
   },
   vegIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: 5,
   },
   bestSellerText: {
     color: "#1DA578",
-    marginHorizontal: 10,
+    marginLeft: 10,
+    fontSize: 12,
   },
   productNameFood: {
     color: "black",
     fontSize: 14,
-    textAlign: "left",
-    width: width * 0.3,
-    marginRight: 10,
     fontWeight: "500",
+    marginVertical: 5,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginVertical: 3,
   },
   priceText: {
     color: "black",
     fontSize: 13,
+    fontWeight: "600",
   },
   originalPriceText: {
     textDecorationLine: "line-through",
@@ -1390,6 +1425,7 @@ const styles = StyleSheet.create({
     width: 70,
     marginVertical: 10,
     paddingVertical: 2,
+    alignSelf: "flex-start",
   },
   moreInfoText: {
     fontSize: 12,
@@ -1399,14 +1435,14 @@ const styles = StyleSheet.create({
   },
   productRating: {
     flexDirection: "row",
-    marginBottom: 8,
+    alignItems: "center",
+    marginTop: 5,
   },
   productItem: {
     width: width * 0.42,
     borderColor: "#ACAAAA",
     borderWidth: 1,
-    marginLeft: Dimensions.get("window").width * 0.02,
-    marginRight: Dimensions.get("window").width * 0.02,
+    marginRight: 15,
     borderRadius: 10,
     flexDirection: "column",
     alignItems: "center",
@@ -1416,13 +1452,13 @@ const styles = StyleSheet.create({
   groceryImageContainer: {
     borderRadius: 10,
     marginVertical: 10,
-    height: Dimensions.get("screen").width * 0.25,
-    width: Dimensions.get("screen").width * 0.35,
+    height: width * 0.25,
+    width: width * 0.35,
   },
   groceryImage: {
-    height: Dimensions.get("screen").width * 0.3,
+    height: width * 0.25,
+    width: width * 0.35,
     borderRadius: 10,
-    width: Dimensions.get("screen").width * 0.35,
     borderColor: "#ACAAAA",
     borderWidth: 1,
   },
@@ -1432,23 +1468,27 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
   groceryProductDetails: {
-    marginVertical: width * 0.03,
-    width: Dimensions.get("screen").width * 0.35,
+    marginVertical: 10,
+    width: width * 0.35,
+    paddingHorizontal: 10,
   },
   productName: {
     color: "black",
     fontSize: 14,
     textAlign: "left",
     fontWeight: "500",
+    marginBottom: 5,
   },
   unitContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "flex-start",
+    marginBottom: 5,
   },
   unitText: {
     color: "#B8B4B4",
-    marginLeft: 2,
+    fontSize: 12,
+    marginRight: 2,
   },
   otherDomainImageContainer: {
     borderTopEndRadius: 10,
@@ -1466,62 +1506,69 @@ const styles = StyleSheet.create({
   },
   otherDomainProductDetails: {
     marginVertical: 10,
-    marginHorizontal: width * 0.03,
+    marginHorizontal: 15,
   },
   offerPercentBold: {
     color: "#00BC66",
     fontWeight: "600",
+    fontSize: 12,
   },
   storeCard: {
     flexDirection: "row",
-    marginHorizontal: Dimensions.get("screen").width * 0.04,
-    marginTop: Dimensions.get("screen").width * 0.05,
-    justifyContent: "flex-start",
-    paddingHorizontal: Dimensions.get("screen").width * 0.03,
-    paddingVertical: Dimensions.get("screen").width * 0.03,
+    marginHorizontal: width * 0.04,
+    marginTop: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
     borderRadius: 12,
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#F5F7F8",
   },
+  storeCardImageContainer: {
+    marginRight: 15,
+  },
   storeCardImage: {
-    aspectRatio: 1,
     height: 60,
-    borderRadius: 100,
+    width: 60,
+    borderRadius: 30,
   },
   storeCardDetails: {
-    marginHorizontal: Dimensions.get("screen").width * 0.03,
+    flex: 1,
   },
   storeCardName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#3D3B40",
+    marginBottom: 5,
   },
   storeCardMetrics: {
     flexDirection: "row",
-    marginVertical: 4,
+    marginBottom: 8,
   },
   storeCardRating: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 20,
   },
   storeCardRatingText: {
     fontSize: 14,
     fontWeight: "400",
+    marginLeft: 5,
+    marginRight: 10,
   },
   storeCardOffer: {
     color: "#00BC66",
     fontSize: 14,
     fontWeight: "500",
-    marginHorizontal: 10,
+  },
+  storeCardAddressContainer: {
+    flexDirection: "column",
   },
   storeCardAddress: {
     color: "#3D3B40",
     fontWeight: "500",
     fontSize: 13,
+    marginBottom: 4,
   },
   storeCardDelivery: {
-    marginVertical: 4,
     color: "#73777B",
     fontSize: 13,
   },

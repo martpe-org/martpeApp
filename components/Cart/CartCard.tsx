@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,56 +10,106 @@ import {
 import CartItems from "./CartItems";
 import { useCartStore } from "../../state/useCartStore";
 import useDeliveryStore from "../../state/deliveryAddressStore";
+import useUserDetails from "../../hook/useUserDetails";
 import { getDistance } from "geolib";
 import { FontAwesome } from "@expo/vector-icons";
 
-const CartCard = ({ id, store, items }) => {
-  const { clearCart } = useCartStore();
-  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
+interface CartCardProps {
+  id: string;
+  store: {
+    id?: string;
+    _id?: string;
+    descriptor?: {
+      name?: string;
+      symbol?: string;
+    };
+    address?: {
+      street?: string;
+    };
+    geoLocation?: {
+      lat?: string | number;
+      lng?: string | number;
+    };
+  };
+  items: any[];
+}
 
-  // Safe store access with fallbacks
+const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
+  const { removeCart } = useCartStore();
+  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
+  const { authToken } = useUserDetails();
+
+  const storeId = store?.id || store?._id || "";
+
   const storeName = store?.descriptor?.name || "Unknown Store";
   const storeSymbol = store?.descriptor?.symbol;
   const storeAddress = store?.address?.street;
   const storeLocation = store?.geoLocation;
 
-  // Safe distance calculation
-  const distance = storeLocation?.lat && storeLocation?.lng && 
-                   selectedDetails?.lat && selectedDetails?.lng
-    ? Number(
+  const distance = useMemo(() => {
+    if (
+      !storeLocation?.lat ||
+      !storeLocation?.lng ||
+      !selectedDetails?.lat ||
+      !selectedDetails?.lng
+    ) {
+      return null;
+    }
+    try {
+      return Number(
         (
           getDistance(
             {
               latitude: Number(storeLocation.lat),
               longitude: Number(storeLocation.lng),
             },
-            { 
-              latitude: Number(selectedDetails.lat), 
-              longitude: Number(selectedDetails.lng) 
+            {
+              latitude: Number(selectedDetails.lat),
+              longitude: Number(selectedDetails.lng),
             }
           ) / 1000
         ).toFixed(1)
-      )
-    : null;
+      );
+    } catch (error) {
+      console.error("Error calculating distance:", error);
+      return null;
+    }
+  }, [storeLocation, selectedDetails]);
+
+  const calculateDeliveryTime = (distanceKm: number) => {
+    const timeInHours = distanceKm / 35;
+    const roundedTime =
+      timeInHours.toFixed(0) === "0"
+        ? (timeInHours * 60).toFixed(0)
+        : timeInHours.toFixed(0);
+    const unit = timeInHours.toFixed(0) === "0" ? "min" : "hr";
+    return `${roundedTime} ${unit}`;
+  };
 
   const handleCloseButton = () => {
     Alert.alert(
       "Remove Cart",
       "Are you sure you want to remove this cart and all its items?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
+          style: "destructive",
           onPress: async () => {
             try {
-              if (store?.id) {
-                await clearCart(store.id);
+              if (!authToken) {
+                Alert.alert("Login Required", "Please login to remove cart.");
+                return;
               }
+            if (storeId) { // <-- id is your cartId from props
+  const success = await removeCart(storeId, authToken);
+  if (!success) {
+    Alert.alert("Error", "Failed to remove cart. Please try again.");
+  }
+}
             } catch (error) {
-              console.error("Error deleting the cart", error.message);
+              console.error("Error deleting the cart", error);
+              Alert.alert("Error", "Failed to remove cart. Please try again.");
             }
           },
         },
@@ -66,67 +117,68 @@ const CartCard = ({ id, store, items }) => {
     );
   };
 
-  // Early return if critical data is missing
   if (!store || !items || items.length === 0) {
-    return null;
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      {/* Seller Info Container */}
+      {/* Store Header */}
       <View style={styles.sellerInfoContainer}>
         {storeSymbol ? (
           <Image
             source={{ uri: storeSymbol }}
             style={styles.sellerLogo}
+            onError={() => console.warn("Failed to load store symbol")}
           />
         ) : (
-          <View style={[styles.sellerLogo, { backgroundColor: '#e9ecef' }]} />
+          <View style={[styles.sellerLogo, styles.placeholderLogo]} />
         )}
 
         <View style={styles.sellerInfo}>
-          <Text style={styles.sellerName}>{storeName}</Text>
-          
+          <Text style={styles.sellerName} numberOfLines={2}>
+            {storeName}
+          </Text>
+
           {storeAddress && (
-            <Text style={styles.sellerLocation}>{storeAddress}</Text>
+            <Text style={styles.sellerLocation} numberOfLines={1}>
+              {storeAddress}
+            </Text>
           )}
 
           {distance !== null && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.distanceContainer}>
               <View style={styles.time}>
-                <Text style={{ fontSize: 12 }}>{distance} Km</Text>
-                <Text style={{ color: "#848080", fontSize: 12 }}>{" \u25CF"}</Text>
-                <Text style={{ fontSize: 12, color: "green" }}>
-                  {((distance / 35).toFixed(0) === "0"
-                    ? (distance / 35) * 60
-                    : distance / 35
-                  ).toFixed(0)}{" "}
-                  {(distance / 35).toFixed(0) === "0" ? "min" : "hr"}
+                <Text style={styles.distanceText}>{distance} Km</Text>
+                <Text style={styles.separator}> • </Text>
+                <Text style={styles.timeText}>
+                  {calculateDeliveryTime(distance)}
                 </Text>
               </View>
             </View>
           )}
         </View>
 
-        <TouchableOpacity style={styles.closeIcon} onPress={handleCloseButton}>
+        <TouchableOpacity
+          style={styles.closeIcon}
+          onPress={handleCloseButton}
+          activeOpacity={0.7}
+        >
           <FontAwesome
             name="trash-o"
             size={20}
             color="red"
-            style={{
-              padding: 5,
-              paddingLeft: 7,
-              borderWidth: 1,
-              borderColor: "#e9ecef",
-              borderRadius: 5,
-              alignSelf: "center",
-            }}
+            style={styles.trashIconStyle}
           />
         </TouchableOpacity>
       </View>
 
       {/* Cart Items */}
-      <CartItems cartID={id} storeId={store?.id} items={items} />
+      <CartItems cartId={id} storeId={storeId} items={items} />
     </View>
   );
 };
@@ -139,10 +191,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginHorizontal: 15,
     marginVertical: 10,
-    shadowColor: "rgba(0,0,0,0.5)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
     elevation: 2,
     flex: 1,
     position: "relative",
+  },
+  emptyContainer: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 20,
+    marginHorizontal: 15,
+    marginVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
   },
   sellerInfoContainer: {
     marginBottom: 10,
@@ -158,80 +227,59 @@ const styles = StyleSheet.create({
   sellerLogo: {
     width: 60,
     height: 60,
-    // borderRadius: 8,
     marginRight: 16,
-    objectFit: "contain",
     borderColor: "#e9ecef",
     borderWidth: 1,
     borderRadius: 10,
   },
+  placeholderLogo: {
+    backgroundColor: "#e9ecef",
+  },
   sellerName: {
     fontSize: 18,
-    // marginBottom: 1,
     maxWidth: 200,
     fontWeight: "bold",
+    color: "#333",
+    marginBottom: 4,
   },
   sellerLocation: {
     color: "#767582",
-    // marginBottom: 1,
+    fontSize: 14,
+    marginBottom: 4,
   },
-  locationText: {
-    fontSize: 12,
-    color: "#979393",
+  distanceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   time: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 3,
+  },
+  distanceText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  separator: {
+    color: "#848080",
+    fontSize: 12,
+  },
+  timeText: {
+    fontSize: 12,
+    color: "green",
   },
   closeIcon: {
-    // position: "absolute",
-    // padding: 5,
-    // top: 0,
-    // right: 0,
     alignItems: "center",
     justifyContent: "center",
+    padding: 4,
   },
-  buttons: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 10,
-    marginVertical: 5,
-  },
-  checkoutButton: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 10,
-    paddingHorizontal: 15,
-    backgroundColor: "#FF0000",
-    borderRadius: 10,
+  trashIconStyle: {
+    padding: 5,
+    paddingLeft: 7,
     borderWidth: 1,
-    borderColor: "#FF0000",
-  },
-  checkoutButtonText: {
-    fontWeight: "600",
-    fontSize: 15,
-    color: "#FFFFFF",
-  },
-  addItemsButton: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 10,
-    paddingHorizontal: 15,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#FF0000",
-  },
-  addItemsButtonText: {
-    fontWeight: "500",
-    fontSize: 14,
-    color: "#FF0000",
+    borderColor: "#e9ecef",
+    borderRadius: 5,
+    alignSelf: "center",
   },
 });
 

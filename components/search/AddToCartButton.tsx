@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState } from "react";
 import {
   View,
   Text,
@@ -7,65 +7,117 @@ import {
   ActivityIndicator,
 } from "react-native";
 import DynamicButton from "../common/DynamicButton";
-import { addToCartAction } from "../../state/addToCart";
-import { removeCartAction } from "../../state/removeCart";
-import { updateCartItemQtyAction } from "../../state/updateQty";
 import useUserDetails from "../../hook/useUserDetails";
-
-interface AddToCartButtonProps {
-  storeId: string;
-  itemId: string;
-  maxQuantity?: number;
-}
+import { useToast } from "react-native-toast-notifications";
+import { useCartStore } from "../../state/useCartStore";
 
 const { width } = Dimensions.get("window");
 
+interface AddToCartButtonProps {
+  storeId: string;       // backend store _id
+  slug: string;          // product slug
+  catalogId: string;     // backend catalog _id
+  cartItemId?: string;   // for existing cart item
+  maxQuantity?: number;
+  initialQty?: number;
+  customizable?: boolean;
+  customizations?: {
+    groupId?: string;
+    optionId?: string;
+    name: string;
+  }[];
+}
+
 const AddToCartButton: FC<AddToCartButtonProps> = ({
   storeId,
-  itemId,
+  slug,
+  catalogId,
+  cartItemId,
   maxQuantity = 10,
+  initialQty = 0,
+  customizable = false,
+  customizations = [],
 }) => {
-  const [itemCount, setItemCount] = useState<number>(0);
+  const [itemCount, setItemCount] = useState(initialQty);
   const [loading, setLoading] = useState(false);
-  const { authToken } = useUserDetails();
+  const toast = useToast();
+
+  const { authToken, isAuthenticated } = useUserDetails();
+  const { addItem, updateItemQuantity, removeCartItems, removeCart } = useCartStore();
 
   const increment = async () => {
-    if (itemCount >= maxQuantity || !authToken) return;
+    if (itemCount >= maxQuantity) return;
+    if (!isAuthenticated || !authToken) {
+      toast.show("Please login to continue", { type: "danger" });
+      return;
+    }
     setLoading(true);
     try {
       if (itemCount === 0) {
-        const result = await addToCartAction(
-          {
-            store_id: storeId,
-            slug: itemId,
-            catalog_id: itemId,
-            qty: 1,
-            customizable: false,
-          },
-          // authToken
+        // log payload to debug IDs
+        console.log("Add to cart payload", {
+          store_id: storeId,
+          slug,
+          catalog_id: catalogId,
+          qty: 1,
+          customizable,
+          customizations,
+        });
+
+        const success = await addItem(
+          storeId,
+          slug,
+          catalogId,
+          1,
+          customizable,
+          customizations,
+          authToken
         );
-        if (result.success) setItemCount(1);
+
+        if (success) {
+          setItemCount(1);
+          toast.show("Added to cart", { type: "success" });
+        } else {
+          toast.show("Failed to add to cart", { type: "danger" });
+        }
       } else {
-        const result = await updateCartItemQtyAction(itemId, itemCount + 1);
-        if (result.success) setItemCount((prev) => prev + 1);
+        if (!cartItemId) {
+          toast.show("Missing cart item ID", { type: "danger" });
+          return;
+        }
+        const success = await updateItemQuantity(cartItemId, itemCount + 1, authToken);
+        if (success) setItemCount((prev) => prev + 1);
       }
     } catch (err) {
-      console.log("Increment failed", err);
+      console.error("Increment failed", err);
     } finally {
       setLoading(false);
     }
   };
 
   const decrement = async () => {
-    if (itemCount <= 0 || !authToken) return;
+    if (itemCount <= 0) return;
+    if (!isAuthenticated || !authToken) {
+      toast.show("Please login to continue", { type: "danger" });
+      return;
+    }
     setLoading(true);
     try {
       if (itemCount === 1) {
-        const result = await removeCartAction(storeId);
-        if (result.success) setItemCount(0);
+        if (cartItemId) {
+          const success = await removeCartItems([cartItemId], authToken);
+          if (success) setItemCount(0);
+        } else {
+          const success = await removeCart(storeId, authToken);
+          if (success) setItemCount(0);
+        }
       } else {
-        const result = await updateCartItemQtyAction(itemId, itemCount - 1);
-        if (result.success) setItemCount((prev) => prev - 1);
+        if (!cartItemId) {
+          toast.show("Missing cart item ID", { type: "danger" });
+          return;
+        }
+        const success = await updateItemQuantity(cartItemId, itemCount - 1, authToken);
+        if (success) setItemCount((prev) => prev - 1);
       }
     } catch (err) {
       console.log("Decrement failed", err);
@@ -82,10 +134,12 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
     <View>
       {itemCount === 0 ? (
         <DynamicButton
-          onPress={increment}
-          isNewItem={true}
+          isNewItem
           storeId={storeId}
-          slug={itemId}
+          slug={slug}
+          catalogId={catalogId}
+          customizable={customizable}
+          customizations={customizations}
         >
           <View style={styles.addButton}>
             <Text style={styles.buttonText}>ADD</Text>
@@ -93,7 +147,12 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
         </DynamicButton>
       ) : (
         <View style={styles.addButtonNext}>
-          <DynamicButton onPress={decrement} storeId={storeId} slug={itemId}>
+          <DynamicButton
+            isUpdated
+            storeId={storeId}
+            cartItemId={cartItemId}
+            quantity={itemCount - 1}
+          >
             <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>-</Text>
             </View>
@@ -101,7 +160,12 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
 
           <Text style={styles.itemCount}>{itemCount}</Text>
 
-          <DynamicButton onPress={increment} storeId={storeId} slug={itemId}>
+          <DynamicButton
+            isUpdated
+            storeId={storeId}
+            cartItemId={cartItemId}
+            quantity={itemCount + 1}
+          >
             <View style={styles.itemCountChangeButton}>
               <Text style={styles.incrementDecrementButtonText}>+</Text>
             </View>

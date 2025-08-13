@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,108 +13,161 @@ import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
 import { AntDesign } from "@expo/vector-icons";
-import { useState } from "react";
+import useUserDetails from "../../hook/useUserDetails";
 
-const CartItems = ({ cartID, storeId, items }) => {
-  const { removeItem, updateItem } = useCartStore();
-  const [savings, setSavings] = useState(0);
+interface CartItemsProps {
+  cartId: string;
+  storeId: string; // must be actual store ID from backend
+  items: any[];
+}
 
-  const handleQuantityChange = async (itemId, newQuantity) => {
+interface CartItem {
+  itemId: string;
+  details?: {
+    descriptor?: {
+      name?: string;
+      symbol?: string;
+    };
+    price?: {
+      value?: number;
+      maximum_value?: number;
+    };
+    quantity?: {
+      maximum?: { count?: number };
+      available?: { count?: number };
+    };
+  };
+  quantity: number;
+}
+
+const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
+  const { removeCartItems, updateItemQuantity, removeCart } = useCartStore();
+  const { userDetails } = useUserDetails();
+  const authToken = userDetails?.accessToken;
+
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  const formatCurrency = useCallback(
+    (amount: number) => `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`,
+    []
+  );
+
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
+    if (!authToken || !itemId || newQuantity < 0) return;
+
+    setIsUpdating(itemId);
     try {
-      if (!storeId || !itemId) return;
-      console.log("Updating quantity:", itemId, newQuantity);
-      await updateItem(storeId, itemId, newQuantity);
+      const success = await updateItemQuantity(itemId, newQuantity, authToken);
+      if (!success) {
+        Alert.alert("Error", "Failed to update item quantity. Please try again.");
+      }
     } catch (error) {
-      console.error("Error updating the item quantity", error.message);
+      console.error("Error updating item quantity", error);
+      Alert.alert("Error", "Failed to update item quantity. Please try again.");
+    } finally {
+      setIsUpdating(null);
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
-    if (!storeId || !itemId) return;
+  const handleDeleteItem = async (itemId: string) => {
+    if (!authToken || !itemId) return;
 
-    if (items?.length === 1) {
-      Alert.alert("Remove Cart", "Are you sure you want to remove this cart?", [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Remove",
-          onPress: async () => {
-            try {
-              await removeItem(storeId, itemId);
-            } catch (error) {
-              console.error("Error deleting cart item:", error.message);
+   if (items?.length === 1) {
+  Alert.alert(
+    "Remove Cart",
+    "This is the last item in your cart. Removing it will delete the entire cart. Are you sure?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (!cartId) {
+              Alert.alert("Error", "Missing cart ID for removal.");
+              return;
             }
-          },
+            const success = await removeCart(storeId, authToken);
+            if (!success) {
+              Alert.alert("Error", "Failed to remove cart. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error deleting cart:", error);
+            Alert.alert("Error", "Failed to remove cart. Please try again.");
+          }
         },
-      ]);
-    } else {
+      },
+    ]
+  );
+}
+ else {
+      // Remove only this item
       try {
-        await removeItem(storeId, itemId);
+        const success = await removeCartItems([itemId], authToken);
+        if (!success) {
+          Alert.alert("Error", "Failed to remove item. Please try again.");
+        }
       } catch (error) {
-        console.error("Error deleting cart item:", error.message);
+        console.error("Error deleting cart item:", error);
+        Alert.alert("Error", "Failed to remove item. Please try again.");
       }
     }
   };
 
-  const renderCartItem = ({ item }) => {
+  const renderCartItem = ({ item }: { item: CartItem }) => {
     if (!item || !item.details) return null;
 
     const { itemId, details, quantity } = item;
-    const descriptor = details?.descriptor || {};
-    const price = details?.price || {};
-    const quantityInfo = details?.quantity || {};
-    const maxInfo = quantityInfo?.maximum || {};
-    const availableInfo = quantityInfo?.available || {};
+    const descriptor = details.descriptor || {};
+    const price = details.price || {};
+    const quantityInfo = details.quantity || {};
+    const maxInfo = quantityInfo.maximum || {};
+    const availableInfo = quantityInfo.available || {};
 
-    const name = descriptor?.name || "Unknown Item";
-    const symbol = descriptor?.symbol;
-    const value = price?.value || 0;
-    const maximum_value = price?.maximum_value || value;
-    const maxCount = maxInfo?.count || 0;
-    const availableCount = availableInfo?.count || 0;
+    const name = descriptor.name || "Unknown Item";
+    const symbol = descriptor.symbol;
+    const value = price.value || 0;
+    const maximum_value = price.maximum_value || value;
+    const maxCount = maxInfo.count || 999;
+    const availableCount = availableInfo.count || 999;
 
     const maxLimit = Math.min(maxCount, availableCount);
-    const itemSavings = (maximum_value - value) * quantity;
-    setSavings(prev => prev + itemSavings);
+    const isItemUpdating = isUpdating === itemId;
 
     return (
       <View style={styles.itemContainer} key={itemId}>
         <View style={styles.itemDescContainer}>
           <View style={styles.itemImgContainer}>
             {symbol ? (
-              <Image source={{ uri: symbol }} style={styles.productImage} />
+              <Image
+                source={{ uri: symbol }}
+                style={styles.productImage}
+                onError={() => console.warn("Failed to load product image")}
+              />
             ) : (
-              <View style={[styles.productImage, { backgroundColor: '#e9ecef' }]} />
+              <View style={[styles.productImage, styles.placeholderImage]} />
             )}
           </View>
+
           <View style={styles.itemDetails}>
             <Text style={styles.name} numberOfLines={2}>
               {name}
             </Text>
+
             <View style={styles.itemPriceInfoContainer}>
               <Text style={styles.itemPriceText}>
                 {maximum_value > value && (
-                  <Text
-                    style={[
-                      styles.itemPriceText,
-                      {
-                        textDecorationLine: "line-through",
-                        textDecorationStyle: "solid",
-                        opacity: 0.5,
-                      },
-                    ]}
-                  >
-                    ₹{Number(maximum_value).toFixed(2).replace(/\.?0+$/, "")}{"  "}
+                  <Text style={styles.strikethroughPrice}>
+                    {formatCurrency(maximum_value)}{"  "}
                   </Text>
                 )}
-                ₹{Number(value).toFixed(2).replace(/\.?0+$/, "")}
+                {formatCurrency(value)}
               </Text>
 
-              <Text style={styles.itemPriceText}>x {quantity}</Text>
+              <Text style={styles.quantityText}>x {quantity}</Text>
+
               <Text style={styles.itemTotalCostText}>
-                ₹{Number(value * quantity).toFixed(2).replace(/\.?0+$/, "")}
+                {formatCurrency(value * quantity)}
               </Text>
             </View>
           </View>
@@ -122,62 +176,82 @@ const CartItems = ({ cartID, storeId, items }) => {
         <View style={styles.cartItemQuantityContainer}>
           <TouchableOpacity
             onPress={() => {
+              if (isItemUpdating) return;
               quantity > 1
                 ? handleQuantityChange(itemId, quantity - 1)
                 : handleDeleteItem(itemId);
             }}
+            disabled={isItemUpdating}
+            activeOpacity={0.7}
           >
             <DecrementIcon />
           </TouchableOpacity>
+
           <Text style={styles.quantity}>{quantity}</Text>
 
           {quantity < maxLimit ? (
             <TouchableOpacity
-              onPress={() =>
-                quantity < maxLimit &&
-                handleQuantityChange(itemId, quantity + 1)
-              }
+              onPress={() => {
+                if (isItemUpdating) return;
+                handleQuantityChange(itemId, quantity + 1);
+              }}
+              disabled={isItemUpdating}
+              activeOpacity={0.7}
             >
               <IncrementIcon />
             </TouchableOpacity>
           ) : (
-            <IncrementIcon disabled={true} />
+            <IncrementIcon disabled />
           )}
         </View>
       </View>
     );
   };
 
-  const calculateTotalCost = () => {
-    if (!items) return 0;
-    return items.reduce(
-      (total, item) => total + (item?.details?.price?.value || 0) * (item?.quantity || 0),
-      0
-    );
-  };
+  const { totalCost, savings } = useMemo(() => {
+    if (!items || items.length === 0) return { totalCost: 0, savings: 0 };
+
+    let cost = 0;
+    let totalSavings = 0;
+
+    items.forEach((item) => {
+      if (!item?.details?.price) return;
+
+      const value = item.details.price.value || 0;
+      const maximum_value = item.details.price.maximum_value || value;
+      const quantity = item.quantity || 0;
+
+      cost += value * quantity;
+      totalSavings += (maximum_value - value) * quantity;
+    });
+
+    return { totalCost: cost, savings: totalSavings };
+  }, [items]);
 
   if (!items || items.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center', padding: 20 }}>
-          Your cart is empty
-        </Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.itemsContainer}>
-        <Text style={{ paddingVertical: 10, fontWeight: "500", fontSize: 14 }}>
+        <Text style={styles.itemsHeader}>
           Items in the cart ({items?.length || 0})
         </Text>
-        <View style={{ minHeight: 2, marginBottom: 10 }}>
+
+        <View style={styles.listContainer}>
           <FlashList
             data={items}
             renderItem={renderCartItem}
             estimatedItemSize={83}
-            keyExtractor={(item) => item?.itemId?.toString() || Math.random().toString()}
+            keyExtractor={(item) =>
+              item?.itemId?.toString() || Math.random().toString()
+            }
+            showsVerticalScrollIndicator={false}
           />
         </View>
       </View>
@@ -186,26 +260,28 @@ const CartItems = ({ cartID, storeId, items }) => {
         <View style={styles.row}>
           <Text style={[styles.text, styles.bold]}>Total</Text>
           <Text style={[styles.text, styles.bold]}>
-            ₹ {calculateTotalCost().toFixed(2).replace(/\.?0+$/, "")}
+            {formatCurrency(totalCost)}
           </Text>
         </View>
+
         {savings > 0 && (
-          <View style={[styles.row]}>
-            <Text style={[styles.text]}>
-              You are saving ₹{Number(savings).toFixed(2).replace(/\.?0+$/, "")} on this order!
+          <View style={styles.row}>
+            <Text style={[styles.text, styles.savingsText]}>
+              You are saving {formatCurrency(savings)} on this order!
             </Text>
           </View>
         )}
       </View>
 
-      <View style={{ flex: 1, flexDirection: "row", marginVertical: 10 }}>
+      <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
           style={styles.addMoreContainer}
           onPress={() => {
             if (storeId) {
-              router.push(`/(tabs)/home/productListing/${storeId}`);
+              router.push(`./(tabs)/home/productListing/${storeId}`);
             }
           }}
+          activeOpacity={0.7}
         >
           <AntDesign name="plus" size={16} color="black" />
           <Text style={styles.addMoreItemsText}>Add more items</Text>
@@ -214,12 +290,15 @@ const CartItems = ({ cartID, storeId, items }) => {
         <View style={styles.buttons}>
           <TouchableOpacity
             style={styles.checkoutButton}
-            onPress={() =>
-              cartID && router.push({
-                pathname: "/(tabs)/cart/[checkout]",
-                params: { id: cartID },
-              })
-            }
+            onPress={() => {
+              if (cartId) {
+                router.push({
+                  pathname: "./(tabs)/cart/[checkout]",
+                  params: { id: cartId },
+                });
+              }
+            }}
+            activeOpacity={0.8}
           >
             <Text style={styles.checkoutButtonText}>Check Out</Text>
           </TouchableOpacity>
@@ -228,42 +307,44 @@ const CartItems = ({ cartID, storeId, items }) => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 16,
-    marginHorizontal: 10,
-    fontWeight: "500",
-  },
-  horizontalBar: {
+  emptyContainer: {
     flex: 1,
-    height: 1,
-    backgroundColor: "black",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: "#666",
   },
   itemsContainer: {
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
     backgroundColor: "white",
     borderRadius: 10,
     paddingHorizontal: 15,
     marginHorizontal: 5,
     marginBottom: 10,
-    // zIndex: 5,
+  },
+  itemsHeader: {
+    paddingVertical: 10, 
+    fontWeight: "500", 
+    fontSize: 14,
+    color: "#333",
+  },
+  listContainer: {
+    minHeight: 2, 
+    marginBottom: 10,
   },
   itemContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 10,
+    paddingVertical: 5,
   },
   itemDescContainer: {
     flexDirection: "row",
@@ -271,10 +352,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemImgContainer: {
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 5,
-    // borderWidth: 1,
-    // borderColor: "#e9ecef",
     backgroundColor: "white",
     width: 50,
     height: 50,
@@ -287,40 +364,73 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 8,
-    objectFit: "contain",
+    resizeMode: "contain",
+  },
+  placeholderImage: {
+    backgroundColor: '#e9ecef',
   },
   itemDetails: {
     justifyContent: "center",
-    maxWidth: 100,
+    flex: 1,
+    maxWidth: 150,
   },
   name: {
     fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 4,
+  },
+  itemPriceInfoContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
   },
   itemPriceText: {
     fontSize: 12,
+    color: "#333",
+    fontWeight: "600",
+  },
+  strikethroughPrice: {
+    textDecorationLine: "line-through",
+    textDecorationStyle: "solid",
+    opacity: 0.5,
+    fontSize: 12,
     color: "#666",
-    marginRight: 10,
+  },
+  quantityText: {
+    fontSize: 12,
+    color: "#666",
   },
   cartItemQuantityContainer: {
-    // flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#e9ecef",
     borderRadius: 5,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 12,
+    minWidth: 80,
   },
   quantity: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     color: "#00BC66",
+    minWidth: 20,
+    textAlign: "center",
   },
   itemTotalCostText: {
     fontSize: 12,
     fontWeight: "bold",
+    color: "#333",
+  },
+  priceContainer: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 10,
   },
   row: {
     flexDirection: "row",
@@ -328,153 +438,54 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     marginHorizontal: 15,
   },
- priceContainer: {
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#e9ecef",
-    borderRadius: 10,
-  },
   text: {
     fontSize: 14,
     fontWeight: "normal",
     color: "#666",
   },
   bold: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#000",
+  },
+  savingsText: {
+    color: "#00BC66",
+    fontWeight: "500",
+    fontSize: 13,
+  },
+  actionButtonsContainer: {
+    flex: 1, 
+    flexDirection: "row", 
+    marginVertical: 10,
+    gap: 10,
   },
   addMoreContainer: {
     flex: 1,
     flexDirection: "row",
-    // marginVertical: 12,
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
-    // shadowRadius: 5,
-    // backgroundColor: "#f8f9fa",
     backgroundColor: "#e8e8e8",
     borderRadius: 50,
     paddingVertical: 12,
-    // paddingHorizontal: 10,
     marginHorizontal: 10,
     justifyContent: "center",
-    alignSelf: "center",
-  },
-  itemsTotalContainer: {
-    borderTopWidth: 1,
-    borderColor: "#e9ecef",
-    flexDirection: "row",
-    marginTop: 5,
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
-    // shadowRadius: 5,
-    // backgroundColor: "#f8f9fa",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    marginHorizontal: 5,
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 5,
   },
-  savingsContainer: {
-    flexDirection: "row",
-    marginBottom: 5,
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
-    // shadowRadius: 5,
-    // backgroundColor: "#f8f9fa",
-    paddingHorizontal: 10,
-    // paddingTop: 10,
-    marginHorizontal: 5,
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  itemPriceInfoContainer: {
-    flex: 1,
-    flexWrap: "wrap",
-    flexDirection: "row",
-    maxWidth: 200,
-  },
-  // addMoreContainers: {
-  //   flexDirection: "column",
-  //   marginVertical: 12,
-  //   shadowColor: "rgba(0,0,0,0.5)",
-  //   elevation: 5,
-  //   shadowRadius: 5,
-  //   backgroundColor: "white",
-  //   borderRadius: 10,
-  //   padding: 15,
-  //   margin: 5,
-  //   justifyContent: "space-between",
-  //   alignItems: "center",
-  // },
   addMoreItemsText: {
     color: "#000",
     fontSize: 12,
     fontWeight: "500",
-    paddingLeft: 5,
-  },
-  moreItemsText: {
-    color: "#000",
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  total: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    marginVertical: 5,
-  },
-  itemsTotalText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  detailsContainer: {
-    paddingVertical: 15,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  showMoreButton: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-  },
-  modalScrollView: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: "100%",
-    backgroundColor: "white",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    padding: 15,
-  },
-  closeModalButton: {
-    alignSelf: "flex-end",
-    marginBottom: 10,
   },
   buttons: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    // gap: 10,
-    // marginTop: 20,
   },
   checkoutButton: {
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: "#208b3a",
     borderRadius: 50,
@@ -483,7 +494,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   checkoutButtonText: {
-    fontWeight: "900",
+    fontWeight: "700",
     fontSize: 14,
     color: "#fff",
   },

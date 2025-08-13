@@ -1,7 +1,7 @@
 import { useRef, FC, ReactNode } from "react";
 import { Animated, Pressable } from "react-native";
 import { useToast } from "react-native-toast-notifications";
-
+import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
 
 interface DynamicButtonProps {
@@ -10,11 +10,11 @@ interface DynamicButtonProps {
   isUpdated?: boolean;
   storeId?: string;
   onPress?: () => void;
-  slug?: string; // Changed from itemId to slug
-  catalogId?: string; // Added catalog ID
-  cartItemId?: string; // Added for update operations
+  slug?: string;
+  catalogId?: string;
+  cartItemId?: string;
   quantity?: number;
-  customizable?: boolean; // Added customizable flag
+  customizable?: boolean;
   customizations?: {
     _id?: string;
     id?: string;
@@ -43,10 +43,14 @@ const DynamicButton: FC<DynamicButtonProps> = ({
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const toast = useToast();
-  
-  // Get cart store actions
+
+  // ✅ Get auth token & auth state
+  const { authToken, isAuthenticated } = useUserDetails();
+
+  // Cart store actions
   const { addItem, updateItemQuantity, removeCartItems, removeCart } = useCartStore();
 
+  // Button press animations
   const animatePressIn = () => {
     Animated.spring(scale, {
       toValue: 0.9,
@@ -65,98 +69,100 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   };
 
   const handlePress = async () => {
+    animatePressIn();
+
     try {
+      // 🔒 Require authentication
+      if (!isAuthenticated || !authToken) {
+        toast.show("Please login to continue", { type: "danger" });
+        return;
+      }
+
+      // 🛠 If a custom press handler exists, use it
       if (onPress) {
         onPress();
         return;
       }
 
       if (!storeId) {
-        toast.show("Missing storeId", { type: "danger" });
+        toast.show("Missing store information", { type: "danger" });
         return;
       }
 
+      // ➕ Add new item
       if (isNewItem) {
-        // Adding new item to cart
         if (!slug || !catalogId) {
           toast.show("Missing product information", { type: "danger" });
           return;
         }
 
-        // Normalize customizations for API
-        const normalizedCustomizations = customizations.map(custom => ({
-          groupId: custom.groupId || custom.group_id || '',
-          optionId: custom.optionId || custom.option_id || '',
-          name: custom.name
-        }));
+        const normalizedCustomizations = customizations
+          .map((custom) => ({
+            groupId: custom.groupId || custom.group_id || "",
+            optionId: custom.optionId || custom.option_id || "",
+            name: custom.name || "",
+          }))
+          .filter((c) => c.groupId && c.optionId && c.name);
 
         const success = await addItem(
           storeId,
           slug,
           catalogId,
-          1, // Always add 1 item initially
+          1,
           customizable,
-          normalizedCustomizations
+          normalizedCustomizations,
+          authToken // ✅ pass token
         );
 
-        if (success) {
-          toast.show("Added to cart", { type: "success" });
-        } else {
-          toast.show("Failed to add to cart", { type: "danger" });
-        }
-      } else if (isUpdated) {
+        toast.show(success ? "Added to cart" : "Error adding to cart", {
+          type: success ? "success" : "danger",
+        });
+
+        return;
+      }
+
+      // 🔄 Update existing item
+      if (isUpdated) {
         if (quantity > 0) {
-          // Update quantity
           if (!cartItemId) {
             toast.show("Missing cart item ID", { type: "danger" });
             return;
           }
 
-          const success = await updateItemQuantity(cartItemId, quantity);
-          
-          if (success) {
-            toast.show("Updated cart", { type: "success" });
-          } else {
-            toast.show("Failed to update cart", { type: "danger" });
-          }
+          const success = await updateItemQuantity(cartItemId, quantity, authToken);
+          toast.show(success ? "Updated cart" : "Error updating cart", {
+            type: success ? "success" : "danger",
+          });
         } else {
-          // Remove item (quantity is 0 or negative)
+          // 🗑 Remove item or entire cart
           if (cartItemId) {
-            // Remove specific cart item
-            const success = await removeCartItems([cartItemId]);
-            
-            if (success) {
-              toast.show("Removed from cart", { type: "success" });
-            } else {
-              toast.show("Failed to remove item", { type: "danger" });
-            }
+            const success = await removeCartItems([cartItemId], authToken);
+            toast.show(success ? "Removed from cart" : "Error removing item", {
+              type: success ? "success" : "danger",
+            });
           } else {
-            // Remove entire cart for this store
-            const success = await removeCart(storeId);
-            
-            if (success) {
-              toast.show("Removed from cart", { type: "success" });
-            } else {
-              toast.show("Failed to remove from cart", { type: "danger" });
-            }
+            const success = await removeCart(storeId, authToken);
+            toast.show(success ? "Removed from cart" : "Error clearing cart", {
+              type: success ? "success" : "danger",
+            });
           }
         }
-      } else {
-        toast.show("Unhandled cart action", { type: "warning" });
+        return;
       }
+
+      // ❓ No valid operation
+      toast.show("Invalid cart operation", { type: "warning" });
     } catch (error: any) {
       console.error("DynamicButton error:", error?.message);
       toast.show("Error updating cart", { type: "danger" });
+    } finally {
+      animatePressOut();
     }
-
-    animatePressOut();
   };
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
-        onPressIn={animatePressIn}
-        onPressOut={animatePressOut}
         onPress={disabled ? undefined : handlePress}
         disabled={disabled}
         style={disabled ? { opacity: 0.5 } : undefined}

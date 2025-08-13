@@ -1,5 +1,4 @@
-import Constants from 'expo-constants';
-import { getAsyncStorageItem } from '../.../../utility/asyncStorage';
+import Constants from "expo-constants";
 
 const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
@@ -39,32 +38,35 @@ export interface SelectedCustomization {
   optionId: string;
 }
 
-export async function addToCartAction(input: addItemActionInputType) {
+export async function addToCartAction(
+  input: addItemActionInputType,
+  authToken: string
+) {
   try {
-    const at = await getAsyncStorageItem('auth-token');
-    if (!at) {
-      throw new Error('No auth token found');
+    if (!authToken) {
+      console.error("No auth token provided");
+      return { success: false };
     }
 
     const response = await fetch(`${BASE_URL}/carts/add-item`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        Authorization: `Bearer ${at}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(input),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.log('addToCartAction error:', errorData);
-      throw new Error('Failed to add item to cart');
+      console.log("addToCartAction error:", errorData);
+      return { success: false };
     }
 
     const data = (await response.json()) as AddToCartResponseType;
     return { success: true, data };
   } catch (e) {
-    console.error('addToCartAction exception:', e);
+    console.error("addToCartAction exception:", e);
     return { success: false };
   }
 }

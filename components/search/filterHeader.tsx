@@ -6,7 +6,7 @@ interface FilterHeaderProps {
   closeFilter: () => void;
 }
 
-const FilterHeader = ({ closeFilter }) => {
+const FilterHeader = ({ closeFilter  }) => {
   return (
     <View
       style={{

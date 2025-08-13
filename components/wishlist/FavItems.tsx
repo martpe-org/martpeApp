@@ -37,7 +37,7 @@ const FavItems: FC<FavItemsProps> = ({ itemsData }) => {
             }}
             key={item.id}
             onPress={() => {
-              router.push(`/(tabs)/home/productDetails/${item.id}`);
+              router.push(`./(tabs)/home/productDetails/${item.id}`);
             }}
           >
             <ImageComp
