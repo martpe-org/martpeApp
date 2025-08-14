@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 
 const BottomSheetComponent = ({
-  productName,
+  productName ,
   productDetails,
   isVisible,
   onClose,

@@ -240,7 +240,7 @@ const Order = () => {
                 style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
               >
                 <Text style={{ color: "#208b3a", fontSize: 10 }}>
-                  {orderStateMap[order?.order_status.toLowerCase()]?.message}{" "}
+                  {orderStateMap[order?.order_status.toLowerCase()]?.message}
                 </Text>
                 {(order?.order_status.toLowerCase() === "created" ||
                   order?.order_status.toLowerCase() === "accepted") && (

@@ -1,33 +1,33 @@
+import { useQuery } from "@tanstack/react-query";
+import * as Location from "expo-location";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
   Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { fetchHome } from "../../../hook/fetch-home-data";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
-import * as Location from 'expo-location';
 
+import { Entypo, FontAwesome6, Ionicons } from "@expo/vector-icons";
+import { useRenderFunctions } from "../../../components/Landing Page/render";
 import {
   categoryData,
+  electronicsCategoryData,
+  fashionCategoryData,
   foodCategoryData,
   groceriesCategoryData,
-  fashionCategoryData,
-  personalCareCategoryData,
-  electronicsCategoryData,
   homeAndDecorCategoryData,
+  personalCareCategoryData,
 } from "../../../constants/categories";
-import { Ionicons, Entypo, FontAwesome6 } from "@expo/vector-icons";
-import { useRenderFunctions } from "../../../constants/render";
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -124,7 +124,7 @@ export default function HomeScreen() {
   // Animate when no data is found
   useEffect(() => {
     if (homeData) {
-      if ((!homeData.restaurants?.length) || (!homeData.stores?.length)) {
+      if (!homeData.restaurants?.length || !homeData.stores?.length) {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 500,
@@ -144,11 +144,22 @@ export default function HomeScreen() {
   // --- Main render ---
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Red header */}
         <View style={styles.redSection}>
-          <TouchableOpacity style={styles.locationRow} onPress={handleLocationPress}>
-            <FontAwesome6 name="location-pin-lock" size={18} color="white" style={{ marginRight: 16 }} />
+          <TouchableOpacity
+            style={styles.locationRow}
+            onPress={handleLocationPress}
+          >
+            <FontAwesome6
+              name="location-pin-lock"
+              size={18}
+              color="white"
+              style={{ marginRight: 16 }}
+            />
             <Text style={styles.deliveryTxt}>Delivering to</Text>
             <Text style={styles.locationTxt} numberOfLines={1}>
               {selectedDetails?.city || "Select Location"}
@@ -171,9 +182,16 @@ export default function HomeScreen() {
             onPress={() => router.push("../search")}
             activeOpacity={0.9}
           >
-            <Ionicons name="search" size={20} color="#555" style={{ marginRight: 8 }} />
+            <Ionicons
+              name="search"
+              size={20}
+              color="#555"
+              style={{ marginRight: 8 }}
+            />
             <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
-              <Text style={{ color: "#8E8A8A", fontSize: 16 }}>Search for{" "}</Text>
+              <Text style={{ color: "#8E8A8A", fontSize: 16 }}>
+                Search for{" "}
+              </Text>
               {words.map((word, idx) => (
                 <Animated.Text
                   key={idx}
@@ -218,15 +236,21 @@ export default function HomeScreen() {
 
           {error && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>Something went wrong loading data.</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.errorText}>
+                Something went wrong loading data.
+              </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => refetch()}
+              >
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Restaurants */}
-          {Array.isArray(homeData?.restaurants) && homeData.restaurants.length > 0 ? (
+          {Array.isArray(homeData?.restaurants) &&
+          homeData.restaurants.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionTitleContainer}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
@@ -235,14 +259,22 @@ export default function HomeScreen() {
                 data={homeData.restaurants}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) => `restaurant_${item.slug}_${index}`}
+                keyExtractor={(item, index) =>
+                  `restaurant_${item.slug}_${index}`
+                }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderRestaurantItem}
               />
             </View>
           ) : (
             !isLoading && (
-              <Animated.View style={{ opacity: fadeAnim, alignItems: "center", marginVertical: 20 }}>
+              <Animated.View
+                style={{
+                  opacity: fadeAnim,
+                  alignItems: "center",
+                  marginVertical: 20,
+                }}
+              >
                 <Ionicons name="restaurant-outline" size={40} color="#999" />
                 <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
                   No restaurants found in your area
@@ -268,7 +300,13 @@ export default function HomeScreen() {
             </View>
           ) : (
             !isLoading && (
-              <Animated.View style={{ opacity: fadeAnim, alignItems: "center", marginVertical: 20 }}>
+              <Animated.View
+                style={{
+                  opacity: fadeAnim,
+                  alignItems: "center",
+                  marginVertical: 20,
+                }}
+              >
                 <Ionicons name="storefront-outline" size={40} color="#999" />
                 <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
                   No stores found in your area
@@ -516,7 +554,7 @@ export default function HomeScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -718,38 +756,38 @@ const styles = StyleSheet.create({
   },
   // Footer Section
   footerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
   headerContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#2563EB', // Blue color
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#2563EB", // Blue color
+    textAlign: "center",
     lineHeight: 28,
   },
   headerSubtitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#374151",
+    textAlign: "center",
     lineHeight: 28,
   },
   greenText: {
-    color: '#10B981', // Green color
+    color: "#10B981", // Green color
   },
   imageContainer: {
     marginBottom: 24,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   mainImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     borderRadius: 12,
   },
@@ -757,16 +795,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   card: {
     flex: 1,
-    backgroundColor: '#Ffff',
+    backgroundColor: "#Ffff",
     padding: 15,
     borderRadius: 12,
     maxHeight: 150,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 2, height: 5 },
     shadowOpacity: 1,
     shadowRadius: 4,
@@ -775,14 +813,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
     lineHeight: 22,
   },
   cardDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 20,
   },
   sectionTitleContainer: {

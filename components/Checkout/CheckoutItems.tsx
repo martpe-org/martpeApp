@@ -15,18 +15,50 @@ import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
 import { AntDesign } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
 
-const CheckoutItems = ({ storeId, items }) => {
-  const { removeItem, updateItem } = useCartStore();
-  const handleQuantityChange = async (itemId, newQuantity) => {
+interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  unit_max_price: number;
+  total_price: number;
+  total_max_price: number;
+  name?: string;
+  image?: string;
+  available?: boolean;
+  maxQuantity?: number;
+  max_qty?: number;
+  log?: string[];
+  details?: {
+    descriptor?: {
+      name?: string;
+      symbol?: string;
+    };
+  };
+}
+
+interface CheckoutItemsProps {
+  storeId: string;
+  items: CartItem[];
+  authToken: string;
+}
+
+const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items, authToken }) => {
+  const { updateQty, removeCartItems, removeCart } = useCartStore();
+
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     try {
       console.log("Updating quantity:", itemId, newQuantity);
-      await updateItem(storeId, itemId, newQuantity);
+      const success = await updateQty(itemId, newQuantity, authToken);
+      if (!success) {
+        Alert.alert("Error", "Failed to update item quantity");
+      }
     } catch (error) {
-      console.error("Error updating the item quantity", error.message);
+      console.error("Error updating the item quantity", error);
+      Alert.alert("Error", "Failed to update item quantity");
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
+  const handleDeleteItem = async (itemId: string) => {
     if (items.length === 1) {
       Alert.alert("Remove Cart", "Are you sure you want to remove this cart?", [
         {
@@ -37,29 +69,44 @@ const CheckoutItems = ({ storeId, items }) => {
           text: "Remove",
           onPress: async () => {
             try {
-              await removeItem(storeId, itemId);
+              const success = await removeCart(storeId, authToken);
+              if (!success) {
+                Alert.alert("Error", "Failed to remove cart");
+              }
             } catch (error) {
-              console.error("Error deleting cart item:", error.message);
+              console.error("Error deleting cart:", error);
+              Alert.alert("Error", "Failed to remove cart");
             }
           },
         },
       ]);
     } else {
       try {
-        await removeItem(storeId, itemId);
+        const success = await removeCartItems([itemId], authToken);
+        if (!success) {
+          Alert.alert("Error", "Failed to remove item");
+        }
       } catch (error) {
-        console.error("Error deleting cart item:", error.message);
+        console.error("Error deleting cart item:", error);
+        Alert.alert("Error", "Failed to remove item");
       }
     }
   };
 
-  const renderItem = ({ item }) => {
-    const { itemId, details, quantity, available, log, maxQuantity } = item;
-    const {
-      descriptor: { name, symbol },
-      price: { value, maximum_value },
-    } = details;
-   
+  const renderItem = ({ item }: { item: CartItem }) => {
+    // Adjust property names to match your actual data structure
+    const itemId = item._id;
+    const quantity = item.qty;
+    const unitPrice = item.unit_price;
+    const totalPrice = item.total_price;
+    
+    // These properties might need to be adjusted based on your actual item structure
+    const name = item.name || item.details?.descriptor?.name || "Unknown Item";
+    const imageUri = item.image || item.details?.descriptor?.symbol || "";
+    const available = item.available !== false; // Default to true if not specified
+    const maxQuantity = item.maxQuantity || item.max_qty || 99; // Default max quantity
+    const log = item.log || [];
+
     return (
       <View
         style={[styles.itemContainer, !available && { opacity: 0.6 }]}
@@ -67,7 +114,7 @@ const CheckoutItems = ({ storeId, items }) => {
       >
         <View style={styles.itemDescContainer}>
           <View style={styles.itemImgContainer}>
-            <Image source={{ uri: symbol }} style={styles.productImage} />
+            <Image source={{ uri: imageUri }} style={styles.productImage} />
           </View>
           <View style={styles.itemDetails}>
             <Text style={styles.name} numberOfLines={2}>
@@ -76,7 +123,7 @@ const CheckoutItems = ({ storeId, items }) => {
             <View style={styles.itemPriceInfoContainer}>
               <Text style={styles.itemPriceText}>
                 ₹{" "}
-                {Number(value)
+                {Number(unitPrice)
                   .toFixed(2)
                   .replace(/\.?0+$/, "")}
               </Text>
@@ -84,7 +131,7 @@ const CheckoutItems = ({ storeId, items }) => {
               <Text style={styles.itemPriceText}>x {quantity}</Text>
               <Text style={styles.itemTotalCostText}>
                 ₹{" "}
-                {Number(value * quantity)
+                {Number(totalPrice)
                   .toFixed(2)
                   .replace(/\.?0+$/, "")}
               </Text>
@@ -99,15 +146,16 @@ const CheckoutItems = ({ storeId, items }) => {
         </View>
 
         {/* quantity container */}
-
         {available ? (
           <View style={styles.cartItemQuantityContainer}>
             <TouchableOpacity
-            // onPress={() => {
-            //   quantity > 1
-            //     ? handleQuantityChange(itemId, quantity - 1)
-            //     : handleDeleteItem(itemId);
-            // }}
+              onPress={() => {
+                if (quantity > 1) {
+                  handleQuantityChange(itemId, quantity - 1);
+                } else {
+                  handleDeleteItem(itemId);
+                }
+              }}
             >
               <DecrementIcon />
             </TouchableOpacity>
@@ -115,10 +163,11 @@ const CheckoutItems = ({ storeId, items }) => {
 
             {quantity < maxQuantity ? (
               <TouchableOpacity
-              // onPress={() =>
-              //   quantity < maxQuantity &&
-              //   handleQuantityChange(itemId, quantity + 1)
-              // }
+                onPress={() => {
+                  if (quantity < maxQuantity) {
+                    handleQuantityChange(itemId, quantity + 1);
+                  }
+                }}
               >
                 <IncrementIcon />
               </TouchableOpacity>
@@ -140,7 +189,6 @@ const CheckoutItems = ({ storeId, items }) => {
               style={{
                 padding: 5,
                 paddingLeft: 7,
-                // paddingHorizontal: 4,
                 borderWidth: 1,
                 borderColor: "#e9ecef",
                 borderRadius: 5,
@@ -153,7 +201,8 @@ const CheckoutItems = ({ storeId, items }) => {
     );
   };
 
-  if (!items) return null;
+  if (!items || !authToken) return null;
+  
   return (
     <ScrollView style={styles.container}>
       <View style={styles.itemsContainer}>
@@ -172,7 +221,7 @@ const CheckoutItems = ({ storeId, items }) => {
         <TouchableOpacity
           style={styles.addMoreContainer}
           onPress={() => {
-            router.push(`/(tabs)/home/productListing/${storeId}`);
+            router.push(`../(tabs)/home/productListing/${storeId}`);
           }}
         >
           <AntDesign name="plus" size={16} color="black" />
@@ -180,7 +229,7 @@ const CheckoutItems = ({ storeId, items }) => {
         </TouchableOpacity>
         <TouchableOpacity style={styles.addMoreContainer}>
           <AntDesign name="file-markdown" size={16} color="black" />
-          <Text style={styles.addMoreItemsText}>Appy Coupon</Text>
+          <Text style={styles.addMoreItemsText}>Apply Coupon</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -198,11 +247,8 @@ const styles = StyleSheet.create({
   },
   title: { paddingVertical: 10, fontWeight: "500", fontSize: 14 },
   itemsContainer: {
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
     backgroundColor: "white",
     borderRadius: 10,
-    // zIndex: 5,
   },
   itemContainer: {
     flex: 1,
@@ -216,10 +262,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemImgContainer: {
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 5,
-    // borderWidth: 1,
-    // borderColor: "#e9ecef",
     backgroundColor: "white",
     width: 50,
     height: 50,
@@ -247,7 +289,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   cartItemQuantityContainer: {
-    // flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -280,11 +321,6 @@ const styles = StyleSheet.create({
   addMoreContainer: {
     flex: 1,
     flexDirection: "row",
-    // marginVertical: 12,
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
-    // shadowRadius: 5,
-    // backgroundColor: "#f8f9fa",
     backgroundColor: "#e8e8e8",
     borderRadius: 50,
     paddingVertical: 12,
@@ -296,10 +332,6 @@ const styles = StyleSheet.create({
     borderColor: "#e9ecef",
     flexDirection: "row",
     marginVertical: 5,
-    // shadowColor: "rgba(0,0,0,0.5)",
-    // elevation: 2,
-    // shadowRadius: 5,
-    // backgroundColor: "#f8f9fa",
     borderRadius: 10,
     padding: 10,
     justifyContent: "space-between",
@@ -309,19 +341,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
-  // addMoreContainers: {
-  //   flexDirection: "column",
-  //   marginVertical: 12,
-  //   shadowColor: "rgba(0,0,0,0.5)",
-  //   elevation: 5,
-  //   shadowRadius: 5,
-  //   backgroundColor: "white",
-  //   borderRadius: 10,
-  //   padding: 15,
-  //   margin: 5,
-  //   justifyContent: "space-between",
-  //   alignItems: "center",
-  // },
   addMoreItemsText: {
     color: "#000",
     fontSize: 12,
@@ -395,17 +414,12 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   log: {
-    // color: "#FF0000",
     fontSize: 8,
     fontWeight: "500",
     opacity: 0.5,
-    marginVertical:2
+    marginVertical: 2,
   },
   closeIcon: {
-    // position: "absolute",
-    // padding: 5,
-    // top: 0,
-    // right: 0,
     alignItems: "center",
     justifyContent: "center",
   },

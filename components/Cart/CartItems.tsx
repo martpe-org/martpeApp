@@ -28,67 +28,73 @@ interface CartItemsProps {
   storeId: string;
   items: CartItemType[];
   onCartChange?: () => void;
-    updateQty?: (cartItemId: string, qty: number) => Promise<boolean>;  // Add callback for cart changes
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items, onCartChange }) => {
+const CartItems: React.FC<CartItemsProps> = ({
+  cartId,
+  storeId,
+  items,
+  onCartChange,
+}) => {
   const { removeCartItems, removeCart, updateQty } = useCartStore();
- const { userDetails, isLoading: isUserLoading } = useUserDetails();
-const authToken = userDetails?.accessToken;
-
-
+  const { userDetails, isLoading: isUserLoading } = useUserDetails();
+  const authToken = userDetails?.accessToken;
 
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const formatCurrency = useCallback(
-    (amount: number) => `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`,
+    (amount: number) =>
+      `₹${Number(amount)
+        .toFixed(2)
+        .replace(/\.?0+$/, "")}`,
     []
   );
 
-const handleQuantityChange = async (
-  cartItemId: string,
-  qty: number,
-  authToken: string
-) => {
-  if (!cartItemId || qty < 0 || !authToken) {
-    console.warn("Cannot update quantity: Invalid input", {
-      cartItemId,
-      qty,
-      authToken,
-    });
-    return;
-  }
+  const handleQuantityChange = async (cartItemId: string, newQty: number) => {
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update item quantity.");
+      return;
+    }
 
-  setIsUpdating(cartItemId);
+    if (!cartItemId || newQty <= 0) {
+      console.warn("Invalid quantity or itemId", { cartItemId, newQty });
+      return;
+    }
 
-  try {
-    console.log("Updating cart item", { cartItemId, qty });
+    if (isUpdating) {
+      console.log("Already updating an item, skipping...");
+      return;
+    }
 
-    const success = updateQty
-      ? await updateQty(cartItemId, qty, authToken)
-      : await useCartStore.getState().updateQty(cartItemId, qty, authToken);
+    setIsUpdating(cartItemId);
 
-    if (!success) {
-      console.error("Failed to update quantity for", cartItemId);
+    try {
+      console.log("Updating cart item", { cartItemId, newQty });
+
+      // Use the updateQty function from useCartStore instead of the standalone updateQty
+      const success = await useCartStore
+        .getState()
+        .updateQty(cartItemId, newQty, authToken);
+
+      if (!success) {
+        Alert.alert(
+          "Error",
+          "Failed to update item quantity. Please check stock or try again."
+        );
+      } else {
+        console.log("Quantity updated successfully for", cartItemId);
+        onCartChange?.();
+      }
+    } catch (error) {
+      console.error("Error updating quantity", error);
       Alert.alert(
         "Error",
-        "Failed to update item quantity. Please check stock or try again."
+        "Could not update the item's quantity. Please try again."
       );
-    } else {
-      console.log("Quantity updated successfully for", cartItemId);
-      onCartChange?.();
+    } finally {
+      setIsUpdating(null);
     }
-  } catch (error) {
-    console.error("Error updating item quantity", error);
-    Alert.alert(
-      "Error",
-      "Failed to update item quantity. Please check your connection and try again."
-    );
-  } finally {
-    setIsUpdating(null);
-  }
-};
-
+  };
 
   const handleDeleteItem = async (cartItemId: string) => {
     if (!authToken || !cartItemId) return;
@@ -106,14 +112,20 @@ const handleQuantityChange = async (
               try {
                 const success = await removeCart(storeId, authToken);
                 if (!success) {
-                  Alert.alert("Error", "Failed to remove cart. Please try again.");
+                  Alert.alert(
+                    "Error",
+                    "Failed to remove cart. Please try again."
+                  );
                 } else {
                   // The Zustand store already updates the state
                   onCartChange?.();
                 }
               } catch (error) {
                 console.error("Error deleting cart:", error);
-                Alert.alert("Error", "Failed to remove cart. Please try again.");
+                Alert.alert(
+                  "Error",
+                  "Failed to remove cart. Please try again."
+                );
               }
             },
           },
@@ -148,8 +160,8 @@ const handleQuantityChange = async (
     const availableCount = item.product.instock ? maxCount : 0;
 
     const maxLimit = Math.min(maxCount, availableCount);
-const isItemUpdating = isUpdating === itemId;
-const isDisabled = isItemUpdating || !authToken || isUserLoading;
+    const isItemUpdating = isUpdating === itemId;
+    const isDisabled = isItemUpdating || !authToken || isUserLoading;
 
     return (
       <View style={styles.itemContainer} key={itemId}>
@@ -175,7 +187,8 @@ const isDisabled = isItemUpdating || !authToken || isUserLoading;
               <Text style={styles.itemPriceText}>
                 {maximum_value > value && (
                   <Text style={styles.strikethroughPrice}>
-                    {formatCurrency(maximum_value)}{"  "}
+                    {formatCurrency(maximum_value)}
+                    {"  "}
                   </Text>
                 )}
                 {formatCurrency(value)}
@@ -191,53 +204,49 @@ const isDisabled = isItemUpdating || !authToken || isUserLoading;
         </View>
 
         <View style={styles.cartItemQuantityContainer}>
-    <TouchableOpacity
-  onPress={() => {
-    if (isDisabled) return;
+          <TouchableOpacity
+            onPress={() => {
+              if (isDisabled) return;
 
-    if (!authToken) {
-      Alert.alert("Login Required", "Please login to update item quantity.");
-      return;
-    }
+              if (!authToken) {
+                Alert.alert(
+                  "Login Required",
+                  "Please login to update item quantity."
+                );
+                return;
+              }
 
-    if (qty > 1) {
-      handleQuantityChange(itemId, qty - 1, authToken);
-    } else {
-      handleDeleteItem(itemId);
-    }
-  }}
-  disabled={isDisabled}
-  activeOpacity={0.7}
-  style={[isDisabled && { opacity: 0.5 }]}
->
-  <DecrementIcon />
-</TouchableOpacity>
-
+              if (qty > 1) {
+                handleQuantityChange(itemId, qty - 1);
+              } else {
+                handleDeleteItem(itemId);
+              }
+            }}
+            disabled={isDisabled}
+            activeOpacity={0.7}
+            style={[isDisabled && { opacity: 0.5 }]}
+          >
+            <DecrementIcon />
+          </TouchableOpacity>
 
           <Text style={styles.quantity}>{qty}</Text>
 
-       {qty < maxLimit ? (
- <TouchableOpacity
-  onPress={() => {
-    if (isDisabled || qty >= maxLimit) return;
-
-    if (!authToken) {
-      Alert.alert("Login Required", "Please login to update item quantity.");
-      return;
-    }
-
-    handleQuantityChange(itemId, qty + 1, authToken);
-  }}
-  disabled={isDisabled || qty >= maxLimit}
-  activeOpacity={0.7}
-  style={[isDisabled && { opacity: 0.5 }]}
->
-  <IncrementIcon />
-</TouchableOpacity>
-) : (
-  <IncrementIcon disabled />
-)}
-
+          {qty < maxLimit ? (
+            <TouchableOpacity
+              disabled={isDisabled || qty >= maxLimit}
+              onPress={() => {
+                if (qty < maxLimit) {
+                  handleQuantityChange(itemId, qty + 1);
+                }
+              }}
+              activeOpacity={0.7}
+              style={[isDisabled && { opacity: 0.5 }]}
+            >
+              <IncrementIcon />
+            </TouchableOpacity>
+          ) : (
+            <IncrementIcon disabled />
+          )}
         </View>
       </View>
     );
@@ -305,7 +314,7 @@ const isDisabled = isItemUpdating || !authToken || isUserLoading;
           style={styles.addMoreContainer}
           onPress={() => {
             if (storeId) {
-              router.back();
+              router.push(`../(tabs)/home/result/productListing/${storeId}`);
             }
           }}
           activeOpacity={0.7}
@@ -320,7 +329,7 @@ const isDisabled = isItemUpdating || !authToken || isUserLoading;
             onPress={() => {
               if (cartId) {
                 router.push({
-                  pathname: "../app/(tabs)/cart/[checkout]",
+                  pathname: "../(tabs)/cart/[checkout]",
                   params: { id: cartId },
                 });
               }

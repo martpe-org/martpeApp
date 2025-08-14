@@ -7,6 +7,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Dimensions,
+  Platform,
+  TouchableOpacity,
 } from "react-native";
 
 import AddToCart from "../../../../../components/ProductDetails/AddToCart";
@@ -22,41 +25,64 @@ import Search from "../../../../../components/common/Search";
 import { fetchProductDetails } from "../../../../../components/product/fetch-product";
 import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
 
+// Constants
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CART_FOOTER_HEIGHT = 80;
+const MAX_QUANTITY_LIMIT = 100;
+const DEFAULT_RETURN_DAYS = 10;
+
+// Types
 interface ProductDetailsParams {
   productDetails: string;
   [key: string]: string;
 }
 
+interface ErrorState {
+  message: string;
+  retry?: boolean;
+}
+
 const ProductDetails: FC = () => {
   const { productDetails } = useGlobalSearchParams<ProductDetailsParams>();
 
-  const [productData, setProductData] = useState<FetchProductDetail | null>(
-    null
-  );
+  // State management
+  const [productData, setProductData] = useState<FetchProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Memoized values to prevent unnecessary re-renders
-  const maxLimit = useMemo(() => {
-    if (!productData) return 1;
-    return Math.min(
-      productData.quantity ?? 1,
-      100 // default fallback
-    );
-  }, [productData]);
+  // Memoized computed values
+  const maxQuantityLimit = useMemo(() => {
+    if (!productData?.quantity) return 1;
+    return Math.min(productData.quantity, MAX_QUANTITY_LIMIT);
+  }, [productData?.quantity]);
 
-  const storeAddress = useMemo(() => {
+  const formattedStoreAddress = useMemo(() => {
     if (!productData?.store?.address) return "";
+    
     const { locality, city, state } = productData.store.address;
-    return [locality, city, state].filter(Boolean).join(", ");
+    const addressParts = [locality, city, state].filter(Boolean);
+    return addressParts.join(", ");
   }, [productData?.store?.address]);
 
-  // Fetch product data function
+  const productQuantityDisplay = useMemo(() => {
+    const quantity = Number(productData?.unitized?.measure?.value) || 0;
+    const unit = productData?.unitized?.measure?.unit || "";
+    return { quantity, unit };
+  }, [productData?.unitized?.measure]);
+
+  const returnableDays = useMemo(() => {
+    if (!productData?.meta?.return_window) return DEFAULT_RETURN_DAYS;
+    
+    const days = parseInt(productData.meta.return_window.replace(/\D/g, ""), 10);
+    return isNaN(days) ? DEFAULT_RETURN_DAYS : days;
+  }, [productData?.meta?.return_window]);
+
+  // Data fetching function
   const fetchData = useCallback(
     async (showLoader = true) => {
       if (!productDetails) {
-        setError("Product ID is required");
+        setError({ message: "Product ID is required", retry: false });
         setIsLoading(false);
         return;
       }
@@ -66,16 +92,22 @@ const ProductDetails: FC = () => {
         setError(null);
 
         const response = await fetchProductDetails(productDetails);
-        console.log(`Product details response:`, response);
-
+        
         if (response) {
           setProductData(response);
+          console.log("Product details loaded successfully:", response.name);
         } else {
-          setError("Product not found");
+          setError({ 
+            message: "Product not found or unavailable", 
+            retry: true 
+          });
         }
       } catch (err) {
         console.error("Error fetching product details:", err);
-        setError("Failed to load product details. Please try again.");
+        setError({ 
+          message: "Failed to load product details. Please check your connection.", 
+          retry: true 
+        });
       } finally {
         setIsLoading(false);
         setRefreshing(false);
@@ -84,11 +116,13 @@ const ProductDetails: FC = () => {
     [productDetails]
   );
 
+  // Effect hooks
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const onRefresh = useCallback(() => {
+  // Event handlers
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData(false);
   }, [fetchData]);
@@ -97,167 +131,196 @@ const ProductDetails: FC = () => {
     fetchData();
   }, [fetchData]);
 
+  // Render functions
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Search
+        placeholder="Search for anything..."
+        showBackArrow
+        showLocation={false}
+      />
+    </View>
+  );
+
+  const renderError = () => (
+    <SafeAreaView style={styles.container}>
+      {renderHeader()}
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error?.message}</Text>
+        {error?.retry && (
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Tap to retry</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+
+  const renderImageCarousel = () => {
+    if (!productData?.images?.length) return null;
+    
+    return (
+      <View style={styles.imageCarouselContainer}>
+        <ImageCarousel url={productData.images} />
+      </View>
+    );
+  };
+
+  const renderVariantGroup = () => {
+    if (!productData?.parent_item_id || 
+        !Array.isArray(productData.variants) || 
+        productData.variants.length === 0) {
+      return null;
+    }
+
+    const initialVariant = `${productQuantityDisplay.quantity}${productQuantityDisplay.unit}`;
+
+    return (
+      <View style={styles.sectionContainer}>
+        <VariantGroup
+          slug={productData.slug}
+          parentId={productData.parent_item_id}
+          storeId={productData.store_id}
+          initialPrimaryVariant={initialVariant}
+          variants={productData.variants}
+          selectedProductId={productDetails!}
+        />
+      </View>
+    );
+  };
+
+  const renderMoreBySeller = () => {
+    if (!Array.isArray(productData?.offers) || productData.offers.length === 0) {
+      return null;
+    }
+
+    const transformedProducts = productData.offers.map((offer) => ({
+      id: offer._id,
+      descriptor: {
+        name: offer.short_desc || "Product",
+        images: offer.images || [],
+      },
+      price: {
+        value: parseFloat(offer.benefit?.value || "0"),
+        maximum_value: parseFloat(offer.qualifier?.min_value || "0"),
+        offer_percent: 0,
+      },
+    }));
+
+    return (
+      <View style={styles.sectionContainer}>
+        <MoreBySeller
+          originalId={productDetails!}
+          products={transformedProducts}
+          sellerName={productData.store?.name || ""}
+          sellerDetails={formattedStoreAddress}
+          sellerSymbol={productData.store?.symbol || ""}
+          sellerContact={productData.meta?.contact_details_consumer_care || ""}
+        />
+      </View>
+    );
+  };
+
+  // Loading state
   if (isLoading) {
     return <Loader />;
   }
 
+  // Error state
   if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Search
-            placeholder="Search for anything.."
-            showBackArrow
-            showLocation={false}
-          />
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.retryButton} onPress={handleRetry}>
-            Tap to retry
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return renderError();
   }
 
+  // No data state
   if (!productData) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Search
-            placeholder="Search for anything.."
-            showBackArrow
-            showLocation={false}
-          />
-        </View>
+        {renderHeader()}
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Product not available</Text>
+          <Text style={styles.errorText}>Product information unavailable</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Main render
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Search
-          placeholder="Search for anything.."
-          showBackArrow
-          showLocation={false}
-        />
-      </View>
+      {renderHeader()}
 
       <ProductHeader
         itemName={productData.name}
         category={productData.category}
         storeName={productData.store?.name || "Unknown Store"}
-        productId={productDetails}
-        quantity={Number(productData.unitized?.measure?.value) || 0} // ✅ Safe number
-        unit={productData.unitized?.measure?.unit || ""}
+        productId={productDetails!}
+        quantity={productQuantityDisplay.quantity}
+        unit={productQuantityDisplay.unit}
       />
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            colors={['#007AFF']}
+            tintColor="#007AFF"
+          />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Image Carousel */}
-        {(productData.images?.length ?? 0) > 0 && (
-          <ImageCarousel url={productData.images!} /> // ✅ Non-null assertion after check
-        )}
+        {renderImageCarousel()}
 
-        <ProductPricing
-          storeName={productData.store?.name || "Unknown Store"}
-          storeId={productData.store_id}
-          description={productData.short_desc || "No description available"}
-          maxPrice={productData.price?.maximum_value ?? 0} // ✅ always a number
-          price={productData.price?.value || 0}
-          discount={productData.price?.offerPercent || 0}
-        />
+        <View style={styles.sectionContainer}>
+          <ProductPricing
+            storeName={productData.store?.name || "Unknown Store"}
+            storeId={productData.store_id}
+            description={productData.short_desc || "No description available"}
+            maxPrice={productData.price?.maximum_value ?? 0}
+            price={productData.price?.value || 0}
+            discount={productData.price?.offerPercent || 0}
+          />
+        </View>
 
-        {/* Variant Group */}
-        {productData.parent_item_id &&
-          Array.isArray(productData.variants) &&
-          productData.variants.length > 0 && (
-            <VariantGroup
-              slug={productData.slug}
-              parentId={productData.parent_item_id}
-              storeId={productData.store_id}
-              initialPrimaryVariant={
-                (productData.unitized?.measure?.value || "") +
-                (productData.unitized?.measure?.unit || "")
-              }
-              variants={productData.variants}
-              selectedProductId={productDetails}
-            />
-          )}
+        {renderVariantGroup()}
 
-        {/* Services */}
-        <Services
-          productId={productDetails}
-          storeId={productData.store_id}
-          returnableDays={
-            productData.meta?.return_window
-              ? parseInt(productData.meta.return_window.replace(/\D/g, "")) ||
-                10
-              : 10
-          }
-          isReturnable={productData.meta?.returnable || false}
-          isCashOnDeliveryAvailable={
-            productData.meta?.available_on_cod || false
-          }
-        />
+        <View style={styles.sectionContainer}>
+          <Services
+            productId={productDetails!}
+            storeId={productData.store_id}
+            returnableDays={returnableDays}
+            isReturnable={productData.meta?.returnable || false}
+            isCashOnDeliveryAvailable={productData.meta?.available_on_cod || false}
+          />
+        </View>
 
-        {/* More by Store */}
-        {Array.isArray(productData.offers) && productData.offers.length > 0 && (
-          <MoreBySeller
-            originalId={productDetails}
-            products={productData.offers.map((offer) => ({
-              id: offer._id,
-              descriptor: {
-                name: offer.short_desc,
-                images: offer.images || [],
-              },
-              price: {
-                value: parseFloat(offer.benefit?.value || "0"),
-                maximum_value: parseFloat(offer.qualifier?.min_value || "0"),
-                offer_percent: 0,
-              },
-            }))}
-            sellerName={productData.store?.name || ""}
-            sellerDetails={storeAddress}
+        {renderMoreBySeller()}
+
+        <View style={styles.sectionContainer}>
+          <SellerDetails
+            sellerName={productData.store?.name || "Unknown Store"}
+            sellerDetails={formattedStoreAddress || "No address available"}
             sellerSymbol={productData.store?.symbol || ""}
             sellerContact={
-              productData.meta?.contact_details_consumer_care || ""
+              productData.meta?.contact_details_consumer_care ||
+              "Contact information not available"
             }
           />
-        )}
+        </View>
 
-        {/* Store Details */}
-        <SellerDetails
-          sellerName={productData.store?.name || "Unknown Store"}
-          sellerDetails={storeAddress || "No address available"}
-          sellerSymbol={productData.store?.symbol || ""}
-          sellerContact={
-            productData.meta?.contact_details_consumer_care ||
-            "Contact information not available"
-          }
-        />
-
-        <View style={{ height: 100 }} />
+        {/* Bottom padding to account for sticky footer */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Sticky Add to Cart */}
+      {/* Sticky Add to Cart Footer */}
       <View style={styles.stickyFooter}>
         <AddToCart
           storeId={productData.store_id}
-          slug={String(productDetails)} // Pass as slug instead of itemId
-          catalogId={productData.catalog_id} // Ensure you have this from API
+          slug={String(productDetails)}
+          catalogId={productData.catalog_id}
           price={productData.price?.value || 0}
-          maxLimit={maxLimit}
+          maxLimit={maxQuantityLimit}
         />
       </View>
     </SafeAreaView>
@@ -269,50 +332,98 @@ export default ProductDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: '#FFFFFF',
   },
   headerContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    flexDirection: "row",
-    paddingVertical: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 40,
+      },
+    }),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E7EB',
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  imageCarouselContainer: {
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+  },
   stickyFooter: {
-    position: "absolute",
-    bottom: 5,
-    left: 10,
-    right: 10,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: CART_FOOTER_HEIGHT,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  bottomPadding: {
+    height: CART_FOOTER_HEIGHT + 20,
   },
   errorContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   errorText: {
-    color: "#FF6B6B",
+    color: '#DC2626',
     fontSize: 16,
-    textAlign: "center",
-    marginBottom: 16,
-    fontWeight: "500",
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '500',
+    maxWidth: SCREEN_WIDTH * 0.8,
   },
   retryButton: {
-    color: "#007AFF",
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "600",
-    textDecorationLine: "underline",
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

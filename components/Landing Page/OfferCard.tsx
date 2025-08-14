@@ -37,7 +37,7 @@ const OfferCard = ({ items }) => {
     return () => clearInterval(interval);
   }, [activeIndex, items?.length]);
 
-  const getOfferBackground = (num) => {
+  const getOfferBackground = (num:any) => {
     switch (num) {
       case 0:
         return "#FF5151";
@@ -64,7 +64,7 @@ const OfferCard = ({ items }) => {
     }
   };
 
-  const handleScroll = (event) => {
+  const handleScroll = (event:any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / (screenWidth * 0.85));
     setActiveIndex(index);

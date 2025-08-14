@@ -32,7 +32,7 @@ interface CartState {
   ) => Promise<boolean>;
   updateQty: (
     cartItemId: string,
-    quantity: number,
+    qty: number,
     authToken: string
   ) => Promise<boolean>;
   removeCartItems: (itemIds: string[], authToken: string) => Promise<boolean>;

@@ -176,14 +176,7 @@ const CartCard: React.FC<CartCardProps> = ({
         storeId={storeId}
         items={items}
         onCartChange={onCartChange} // triggers reload in parent
-        updateQty={async (cartItemId: string, qty: number) => {
-          console.log("Updating qty:", cartItemId, qty);
-          if (!authToken) return false;
-          const success = await updateQty(cartItemId, qty, authToken);
-          if (success) onCartChange?.(); // refresh parent after update
-          return success;
-        }}
-      />
+        />
     </View>
   );
 };

@@ -135,7 +135,6 @@ const CartScreen = () => {
           <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
         </View>
       </View>
-
       <View style={styles.listWrapper}>
         <FlashList
           data={[...carts].reverse()}

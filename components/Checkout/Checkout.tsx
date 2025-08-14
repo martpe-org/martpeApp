@@ -38,7 +38,7 @@ const init_ws_url = "wss://api-sandbox.martpe.in/api/v1/user/init";
 const confirm_ws_url = "wss://api-sandbox.martpe.in/api/v1/user/confirm";
 const create_order_url = `https://api-sandbox.martpe.in/api/v1/user/payment/create_order`;
 
-const Checkout = ({ id }) => {
+const Checkout = ({ id : any}) => {
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);

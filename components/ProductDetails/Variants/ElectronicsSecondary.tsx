@@ -29,7 +29,7 @@ const ElectronicsSecondary: FC<ElectronicsProps> = ({
     <View>
       <Pressable
         onPress={() => {
-          router.push(`/(tabs)/home/productDetails/${productId}`);
+          router.push(`../(tabs)/home/result/productDetails/${productId}`);
         }}
         style={{
           paddingVertical: 10,

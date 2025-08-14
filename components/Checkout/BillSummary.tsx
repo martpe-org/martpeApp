@@ -1,59 +1,104 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import CheckoutItems from "./CheckoutItems";
 
-export const BillSummary = ({
+interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  unit_max_price: number;
+  total_price: number;
+  total_max_price: number;
+  name?: string;
+  image?: string;
+  available?: boolean;
+  maxQuantity?: number;
+  max_qty?: number;
+  log?: string[];
+  details?: {
+    descriptor?: {
+      name?: string;
+      symbol?: string;
+    };
+  };
+}
+
+interface Breakup {
+  delivery?: number;
+  packing?: number;
+  convenience?: number;
+  discount?: number;
+  tax?: number;
+}
+
+interface BillSummaryProps {
+  storeId: string;
+  updatedItems: CartItem[];
+  itemsTotal: number;
+  breakup?: Breakup;
+  grandTotal: number;
+  savings: number;
+  authToken: string;
+}
+
+export const BillSummary: React.FC<BillSummaryProps> = ({
   storeId,
   updatedItems,
   itemsTotal,
   breakup,
   grandTotal,
   savings,
+  authToken,
 }) => {
   return (
     <View style={styles.container}>
-      <CheckoutItems storeId={storeId} items={updatedItems} />
+      <CheckoutItems 
+        storeId={storeId} 
+        items={updatedItems} 
+        authToken={authToken}
+      />
       <View>
         {/* <View style={styles.titleContainer}>
           <Text style={styles.title}>BILL SUMMARY</Text>
         </View> */}
-        {(breakup?.delivery > 0 ||
-          breakup?.packing > 0 ||
-          breakup?.convenience > 0 ||
-          breakup?.discount > 0 ||
-          breakup?.tax > 0) && (
+        {(breakup?.delivery && breakup.delivery > 0 ||
+          breakup?.packing && breakup.packing > 0 ||
+          breakup?.convenience && breakup.convenience > 0 ||
+          breakup?.discount && breakup.discount > 0 ||
+          breakup?.tax && breakup.tax > 0) && (
           <View style={styles.priceContainer}>
             <View style={styles.row}>
               <Text style={styles.text}>Items Total</Text>
               <Text style={styles.text}>₹{itemsTotal}</Text>
             </View>
-            {breakup?.delivery > 0 && (
+            {breakup?.delivery && breakup.delivery > 0 && (
               <View style={styles.row}>
                 <Text style={styles.text}>Delivery fees</Text>
-                <Text style={styles.text}>₹{breakup?.delivery}</Text>
+                <Text style={styles.text}>₹{breakup.delivery}</Text>
               </View>
             )}
-            {breakup?.packing > 0 && (
+            {breakup?.packing && breakup.packing > 0 && (
               <View style={styles.row}>
                 <Text style={styles.text}>Packing</Text>
-                <Text style={styles.text}>₹{breakup?.packing}</Text>
+                <Text style={styles.text}>₹{breakup.packing}</Text>
               </View>
             )}
-            {breakup?.convenience > 0 && (
+            {breakup?.convenience && breakup.convenience > 0 && (
               <View style={styles.row}>
                 <Text style={styles.text}>Convenience</Text>
-                <Text style={styles.text}>₹{breakup?.convenience}</Text>
+                <Text style={styles.text}>₹{breakup.convenience}</Text>
               </View>
             )}
-            {breakup?.discount > 0 && (
+            {breakup?.discount && breakup.discount > 0 && (
               <View style={styles.row}>
                 <Text style={styles.text}>Discount</Text>
-                <Text style={styles.text}>₹{breakup?.discount}</Text>
+                <Text style={styles.text}>₹{breakup.discount}</Text>
               </View>
             )}
-            {breakup?.tax > 0 && (
+            {breakup?.tax && breakup.tax > 0 && (
               <View style={styles.row}>
                 <Text style={styles.text}>Tax</Text>
-                <Text style={styles.text}>₹{breakup?.tax}</Text>
+                <Text style={styles.text}>₹{breakup.tax}</Text>
               </View>
             )}
           </View>
@@ -105,13 +150,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginVertical: 10,
   },
-
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 2,
   },
-
   text: {
     fontSize: 13,
     color: "#666",

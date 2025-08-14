@@ -33,7 +33,7 @@ const ElectronicsPrimary: FC<ElectronicsProps> = ({
       {isPrimary ? (
         <Pressable
           onPress={() => {
-            router.push(`/(tabs)/home/productDetails/${productId}`);
+            router.push(`../(tabs)/home/productDetails/${productId}`);
           }}
           style={{
             width: Dimensions.get("window").width / 3,
@@ -68,7 +68,7 @@ const ElectronicsPrimary: FC<ElectronicsProps> = ({
       ) : (
         <Pressable
           onPress={() => {
-            router.push(`/(tabs)/home/productDetails/${productId}`);
+            router.push(`../(tabs)/home/result/productDetails/${productId}`);
           }}
           style={[
             styles.containerSecondary,

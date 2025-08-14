@@ -1,54 +1,80 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TextInput } from "react-native";
 import useUserDetails from "../../hook/useUserDetails";
 import useDeliveryStore from "../../state/deliveryAddressStore";
 import { DotIndicator } from "react-native-indicators";
 
-export const YourDetails = () => {
-  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-   const [deliveryInstructions, setDeliveryInstructions] = useState("");
-  const { userDetails, getUserDetails } = useUserDetails();
-  useEffect(() => {
-    getUserDetails();
-  }, []);
+interface YourDetailsProps {
+  onDeliveryInstructionsChange?: (instructions: string) => void;
+}
 
-  if (!userDetails) {
+export const YourDetails: React.FC<YourDetailsProps> = ({ 
+  onDeliveryInstructionsChange 
+}) => {
+  const { userDetails, isLoading } = useUserDetails();
+  const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
+
+  const handleInstructionsChange = useCallback((text: string) => {
+    setDeliveryInstructions(text);
+    onDeliveryInstructionsChange?.(text);
+  }, [onDeliveryInstructionsChange]);
+
+  // Show loading indicator while user details are being fetched
+  if (isLoading) {
     return (
-     null
+      <View style={[styles.container, styles.loadingContainer]}>
+        <DotIndicator color="#666" size={6} count={3} />
+      </View>
     );
   }
+
+  // Show message if user details are not available
+  if (!userDetails) {
+    return (
+      <View style={[styles.container, styles.emptyContainer]}>
+        <Text style={styles.emptyText}>Unable to load user details</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      {/* User Name */}
       <View style={styles.row}>
         <Text style={[styles.value, styles.bold]}>
-          {userDetails?.firstName || ""} {userDetails?.lastName || ""}
+          {userDetails.firstName} {userDetails.lastName}
         </Text>
       </View>
-      {userDetails?.email && (
-        <View style={styles.row}>
-          <Text style={styles.value}>{userDetails?.email}</Text>
-        </View>
-      )}
-      {userDetails?.phoneNumber && (
-        <View style={styles.row}>
-          <Text style={styles.value}>{userDetails?.phoneNumber}</Text>
-        </View>
-      )}
+
+      {/* Phone Number */}
       <View style={styles.row}>
-        <Text style={[styles.value]}>
+        <Text style={styles.value}>{userDetails.phoneNumber}</Text>
+      </View>
+
+      {/* Delivery Address */}
+      <View style={styles.row}>
+        <Text style={styles.value}>
           {selectedDetails?.fullAddress || "No address selected"}
         </Text>
       </View>
+
+      {/* Delivery Instructions */}
       <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Delivery Instructions</Text>
         <TextInput
           style={styles.input}
-          placeholder="Add delivery instructions..."
+          placeholder="Add delivery instructions (optional)..."
           textAlignVertical="top"
           multiline
           numberOfLines={3}
           value={deliveryInstructions}
-          onChangeText={(text) => setDeliveryInstructions(text)}
+          onChangeText={handleInstructionsChange}
+          maxLength={200}
         />
+        <Text style={styles.charCount}>
+          {deliveryInstructions.length}/200
+        </Text>
       </View>
     </View>
   );
@@ -62,27 +88,59 @@ const styles = StyleSheet.create({
     shadowColor: "rgba(0,0,0,0.5)",
     elevation: 2,
     marginTop: 15,
-    borderTopEndRadius: 10, 
-    borderTopStartRadius: 10, 
+    borderTopEndRadius: 10,
+    borderTopStartRadius: 10,
   },
-
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+  },
   row: {
-    marginBottom: 5,
+    marginBottom: 8,
   },
   value: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
   },
-  bold: { fontWeight: "400" },
+  bold: { 
+    fontWeight: "600",
+    fontSize: 16,
+    color: "#000",
+  },
   inputContainer: {
-    marginVertical: 5,
+    marginTop: 10,
   },
-
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 8,
+  },
   input: {
-    borderWidth: 0.5,
-    borderRadius: 5,
-    padding: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    borderColor: "#ddd",
+    backgroundColor: "#fafafa",
+    minHeight: 80,
+  },
+  charCount: {
     fontSize: 12,
-    borderColor: "#666",
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
   },
 });

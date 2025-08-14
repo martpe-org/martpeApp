@@ -1,19 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
   Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Store2 } from "../hook/fetch-home-type";
 import {
   foodCategoryData,
   groceriesCategoryData,
-} from "../constants/categories";
-import { Ionicons } from "@expo/vector-icons";
+} from "../../constants/categories";
+import { Store2 } from "../../hook/fetch-home-type";
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -40,11 +40,11 @@ export const useRenderFunctions = () => {
     <TouchableOpacity
       style={styles.restaurantCard}
       onPress={() =>
-  router.push({
-    pathname: "/(tabs)/home/result/productListing/[id]",
-    params: { id: item.slug },
-  })
-}
+        router.push({
+          pathname: "./(tabs)/home/result/productListing",
+          params: { id: item.slug },
+        })
+      }
     >
       <View style={styles.restaurantImageContainer}>
         <Image
@@ -88,7 +88,9 @@ export const useRenderFunctions = () => {
           </View>
 
           <Text style={styles.restaurantDeliveryTime}>
-            {item.avg_tts_in_h ? `${Math.round(item.avg_tts_in_h * 60)} mins` : "30-40 mins"}
+            {item.avg_tts_in_h
+              ? `${Math.round(item.avg_tts_in_h * 60)} mins`
+              : "30-40 mins"}
           </Text>
         </View>
 
@@ -100,7 +102,10 @@ export const useRenderFunctions = () => {
             <View
               style={[
                 styles.restaurantStatusDot,
-                { backgroundColor: item.status === "open" ? "#00C851" : "#FF4444" },
+                {
+                  backgroundColor:
+                    item.status === "open" ? "#00C851" : "#FF4444",
+                },
               ]}
             />
             <Text
@@ -124,22 +129,29 @@ export const useRenderFunctions = () => {
       item.domain?.replace("ONDC:", "") ||
       (item.type === "restaurant" ? "Restaurant" : "Store");
     const distance =
-      typeof item.distance_in_km === "number" ? `${item.distance_in_km.toFixed(1)} km` : "";
-    const rating = typeof item.rating === "number" && !isNaN(item.rating) ? item.rating.toFixed(1) : null;
+      typeof item.distance_in_km === "number"
+        ? `${item.distance_in_km.toFixed(1)} km`
+        : "";
+    const rating =
+      typeof item.rating === "number" && !isNaN(item.rating)
+        ? item.rating.toFixed(1)
+        : null;
 
     return (
       <TouchableOpacity
         style={styles.nearbyCard}
-       onPress={() =>
-  router.push({
-    pathname: "/(tabs)/home/result/productListing/[id]",
-    params: { id: item.slug },
-  })
-}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/productListing/[id]",
+            params: { id: item.slug },
+          })
+        }
       >
         <View style={styles.nearbyImageContainer}>
           <Image
-            source={{ uri: item.symbol || "https://via.placeholder.com/120x80" }}
+            source={{
+              uri: item.symbol || "https://via.placeholder.com/120x80",
+            }}
             style={styles.nearbyImage}
             resizeMode="cover"
           />
@@ -159,7 +171,9 @@ export const useRenderFunctions = () => {
           <Text style={styles.nearbyCategory} numberOfLines={1}>
             {category}
           </Text>
-          {distance !== "" && <Text style={styles.nearbyDistance}>{distance}</Text>}
+          {distance !== "" && (
+            <Text style={styles.nearbyDistance}>{distance}</Text>
+          )}
           {rating && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color="#FFD700" />
@@ -192,7 +206,9 @@ export const useRenderFunctions = () => {
         </TouchableOpacity>
         {nextItem && (
           <TouchableOpacity
-            onPress={() => router.push(`../../(tabs)/home/result/${nextItem.name}`)}
+            onPress={() =>
+              router.push(`../../(tabs)/home/result/${nextItem.name}`)
+            }
             style={styles.categoryItem}
           >
             <Image
