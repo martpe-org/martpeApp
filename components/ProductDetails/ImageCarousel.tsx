@@ -11,30 +11,36 @@ import {
 } from "react-native";
 
 const { width } = Dimensions.get("window");
-const snapInterval = width;
 
 interface ImageCarouselProps {
-  url: string[];
+  url: any; // can be string, string[], or object[]
 }
+
+const normalizeImages = (images: any): string[] => {
+  if (!images) return [];
+  if (typeof images === "string") return [images];
+  if (Array.isArray(images)) {
+    return images.map((img) =>
+      typeof img === "string" ? img : img?.url || ""
+    ).filter(Boolean);
+  }
+  return [];
+};
 
 const ImageCarousel: React.FC<ImageCarouselProps> = ({ url }) => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const imageUrls = normalizeImages(url);
 
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const currentIndex = Math.round(scrollPosition / snapInterval);
-    setActiveIndex(currentIndex);
-  }, []);
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const scrollPosition = event.nativeEvent.contentOffset.x;
+      const currentIndex = Math.round(scrollPosition / width);
+      setActiveIndex(currentIndex);
+    },
+    []
+  );
 
-  const imageStyle = useCallback((index: number) => ({
-    width: "100%" as const,
-    height: "100%" as const,
-    resizeMode: "cover" as const,
-    // borderRadius: 10,
-  }), []);
-
-  // Handle empty or invalid URL array
-  if (!url || !Array.isArray(url) || url.length === 0) {
+  if (imageUrls.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.imageContainer}>
@@ -50,26 +56,24 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ url }) => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        snapToInterval={snapInterval}
-        decelerationRate="fast"
         onScroll={handleScroll}
-        scrollEventThrottle={16} // Add throttling for better performance
+        scrollEventThrottle={16}
       >
-        {url.map((image, index) => (
+        {imageUrls.map((image, index) => (
           <View key={index} style={styles.imageContainer}>
-            <Image 
-              source={{ uri: image }} 
-              style={imageStyle(index)}
-            //  defaultSource={require('../../assets/placeholder.png')} // Add placeholder if needed
+            <Image
+              source={{ uri: image }}
+              style={styles.image}
+              resizeMode="contain"
             />
           </View>
         ))}
       </ScrollView>
-      
-      {url.length > 1 && (
+
+      {imageUrls.length > 1 && (
         <View style={styles.indicatorContainer}>
           <Text style={styles.indicatorText}>
-            {activeIndex + 1}/{url.length}
+            {activeIndex + 1}/{imageUrls.length}
           </Text>
         </View>
       )}
@@ -81,47 +85,36 @@ export default ImageCarousel;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     width: "100%",
-    marginBottom: width * 0.05,
-    // paddingHorizontal: width * 0.05,
+    backgroundColor: "#fff",
   },
   imageContainer: {
-    marginTop: width * 0.05,
     width: width,
-    height: 200,
-    marginRight: width * 0.02,
-    // borderRadius: 10,
+    height: width * 0.75,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#F9FAFB",
   },
-  imageContainerSingle: {
-    marginTop: width * 0.05,
-    width: width * 0.9,
-    height: 200,
-    borderColor: "#BBC8D1",
-    borderWidth: 1,
-    marginLeft: width * 0.05,
-    // borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  image: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
   },
   indicatorContainer: {
     alignItems: "center",
+    marginTop: 6,
   },
   indicatorText: {
     backgroundColor: "#656565",
-    width: width * 0.1,
-    textAlign: "center",
-    color: "white",
-    borderRadius: 100,
-    marginTop: width * 0.02,
-    fontSize: 12,
+    paddingHorizontal: 8,
     paddingVertical: 2,
+    borderRadius: 100,
+    color: "white",
+    fontSize: 12,
+    textAlign: "center",
   },
   noImageText: {
     fontSize: 16,
     color: "#666",
-    textAlign: "center",
   },
 });

@@ -24,6 +24,7 @@ import Loader from "../../../../../components/common/Loader";
 import Search from "../../../../../components/common/Search";
 import { fetchProductDetails } from "../../../../../components/product/fetch-product";
 import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
+import { useRouter } from "expo-router";
 
 // Constants
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -50,6 +51,7 @@ const ProductDetails: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ErrorState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   // Memoized computed values
   const maxQuantityLimit = useMemo(() => {
@@ -132,15 +134,16 @@ const ProductDetails: FC = () => {
   }, [fetchData]);
 
   // Render functions
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Search
-        placeholder="Search for anything..."
-        showBackArrow
-        showLocation={false}
-      />
-    </View>
-  );
+const renderHeader = () => (
+  <View style={styles.headerContainer}>
+    <Search
+      onPress={() => {
+        router.push("../search");
+      }}
+    />
+  </View>
+);
+
 
   const renderError = () => (
     <SafeAreaView style={styles.container}>
@@ -332,7 +335,7 @@ export default ProductDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#f7f3f3',
   },
   headerContainer: {
     backgroundColor: '#ffffff',

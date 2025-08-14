@@ -37,15 +37,19 @@ const SellerDetails: FC<SellerDetailsProps> = ({
         <Text style={styles.sellerNameText}> {sellerName}</Text>
       </View>
 
-      <Image
-        source={{ uri: sellerSymbol }}
-        style={{
-          width: width * 0.8,
-          height: width * 0.6,
-          marginVertical: width * 0.05,
-          borderRadius: 4,
-        }}
-      />
+     <Image
+  source={{ uri: sellerSymbol }}
+  style={{
+    width: width * 0.25,       // 25% of screen width
+    height: width * 0.25,      // Equal height for circle
+    marginVertical: width * 0.04,
+    borderRadius: (width * 0.25) / 2, // Perfect circle
+    resizeMode: "cover",       // Fill without distortion
+    borderWidth: 1,
+    borderColor: "#0a0a0a",    // Subtle border
+  }}
+/>
+
       <Text style={styles.title}>Store Name</Text>
       <Text style={styles.details}>{storeName}</Text>
 
@@ -130,7 +134,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#fff",
+    backgroundColor: "grey",
     justifyContent: "center",
     alignItems: "center",
   },

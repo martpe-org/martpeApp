@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 });
 
 type ImageInterface = {
-  source: { uri: string } | number;
+  source?: { uri?: string } | { url?: string } | string | number | null;
   imageStyle?: ImageStyle;
   resizeMode?: ImageResizeMode;
   fallbackSource?: { uri: string } | number;
@@ -36,23 +36,48 @@ type ImageInterface = {
 
 const defaultProps = {
   resizeMode: "cover" as ImageResizeMode,
-  fallbackSource: require("../../assets/images/no-image.png"), // use PNG for compatibility
+  fallbackSource: require("../../assets/images/no-image.png"),
 };
 
 const ImageComp = (props: ImageInterface & typeof defaultProps) => {
   const { source, imageStyle, resizeMode, fallbackSource } = props;
 
+  // Normalize the source so it works for Search, ProductDetails, etc.
+  const normalizedSource = useMemo(() => {
+    if (!source) return fallbackSource;
+
+    if (typeof source === "string") {
+      return source.trim() !== "" ? { uri: source } : fallbackSource;
+    }
+
+    if (typeof source === "number") {
+      return source;
+    }
+
+    if ("uri" in source && source.uri) {
+      return { uri: source.uri };
+    }
+
+    if ("url" in source && source.url) {
+      return { uri: source.url };
+    }
+
+    return fallbackSource;
+  }, [source, fallbackSource]);
+
   const [isLoading, setIsLoading] = useState(
-    typeof source === "object" && !!source.uri
+    typeof normalizedSource === "object" &&
+      normalizedSource !== null &&
+      "uri" in normalizedSource &&
+      !!normalizedSource.uri
   );
-  const [finalSource, setFinalSource] = useState(source);
+  const [finalSource, setFinalSource] = useState(normalizedSource);
   const [hasErrored, setHasErrored] = useState(false);
 
   const handleError = () => {
-    // Prevent infinite loop if fallback also fails
     if (!hasErrored) {
       setHasErrored(true);
-      setFinalSource(fallbackSource || defaultProps.fallbackSource);
+      setFinalSource(fallbackSource);
     }
     setIsLoading(false);
   };
@@ -63,7 +88,7 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
         source={finalSource}
         style={[styles.imageStyle, imageStyle]}
         resizeMode={resizeMode}
-        onError={handleError} // No console.log to keep terminal clean
+        onError={handleError}
         onLoadEnd={() => setIsLoading(false)}
       />
       {isLoading && (
@@ -76,5 +101,4 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
 };
 
 ImageComp.defaultProps = defaultProps;
-
 export default ImageComp;

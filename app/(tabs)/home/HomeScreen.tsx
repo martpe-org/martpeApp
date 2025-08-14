@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
@@ -17,7 +17,7 @@ import {
 import { fetchHome } from "../../../hook/fetch-home-data";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
 
-import { Entypo, FontAwesome6, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRenderFunctions } from "../../../components/Landing Page/render";
 import {
   categoryData,
@@ -28,6 +28,10 @@ import {
   homeAndDecorCategoryData,
   personalCareCategoryData,
 } from "../../../constants/categories";
+
+// Import the new components
+import LocationBar from "../../../components/common/LocationBar";
+import Search from "../../../components/common/Search";
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -43,34 +47,6 @@ export default function HomeScreen() {
     renderFoodCategories,
     renderGroceryCategories,
   } = useRenderFunctions();
-
-  // --- UI animation state (search placeholder) ---
-  const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
-  const [searchTextIndex, setSearchTextIndex] = useState(0);
-  const words = searchTexts[searchTextIndex].split(" ");
-  const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    // animate words when index changes
-    wordAnimations.forEach((anim) => anim.setValue(0));
-    Animated.stagger(
-      150,
-      wordAnimations.map((anim) =>
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        })
-      )
-    ).start();
-  }, [searchTextIndex]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     loadDeliveryDetails();
@@ -141,6 +117,10 @@ export default function HomeScreen() {
     router.push("../address/SavedAddresses");
   };
 
+  const handleSearchPress = () => {
+    router.push("../search");
+  };
+
   // --- Main render ---
   return (
     <SafeAreaView style={styles.container}>
@@ -150,72 +130,12 @@ export default function HomeScreen() {
       >
         {/* Red header */}
         <View style={styles.redSection}>
-          <TouchableOpacity
-            style={styles.locationRow}
-            onPress={handleLocationPress}
-          >
-            <FontAwesome6
-              name="location-pin-lock"
-              size={18}
-              color="white"
-              style={{ marginRight: 16 }}
-            />
-            <Text style={styles.deliveryTxt}>Delivering to</Text>
-            <Text style={styles.locationTxt} numberOfLines={1}>
-              {selectedDetails?.city || "Select Location"}
-              {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
-            </Text>
-            <Entypo name="chevron-down" size={18} color="white" />
-          </TouchableOpacity>
+          <LocationBar 
+            selectedDetails={selectedDetails} 
+            onPress={handleLocationPress} 
+          />
 
-          <TouchableOpacity
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#f2f2f2",
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              marginHorizontal: 1,
-              marginTop: 10,
-            }}
-            onPress={() => router.push("../search")}
-            activeOpacity={0.9}
-          >
-            <Ionicons
-              name="search"
-              size={20}
-              color="#555"
-              style={{ marginRight: 8 }}
-            />
-            <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
-              <Text style={{ color: "#8E8A8A", fontSize: 16 }}>
-                Search for{" "}
-              </Text>
-              {words.map((word, idx) => (
-                <Animated.Text
-                  key={idx}
-                  style={{
-                    opacity: wordAnimations[idx],
-                    transform: [
-                      {
-                        translateY: wordAnimations[idx].interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [10, 0],
-                        }),
-                      },
-                    ],
-                    color: "#8E8A8A",
-                    fontSize: 16,
-                    marginRight: 4,
-                  }}
-                >
-                  {word}
-                </Animated.Text>
-              ))}
-            </View>
-          </TouchableOpacity>
-
+<Search onPress={handleSearchPress} />
           <FlatList
             data={categoryData}
             horizontal
@@ -569,21 +489,6 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingHorizontal: 16,
     paddingBottom: 10,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deliveryTxt: {
-    color: "white",
-    fontSize: 14,
-    marginHorizontal: 6,
-    marginLeft: -12,
-  },
-  locationTxt: {
-    color: "white",
-    fontSize: 14,
-    marginRight: 4,
   },
   catList: {
     marginTop: 5,
