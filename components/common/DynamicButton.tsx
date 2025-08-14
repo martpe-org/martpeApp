@@ -1,8 +1,9 @@
-import { useRef, FC, ReactNode } from "react";
+import { useRef, FC, ReactNode, useMemo } from "react";
 import { Animated, Pressable } from "react-native";
 import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
+import { updateQty as updateQtyApi } from "../../state/updateQty"; // ✅ Explicit import to avoid name clash
 
 interface DynamicButtonProps {
   children: ReactNode;
@@ -10,10 +11,11 @@ interface DynamicButtonProps {
   isUpdated?: boolean;
   storeId?: string;
   onPress?: () => void;
+  onSuccess?: () => void;
   slug?: string;
   catalogId?: string;
   cartItemId?: string;
-  quantity?: number;
+  qty?: number;
   customizable?: boolean;
   customizations?: {
     _id?: string;
@@ -36,21 +38,30 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   slug,
   catalogId,
   cartItemId,
-  quantity = 1,
+  qty = 1,
   customizable = false,
   customizations = [],
   disabled = false,
+  onSuccess,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const toast = useToast();
-
-  // ✅ Get auth token & auth state
   const { authToken, isAuthenticated } = useUserDetails();
+  const { addItem, removeCartItems, removeCart } = useCartStore();
 
-  // Cart store actions
-  const { addItem, updateItemQuantity, removeCartItems, removeCart } = useCartStore();
+  // ✅ Memoize normalization
+  const normalizedCustomizations = useMemo(
+    () =>
+      customizations
+        .map((custom) => ({
+          groupId: custom.groupId || custom.group_id || "",
+          optionId: custom.optionId || custom.option_id || "",
+          name: custom.name || "",
+        }))
+        .filter((c) => c.groupId && c.optionId && c.name),
+    [customizations]
+  );
 
-  // Button press animations
   const animatePressIn = () => {
     Animated.spring(scale, {
       toValue: 0.9,
@@ -69,16 +80,16 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   };
 
   const handlePress = async () => {
+    if (disabled) return;
+
     animatePressIn();
 
     try {
-      // 🔒 Require authentication
       if (!isAuthenticated || !authToken) {
         toast.show("Please login to continue", { type: "danger" });
         return;
       }
 
-      // 🛠 If a custom press handler exists, use it
       if (onPress) {
         onPress();
         return;
@@ -96,14 +107,6 @@ const DynamicButton: FC<DynamicButtonProps> = ({
           return;
         }
 
-        const normalizedCustomizations = customizations
-          .map((custom) => ({
-            groupId: custom.groupId || custom.group_id || "",
-            optionId: custom.optionId || custom.option_id || "",
-            name: custom.name || "",
-          }))
-          .filter((c) => c.groupId && c.optionId && c.name);
-
         const success = await addItem(
           storeId,
           slug,
@@ -111,28 +114,32 @@ const DynamicButton: FC<DynamicButtonProps> = ({
           1,
           customizable,
           normalizedCustomizations,
-          authToken // ✅ pass token
+          authToken
         );
 
         toast.show(success ? "Added to cart" : "Error adding to cart", {
           type: success ? "success" : "danger",
         });
 
+        if (success) onSuccess?.();
         return;
       }
 
       // 🔄 Update existing item
       if (isUpdated) {
-        if (quantity > 0) {
+        if (qty > 0) {
           if (!cartItemId) {
             toast.show("Missing cart item ID", { type: "danger" });
             return;
           }
 
-          const success = await updateItemQuantity(cartItemId, quantity, authToken);
+          const success = await updateQtyApi(cartItemId, qty, authToken);
+
           toast.show(success ? "Updated cart" : "Error updating cart", {
             type: success ? "success" : "danger",
           });
+
+          if (success) onSuccess?.();
         } else {
           // 🗑 Remove item or entire cart
           if (cartItemId) {
@@ -150,7 +157,6 @@ const DynamicButton: FC<DynamicButtonProps> = ({
         return;
       }
 
-      // ❓ No valid operation
       toast.show("Invalid cart operation", { type: "warning" });
     } catch (error: any) {
       console.error("DynamicButton error:", error?.message);
@@ -163,7 +169,7 @@ const DynamicButton: FC<DynamicButtonProps> = ({
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
-        onPress={disabled ? undefined : handlePress}
+        onPress={handlePress}
         disabled={disabled}
         style={disabled ? { opacity: 0.5 } : undefined}
       >

@@ -1,12 +1,26 @@
 import { create } from "zustand";
 import { removeCart } from "./removeCart";
 import { removeCartItems } from "./removeCartItems";
-import { updateQty } from "./updateQty";
+import { updateQty as updateQtyAction } from "./updateQty";
 import { addToCartAction } from "./addToCart";
 
+interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  unit_max_price: number;
+  total_price: number;
+  total_max_price: number;
+}
+
+interface Cart {
+  store: { _id: string };
+  cart_items: CartItem[];
+}
+
 interface CartState {
-  allCarts: any[];
-  setAllCarts: (carts: any[]) => void;
+  allCarts: Cart[];
+  setAllCarts: (carts: Cart[]) => void;
   addItem: (
     storeId: string,
     slug: string,
@@ -25,7 +39,7 @@ interface CartState {
   removeCart: (storeId: string, authToken: string) => Promise<boolean>;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
+export const useCartStore = create<CartState>((set) => ({
   allCarts: [],
 
   setAllCarts: (carts) => set({ allCarts: carts }),
@@ -54,61 +68,82 @@ export const useCartStore = create<CartState>((set, get) => ({
     return success;
   },
 
-  updateQty: async (cartItemId, quantity, authToken) => {
-    if (!authToken) return false;
-    const { success } = await updateQty(cartItemId, quantity, authToken);
-    
-    if (success) {
-      // Update local state optimistically
-      const currentCarts = get().allCarts;
-      const updatedCarts = currentCarts.map(cart => ({
-        ...cart,
-        items: cart.items.map((item: any) => 
-          item._id === cartItemId 
-            ? { 
-                ...item, 
-                qty: quantity,
-                total_price: item.unit_price * quantity,
-                total_max_price: item.unit_max_price * quantity
-              }
-            : item
-        )
-      }));
-      set({ allCarts: updatedCarts });
+  updateQty: async (cartItemId, qty, authToken) => {
+    if (!authToken || !cartItemId) return false;
+
+    try {
+      const success = await updateQtyAction(cartItemId, qty, authToken);
+
+      if (!success) return false;
+
+      // Update state only if API succeeded
+      set((state) => {
+        const updatedCarts = state.allCarts.map((cart) => ({
+          ...cart,
+          cart_items: cart.cart_items.map((item) =>
+            item._id === cartItemId
+              ? {
+                  ...item,
+                  qty,
+                  total_price: item.unit_price * qty,
+                  total_max_price: item.unit_max_price * qty,
+                }
+              : item
+          ),
+        }));
+        return { allCarts: updatedCarts };
+      });
+
+      return true;
+    } catch (error) {
+      console.error("updateQty error:", error);
+      return false;
     }
-    
-    return success;
   },
 
   removeCartItems: async (itemIds, authToken) => {
-    if (!authToken) return false;
-    const { success } = await removeCartItems(itemIds, authToken);
-    
-    if (success) {
-      // Remove items from local state
-      const currentCarts = get().allCarts;
-      const updatedCarts = currentCarts.map(cart => ({
-        ...cart,
-        items: cart.items.filter((item: any) => !itemIds.includes(item._id))
-      })).filter(cart => cart.items.length > 0); // Remove empty carts
-      
-      set({ allCarts: updatedCarts });
+    if (!authToken || !itemIds?.length) return false;
+
+    try {
+      const success = await removeCartItems(itemIds, authToken);
+      if (!success) return false;
+
+      set((state) => {
+        const updatedCarts = state.allCarts
+          .map((cart) => ({
+            ...cart,
+            cart_items: cart.cart_items.filter(
+              (item) => !itemIds.includes(item._id)
+            ),
+          }))
+          .filter((cart) => cart.cart_items.length > 0);
+        return { allCarts: updatedCarts };
+      });
+
+      return true;
+    } catch (error) {
+      console.error("removeCartItems error:", error);
+      return false;
     }
-    
-    return success;
   },
 
   removeCart: async (storeId, authToken) => {
-    if (!authToken) return false;
-    const { success } = await removeCart(storeId, authToken);
-    
-    if (success) {
-      // Remove entire cart from local state
-      const currentCarts = get().allCarts;
-      const updatedCarts = currentCarts.filter(cart => cart.store._id !== storeId);
-      set({ allCarts: updatedCarts });
+    if (!authToken || !storeId) return false;
+
+    try {
+      const success = await removeCart(storeId, authToken);
+      if (!success) return false;
+
+      set((state) => ({
+        allCarts: state.allCarts.filter(
+          (cart) => cart.store._id !== storeId
+        ),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("removeCart error:", error);
+      return false;
     }
-    
-    return success;
   },
 }));

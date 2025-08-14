@@ -13,20 +13,29 @@ import useDeliveryStore from "../../state/deliveryAddressStore";
 import useUserDetails from "../../hook/useUserDetails";
 import { getDistance } from "geolib";
 import { FontAwesome } from "@expo/vector-icons";
-import { FetchCartStore, CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
+import {
+  FetchCartStore,
+  CartItemType,
+} from "../../app/(tabs)/cart/fetch-carts-type";
 
 interface CartCardProps {
   id: string;
   store: FetchCartStore;
   items: CartItemType[];
+  onCartChange?: () => void; // called when cart updates
 }
 
-const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
-  const { removeCart } = useCartStore();
+const CartCard: React.FC<CartCardProps> = ({
+  id,
+  store,
+  items,
+  onCartChange,
+}) => {
+  const { removeCart, updateQty } = useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
-  
+
   const [isRemoving, setIsRemoving] = useState(false);
 
   const storeId = store._id;
@@ -36,28 +45,15 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
   const storeLocation = store.gps;
 
   const distance = useMemo(() => {
-    if (
-      !storeLocation?.lat ||
-      !storeLocation?.lon ||
-      !selectedDetails?.lat ||
-      !selectedDetails?.lng
-    ) {
+    if (!storeLocation?.lat || !storeLocation?.lon || !selectedDetails?.lat || !selectedDetails?.lng) {
       return null;
     }
     try {
       return Number(
-        (
-          getDistance(
-            {
-              latitude: Number(storeLocation.lat),
-              longitude: Number(storeLocation.lon),
-            },
-            {
-              latitude: Number(selectedDetails.lat),
-              longitude: Number(selectedDetails.lng),
-            }
-          ) / 1000
-        ).toFixed(1)
+        (getDistance(
+          { latitude: Number(storeLocation.lat), longitude: Number(storeLocation.lon) },
+          { latitude: Number(selectedDetails.lat), longitude: Number(selectedDetails.lng) }
+        ) / 1000).toFixed(1)
       );
     } catch (error) {
       console.error("Error calculating distance:", error);
@@ -76,8 +72,8 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
   };
 
   const handleCloseButton = () => {
-    if (isRemoving) return; // Prevent multiple calls
-    
+    if (isRemoving) return;
+
     Alert.alert(
       "Remove Cart",
       "Are you sure you want to remove this cart and all its items?",
@@ -87,22 +83,19 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
-            if (isRemoving) return; // Double-check
-            
+            if (!authToken) {
+              Alert.alert("Login Required", "Please login to remove cart.");
+              return;
+            }
+
+            setIsRemoving(true);
             try {
-              if (!authToken) {
-                Alert.alert("Login Required", "Please login to remove cart.");
-                return;
-              }
-              
-              setIsRemoving(true);
-              console.log("Starting cart removal for store:", storeId);
-              
               const success = await removeCart(storeId, authToken);
               if (!success) {
                 Alert.alert("Error", "Failed to remove cart. Please try again.");
               } else {
                 console.log("Cart removal successful");
+                onCartChange?.(); // refresh parent
               }
             } catch (error) {
               console.error("Error deleting the cart", error);
@@ -178,109 +171,40 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items }) => {
       </View>
 
       {/* Cart Items */}
-      <CartItems cartId={id} storeId={storeId} items={items} />
+      <CartItems
+        cartId={id}
+        storeId={storeId}
+        items={items}
+        onCartChange={onCartChange} // triggers reload in parent
+        updateQty={async (cartItemId: string, qty: number) => {
+          console.log("Updating qty:", cartItemId, qty);
+          if (!authToken) return false;
+          const success = await updateQty(cartItemId, qty, authToken);
+          if (success) onCartChange?.(); // refresh parent after update
+          return success;
+        }}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginHorizontal: 15,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 2,
-    flex: 1,
-    position: "relative",
-  },
-  emptyContainer: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 20,
-    marginHorizontal: 15,
-    marginVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-  },
-  sellerInfoContainer: {
-    marginBottom: 10,
-    flex: 1,
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: "#e9ecef",
-    paddingBottom: 10,
-  },
-  sellerInfo: {
-    flex: 1,
-  },
-  sellerLogo: {
-    width: 60,
-    height: 60,
-    marginRight: 16,
-    borderColor: "#e9ecef",
-    borderWidth: 1,
-    borderRadius: 10,
-  },
-  placeholderLogo: {
-    backgroundColor: "#e9ecef",
-  },
-  sellerName: {
-    fontSize: 18,
-    maxWidth: 200,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
-  },
-  sellerLocation: {
-    color: "#767582",
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  distanceContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  time: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  distanceText: {
-    fontSize: 12,
-    color: "#666",
-  },
-  separator: {
-    color: "#848080",
-    fontSize: 12,
-  },
-  timeText: {
-    fontSize: 12,
-    color: "green",
-  },
-  closeIcon: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 4,
-  },
-  trashIconStyle: {
-    padding: 5,
-    paddingLeft: 7,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    borderRadius: 5,
-    alignSelf: "center",
-  },
+  container: { backgroundColor: "white", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 10, marginHorizontal: 15, marginVertical: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3.84, elevation: 2, flex: 1, position: "relative" },
+  emptyContainer: { backgroundColor: "white", borderRadius: 8, padding: 20, marginHorizontal: 15, marginVertical: 10, alignItems: "center", justifyContent: "center" },
+  emptyText: { fontSize: 16, color: "#666", textAlign: "center" },
+  sellerInfoContainer: { marginBottom: 10, flex: 1, flexDirection: "row", borderBottomWidth: 1, borderColor: "#e9ecef", paddingBottom: 10 },
+  sellerInfo: { flex: 1 },
+  sellerLogo: { width: 60, height: 60, marginRight: 16, borderColor: "#e9ecef", borderWidth: 1, borderRadius: 10 },
+  placeholderLogo: { backgroundColor: "#e9ecef" },
+  sellerName: { fontSize: 18, maxWidth: 200, fontWeight: "bold", color: "#333", marginBottom: 4 },
+  sellerLocation: { color: "#767582", fontSize: 14, marginBottom: 4 },
+  distanceContainer: { flexDirection: "row", alignItems: "center" },
+  time: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  distanceText: { fontSize: 12, color: "#666" },
+  separator: { color: "#848080", fontSize: 12 },
+  timeText: { fontSize: 12, color: "green" },
+  closeIcon: { alignItems: "center", justifyContent: "center", padding: 4 },
+  trashIconStyle: { padding: 5, paddingLeft: 7, borderWidth: 1, borderColor: "#e9ecef", borderRadius: 5, alignSelf: "center" },
 });
 
 export default CartCard;

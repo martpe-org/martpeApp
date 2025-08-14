@@ -2,14 +2,14 @@ import Constants from "expo-constants";
 
 const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
-export const removeCartItems = async (itemIds: string[], authToken: string) => {
-  if (!authToken) {
-    console.error("removeCartItems: Missing auth token");
-    return { success: false };
-  }
-
+export const removeCartItems = async (cartItemIds: string[], authToken: string) => {
   try {
-    console.log("Removing cart items:", itemIds);
+    if (!authToken) {
+      console.warn("No auth token provided — cannot remove cart items");
+      return false;
+    }
+
+    console.log("Removing cart items:", cartItemIds);
 
     const res = await fetch(`${BASE_URL}/carts/remove-items`, {
       method: "DELETE",
@@ -17,28 +17,19 @@ export const removeCartItems = async (itemIds: string[], authToken: string) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${authToken}`,
       },
-      body: JSON.stringify({ item_ids: itemIds }),
+      body: JSON.stringify({ cartItemIds }),
     });
 
     if (!res.ok) {
-      const errorText = await res.text();
-      const errorData = errorText ? JSON.parse(errorText) : {};
+      const errorData = await res.json().catch(() => ({}));
       console.error(`Failed to remove cart items: ${res.status}`, errorData);
-      return { success: false };
+      return false;
     }
 
-    // Handle empty body for 204 responses
-    const text = await res.text();
-    if (text) {
-      const responseData = JSON.parse(text);
-      console.log("Remove cart items success:", responseData);
-    } else {
-      console.log("Remove cart items success: No content returned (204)");
-    }
-
-    return { success: true };
+    console.log("Remove cart items success");
+    return true;
   } catch (error) {
     console.error("removeCartItems error:", error);
-    return { success: false };
+    return false;
   }
 };

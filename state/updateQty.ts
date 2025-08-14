@@ -7,37 +7,32 @@ export const updateQty = async (
   qty: number,
   authToken: string
 ) => {
-  if (!authToken) {
-    console.error("updateQty: Missing auth token");
-    return { success: false };
-  }
-
   try {
-    console.log("Updating quantity for item:", cartItemId, "to:", qty);
-
-    const res = await fetch(`${BASE_URL}/carts/update-item`, {
-      method: "PUT", // ✅ same as server action
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({
-        cartItemId, // ✅ send cartItemId like server code
-        qty,
-        update_target: "qty", // ✅ match backend contract
-      }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      console.error(`updateQty failed: ${res.status}`, errorData);
-      return { success: false };
+    if (!authToken) {
+      console.warn("No auth token provided — cannot update cart item qty");
+      return false;
     }
 
-    console.log("updateQty success");
-    return { success: true };
+    if (!cartItemId || typeof qty !== "number") {
+      console.warn("Invalid cartItemId or qty");
+      return false;
+    }
+
+  const res = await fetch(`${BASE_URL}/carts/update-item`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+  body: JSON.stringify({ cartItemId, qty, update_target: "qty" }),
+});
+
+const data = await res.json().catch(() => ({}));
+console.log("API response:", res.status, data);
+
+if (!res.ok) return false;
+
+
+    return true;
   } catch (error) {
     console.error("updateQty error:", error);
-    return { success: false };
+    return false;
   }
 };

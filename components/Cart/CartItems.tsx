@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Dimensions,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import { FlashList } from "@shopify/flash-list";
@@ -16,16 +17,26 @@ import { AntDesign } from "@expo/vector-icons";
 import useUserDetails from "../../hook/useUserDetails";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 
+const { width: windowWidth } = Dimensions.get("window");
+const widthPercentageToDP = (percent: string) => {
+  const widthPercent = parseFloat(percent);
+  return (windowWidth * widthPercent) / 100;
+};
+
 interface CartItemsProps {
   cartId: string;
   storeId: string;
   items: CartItemType[];
+  onCartChange?: () => void;
+    updateQty?: (cartItemId: string, qty: number) => Promise<boolean>;  // Add callback for cart changes
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
+const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items, onCartChange }) => {
   const { removeCartItems, removeCart, updateQty } = useCartStore();
-  const { userDetails } = useUserDetails();
-  const authToken = userDetails?.accessToken;
+ const { userDetails, isLoading: isUserLoading } = useUserDetails();
+const authToken = userDetails?.accessToken;
+
+
 
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
@@ -34,30 +45,50 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
     []
   );
 
-  const handleQuantityChange = async (cartItemId: string, qty: number) => {
-    if (!authToken || !cartItemId || qty < 0) return;
+const handleQuantityChange = async (
+  cartItemId: string,
+  qty: number,
+  authToken: string
+) => {
+  if (!cartItemId || qty < 0 || !authToken) {
+    console.warn("Cannot update quantity: Invalid input", {
+      cartItemId,
+      qty,
+      authToken,
+    });
+    return;
+  }
 
-    setIsUpdating(cartItemId);
-    try {
-      console.log("Updating item quantity:", cartItemId, "to:", qty);
+  setIsUpdating(cartItemId);
 
-      const success = await updateQty(cartItemId, qty, authToken);
+  try {
+    console.log("Updating cart item", { cartItemId, qty });
 
-      if (!success) {
-        Alert.alert(
-          "Error",
-          "Failed to update item quantity. Please try again."
-        );
-      } else {
-        console.log("Quantity updated successfully");
-      }
-    } catch (error) {
-      console.error("Error updating item quantity", error);
-      Alert.alert("Error", "Failed to update item quantity. Please try again.");
-    } finally {
-      setIsUpdating(null);
+    const success = updateQty
+      ? await updateQty(cartItemId, qty, authToken)
+      : await useCartStore.getState().updateQty(cartItemId, qty, authToken);
+
+    if (!success) {
+      console.error("Failed to update quantity for", cartItemId);
+      Alert.alert(
+        "Error",
+        "Failed to update item quantity. Please check stock or try again."
+      );
+    } else {
+      console.log("Quantity updated successfully for", cartItemId);
+      onCartChange?.();
     }
-  };
+  } catch (error) {
+    console.error("Error updating item quantity", error);
+    Alert.alert(
+      "Error",
+      "Failed to update item quantity. Please check your connection and try again."
+    );
+  } finally {
+    setIsUpdating(null);
+  }
+};
+
 
   const handleDeleteItem = async (cartItemId: string) => {
     if (!authToken || !cartItemId) return;
@@ -73,12 +104,12 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
             style: "destructive",
             onPress: async () => {
               try {
-                console.log("Removing entire cart for store:", storeId);
                 const success = await removeCart(storeId, authToken);
                 if (!success) {
                   Alert.alert("Error", "Failed to remove cart. Please try again.");
                 } else {
-                  console.log("Cart removed successfully");
+                  // The Zustand store already updates the state
+                  onCartChange?.();
                 }
               } catch (error) {
                 console.error("Error deleting cart:", error);
@@ -90,12 +121,12 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
       );
     } else {
       try {
-        console.log("Removing single item:", cartItemId);
         const success = await removeCartItems([cartItemId], authToken);
         if (!success) {
           Alert.alert("Error", "Failed to remove item. Please try again.");
         } else {
-          console.log("Item removed successfully");
+          // The Zustand store already updates the state
+          onCartChange?.();
         }
       } catch (error) {
         console.error("Error deleting cart item:", error);
@@ -107,17 +138,18 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
   const renderCartItem = ({ item }: { item: CartItemType }) => {
     if (!item) return null;
 
-    const itemId = item._id; // this is the cartItemId
+    const itemId = item._id;
     const name = item.product.name || "Unknown Item";
     const symbol = item.product.symbol;
     const value = item.unit_price || 0;
     const maximum_value = item.unit_max_price || value;
-    const quantity = item.qty;
+    const qty = item.qty;
     const maxCount = item.product.quantity || 999;
     const availableCount = item.product.instock ? maxCount : 0;
 
     const maxLimit = Math.min(maxCount, availableCount);
-    const isItemUpdating = isUpdating === itemId;
+const isItemUpdating = isUpdating === itemId;
+const isDisabled = isItemUpdating || !authToken || isUserLoading;
 
     return (
       <View style={styles.itemContainer} key={itemId}>
@@ -149,7 +181,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
                 {formatCurrency(value)}
               </Text>
 
-              <Text style={styles.quantityText}>x {quantity}</Text>
+              <Text style={styles.quantityText}>x {qty}</Text>
 
               <Text style={styles.itemTotalCostText}>
                 {formatCurrency(item.total_price)}
@@ -159,40 +191,53 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
         </View>
 
         <View style={styles.cartItemQuantityContainer}>
-          {/* Decrement button */}
-          <TouchableOpacity
-            onPress={() => {
-              if (isItemUpdating) return;
+    <TouchableOpacity
+  onPress={() => {
+    if (isDisabled) return;
 
-              if (quantity > 1) {
-                handleQuantityChange(itemId, quantity - 1);
-              } else {
-                handleDeleteItem(itemId);
-              }
-            }}
-            disabled={isItemUpdating}
-            activeOpacity={0.7}
-          >
-            <DecrementIcon />
-          </TouchableOpacity>
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update item quantity.");
+      return;
+    }
 
-          <Text style={styles.quantity}>{quantity}</Text>
+    if (qty > 1) {
+      handleQuantityChange(itemId, qty - 1, authToken);
+    } else {
+      handleDeleteItem(itemId);
+    }
+  }}
+  disabled={isDisabled}
+  activeOpacity={0.7}
+  style={[isDisabled && { opacity: 0.5 }]}
+>
+  <DecrementIcon />
+</TouchableOpacity>
 
-          {/* Increment button */}
-          {quantity < maxLimit ? (
-            <TouchableOpacity
-              onPress={() => {
-                if (isItemUpdating) return;
-                handleQuantityChange(itemId, quantity + 1);
-              }}
-              disabled={isItemUpdating}
-              activeOpacity={0.7}
-            >
-              <IncrementIcon />
-            </TouchableOpacity>
-          ) : (
-            <IncrementIcon disabled />
-          )}
+
+          <Text style={styles.quantity}>{qty}</Text>
+
+       {qty < maxLimit ? (
+ <TouchableOpacity
+  onPress={() => {
+    if (isDisabled || qty >= maxLimit) return;
+
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update item quantity.");
+      return;
+    }
+
+    handleQuantityChange(itemId, qty + 1, authToken);
+  }}
+  disabled={isDisabled || qty >= maxLimit}
+  activeOpacity={0.7}
+  style={[isDisabled && { opacity: 0.5 }]}
+>
+  <IncrementIcon />
+</TouchableOpacity>
+) : (
+  <IncrementIcon disabled />
+)}
+
         </View>
       </View>
     );
@@ -260,7 +305,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
           style={styles.addMoreContainer}
           onPress={() => {
             if (storeId) {
-              router.push(`./home/result/productListing/${storeId}`);
+              router.back();
             }
           }}
           activeOpacity={0.7}
@@ -275,7 +320,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
             onPress={() => {
               if (cartId) {
                 router.push({
-                  pathname: "./(tabs)/cart/[checkout]",
+                  pathname: "../app/(tabs)/cart/[checkout]",
                   params: { id: cartId },
                 });
               }
@@ -293,193 +338,245 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, items }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: "#666",
+    backgroundColor: "#e9ecef",
   },
   itemsContainer: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    marginBottom: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    margin: 16,
+    padding: 16,
+    elevation: 2,
   },
   itemsHeader: {
-    paddingVertical: 10, 
-    fontWeight: "500", 
-    fontSize: 14,
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 12,
   },
   listContainer: {
-    minHeight: 2, 
-    marginBottom: 10,
+    minHeight: 100,
   },
   itemContainer: {
-    flex: 1,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginVertical: 10,
-    paddingVertical: 5,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   itemDescContainer: {
     flexDirection: "row",
-    flex: 3,
     alignItems: "center",
+    flex: 1,
   },
   itemImgContainer: {
-    backgroundColor: "white",
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 16,
+    marginRight: 12,
   },
   productImage: {
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     borderRadius: 8,
-    resizeMode: "contain",
+    backgroundColor: "#f5f5f5",
   },
   placeholderImage: {
-    backgroundColor: '#e9ecef',
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   itemDetails: {
-    justifyContent: "center",
     flex: 1,
-    maxWidth: 150,
   },
   name: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
     marginBottom: 4,
   },
   itemPriceInfoContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    gap: 8,
+    flexWrap: "wrap",
   },
   itemPriceText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#333",
-    fontWeight: "600",
   },
   strikethroughPrice: {
     textDecorationLine: "line-through",
-    textDecorationStyle: "solid",
-    opacity: 0.5,
-    fontSize: 12,
-    color: "#666",
+    color: "#999",
+    marginRight: 4,
   },
   quantityText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#666",
+    marginLeft: 8,
+  },
+  itemTotalCostText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 8,
+    color: "#333",
   },
   cartItemQuantityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    width: 100,
     borderWidth: 1,
-    borderColor: "#e9ecef",
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 12,
-    minWidth: 80,
+    borderColor: "#ddd",
+    borderRadius: 20,
+    padding: 6,
   },
   quantity: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#00BC66",
-    minWidth: 20,
-    textAlign: "center",
-  },
-  itemTotalCostText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
   },
   priceContainer: {
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#e9ecef",
-    borderRadius: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    elevation: 2,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 5,
-    marginHorizontal: 15,
+    marginBottom: 8,
   },
   text: {
     fontSize: 14,
-    fontWeight: "normal",
-    color: "#666",
+    color: "#333",
   },
   bold: {
-    fontSize: 16,
     fontWeight: "bold",
-    color: "#000",
   },
   savingsText: {
-    color: "#00BC66",
-    fontWeight: "500",
-    fontSize: 13,
+    color: "#4CAF50",
+    fontSize: 12,
   },
   actionButtonsContainer: {
-    flex: 1, 
-    flexDirection: "row", 
-    marginVertical: 10,
-    gap: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   addMoreContainer: {
-    flex: 1,
     flexDirection: "row",
-    backgroundColor: "#e8e8e8",
-    borderRadius: 50,
-    paddingVertical: 12,
-    marginHorizontal: 10,
-    justifyContent: "center",
     alignItems: "center",
-    gap: 5,
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
   },
   addMoreItemsText: {
-    color: "#000",
-    fontSize: 12,
-    fontWeight: "500",
+    marginLeft: 8,
+    fontSize: 14,
   },
   buttons: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
+    alignItems: "flex-end",
   },
   checkoutButton: {
-    marginRight: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#2f9740",
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "#208b3a",
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: "#208b3a",
-    width: "100%",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkoutButtonText: {
-    fontWeight: "700",
-    fontSize: 14,
     color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingBottom: 30,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    backgroundColor: "white",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+    marginTop: 20,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    backgroundColor: "white",
+    elevation: 2,
+  },
+  headerDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  totalHeaderText: {
+    fontSize: 14,
+  },
+  dot: {
+    color: "#848080",
+    fontSize: 12,
+  },
+  listWrapper: {
+    minHeight: 2,
+    paddingVertical: 10,
+  },
+  animationContainer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  emptyTextContainer: {
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    color: "#292935",
+    fontWeight: "600",
+    fontSize: 20,
+  },
+  emptySubtitle: {
+    color: "#707077",
+    fontWeight: "600",
+    fontSize: 13,
+    marginTop: 10,
+  },
+  startShoppingButton: {
+    backgroundColor: "#f14343",
+    width: widthPercentageToDP("90"),
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  startShoppingText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 20,
   },
 });
 

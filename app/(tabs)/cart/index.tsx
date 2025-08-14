@@ -1,22 +1,22 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import CartCard from "../../../components/Cart/CartCard";
 import { FlashList } from "@shopify/flash-list";
 import { BackArrow } from "../../../constants/icons/commonIcons";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { fetchCarts } from "./fetch-carts";
 import { FetchCartType } from "./fetch-carts-type";
 import useUserDetails from "../../../hook/useUserDetails";
-import { useCartStore } from "../../../state/useCartStore"; // ✅ Import the store
 
 function calculateTotals(cartData: FetchCartType[]) {
   const totalCarts = cartData.length;
@@ -30,10 +30,9 @@ function calculateTotals(cartData: FetchCartType[]) {
 const CartScreen = () => {
   const router = useRouter();
   const animation = useRef(null);
-  
-  // ✅ Use Zustand store instead of local state
-  const { allCarts, setAllCarts } = useCartStore();
+  const [carts, setCarts] = useState<FetchCartType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
@@ -41,34 +40,33 @@ const CartScreen = () => {
   const loadCarts = async () => {
     if (!authToken) {
       console.log("No auth token available");
-      setAllCarts([]); // ✅ Update store instead of local state
+      setCarts([]);
       setLoading(false);
       return;
     }
     try {
       setLoading(true);
       const fetchedCarts = await fetchCarts(authToken);
-      if (fetchedCarts) {
-        setAllCarts(fetchedCarts); // ✅ Update store instead of local state
-      } else {
-        setAllCarts([]); // ✅ Update store instead of local state
-      }
+      setCarts(fetchedCarts || []);
     } catch (error) {
       console.error("Error fetching carts:", error);
-      setAllCarts([]); // ✅ Update store instead of local state
+      setCarts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Reload carts whenever screen is focused
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!isUserLoading) {
-        loadCarts();
-      }
-    }, [authToken, isUserLoading])
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadCarts();
+    setRefreshing(false);
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!isUserLoading) {
+      loadCarts();
+    }
+  }, [authToken, isUserLoading]);
 
   if (isUserLoading || loading) {
     return (
@@ -78,10 +76,14 @@ const CartScreen = () => {
     );
   }
 
-  // ✅ Use allCarts from store instead of local carts state
-  if (!allCarts || allCarts.length === 0) {
+  if (!carts || carts.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
+      <ScrollView
+        contentContainerStyle={styles.emptyContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.animationContainer}>
           <LottieView
             autoPlay
@@ -105,19 +107,23 @@ const CartScreen = () => {
         >
           <Text style={styles.startShoppingText}>Start Shopping</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     );
   }
 
-  // ✅ Use allCarts from store
-  const { totalCarts, totalItems } = calculateTotals(allCarts);
+  const { totalCarts, totalItems } = calculateTotals(carts);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.title}>
         <BackArrow onPress={() => router.back()} />
         <Text style={styles.titleText}>
-          {allCarts.length > 1 ? "My Carts" : "My Cart"}
+          {carts.length > 1 ? "My Carts" : "My Cart"}
         </Text>
       </View>
 
@@ -132,16 +138,16 @@ const CartScreen = () => {
 
       <View style={styles.listWrapper}>
         <FlashList
-          data={[...allCarts].reverse()} // ✅ Use allCarts from store
+          data={[...carts].reverse()}
           renderItem={({ item }) => (
             <CartCard
               id={item._id}
               store={item.store}
               items={item.cart_items}
+              onCartChange={loadCarts}
             />
           )}
           estimatedItemSize={83}
-          keyExtractor={(item) => item._id} // ✅ Add key extractor for better performance
         />
       </View>
     </ScrollView>
@@ -203,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",

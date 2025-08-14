@@ -41,7 +41,7 @@ import { searchStores } from "../../../search/search-stores";
 import { ProductSearchResult } from "../../../search/search-products-type";
 import { StoreSearchResult } from "../../../search/search-stores-type";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const snapInterval = width * 0.72;
 
 // Types
