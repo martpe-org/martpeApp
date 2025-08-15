@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ const widthPercentageToDP = (percent: string) => {
 
 interface CartItemsProps {
   cartId: string;
-  storeSlug: string; // ✅ we pass slug, not id
+  storeSlug: string;
   items: CartItemType[];
   onCartChange?: () => void;
 }
@@ -41,12 +41,17 @@ const CartItems: React.FC<CartItemsProps> = ({
   const authToken = userDetails?.accessToken;
 
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-
-  const formatCurrency = useCallback(
-    (amount: number) =>
-      `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`,
-    []
+  const [formatCurrency, setFormatCurrency] = useState<
+    (amount: number) => string
+  >(() => (amount: number) =>
+    `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
   );
+
+  useEffect(() => {
+    setFormatCurrency(() => (amount: number) =>
+      `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
+    );
+  }, []);
 
   const handleQuantityChange = async (cartItemId: string, newQty: number) => {
     if (!authToken) {
@@ -57,7 +62,6 @@ const CartItems: React.FC<CartItemsProps> = ({
     if (isUpdating) return;
 
     setIsUpdating(cartItemId);
-
     try {
       const success = await updateQty(cartItemId, newQty, authToken);
       if (!success) {
