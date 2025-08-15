@@ -25,14 +25,14 @@ const widthPercentageToDP = (percent: string) => {
 
 interface CartItemsProps {
   cartId: string;
-  storeId: string;
+  storeSlug: string; // ✅ we pass slug, not id
   items: CartItemType[];
   onCartChange?: () => void;
 }
 
 const CartItems: React.FC<CartItemsProps> = ({
   cartId,
-  storeId,
+  storeSlug,
   items,
   onCartChange,
 }) => {
@@ -44,9 +44,7 @@ const CartItems: React.FC<CartItemsProps> = ({
 
   const formatCurrency = useCallback(
     (amount: number) =>
-      `₹${Number(amount)
-        .toFixed(2)
-        .replace(/\.?0+$/, "")}`,
+      `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`,
     []
   );
 
@@ -55,42 +53,21 @@ const CartItems: React.FC<CartItemsProps> = ({
       Alert.alert("Login Required", "Please login to update item quantity.");
       return;
     }
-
-    if (!cartItemId || newQty <= 0) {
-      console.warn("Invalid quantity or itemId", { cartItemId, newQty });
-      return;
-    }
-
-    if (isUpdating) {
-      console.log("Already updating an item, skipping...");
-      return;
-    }
+    if (!cartItemId || newQty <= 0) return;
+    if (isUpdating) return;
 
     setIsUpdating(cartItemId);
 
     try {
-      console.log("Updating cart item", { cartItemId, newQty });
-
-      // Use the updateQty function from useCartStore instead of the standalone updateQty
-      const success = await useCartStore
-        .getState()
-        .updateQty(cartItemId, newQty, authToken);
-
+      const success = await updateQty(cartItemId, newQty, authToken);
       if (!success) {
-        Alert.alert(
-          "Error",
-          "Failed to update item quantity. Please check stock or try again."
-        );
+        Alert.alert("Error", "Failed to update item quantity.");
       } else {
-        console.log("Quantity updated successfully for", cartItemId);
         onCartChange?.();
       }
     } catch (error) {
       console.error("Error updating quantity", error);
-      Alert.alert(
-        "Error",
-        "Could not update the item's quantity. Please try again."
-      );
+      Alert.alert("Error", "Could not update the item's quantity.");
     } finally {
       setIsUpdating(null);
     }
@@ -110,22 +87,15 @@ const CartItems: React.FC<CartItemsProps> = ({
             style: "destructive",
             onPress: async () => {
               try {
-                const success = await removeCart(storeId, authToken);
+                const success = await removeCart(storeSlug, authToken);
                 if (!success) {
-                  Alert.alert(
-                    "Error",
-                    "Failed to remove cart. Please try again."
-                  );
+                  Alert.alert("Error", "Failed to remove cart.");
                 } else {
-                  // The Zustand store already updates the state
                   onCartChange?.();
                 }
               } catch (error) {
                 console.error("Error deleting cart:", error);
-                Alert.alert(
-                  "Error",
-                  "Failed to remove cart. Please try again."
-                );
+                Alert.alert("Error", "Failed to remove cart.");
               }
             },
           },
@@ -135,14 +105,13 @@ const CartItems: React.FC<CartItemsProps> = ({
       try {
         const success = await removeCartItems([cartItemId], authToken);
         if (!success) {
-          Alert.alert("Error", "Failed to remove item. Please try again.");
+          Alert.alert("Error", "Failed to remove item.");
         } else {
-          // The Zustand store already updates the state
           onCartChange?.();
         }
       } catch (error) {
         console.error("Error deleting cart item:", error);
-        Alert.alert("Error", "Failed to remove item. Please try again.");
+        Alert.alert("Error", "Failed to remove item.");
       }
     }
   };
@@ -158,8 +127,8 @@ const CartItems: React.FC<CartItemsProps> = ({
     const qty = item.qty;
     const maxCount = item.product.quantity || 999;
     const availableCount = item.product.instock ? maxCount : 0;
-
     const maxLimit = Math.min(maxCount, availableCount);
+
     const isItemUpdating = isUpdating === itemId;
     const isDisabled = isItemUpdating || !authToken || isUserLoading;
 
@@ -187,15 +156,13 @@ const CartItems: React.FC<CartItemsProps> = ({
               <Text style={styles.itemPriceText}>
                 {maximum_value > value && (
                   <Text style={styles.strikethroughPrice}>
-                    {formatCurrency(maximum_value)}
-                    {"  "}
+                    {formatCurrency(maximum_value)}{" "}
                   </Text>
                 )}
                 {formatCurrency(value)}
               </Text>
 
               <Text style={styles.quantityText}>x {qty}</Text>
-
               <Text style={styles.itemTotalCostText}>
                 {formatCurrency(item.total_price)}
               </Text>
@@ -205,23 +172,11 @@ const CartItems: React.FC<CartItemsProps> = ({
 
         <View style={styles.cartItemQuantityContainer}>
           <TouchableOpacity
-            onPress={() => {
-              if (isDisabled) return;
-
-              if (!authToken) {
-                Alert.alert(
-                  "Login Required",
-                  "Please login to update item quantity."
-                );
-                return;
-              }
-
-              if (qty > 1) {
-                handleQuantityChange(itemId, qty - 1);
-              } else {
-                handleDeleteItem(itemId);
-              }
-            }}
+            onPress={() =>
+              qty > 1
+                ? handleQuantityChange(itemId, qty - 1)
+                : handleDeleteItem(itemId)
+            }
             disabled={isDisabled}
             activeOpacity={0.7}
             style={[isDisabled && { opacity: 0.5 }]}
@@ -233,12 +188,8 @@ const CartItems: React.FC<CartItemsProps> = ({
 
           {qty < maxLimit ? (
             <TouchableOpacity
-              disabled={isDisabled || qty >= maxLimit}
-              onPress={() => {
-                if (qty < maxLimit) {
-                  handleQuantityChange(itemId, qty + 1);
-                }
-              }}
+              disabled={isDisabled}
+              onPress={() => handleQuantityChange(itemId, qty + 1)}
               activeOpacity={0.7}
               style={[isDisabled && { opacity: 0.5 }]}
             >
@@ -253,20 +204,17 @@ const CartItems: React.FC<CartItemsProps> = ({
   };
 
   const { totalCost, savings } = useMemo(() => {
-    if (!items || items.length === 0) return { totalCost: 0, savings: 0 };
-
+    if (!items?.length) return { totalCost: 0, savings: 0 };
     let cost = 0;
     let totalSavings = 0;
-
     items.forEach((item) => {
       cost += item.total_price;
       totalSavings += item.total_max_price - item.total_price;
     });
-
     return { totalCost: cost, savings: totalSavings };
   }, [items]);
 
-  if (!items || items.length === 0) {
+  if (!items?.length) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>Your cart is empty</Text>
@@ -278,7 +226,7 @@ const CartItems: React.FC<CartItemsProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.itemsContainer}>
         <Text style={styles.itemsHeader}>
-          Items in the cart ({items?.length || 0})
+          Items in the cart ({items.length})
         </Text>
 
         <View style={styles.listContainer}>
@@ -299,7 +247,6 @@ const CartItems: React.FC<CartItemsProps> = ({
             {formatCurrency(totalCost)}
           </Text>
         </View>
-
         {savings > 0 && (
           <View style={styles.row}>
             <Text style={[styles.text, styles.savingsText]}>
@@ -313,8 +260,11 @@ const CartItems: React.FC<CartItemsProps> = ({
         <TouchableOpacity
           style={styles.addMoreContainer}
           onPress={() => {
-            if (storeId) {
-              router.push(`../(tabs)/home/result/productListing/${storeId}`);
+            if (storeSlug) {
+              router.push({
+                pathname: "/(tabs)/home/result/productListing/[id]",
+                params: { id: storeSlug },
+              });
             }
           }}
           activeOpacity={0.7}

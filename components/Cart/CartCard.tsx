@@ -173,7 +173,7 @@ const CartCard: React.FC<CartCardProps> = ({
       {/* Cart Items */}
       <CartItems
         cartId={id}
-        storeId={storeId}
+       storeSlug={store.slug}
         items={items}
         onCartChange={onCartChange} // triggers reload in parent
         />

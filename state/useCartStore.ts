@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { removeCart } from "./removeCart";
-import { removeCartItems } from "./removeCartItems";
-import { updateQty as updateQtyAction } from "./updateQty";
+import { removeCartItems as removeCartItemsApi } from "./removeCartItems";
+import { updateQty  } from "./updateQty";
 import { addToCartAction } from "./addToCart";
 
 interface CartItem {
@@ -39,7 +39,7 @@ interface CartState {
   removeCart: (storeId: string, authToken: string) => Promise<boolean>;
 }
 
-export const useCartStore = create<CartState>((set) => ({
+export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
 
   setAllCarts: (carts) => set({ allCarts: carts }),
@@ -68,82 +68,89 @@ export const useCartStore = create<CartState>((set) => ({
     return success;
   },
 
-  updateQty: async (cartItemId, qty, authToken) => {
-    if (!authToken || !cartItemId) return false;
+// In your useCartStore.ts, update the updateQty action:
+updateQty: async (cartItemId, qty, authToken) => {
+  if (!authToken || !cartItemId) return false;
 
-    try {
-      const success = await updateQtyAction(cartItemId, qty, authToken);
+  try {
+    const success = await updateQty(cartItemId, qty, authToken);
 
-      if (!success) return false;
-
-      // Update state only if API succeeded
-      set((state) => {
-        const updatedCarts = state.allCarts.map((cart) => ({
-          ...cart,
-          cart_items: cart.cart_items.map((item) =>
-            item._id === cartItemId
-              ? {
-                  ...item,
-                  qty,
-                  total_price: item.unit_price * qty,
-                  total_max_price: item.unit_max_price * qty,
-                }
-              : item
-          ),
-        }));
-        return { allCarts: updatedCarts };
-      });
-
-      return true;
-    } catch (error) {
-      console.error("updateQty error:", error);
+    if (!success) {
+      console.error("Failed to update quantity via API");
       return false;
     }
-  },
 
+    // Update local state optimistically
+    set((state) => {
+      const updatedCarts = state.allCarts.map((cart) => ({
+        ...cart,
+        cart_items: cart.cart_items.map((item) =>
+          item._id === cartItemId
+            ? {
+                ...item,
+                qty,
+                total_price: item.unit_price * qty,
+                total_max_price: item.unit_max_price * qty,
+              }
+            : item
+        ),
+      }));
+      return { allCarts: updatedCarts };
+    });
+
+    return true;
+  } catch (error) {
+    console.error("updateQty error:", error);
+    return false;
+  }
+},
   removeCartItems: async (itemIds, authToken) => {
     if (!authToken || !itemIds?.length) return false;
 
-    try {
-      const success = await removeCartItems(itemIds, authToken);
-      if (!success) return false;
+    const prevState = get().allCarts;
 
-      set((state) => {
-        const updatedCarts = state.allCarts
-          .map((cart) => ({
-            ...cart,
-            cart_items: cart.cart_items.filter(
-              (item) => !itemIds.includes(item._id)
-            ),
-          }))
-          .filter((cart) => cart.cart_items.length > 0);
-        return { allCarts: updatedCarts };
-      });
+    // Optimistic update
+    set((state) => {
+      const updatedCarts = state.allCarts
+        .map((cart) => ({
+          ...cart,
+          cart_items: cart.cart_items.filter(
+            (item) => !itemIds.includes(item._id)
+          ),
+        }))
+        .filter((cart) => cart.cart_items.length > 0);
+      return { allCarts: updatedCarts };
+    });
 
-      return true;
-    } catch (error) {
-      console.error("removeCartItems error:", error);
-      return false;
+    // API call
+    const success = await removeCartItemsApi(itemIds, authToken);
+
+    if (!success) {
+      set({ allCarts: prevState });
     }
+
+    return success;
   },
 
   removeCart: async (storeId, authToken) => {
     if (!authToken || !storeId) return false;
 
-    try {
-      const success = await removeCart(storeId, authToken);
-      if (!success) return false;
+    const prevState = get().allCarts;
 
-      set((state) => ({
-        allCarts: state.allCarts.filter(
-          (cart) => cart.store._id !== storeId
-        ),
-      }));
+    // Optimistic update
+    set((state) => ({
+      allCarts: state.allCarts.filter(
+        (cart) => cart.store._id !== storeId
+      ),
+    }));
 
-      return true;
-    } catch (error) {
-      console.error("removeCart error:", error);
-      return false;
+    // API call
+    const success = await removeCart(storeId, authToken);
+
+    if (!success) {
+      set({ allCarts: prevState });
     }
+
+    return success;
   },
 }));

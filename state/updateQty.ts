@@ -18,17 +18,23 @@ export const updateQty = async (
       return false;
     }
 
-  const res = await fetch(`${BASE_URL}/carts/update-item`, {
-  method: "PUT",
-  headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-  body: JSON.stringify({ cartItemId, qty, update_target: "qty" }),
-});
+    const response = await fetch(`${BASE_URL}/carts/update-item`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json", 
+        Authorization: `Bearer ${authToken}` 
+      },
+      body: JSON.stringify({ 
+        cartItemId, 
+        qty, 
+        update_target: "qty" 
+      }),
+    });
 
-const data = await res.json().catch(() => ({}));
-console.log("API response:", res.status, data);
-
-if (!res.ok) return false;
-
+    if (!response.ok) {
+      console.error("Update failed with status:", response.status);
+      return false;
+    }
 
     return true;
   } catch (error) {
