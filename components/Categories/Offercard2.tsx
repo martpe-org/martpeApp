@@ -57,7 +57,7 @@ const OfferCard2: React.FC<OfferCard2Props> = ({ offerData }) => {
           <Text style={styles.discountDesc}>on products from {name}</Text>
 
           <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/productListing/${id}`)}
+            onPress={() => router.push(`/(tabs)/home/result/productListing/${id}`)}
             style={styles.button}
           >
             <Text style={styles.buttonText}>Order Now</Text>

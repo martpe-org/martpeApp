@@ -16,7 +16,6 @@ import Carousel from "react-native-reanimated-carousel";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 
-
 interface ProductList3Props {
   storeId: string;
   catalogs: any[]; // Replace with real structure or use `any[]` temporarily
@@ -83,7 +82,7 @@ const renderProduct = ({ item }: { item: any }) => {
       <TouchableOpacity
         onPress={() => {
           handleOpenPress();
-          // router.push(`(tabs)/home/productDetails/${item?.id}`);
+           router.push(`/(tabs)/home/result/productDetails/${item?.id}`);
           foodDetails({
             images: item?.descriptor.images,
             name: item?.descriptor.name,

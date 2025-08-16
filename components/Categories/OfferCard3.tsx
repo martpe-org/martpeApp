@@ -58,7 +58,7 @@ function OfferCard3({ offerData }: OfferCard3Props) {
         <TouchableOpacity
           onPressIn={() => {
             if (id) {
-              router.push(`../(tabs)/home/productListing/${id}`);
+              router.push(`/(tabs)/home/result/productListing/${id}`);
             }
           }}
           style={styles.button}

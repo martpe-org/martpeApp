@@ -1,5 +1,4 @@
-import { StyleSheet, View } from "react-native";
-import { useState } from "react";
+import { View } from "react-native";
 import HorizontalNavbar from "../Grocery/HorizontalNavbar";
 import PersonalCareCardContainer from "../PersonalCare/PersonalCareCardContainer";
 
@@ -9,11 +8,6 @@ const PLPElectronics = ({
   providerId,
   searchString,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState("");
-
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-  };
 
   const buttons = [
     {

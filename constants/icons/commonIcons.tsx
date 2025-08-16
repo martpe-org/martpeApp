@@ -1,7 +1,7 @@
 import React from "react";
 import Svg, { Path } from "react-native-svg";
 
-export const FavIcon = (props) => (
+export const FavIcon = (props:any) => (
     <Svg
       xmlns="http://www.w3.org/2000/svg"
       width={24}
@@ -19,7 +19,7 @@ export const FavIcon = (props) => (
     </Svg>
   )
 
-export const BackArrow = (props) => (
+export const BackArrow = (props:any) => (
     <Svg
       xmlns="http://www.w3.org/2000/svg"
       width={10}
@@ -39,7 +39,7 @@ export const BackArrow = (props) => (
 
   const MenuIcon
   
-  = (props) => (
+  = (props:any) => (
     <Svg
       xmlns="http://www.w3.org/2000/svg"
       width={24}

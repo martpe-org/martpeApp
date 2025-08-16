@@ -31,7 +31,7 @@ const CartCard: React.FC<CartCardProps> = ({
   items,
   onCartChange,
 }) => {
-  const { removeCart, updateQty } = useCartStore();
+  const { removeCart } = useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;

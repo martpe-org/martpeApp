@@ -32,8 +32,12 @@ const data = [
   },
   // Add more data items as needed
 ];
+interface StoreCard2Props {
+  storeData: any;
+  categoryFiltered: any;
+}
 
-const StoreCard2 = ({ storeData, categoryFiltered }) => {
+const StoreCard2 = ({ storeData, categoryFiltered }: StoreCard2Props) => {
   if (!storeData) {
     return null;
   } else {
@@ -61,7 +65,7 @@ const { percent = 0 } = calculated_max_offer;
         <View style={styles.container}>
           <Pressable
             onPress={() => {
-              router.push(`/(tabs)/home/productListing/${id}`);
+              router.push(`/(tabs)/home/result/productListing/${id}`);
             }}
             style={styles.header}
           >
@@ -94,7 +98,7 @@ const { percent = 0 } = calculated_max_offer;
         </View>
       </View>
       <View style={styles.productContainer}>
-        <ProductList2 storeId={id} catalogs={catalogs} />
+        <ProductList2 storeId={id} catalogs={catalogs} categoryFiltered={categoryFiltered} />
       </View>
     </View>
   );

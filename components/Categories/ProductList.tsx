@@ -5,7 +5,7 @@ import {
   Text,
   View,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
 } from "react-native";
 import DynamicButton from "../common/DynamicButton";
 import { useCartStore } from "../../state/useCartStore";
@@ -37,162 +37,247 @@ interface Quantity {
   };
 }
 
+interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  unit_max_price: number;
+  total_price: number;
+  total_max_price: number;
+  catalog_id?: string;
+  itemId?: string; // Legacy field
+}
+
+interface Cart {
+  store: { _id: string; id?: string };
+  cart_items: CartItem[];
+}
+
 interface Data {
   id: string;
   descriptor?: Descriptor;
   price?: Price;
   quantity?: Quantity;
-  storeId: string;
+  storeId?: string;
+  slug?: string;
+  category_id?: string;
 }
-const ProductList = ({ storeId, catalogs, categoryFiltered }) => {
-  const allCarts = useCartStore((state) => state.allCarts);
-  const cart = allCarts.find((cart) => cart.store.id === storeId);
-  if (!catalogs) {
-    return null;
-  } else {
-    console.log(catalogs);
+
+interface ProductListProps {
+  storeId: string;
+  catalogs: Data[];
+  categoryFiltered: string[];
+  authToken: string; // Add authToken prop
+}
+
+const ProductList: React.FC<ProductListProps> = ({
+  storeId,
+  catalogs,
+  categoryFiltered,
+  authToken,
+}) => {
+  const { allCarts, addItem, updateQty, removeCartItems } = useCartStore();
+
+  // Find cart by storeId (check both _id and id fields)
+  const cart = allCarts.find(
+    (c) => c.store._id === storeId || c.store.id === storeId
+  );
+
+  if (!catalogs || catalogs.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No products available</Text>
+      </View>
+    );
   }
-  const renderProduct = (data) => {
+
+  const handleAddItem = async (catalogId: string, slug: string) => {
+    if (!authToken) {
+      console.error("No auth token available");
+      return;
+    }
+
+    try {
+      const success = await addItem(
+        storeId,
+        slug,
+        catalogId,
+        1,
+        false,
+        [],
+        authToken
+      );
+
+      if (!success) {
+        console.error("Failed to add item to cart");
+      }
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
+  };
+
+  const handleUpdateQuantity = async (cartItemId: string, newQty: number) => {
+    if (!authToken) {
+      console.error("No auth token available");
+      return;
+    }
+
+    try {
+      if (newQty === 0) {
+        // Remove item if quantity is 0
+        const success = await removeCartItems([cartItemId], authToken);
+        if (!success) {
+          console.error("Failed to remove item from cart");
+        }
+      } else {
+        // Update quantity
+        const success = await updateQty(cartItemId, newQty, authToken);
+        if (!success) {
+          console.error("Failed to update item quantity");
+        }
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+    }
+  };
+
+  const renderProduct = (data: Data) => {
     const {
       id,
-      descriptor: { name, images } = {},
-      price: { maximum_value: maximum_price, value: price, offer_percent } = {},
+      descriptor: { name = "Unknown Product", images = [] } = {},
+      price: {
+        maximum_value: maximum_price = 0,
+        value: price = 0,
+        offer_percent,
+      } = {},
       quantity: {
-        available: { count: available_quantity } = {},
-        maximum: { count: maximum_quantity } = {},
+        available: { count: available_quantity = 0 } = {},
+        maximum: { count: maximum_quantity = 10 } = {},
         unitized,
       } = {},
-    } = data as Data;
-    const maxLimit = Math.min(maximum_quantity, available_quantity);
-    const itemCount =
-      cart?.items?.find((item) => item?.itemId === id)?.quantity | 0;
+      slug = `product-${id}`,
+    } = data;
+
+    // Respect stock + max purchase limits
+    const maxLimit = Math.min(maximum_quantity, available_quantity) || 10;
+
+    // Find matching cart item
+    const cartItem = cart?.cart_items?.find(
+      (item) => item.catalog_id === id || item.itemId === id
+    );
+
+    const itemCount = cartItem?.qty || 0;
+    const cartItemId = cartItem?._id;
+
     return (
-      <Pressable
-        onPress={() => {
-          router.push(`(tabs)/home/productDetails/${id}`);
-        }}
-        style={styles.product}
+      <TouchableOpacity
         key={id}
+        style={styles.product}
+        onPress={() => router.push(`/(tabs)/home/result/productDetails/${id}`)}
       >
+        {/* Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: images[0] }} style={styles.image} />
+          <Image
+            source={{ uri: images?.[0] || "https://via.placeholder.com/150" }}
+            style={styles.image}
+          />
         </View>
-        {/* product discount info */}
+
+        {/* Discount badge */}
         {offer_percent && offer_percent > 1 && (
           <View style={styles.discountView}>
             <View style={styles.discount}>
               <Image source={require("../../assets/greenStar.png")} />
-              <Text style={styles.discountPercent}>{offer_percent}</Text>
+              <Text style={styles.discountPercent}>{offer_percent}%</Text>
             </View>
           </View>
         )}
+
+        {/* Details */}
         <View style={styles.details}>
-          {/*  product name */}
           <Text numberOfLines={2} style={styles.title}>
             {name}
           </Text>
-          {/* product unit info */}
+
           {unitized && (
             <Text style={styles.quantity}>
-              {unitized?.measure?.value} {unitized?.measure?.unit}
+              {unitized.measure?.value} {unitized.measure?.unit}
             </Text>
           )}
-          {/* product offer */}
+
+          {/* Price */}
           <View style={styles.priceContainer}>
             {offer_percent && offer_percent > 1 && (
-              <Text style={styles.strikeThrough}>₹ {maximum_price}</Text>
+              <Text style={styles.strikeThrough}>₹{maximum_price}</Text>
             )}
-            <Text style={styles.priceText}>₹ {price}</Text>
+            <Text style={styles.priceText}>₹{price}</Text>
           </View>
 
-          {/* add item button */}
-          {itemCount == 0 ? (
-            <View style={styles.buttonGroup}>
-              <DynamicButton
-                storeId={storeId}
-                itemId={id}
-                quantity={1}
-                isNewItem={true}
+          {/* Add / Update Controls */}
+          <View style={styles.buttonGroup}>
+            {itemCount === 0 ? (
+              <TouchableOpacity
+                style={styles.add}
+                onPress={() => handleAddItem(id, slug)}
               >
-                <View
-                  style={{
-                    ...styles.add,
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
+                <Text style={styles.addText}>Add</Text>
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={16}
+                  color="#0e8910"
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.quantityControls}>
+                {/* Decrement */}
+                <TouchableOpacity
+                  style={styles.qtyBtn}
+                  onPress={() => handleUpdateQuantity(cartItemId!, Math.max(0, itemCount - 1))}
                 >
-                  {/* <Image source={require("../../assets/plus.png")} /> */}
-                  <Text
-                    style={{
-                      fontWeight: "500",
-                      fontSize: 12,
-                      color: "#0e8910",
-                    }}
-                  >
-                    Add
-                  </Text>
-                  <MaterialCommunityIcons
-                    name="plus"
-                    size={16}
-                    color="#0e8910"
-                  />
-                </View>
-              </DynamicButton>
-            </View>
-          ) : (
-            <View style={styles.buttonGroup}>
-              <DynamicButton
-                storeId={storeId}
-                itemId={id}
-                quantity={itemCount - 1}
-                isUpdated={true}
-              >
-                {/* <DecrementIcon /> */}
-                <MaterialCommunityIcons name="minus" size={16} color="red" />
-              </DynamicButton>
-              <Text>{itemCount}</Text>
-              {itemCount < maxLimit ? (
-                <DynamicButton
-                  storeId={storeId}
-                  itemId={id}
-                  quantity={itemCount + 1}
-                  isUpdated={true}
+                  <MaterialCommunityIcons name="minus" size={16} color="red" />
+                </TouchableOpacity>
+
+                <Text style={styles.quantityText}>{itemCount}</Text>
+
+                {/* Increment */}
+                <TouchableOpacity
+                  style={[
+                    styles.qtyBtn,
+                    itemCount >= maxLimit && styles.disabledBtn,
+                  ]}
+                  onPress={() => handleUpdateQuantity(cartItemId!, itemCount + 1)}
+                  disabled={itemCount >= maxLimit}
                 >
                   <MaterialCommunityIcons
                     name="plus"
                     size={16}
-                    color="#0e8910"
+                    color={itemCount >= maxLimit ? "#ccc" : "#0e8910"}
                   />
-                </DynamicButton>
-              ) : (
-                <DynamicButton
-                  storeId={storeId}
-                  itemId={id}
-                  quantity={itemCount + 1}
-                  isUpdated={true}
-                  disabled={true}
-                >
-                  <MaterialCommunityIcons
-                    name="plus"
-                    disabled
-                    size={16}
-                    color="#0e8910"
-                  />
-                </DynamicButton>
-              )}
-            </View>
-          )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </Pressable>
+      </TouchableOpacity>
     );
   };
 
+  // Category filtering
   const filteredCatalogs = catalogs.filter(
     (catalog) =>
-      categoryFiltered.length == 0 ||
-      categoryFiltered.includes(catalog.category_id)
+      categoryFiltered.length === 0 ||
+      categoryFiltered.includes(catalog.category_id || "")
   );
+
+  if (filteredCatalogs.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>
+          No products found for selected categories
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -200,7 +285,7 @@ const ProductList = ({ storeId, catalogs, categoryFiltered }) => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.scrollViewContent}
     >
-      {filteredCatalogs.map((data) => renderProduct(data))}
+      {filteredCatalogs.map((d) => renderProduct(d))}
     </ScrollView>
   );
 };
@@ -210,10 +295,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 200,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 2,
-      height: 2,
-    },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 2,
@@ -225,102 +307,141 @@ const styles = StyleSheet.create({
   },
   details: {
     flex: 1,
-    position: "relative",
     margin: 8,
+    position: "relative",
   },
   title: {
     fontSize: 12,
+    color: "#333",
+    fontWeight: "400",
+    marginBottom: 2,
   },
   quantity: {
-    color: "#87848A",
     fontSize: 12,
-    // marginVertical: 5,
+    color: "#87848A",
+    marginBottom: 4,
   },
   strikeThrough: {
-    textDecorationLine: "line-through",
     fontSize: 12,
+    color: "#999",
+    textDecorationLine: "line-through",
   },
   priceText: {
-    color: "#030303",
     fontSize: 14,
     fontWeight: "500",
+    color: "#030303",
   },
   priceContainer: {
     position: "absolute",
-    bottom: 0,
-    flexDirection: "column",
-    justifyContent: "flex-end",
+    bottom: 35,
+    left: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   discount: {
-    position: "relative",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   discountPercent: {
     position: "absolute",
+    fontSize: 10,
+    fontWeight: "bold",
     color: "white",
-    fontSize: 12,
   },
   discountView: {
     position: "absolute",
-    top: -20,
-    right: -20,
+    top: 5,
+    right: 5,
+    zIndex: 1,
   },
   buttonGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
     position: "absolute",
     right: 0,
     bottom: 0,
   },
   add: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "white",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#0e8910",
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 10,
-      height: 2,
-    },
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
     elevation: 1,
-    padding: 5,
-    backgroundColor: "white",
-    borderRadius: 5,
   },
-
-  qtyBtn: {
+  addText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#0e8910",
+  },
+  quantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: 6,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 10,
-      height: 2,
-    },
-    shadowRadius: 5,
-    elevation: 2,
-    paddingHorizontal: 10,
-    backgroundColor: "white",
-    borderRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  buttonText: { fontSize: 20 },
+  qtyBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disabledBtn: {
+    opacity: 0.5,
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    textAlign: "center",
+    paddingHorizontal: 12,
+    minWidth: 30,
+  },
   imageContainer: {
     height: 100,
+    backgroundColor: "#f5f5f5",
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
   image: {
     flex: 1,
-    resizeMode: "cover",
     width: "100%",
     height: "100%",
+    resizeMode: "cover",
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
-
   scrollViewContent: {
     flexDirection: "row",
-    gap: 20,
-    padding: 5,
-    paddingHorizontal: 35,
-    // zIndex:10
+    gap: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
   },
 });
 

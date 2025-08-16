@@ -56,7 +56,7 @@ const StoreCard: React.FC<StoreCardProps> = ({
       {/* store info */}
       <View style={styles.containerWrapper}>
         <TouchableOpacity
-          onPress={() => router.push(`/(tabs)/home/productListing/${id}`)}
+          onPress={() => router.push(`/(tabs)/home/result/productListing/${id}`)}
           style={styles.container}
         >
           <View style={styles.header}>
@@ -100,6 +100,7 @@ const StoreCard: React.FC<StoreCardProps> = ({
           categoryFiltered={categoryFiltered}
           storeId={id}
           catalogs={catalogs}
+          authToken="authToken"
         />
       </View>
     </View>

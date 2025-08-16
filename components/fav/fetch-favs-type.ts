@@ -1,5 +1,3 @@
-// types/fetch-favs-type.ts
-
 import { ProductSearchResult } from "../../app/search/search-products-type";
 import { StoreSearchResult } from "../../app/search/search-stores-type";
 

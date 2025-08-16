@@ -123,7 +123,7 @@ const allCatalogs = Array.isArray(storesData)
       <TouchableOpacity
         onPress={() => {
           router.push({
-            pathname: "/(tabs)/home/result/[search]",
+            pathname: "./(tabs)/home/result/[search]",
             params: {
               search: subCategory.name,
               domainData: "ONDC:RET14",

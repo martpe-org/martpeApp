@@ -17,8 +17,6 @@ const SellerDetails: FC<SellerDetailsProps> = ({
   sellerContact,
 }) => {
   const [storeName, email, phone] = sellerContact.split(",");
-  // console.log(`contactDetailInfo: ${contactDetailInfo}`);
-
   const contactDetails = [
     {
       title: "Email",

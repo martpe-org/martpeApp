@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, Dimensions } from "react-native";
+import { View, Text, ScrollView, Dimensions, TouchableOpacity } from "react-native";
 import {
   personalCareCategoryData,
   electronicsCategoryData,
@@ -11,21 +11,16 @@ import {
 } from "../../../constants/categories";
 import { router, useLocalSearchParams } from "expo-router";
 import ImageComp from "../../../components/common/ImageComp";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { BackArrow } from "../../../constants/icons/tabIcons";
-import { widthPercentageToDP } from "react-native-responsive-screen";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 const AllCategories = () => {
   const { category } = useLocalSearchParams();
 
-  let categoryColor;
-  if (Array.isArray(category)) {
-    // If category is an array, handle it here. For example, you might take the first element:
-    categoryColor = getCategoryColor(category[0]);
-  } else {
-    // If category is a string, you can pass it directly:
-    categoryColor = getCategoryColor(category);
-  }
+  // Handle category parameter more safely
+  const categoryString = Array.isArray(category) ? category[0] : category || "";
+  const categoryColor = getCategoryColor(categoryString);
 
   const header = (title: string) => (
     <View
@@ -33,14 +28,25 @@ const AllCategories = () => {
         flexDirection: "row",
         backgroundColor: "#FFF",
         alignItems: "center",
-        justifyContent: "flex-start", // Align items to the start
+        justifyContent: "flex-start",
         paddingVertical: 10,
-        paddingHorizontal: 10, // Add padding horizontally
+        paddingHorizontal: 10,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
       }}
     >
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{ zIndex: 10, padding: 10, marginLeft: 15 }}
+        style={{ 
+          zIndex: 10, 
+          padding: 10, 
+          marginLeft: 15,
+          borderRadius: 20,
+        }}
+        activeOpacity={0.7}
       >
         <BackArrow />
       </TouchableOpacity>
@@ -50,14 +56,14 @@ const AllCategories = () => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
+          marginRight: 50, // Compensate for back button
         }}
       >
         <Text
           style={{
             fontWeight: "bold",
-            fontSize: 16,
-            position: "absolute",
-            zIndex: -1,
+            fontSize: 18,
+            color: "#333",
           }}
         >
           {title}
@@ -67,32 +73,55 @@ const AllCategories = () => {
   );
 
   const displayCategoriesData = (
-    categoryData: any,
+    categoryData: any[],
     categoryColor: string,
     domain: string
   ) => {
+    if (!categoryData || categoryData.length === 0) {
+      return (
+        <View style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: 50,
+        }}>
+          <Text style={{
+            fontSize: 16,
+            color: "#666",
+            textAlign: "center",
+          }}>
+            No categories available
+          </Text>
+        </View>
+      );
+    }
+
     return (
-      categoryData && (
-        <ScrollView
-          style={{
-            backgroundColor: "#fff",
-          }}
-          contentContainerStyle={{
-            justifyContent: "space-between",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            marginHorizontal: Dimensions.get("screen").width * 0.03,
-            paddingBottom: Dimensions.get("screen").width * 0.25,
-          }}
-        >
+      <ScrollView
+        style={{
+          backgroundColor: "#fff",
+          flex: 1,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: screenWidth * 0.03,
+          paddingVertical: 20,
+          paddingBottom: 100, // Extra bottom padding
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+        }}>
           {categoryData.map((item, index) => (
             <TouchableOpacity
               onPress={() => {
-                const searchParams = {
+                const searchParams: any = {
                   search: item?.name,
                 };
                 if (domain && domain !== "") {
-                  searchParams["domainData"] = domain;
+                  searchParams.domainData = domain;
                 }
                 router.push({
                   pathname: "/(tabs)/home/result/[search]",
@@ -101,30 +130,23 @@ const AllCategories = () => {
               }}
               key={index}
               style={{
-                flexDirection: "column",
-                width: Dimensions.get("screen").width * 0.25,
-                marginVertical: 10,
+                width: screenWidth * 0.44, // Slightly less than half for better spacing
+                marginBottom: 20,
+                backgroundColor: "#fff",
+                borderRadius: 12,
+                padding: 10,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
               }}
+              activeOpacity={0.8}
             >
               <View
                 style={{
-                  marginHorizontal: Dimensions.get("screen").width * 0.03,
-                  marginTop: Dimensions.get("screen").width * 0.05,
-                  marginBottom: Dimensions.get("screen").width * 0.01,
-                  borderRadius: 10,
-
-                  // shadowColor: "#515151",
-                  // shadowOffset: {
-                  //   width: 0,
-                  //   height: 7,
-                  // },
-                  // shadowOpacity: 0.41,
-                  // shadowRadius: 9.11,
-                  // paddingHorizontal: 10,
-                  // paddingVertical: 10,
-                  // elevation: 2,
-
                   alignItems: "center",
+                  marginBottom: 8,
                 }}
               >
                 <ImageComp
@@ -132,9 +154,9 @@ const AllCategories = () => {
                     uri: item.image,
                   }}
                   imageStyle={{
-                    minHeight: Dimensions.get("screen").width * 0.3,
-                    // aspectRatio: 1,
-                    width: Dimensions.get("screen").width * 0.3,
+                    height: screenWidth * 0.25,
+                    width: screenWidth * 0.25,
+                    borderRadius: 8,
                   }}
                   resizeMode="contain"
                 />
@@ -143,53 +165,54 @@ const AllCategories = () => {
                 style={{
                   color: "#3D3B40",
                   textAlign: "center",
-                  flexShrink: 1,
-
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: "600",
+                  lineHeight: 16,
                 }}
+                numberOfLines={2}
               >
                 {item?.name}
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-      )
+        </View>
+      </ScrollView>
     );
   };
 
+  // Determine title, categoryData, and domain based on category
   let title = "All Categories";
-  let categoryData = [];
+  let categoryData: any[] = [];
   let domain = "";
 
-  switch (category) {
+  switch (categoryString) {
     case "personalCare":
-      title = "All Personal Care Categories";
+      title = "Personal Care";
       categoryData = personalCareCategoryData;
       domain = "ONDC:RET13";
       break;
     case "electronics":
-      title = "All Electronics Categories";
+      title = "Electronics";
       categoryData = electronicsCategoryData;
       domain = "ONDC:RET14";
       break;
     case "food":
-      title = "All Food Categories";
+      title = "Food & Beverages";
       categoryData = foodCategoryData;
       domain = "ONDC:RET11";
       break;
     case "groceries":
-      title = "All Grocery Categories";
+      title = "Groceries";
       categoryData = groceriesCategoryData;
       domain = "ONDC:RET10";
       break;
     case "homeAndDecor":
-      title = "All Home & Decor Categories";
+      title = "Home & Decor";
       categoryData = homeAndDecorCategoryData;
       domain = "ONDC:RET16";
       break;
     case "fashion":
-      title = "All Fashion Categories";
+      title = "Fashion";
       categoryData = fashionCategoryData;
       domain = "ONDC:RET12";
       break;
@@ -202,13 +225,11 @@ const AllCategories = () => {
   return (
     <View
       style={{
-        flexDirection: "column",
-        backgroundColor: "#fff",
-        minHeight: "100%",
+        flex: 1,
+        backgroundColor: "#f8f9fa",
       }}
     >
       {header(title)}
-      {/* all categories */}
       {displayCategoriesData(categoryData, categoryColor, domain)}
     </View>
   );

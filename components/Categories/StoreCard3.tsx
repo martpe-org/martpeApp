@@ -61,7 +61,7 @@ const { percent = 0 } = calculated_max_offer;
           ]}
         >
           <Pressable
-            onPress={() => router.push(`/(tabs)/home/productListing/${id}`)}
+            onPress={() => router.push(`/(tabs)/home/result/productListing/${id}`)}
             style={styles.header}
           >
             <Image
@@ -83,7 +83,7 @@ const { percent = 0 } = calculated_max_offer;
               </View>
               <View style={styles.subDetails}>
                 <View style={styles.logoIcons}>
-                  <LikeButton color="gray" vendorId={id} />
+                  <LikeButton color="gray" productId={id} />
                   <Image source={require("../../assets/more-vertical2.png")} />
                 </View>
               </View>

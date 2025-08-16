@@ -27,7 +27,7 @@ import { FetchProductDetail } from "../../../../../components/product/fetch-prod
 import { useRouter } from "expo-router";
 
 // Constants
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CART_FOOTER_HEIGHT = 80;
 const MAX_QUANTITY_LIMIT = 100;
 const DEFAULT_RETURN_DAYS = 10;
@@ -47,7 +47,9 @@ const ProductDetails: FC = () => {
   const { productDetails } = useGlobalSearchParams<ProductDetailsParams>();
 
   // State management
-  const [productData, setProductData] = useState<FetchProductDetail | null>(null);
+  const [productData, setProductData] = useState<FetchProductDetail | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ErrorState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,7 +63,7 @@ const ProductDetails: FC = () => {
 
   const formattedStoreAddress = useMemo(() => {
     if (!productData?.store?.address) return "";
-    
+
     const { locality, city, state } = productData.store.address;
     const addressParts = [locality, city, state].filter(Boolean);
     return addressParts.join(", ");
@@ -75,8 +77,11 @@ const ProductDetails: FC = () => {
 
   const returnableDays = useMemo(() => {
     if (!productData?.meta?.return_window) return DEFAULT_RETURN_DAYS;
-    
-    const days = parseInt(productData.meta.return_window.replace(/\D/g, ""), 10);
+
+    const days = parseInt(
+      productData.meta.return_window.replace(/\D/g, ""),
+      10
+    );
     return isNaN(days) ? DEFAULT_RETURN_DAYS : days;
   }, [productData?.meta?.return_window]);
 
@@ -94,21 +99,22 @@ const ProductDetails: FC = () => {
         setError(null);
 
         const response = await fetchProductDetails(productDetails);
-        
+
         if (response) {
           setProductData(response);
           console.log("Product details loaded successfully:", response.name);
         } else {
-          setError({ 
-            message: "Product not found or unavailable", 
-            retry: true 
+          setError({
+            message: "Product not found or unavailable",
+            retry: true,
           });
         }
       } catch (err) {
         console.error("Error fetching product details:", err);
-        setError({ 
-          message: "Failed to load product details. Please check your connection.", 
-          retry: true 
+        setError({
+          message:
+            "Failed to load product details. Please check your connection.",
+          retry: true,
         });
       } finally {
         setIsLoading(false);
@@ -134,16 +140,15 @@ const ProductDetails: FC = () => {
   }, [fetchData]);
 
   // Render functions
-const renderHeader = () => (
-  <View style={styles.headerContainer}>
-    <Search
-      onPress={() => {
-        router.push("../search");
-      }}
-    />
-  </View>
-);
-
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Search
+        onPress={() => {
+          router.push("../search");
+        }}
+      />
+    </View>
+  );
 
   const renderError = () => (
     <SafeAreaView style={styles.container}>
@@ -161,7 +166,7 @@ const renderHeader = () => (
 
   const renderImageCarousel = () => {
     if (!productData?.images?.length) return null;
-    
+
     return (
       <View style={styles.imageCarouselContainer}>
         <ImageCarousel url={productData.images} />
@@ -170,9 +175,11 @@ const renderHeader = () => (
   };
 
   const renderVariantGroup = () => {
-    if (!productData?.parent_item_id || 
-        !Array.isArray(productData.variants) || 
-        productData.variants.length === 0) {
+    if (
+      !productData?.parent_item_id ||
+      !Array.isArray(productData.variants) ||
+      productData.variants.length === 0
+    ) {
       return null;
     }
 
@@ -193,7 +200,10 @@ const renderHeader = () => (
   };
 
   const renderMoreBySeller = () => {
-    if (!Array.isArray(productData?.offers) || productData.offers.length === 0) {
+    if (
+      !Array.isArray(productData?.offers) ||
+      productData.offers.length === 0
+    ) {
       return null;
     }
 
@@ -264,10 +274,10 @@ const renderHeader = () => (
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#007AFF']}
+            colors={["#007AFF"]}
             tintColor="#007AFF"
           />
         }
@@ -277,15 +287,16 @@ const renderHeader = () => (
 
         <View style={styles.sectionContainer}>
           <ProductPricing
-            storeName={productData.store?.name || "Unknown Store"}
-            storeId={productData.store_id}
+            store={{
+              name: productData.store?.name || "Unknown Store",
+              slug: productData.store?.slug || "unknown-store",
+            }}
             description={productData.short_desc || "No description available"}
             maxPrice={productData.price?.maximum_value ?? 0}
             price={productData.price?.value || 0}
             discount={productData.price?.offerPercent || 0}
           />
         </View>
-
         {renderVariantGroup()}
 
         <View style={styles.sectionContainer}>
@@ -294,7 +305,9 @@ const renderHeader = () => (
             storeId={productData.store_id}
             returnableDays={returnableDays}
             isReturnable={productData.meta?.returnable || false}
-            isCashOnDeliveryAvailable={productData.meta?.available_on_cod || false}
+            isCashOnDeliveryAvailable={
+              productData.meta?.available_on_cod || false
+            }
           />
         </View>
 
@@ -335,17 +348,17 @@ export default ProductDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f3f3',
+    backgroundColor: "#f7f3f3",
   },
   headerContainer: {
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    flexDirection: 'row',
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    flexDirection: "row",
     paddingVertical: 12,
     paddingHorizontal: 4,
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -355,7 +368,7 @@ const styles = StyleSheet.create({
       },
     }),
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   scrollView: {
     flex: 1,
@@ -364,27 +377,27 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sectionContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     marginBottom: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   imageCarouselContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     marginBottom: 8,
   },
   stickyFooter: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     height: CART_FOOTER_HEIGHT,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 12,
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: "#000000",
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -394,39 +407,39 @@ const styles = StyleSheet.create({
       },
     }),
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: "#E5E7EB",
   },
   bottomPadding: {
     height: CART_FOOTER_HEIGHT + 20,
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
   errorText: {
-    color: '#DC2626',
+    color: "#DC2626",
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
-    fontWeight: '500',
+    fontWeight: "500",
     maxWidth: SCREEN_WIDTH * 0.8,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 120,
-    alignItems: 'center',
+    alignItems: "center",
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

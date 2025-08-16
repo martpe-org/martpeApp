@@ -7,7 +7,7 @@ interface BouncyCardWrapperProps {
   onPress?: (navigation: any) => void;
 }
 
-const BouncyCardWrapper = ({ children, onPress }) => {
+const BouncyCardWrapper = ({ children, onPress }:BouncyCardWrapperProps) => {
   const navigation = useNavigation();
   const [scale] = useState(new Animated.Value(1));
 

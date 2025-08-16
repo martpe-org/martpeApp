@@ -91,7 +91,7 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
           width: widthPercentageToDP(75),
         }}
       >
-        {/* <Image source={require("../../../assets/alertCircle.png")} /> */}
+        <Image source={require("../../../assets/alertCircle.png")} /> 
         <MaterialIcons
           name="report-problem"
           size={14}
@@ -101,7 +101,7 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
         <Text style={{ marginHorizontal: 5, color: "#000" }}>
           Report an issue with the menu
         </Text>
-        {/* <Image source={require("../../../assets/rightArrowRed.png")} /> */}
+        <Image source={require("../../../assets/rightArrowRed.png")} />
         <MaterialCommunityIcons name="chevron-right" size={14} color="black" />
       </View>
     </View>

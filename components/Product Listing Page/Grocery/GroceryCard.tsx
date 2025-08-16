@@ -67,7 +67,7 @@ const itemCount = cartItem?.qty ?? 0;
           <DynamicButton
             storeId={providerId}
             slug={id}
-            quantity={1}
+            qty={1}
             isNewItem={true}
           >
             <View style={styles.add}>
@@ -80,7 +80,7 @@ const itemCount = cartItem?.qty ?? 0;
           <DynamicButton
             storeId={providerId}
             slug={id}
-            quantity={itemCount - 1}
+            qty={itemCount - 1}
             isUpdated={true}
           >
             <DecrementIcon />
@@ -90,7 +90,7 @@ const itemCount = cartItem?.qty ?? 0;
             <DynamicButton
               storeId={providerId}
               slug={id}
-              quantity={itemCount + 1}
+              qty={itemCount + 1}
               isUpdated={true}
             >
               <IncrementIcon />
@@ -99,7 +99,7 @@ const itemCount = cartItem?.qty ?? 0;
             <DynamicButton
               storeId={providerId}
               slug={id}
-              quantity={itemCount + 1}
+              qty={itemCount + 1}
               isUpdated={true}
               disabled={true}
             >

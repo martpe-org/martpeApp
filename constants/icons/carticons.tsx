@@ -1,7 +1,7 @@
 import React from "react";
 import Svg, { Path } from "react-native-svg";
 
-export const IncrementIcon = (props) => (
+export const IncrementIcon = (props:any) => (
   <Svg width={15} height={14} fill="none" {...props}>
     <Path
       stroke={props.disabled ? "#00BC6666" : "#00BC66"}
@@ -13,7 +13,7 @@ export const IncrementIcon = (props) => (
   </Svg>
 );
 
-export const DecrementIcon = (props) => (
+export const DecrementIcon = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={15}
@@ -31,7 +31,7 @@ export const DecrementIcon = (props) => (
   </Svg>
 );
 
-const DownArrow = (props) => (
+const DownArrow = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={14}

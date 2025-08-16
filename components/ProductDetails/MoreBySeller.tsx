@@ -59,7 +59,7 @@ const MoreBySeller: FC<SellerDetailsProps> = ({ products, originalId }) => {
           <TouchableOpacity
             key={product.id}
             onPress={() => {
-              router.push(`./(tabs)/home/productDetails/${product.id}`);
+              router.push(`/(tabs)/home/result/productDetails/${product.id}`);
             }}
             style={styles.card}
           >

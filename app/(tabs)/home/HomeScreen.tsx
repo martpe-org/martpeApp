@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -13,10 +13,10 @@ import {
   Text,
   TouchableOpacity,
   View,
+  RefreshControl, // ✅ import
 } from "react-native";
 import { fetchHome } from "../../../hook/fetch-home-data";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
-
 import { Ionicons } from "@expo/vector-icons";
 import { useRenderFunctions } from "../../../components/Landing Page/render";
 import {
@@ -57,6 +57,7 @@ export default function HomeScreen() {
     isLoading,
     error,
     refetch,
+    isRefetching, // ✅ react-query provides this
   } = useQuery({
     queryKey: [
       "homeData",
@@ -69,7 +70,6 @@ export default function HomeScreen() {
       let lng = selectedDetails?.lng;
       let pin = selectedDetails?.pincode;
 
-      // If no saved location, use device GPS
       if (!lat || !lng || !pin) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
@@ -79,7 +79,6 @@ export default function HomeScreen() {
         lat = location.coords.latitude;
         lng = location.coords.longitude;
 
-        // Optional: reverse geocode to get pincode
         const [address] = await Location.reverseGeocodeAsync({
           latitude: lat,
           longitude: lng,
@@ -89,7 +88,7 @@ export default function HomeScreen() {
 
       return fetchHome(lat, lng, pin);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     enabled: true,
     retry: 1,
   });
@@ -97,7 +96,6 @@ export default function HomeScreen() {
   // Animation value for "No Data" messages
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Animate when no data is found
   useEffect(() => {
     if (homeData) {
       if (!homeData.restaurants?.length || !homeData.stores?.length) {
@@ -107,12 +105,11 @@ export default function HomeScreen() {
           useNativeDriver: true,
         }).start();
       } else {
-        fadeAnim.setValue(0); // reset
+        fadeAnim.setValue(0);
       }
     }
   }, [homeData]);
 
-  // --- handlers ---
   const handleLocationPress = () => {
     router.push("../address/SavedAddresses");
   };
@@ -121,12 +118,24 @@ export default function HomeScreen() {
     router.push("../search");
   };
 
-  // --- Main render ---
+  // ✅ Pull-to-refresh handler
+  const onRefresh = () => {
+    refetch();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching || isLoading}
+            onRefresh={onRefresh}
+            colors={["#f2663c"]} // Android spinner color
+            tintColor="#f2663c"   // iOS spinner color
+          />
+        }
       >
         {/* Red header */}
         <View style={styles.redSection}>

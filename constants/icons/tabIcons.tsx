@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export const Hometab = (props) => (
+export const Hometab = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={20}
@@ -17,7 +17,7 @@ export const Hometab = (props) => (
     />
   </Svg>
 );
-export const Wishlisttab = (props) => (
+export const Wishlisttab = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -36,7 +36,7 @@ export const Wishlisttab = (props) => (
   </Svg>
 );
 
-export const Orders = (props) => (
+export const Orders = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -60,23 +60,30 @@ export const Orders = (props) => (
     />
   </Svg>
 );
+type CartTabProps = {
+  color: string;
+  active: boolean;
+  itemCount: number;
+};
 
-export const CartTab = ({ color, active, itemCount }) => (
-  <View style={styles.container}>
-    <MaterialCommunityIcons
-      name={active ? "cart" : "cart-outline"}
-      size={24}
-      color={color}
-    />
-    {itemCount > 0 && (
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{itemCount}</Text>
-      </View>
-    )}
-  </View>
-);
+export const CartTab = ({ color, active, itemCount }: CartTabProps) => {
+  return (
+    <View style={styles.container}>
+      <MaterialCommunityIcons
+        name={active ? "cart" : "cart-outline"}
+        size={24}
+        color={color}
+      />
+      {itemCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{itemCount}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
-export const ProfileTab = (props) => (
+export const ProfileTab = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={24}
@@ -118,7 +125,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export const BackArrow = (props) => (
+export const BackArrow = (props:any) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
     width={10}

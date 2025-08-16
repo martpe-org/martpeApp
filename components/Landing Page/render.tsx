@@ -39,12 +39,12 @@ export const useRenderFunctions = () => {
   const renderRestaurantItem = ({ item }: { item: Store2 }) => (
     <TouchableOpacity
       style={styles.restaurantCard}
-      onPress={() =>
-        router.push({
-          pathname: "./(tabs)/home/result/productListing",
-          params: { id: item.slug },
-        })
-      }
+    onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/productListing/[id]",
+            params: { id: item.slug },
+          })
+        }
     >
       <View style={styles.restaurantImageContainer}>
         <Image
@@ -198,7 +198,7 @@ export const useRenderFunctions = () => {
     return (
       <View style={styles.categoryRow}>
         <TouchableOpacity
-          onPress={() => router.push(`../../(tabs)/home/result/${item.name}`)}
+          onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
           style={styles.categoryItem}
         >
           <Image source={{ uri: item.image }} style={styles.categoryImage} />
@@ -207,7 +207,7 @@ export const useRenderFunctions = () => {
         {nextItem && (
           <TouchableOpacity
             onPress={() =>
-              router.push(`../../(tabs)/home/result/${nextItem.name}`)
+              router.push(`/(tabs)/home/result/${nextItem.name}`)
             }
             style={styles.categoryItem}
           >

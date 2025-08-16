@@ -7,106 +7,194 @@ import {
   Text,
   View,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 
-const ProductList = ({ storeId, catalogs, categoryFiltered }) => {
-  const allCarts = useCartStore((state) => state.allCarts);
-  const cart = allCarts.find((cart) => cart.store.id === storeId);
-  if (!catalogs) {
-    return null;
-  } else {
-    console.log(catalogs);
+// Define interfaces at the top level
+interface Descriptor {
+  name: string;
+  short_desc: string;
+  images: string[];
+}
+
+interface Price {
+  maximum_value: number;
+  value: number;
+  offer_percent?: number;
+}
+
+interface Available {
+  count: number;
+}
+
+interface Quantity {
+  available?: Available;
+  maximum?: Available;
+  unitized?: {
+    measure: {
+      unit: string;
+      value: string;
+    };
+  };
+}
+
+interface ProductData {
+  id: string;
+  descriptor?: Descriptor;
+  price?: Price;
+  quantity?: Quantity;
+  category_id?: string;
+}
+
+interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  unit_max_price: number;
+  total_price: number;
+  total_max_price: number;
+  catalog_id?: string;
+}
+
+interface Cart {
+  store: { _id: string; id?: string };
+  cart_items: CartItem[];
+}
+
+interface ProductListProps {
+  storeId: string;
+  catalogs: ProductData[];
+  categoryFiltered: string[];
+}
+
+const ProductList: React.FC<ProductListProps> = ({ 
+  storeId, 
+  catalogs, 
+  categoryFiltered 
+}) => {
+  const { allCarts } = useCartStore();
+  
+  // Find cart by storeId - check both _id and id fields to match your cart structure
+  const cart = allCarts.find((cart: Cart) => 
+    cart.store._id === storeId || cart.store.id === storeId
+  );
+
+  if (!catalogs || catalogs.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No products available</Text>
+      </View>
+    );
   }
-  const renderProduct = (data) => {
-    interface Descriptor {
-      name: string;
-      short_desc: string;
-      images: string[];
-    }
 
-    interface Price {
-      maximum_value: number;
-      value: number;
-      offer_percent?: number;
-    }
+  console.log("Catalogs:", catalogs);
+  console.log("Cart found:", cart);
+  console.log("All carts:", allCarts);
 
-    interface Available {
-      count: number;
-    }
-
-    interface Quantity {
-      available?: Available;
-      maximum?: Available;
-      unitized?: {
-        measure: {
-          unit: string;
-          value: string;
-        };
-      };
-    }
-
-    interface Data {
-      id: string;
-      descriptor?: Descriptor;
-      price?: Price;
-      quantity?: Quantity;
-    }
-
+  const renderProduct = (data: ProductData) => {
     const {
       id,
-      descriptor: { name, short_desc, images } = {},
-      price: { maximum_value: maximum_price, value: price, offer_percent } = {},
-      quantity: {
-        available: { count: available_quantity } = {},
-        maximum: { count: maximum_quantity } = {},
+      descriptor: { 
+        name = "Unknown Product", 
+        short_desc = "", 
+        images = [] 
       } = {},
-    } = data as Data;
+      price: { 
+        maximum_value: maximum_price = 0, 
+        value: price = 0, 
+        offer_percent 
+      } = {},
+      quantity: {
+        available: { count: available_quantity = 0 } = {},
+        maximum: { count: maximum_quantity = 10 } = {},
+      } = {},
+    } = data;
+
+    // Find if this product is in the cart
+    const cartItem = cart?.cart_items?.find((item: CartItem) => 
+      item.catalog_id === id
+    );
+    
+    const isInCart = !!cartItem;
+    const cartQuantity = cartItem?.qty || 0;
+
+    console.log(`Product ${id} - In cart: ${isInCart}, Quantity: ${cartQuantity}`);
 
     return (
-      <Pressable
+      <TouchableOpacity
         onPress={() => {
-          router.push(`../(tabs)/home/productDetails/${id}`);
+          router.push(`/(tabs)/home/result/productDetails/${id}`);
         }}
         style={styles.product}
         key={id}
       >
         <View style={styles.imageContainer}>
-          <Image source={{ uri: images[0] }} style={styles.image} />
+          <Image 
+            source={{ 
+              uri: images[0] || 'https://via.placeholder.com/150x150?text=No+Image' 
+            }} 
+            style={styles.image} 
+          />
         </View>
+
+        {/* Discount badge */}
         {offer_percent && offer_percent > 1 && (
           <View style={styles.discountView}>
             <View style={styles.discount}>
               <Image source={require("../../assets/greenStar.png")} />
-              <Text style={styles.discountPercent}>{offer_percent}</Text>
+              <Text style={styles.discountPercent}>{offer_percent}%</Text>
             </View>
           </View>
         )}
+
+        {/* Product name */}
         <Text numberOfLines={1} style={styles.title}>
           {name}
         </Text>
+
+        {/* Product description */}
         <Text numberOfLines={1} style={styles.desc}>
           {short_desc}
         </Text>
+
+        {/* Price container */}
         <View style={styles.priceContainer}>
-          <Text style={styles.priceText}>₹ {price}</Text>
+          <Text style={styles.priceText}>₹{price}</Text>
           {offer_percent && offer_percent > 1 && (
-            <Text style={styles.strikethrough}>₹ {maximum_price}</Text>
+            <Text style={styles.strikethrough}>₹{maximum_price}</Text>
           )}
         </View>
+
+        {/* Cart indicator */}
+        {isInCart && (
+          <View style={styles.cartIndicator}>
+            <Text style={styles.cartIndicatorText}>{cartQuantity}</Text>
+          </View>
+        )}
+
+        {/* Like button */}
         <View style={styles.add}>
           <LikeButton color="gray" productId={id} />
         </View>
-      </Pressable>
+      </TouchableOpacity>
     );
   };
 
+  // Filter catalogs by category
   const filteredCatalogs = catalogs.filter(
-    (catalog) =>
-      categoryFiltered.length == 0 ||
-      categoryFiltered.includes(catalog.category_id)
+    (catalog: ProductData) =>
+      categoryFiltered.length === 0 ||
+      categoryFiltered.includes(catalog.category_id || "")
   );
+
+  if (filteredCatalogs.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No products found for selected categories</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -114,7 +202,7 @@ const ProductList = ({ storeId, catalogs, categoryFiltered }) => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.scrollViewContent}
     >
-      {filteredCatalogs.map((data) => renderProduct(data))}
+      {filteredCatalogs.map((data: ProductData) => renderProduct(data))}
     </ScrollView>
   );
 };
@@ -134,10 +222,14 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 5,
     padding: 5,
+    borderRadius: 8,
   },
   imageContainer: {
     height: 150,
     width: 150,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
   },
   image: {
     flex: 1,
@@ -156,23 +248,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 12,
-    maxWidth: 120,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    maxWidth: 150,
+    marginTop: 8,
   },
   discountPercent: {
     position: "absolute",
     color: "white",
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "bold",
   },
   discountView: {
     position: "absolute",
-    top: -20,
-    right: -20,
+    top: 0,
+    right: 0,
+    zIndex: 1,
   },
   desc: {
     color: "#87848A",
     fontSize: 12,
-    maxWidth: 120,
+    maxWidth: 150,
+    marginTop: 2,
   },
   footerContainer: {
     display: "flex",
@@ -188,17 +286,50 @@ const styles = StyleSheet.create({
     color: "#736D6D",
   },
   priceText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
+    color: "#333",
   },
   priceContainer: {
     flexDirection: "row",
-    gap: 3,
+    gap: 6,
+    marginTop: 4,
+    alignItems: "center",
   },
   add: {
     position: "absolute",
-    right: 5,
-    bottom: 25,
+    right: 8,
+    bottom: 8,
+    zIndex: 2,
+  },
+  cartIndicator: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#00BC66",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  cartIndicatorText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
   },
 });
 

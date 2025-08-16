@@ -20,7 +20,7 @@ interface SearchProps {
 }
 
 const Search: React.FC<SearchProps> = ({ catalog }) => {
-  const { width, height } = Dimensions.get("window");
+  const { width } = Dimensions.get("window");
   return (
     <View style={styles.headerContainer}>
       <LeftArrow />

@@ -23,7 +23,7 @@ const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      onPress={() => router.push(`../(tabs)/home/productDetails/${item.id}`)}
+      onPress={() => router.push(`/(tabs)/home/result/productDetails/${item.id}`)}
       style={styles.dropdownItemContainer}
     >
       <View style={styles.dropdownItem}>

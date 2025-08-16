@@ -69,18 +69,19 @@ const StoreCard4: React.FC<StoreCard4Props> = ({
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`../(tabs)/home/productListing/${id}`)}
+      onPress={() => router.push(`/(tabs)/home/result/productListing/${id}`)}
       style={styles.container}
     >
       <TouchableOpacity style={styles.menu}>
         <MenuIcon />
       </TouchableOpacity>
       <TouchableOpacity style={styles.fav}>
-        <LikeButton color="white" vendorId={id} />
+        <LikeButton color="white" productId={id} />
       </TouchableOpacity>
       <View>
         <ProductList3
           categoryFiltered={categoryFiltered}
+          item
           storeId={id}
           catalogs={catalogs}
           foodDetails={foodDetails}

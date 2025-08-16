@@ -368,7 +368,9 @@ const Results: FC = () => {
           </View>
           <TouchableOpacity
             style={styles.arrowContainer}
-            onPress={() => router.push(`./productListing/${store.slug}`)}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+            }
           >
             <ForwardArrowSvg />
           </TouchableOpacity>
@@ -540,7 +542,9 @@ const Results: FC = () => {
           </View>
           <TouchableOpacity
             style={styles.arrowContainer}
-            onPress={() => router.push(`./productListing/${store.slug}`)}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+            }
           >
             <ForwardArrowSvg />
           </TouchableOpacity>
@@ -557,7 +561,11 @@ const Results: FC = () => {
         >
           {products.map((product, index) => (
             <TouchableOpacity
-              onPress={() => router.push(`./productDetails/${product.slug}`)}
+              onPress={() =>
+                router.push(
+                  `/(tabs)/home/result/productDetails/${product.slug}`
+                )
+              }
               key={index}
               style={styles.productItem}
             >
@@ -648,7 +656,9 @@ const Results: FC = () => {
           </View>
           <TouchableOpacity
             style={styles.arrowContainer}
-            onPress={() => router.push(`./productListing/${store.slug}`)}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+            }
           >
             <ForwardArrowSvg />
           </TouchableOpacity>
@@ -665,7 +675,11 @@ const Results: FC = () => {
         >
           {products.map((product, index) => (
             <TouchableOpacity
-              onPress={() => router.push(`./productDetails/${product.slug}`)}
+              onPress={() =>
+                router.push(
+                  `/(tabs)/home/result/productDetails/${product.slug}`
+                )
+              }
               key={index}
               style={styles.productItem}
             >
@@ -970,7 +984,9 @@ const Results: FC = () => {
             {storesData.map((store, index) => (
               <TouchableOpacity
                 onPress={() =>
-                  router.push(`../../productListing/${store.slug}`)
+                  router.push(
+                    `/(tabs)/home/result/productListing/${store.slug}`
+                  )
                 }
                 key={index}
                 style={styles.storeCard}

@@ -70,7 +70,6 @@ interface ComponentCatalogItem {
   provider_id: string;
   veg: boolean;
 }
-
 interface VendorData {
   address?: {
     area_code?: string;
@@ -332,7 +331,7 @@ const PLP: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push("../address/SavedAddresses")}
+          onPress={() => router.push("/address/SavedAddresses")}
           style={{
             backgroundColor: "#030303",
             width: widthPercentageToDP("90"),
@@ -348,7 +347,7 @@ const PLP: React.FC = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.push("../(tabs)/home")}
+          onPress={() => router.push("./(tabs)/home")}
           style={{
             borderColor: "#030303",
             width: widthPercentageToDP("90"),
