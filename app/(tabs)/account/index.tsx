@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import useUserDetails from "../../hook/useUserDetails";
+import useUserDetails from "../../../hook/useUserDetails";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import Fontisto from '@expo/vector-icons/Fontisto';

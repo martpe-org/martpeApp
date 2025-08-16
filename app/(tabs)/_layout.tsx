@@ -136,43 +136,42 @@ export default function TabsLayout() {
       />
 
       {/* 4. Account Tab */}
-      <Tabs.Screen
-        name="account"
-        options={{
-          tabBarLabel: "Account",
-          title: "Account",
-          tabBarStyle: {
-            display: hideTabBar ? "none" : "flex",
-            height: 70,
-            paddingBottom: 12,
-            paddingTop: 8,
-            backgroundColor: backgroundColor,
-            borderTopWidth: 1,
-            borderTopColor: "#F0F0F0",
-            elevation: 8,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: -2,
-            },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-          },
-          tabBarItemStyle: {
-            paddingVertical: 4,
-            borderRightWidth: 0, // Remove right border for last item
-          },
-          tabBarIcon: ({ focused }) => (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialCommunityIcons
-                name={focused ? "account" : "account-outline"}
-                size={22}
-                color={focused ? activeTabColor : inactiveTabColor}
-              />
-            </View>
-          ),
-        }}
-      />
+     {/* 4. Account Tab */}
+<Tabs.Screen
+  name="account"
+  options={{
+    tabBarLabel: "Account",
+    title: "Account",
+    tabBarStyle: {
+      display: hideTabBar ? "none" : "flex",
+      height: 70,
+      paddingBottom: 12,
+      paddingTop: 8,
+      backgroundColor: backgroundColor,
+      borderTopWidth: 1,
+      borderTopColor: "#F0F0F0",
+      elevation: 8,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    tabBarItemStyle: {
+      paddingVertical: 4,
+      borderRightWidth: 0, // no border for last tab
+    },
+    tabBarIcon: ({ focused }) => (
+      <View style={{ alignItems: "center", justifyContent: "center" }}>
+        <MaterialCommunityIcons
+          name={focused ? "account" : "account-outline"}
+          size={22}
+          color={focused ? activeTabColor : inactiveTabColor}
+        />
+      </View>
+    ),
+  }}
+/>
+
     </Tabs>
   );
 }

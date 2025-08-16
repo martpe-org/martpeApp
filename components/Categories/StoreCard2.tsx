@@ -72,7 +72,7 @@ const { percent = 0 } = calculated_max_offer;
             <View style={styles.logoContainer}>
               <Image
                 source={{ uri: symbol }}
-                // source={require("../../assets/patanjali.png")}
+               //  source={require("/assets/patanjali.png")}
                 style={styles.logoImage}
               />
             </View>
@@ -81,10 +81,10 @@ const { percent = 0 } = calculated_max_offer;
                 <Text style={styles.brandText}>{name}</Text>
                 <View style={styles.subText}>
                   <Text style={styles.locationText}>{street} . 0.5 Km</Text>
-                  {/* <View style={{flexDirection:'row'}}>
+                  <View style={{flexDirection:'row'}}>
                     <Text style={{ fontSize: 10 }}>4.2</Text>
                     <Image source={require("../../assets/star.png")} />
-                  </View> */}
+                  </View>
                 </View>
               </View>
               <View style={styles.subDetails}>

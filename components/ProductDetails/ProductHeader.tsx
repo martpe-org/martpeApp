@@ -1,8 +1,9 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import ShareButton from "../../components/common/Share";
 import LikeButton from "../../components/common/likeButton";
+import { getAsyncStorageItem, setAsyncStorageItem } from "../../utility/asyncStorage";
 
 interface ProductHeaderProps {
   itemName: string;
@@ -25,10 +26,33 @@ const ProductHeader: FC<ProductHeaderProps> = ({
 }) => {
   const allFavoritesProducts = useFavoriteStore((state) => state.allFavorites);
 
+  // Convert productId to string if it's an array
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+
+  // Debug authentication on component mount
+  useEffect(() => {
+    const debugAuth = async () => {
+      const token = await getAsyncStorageItem("authToken");
+      
+      // Temporary: Set a test token if none exists
+      if (!token) {
+        await setAsyncStorageItem("authToken", "test-auth-token-123");
+      }
+    };
+    
+    debugAuth();
+  }, []);
+
   // Compute isFavorite for LikeButton
   const isFavorite = allFavoritesProducts?.products?.some(
-    (item) => item.id === productId
+    (item) => item.id === productIdString
   );
+
+  console.log("ProductHeader Debug:", {
+    productId: productIdString,
+    isFavorite,
+    favoritesCount: allFavoritesProducts?.products?.length || 0
+  });
 
   return (
     <View style={styles.container}>
@@ -50,9 +74,9 @@ const ProductHeader: FC<ProductHeaderProps> = ({
 
       {/* Right: Like + Share */}
       <View style={styles.actions}>
-        <LikeButton productId={productId as string} color="#E11D48" />
+        <LikeButton productId={productIdString} color="#E11D48" />
         <ShareButton
-          productId={productId as string}
+          productId={productIdString}
           productName={itemName}
           storeName={storeName}
           incentivise={true}

@@ -80,7 +80,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   // Find cart by storeId (check both _id and id fields)
   const cart = allCarts.find(
-    (c) => c.store._id === storeId || c.store.id === storeId
+    (c) => c.store._id === storeId || c.store._id === storeId
   );
 
   if (!catalogs || catalogs.length === 0) {
@@ -116,14 +116,14 @@ const ProductList: React.FC<ProductListProps> = ({
     }
   };
 
-  const handleUpdateQuantity = async (cartItemId: string, newQty: number) => {
+  const handleUpdateQuantity = async (cartItemId: string, qty: number) => {
     if (!authToken) {
       console.error("No auth token available");
       return;
     }
 
     try {
-      if (newQty === 0) {
+      if (qty === 0) {
         // Remove item if quantity is 0
         const success = await removeCartItems([cartItemId], authToken);
         if (!success) {
@@ -131,7 +131,7 @@ const ProductList: React.FC<ProductListProps> = ({
         }
       } else {
         // Update quantity
-        const success = await updateQty(cartItemId, newQty, authToken);
+        const success = await updateQty(cartItemId, qty, authToken);
         if (!success) {
           console.error("Failed to update item quantity");
         }
