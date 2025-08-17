@@ -129,8 +129,9 @@ const CartScreen = () => {
         </Text>
 
         {/* Heart icon aligned extreme right */}
-        <TouchableOpacity style={{ marginLeft: "auto" }} onPress={() => router.push({ pathname: "../(tabs)/account/wishlist" }  )}>
-          <MaterialCommunityIcons name="heart" size={24} color="#f14343" />
+        <TouchableOpacity style={{ marginLeft: "auto" ,flexDirection:"column"}} onPress={() => router.push({ pathname: "../(tabs)/account/wishlist" }  )}>
+          <MaterialCommunityIcons name="heart" size={24} color="#f14343"  marginLeft="10" />
+          <Text style={{color:"#f14343"}}>Wishlist</Text>
         </TouchableOpacity>
       </View>
 

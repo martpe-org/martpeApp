@@ -4,7 +4,7 @@ import React from "react";
 import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 
-const wishlistHeading = "Favorites";
+const wishlistHeading = "Your Favorite items";
 
 const HeaderWishlist = () => {
   return (
@@ -24,7 +24,7 @@ const HeaderWishlist = () => {
           left: Dimensions.get("window").width * 0.05,
         }}
         onPress={() => {
-          router.back();
+          router.push("/(tabs)/account");
         }}
       >
         <BackArrow />

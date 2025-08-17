@@ -2,10 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import useUserDetails from "../../../hook/useUserDetails";
 import { useFavoriteStore } from "../../../state/useFavoriteStore";
-
-// ✅ Reusable components
 import HeaderWishlist from "../../../components/wishlist/Header";
-import TabBar, { WishlistTab } from "../../../components/wishlist/TabBar";
+import TabBar, { WishlistTab } from "../../../components/wishlist/TabBar"; // Animated TabBar
 import FavItems from "../../../components/wishlist/FavItems";
 import FavOutlets from "../../../components/wishlist/FavOutlets";
 
@@ -15,76 +13,59 @@ const Wishlist = () => {
 
   const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
 
-  // Fetch favorites when component mounts or authToken changes
   useEffect(() => {
     if (authToken) {
       fetchFavs(authToken);
     }
   }, [authToken, fetchFavs]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#0066CC" />
-        <Text style={styles.loadingText}>Loading favorites...</Text>
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#0066CC" />
+          <Text style={styles.loadingText}>Loading favorites...</Text>
+        </View>
+      );
+    }
 
-  // Error state
-  if (error) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>❌ {error}</Text>
-        <Text style={styles.errorSubtext}>Pull to refresh or try again later</Text>
-      </View>
-    );
-  }
+    if (error) {
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>❌ {error}</Text>
+          <Text style={styles.errorSubtext}>Pull to refresh or try again later</Text>
+        </View>
+      );
+    }
 
-  // No auth token
-  if (!authToken) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>🔒 Please log in to view favorites</Text>
-      </View>
-    );
-  }
+    if (!authToken) {
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>🔒 Please log in to view favorites</Text>
+        </View>
+      );
+    }
 
-  return (
-  <View style={styles.container}>
-    <HeaderWishlist />
-    <TabBar selectTab={setSelectedTab} />
-
-    {isLoading ? (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0066CC" />
-        <Text style={styles.loadingText}>Loading favorites...</Text>
-      </View>
-    ) : error ? (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>❌ {error}</Text>
-        <Text style={styles.errorSubtext}>
-          Pull to refresh or try again later
-        </Text>
-      </View>
-    ) : !authToken ? (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>🔒 Please log in to view favorites</Text>
-      </View>
-    ) : selectedTab === "Items" ? (
+    return selectedTab === "Items" ? (
       <FavItems favorites={allFavorites?.products ?? []} authToken={authToken} />
     ) : (
       <FavOutlets itemsData={allFavorites?.stores ?? []} />
-    )}
-  </View>
-);
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <HeaderWishlist />
+      <TabBar selectTab={setSelectedTab} />
+      {renderContent()}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB", 
+    backgroundColor: "#F9FAFB",
     paddingTop: 20,
   },
   centered: {

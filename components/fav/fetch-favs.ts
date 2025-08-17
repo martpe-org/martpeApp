@@ -18,6 +18,7 @@ export interface FavoriteProduct {
 
 export interface FavoriteStore {
   id: string;
+  slug: string;
   descriptor?: {
     name?: string;
     symbol?: string;

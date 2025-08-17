@@ -1,25 +1,19 @@
-import React, { FC, useState } from "react";
+import React, { FC, useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   Dimensions,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
 
 const tabOptions = [
-  {
-    id: 1,
-    title: "Items",
-  },
-  {
-    id: 2,
-    title: "Outlets",
-  },
+  { id: 1, title: "Items" },
+  { id: 2, title: "Outlets" },
 ];
 
-// Define a type for tabs
 export type WishlistTab = "Items" | "Outlets";
 
 interface TabBarProps {
@@ -29,9 +23,18 @@ interface TabBarProps {
 const TabBar: FC<TabBarProps> = ({ selectTab }) => {
   const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
 
-  const handleTab = (tab: WishlistTab) => {
+  // Animated value for sliding
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleTab = (tab: WishlistTab, index: number) => {
     setSelectedTab(tab);
     selectTab(tab);
+
+    // Animate the sliding indicator
+    Animated.spring(slideAnim, {
+      toValue: index * (width * 0.3), // half of container width
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -52,18 +55,31 @@ const TabBar: FC<TabBarProps> = ({ selectTab }) => {
           paddingVertical: 10,
           borderRadius: 50,
           backgroundColor: "rgba(255, 81, 81, 0.15)",
+          position: "relative",
         }}
       >
-        {tabOptions.map((tab) => (
+        {/* Sliding Indicator */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            left: 0,
+            width: width * 0.3,
+            height: "100%",
+            backgroundColor: "#FF5151",
+            borderRadius: 50,
+            transform: [{ translateX: slideAnim }],
+          }}
+        />
+
+        {tabOptions.map((tab, index) => (
           <TouchableOpacity
             key={tab.id}
             style={{
-              backgroundColor: selectedTab === tab.title ? "#FF5151" : "white",
-              paddingHorizontal: width * 0.07,
+              flex: 1,
+              alignItems: "center",
               paddingVertical: 10,
-              borderRadius: 50,
             }}
-            onPress={() => handleTab(tab.title as WishlistTab)}
+            onPress={() => handleTab(tab.title as WishlistTab, index)}
           >
             <Text
               style={{

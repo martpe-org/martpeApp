@@ -66,27 +66,87 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
     }
   },
 
-  removeFavorite: async (productId, authToken) => {
-    if (!authToken) return;
-    const current = get().allFavorites;
-    set({
-      allFavorites: { ...current, products: current.products.filter((p) => p.id !== productId) },
-      isUpdating: true,
+removeFavorite: async (productId, authToken) => {
+  if (!authToken) return;
+  const current = get().allFavorites;
+
+  // Optimistic update: filter by id
+  set({
+    allFavorites: {
+      ...current,
+      products: current.products.filter((p) => p.id !== productId),
+    },
+    isUpdating: true,
+  });
+
+  try {
+    await updateFavAction(authToken, {
+      action: "remove",
+      entity: "product",
+      slug: productId, // ✅ if backend actually needs slug, replace this with productId -> slug mapping
     });
-    try {
-      await updateFavAction(authToken, { action: "remove", entity: "product", slug: productId });
+
+    // Re-fetch to ensure server state is in sync
+    const favorites = await fetchFavs(authToken);
+    if (favorites) {
+      set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
+    } else {
       set({ isUpdating: false });
-    } catch {
-      try {
-        const favorites = await fetchFavs(authToken);
+    }
+  } catch {
+    try {
+      const favorites = await fetchFavs(authToken);
+      if (favorites) {
         set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
-      } catch {
+      } else {
         set({ error: "Failed to remove favorite", isUpdating: false });
       }
+    } catch {
+      set({ error: "Failed to remove favorite", isUpdating: false });
     }
-  },
+  }
+},
 
-  addStoreFavorite: async (storeId, authToken) => {
+removeStoreFavorite: async (storeId, authToken) => {
+  if (!authToken) return;
+  const current = get().allFavorites;
+
+  // Optimistic update: remove by id
+  set({
+    allFavorites: {
+      ...current,
+      stores: current.stores.filter((s) => s.id !== storeId),
+    },
+    isUpdating: true,
+  });
+
+  try {
+    await updateFavAction(authToken, {
+      action: "remove",
+      entity: "store",
+      slug: storeId, // ✅ only if backend accepts id here
+    });
+
+    const favorites = await fetchFavs(authToken);
+    if (favorites) {
+      set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
+    }
+  } catch {
+    try {
+      const favorites = await fetchFavs(authToken);
+      if (favorites) {
+        set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
+      } else {
+        set({ error: "Failed to remove store favorite", isUpdating: false });
+      }
+    } catch {
+      set({ error: "Failed to remove store favorite", isUpdating: false });
+    }
+  }
+},
+
+
+    addStoreFavorite: async (storeId, authToken) => {
     if (!authToken) return;
     const current = get().allFavorites;
     if (!current.stores.some((s) => s.id === storeId)) {
@@ -101,26 +161,6 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
       set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
     } catch {
       set({ error: "Failed to add store favorite", isUpdating: false });
-    }
-  },
-
-  removeStoreFavorite: async (storeId, authToken) => {
-    if (!authToken) return;
-    const current = get().allFavorites;
-    set({
-      allFavorites: { ...current, stores: current.stores.filter((s) => s.id !== storeId) },
-      isUpdating: true,
-    });
-    try {
-      await updateFavAction(authToken, { action: "remove", entity: "store", slug: storeId });
-      set({ isUpdating: false });
-    } catch {
-      try {
-        const favorites = await fetchFavs(authToken);
-        set({ allFavorites: normalizeFavorites(favorites), isUpdating: false });
-      } catch {
-        set({ error: "Failed to remove store favorite", isUpdating: false });
-      }
     }
   },
 }));

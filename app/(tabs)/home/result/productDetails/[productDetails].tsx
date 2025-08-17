@@ -261,14 +261,15 @@ const ProductDetails: FC = () => {
     <SafeAreaView style={styles.container}>
       {renderHeader()}
 
-      <ProductHeader
-        itemName={productData.name}
-        category={productData.category}
-        storeName={productData.store?.name || "Unknown Store"}
-        productId={productDetails!}
-        quantity={productQuantityDisplay.quantity}
-        unit={productQuantityDisplay.unit}
-      />
+   <ProductHeader
+  itemName={productData.name}
+  category={productData.category}
+  storeName={productData.store?.name || "Unknown Store"}
+  productId={productDetails!} // product slug/id
+  quantity={productQuantityDisplay.quantity}
+  unit={productQuantityDisplay.unit}
+/>
+
 
       <ScrollView
         style={styles.scrollView}
