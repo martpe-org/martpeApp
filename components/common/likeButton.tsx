@@ -4,6 +4,7 @@ import useUserDetails from "../../hook/useUserDetails";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity } from "@gorhom/bottom-sheet";
+import { Toast } from "react-native-toast-notifications";
 
 interface LikeButtonProps {
   productId: string;
@@ -48,7 +49,6 @@ const LikeButton = ({ productId, color }: LikeButtonProps) => {
           {
             text: "Login",
             onPress: () => {
-              // TODO: navigation.navigate("Login");
               console.log("Navigate to login screen");
             },
           },
@@ -64,10 +64,10 @@ const LikeButton = ({ productId, color }: LikeButtonProps) => {
     try {
       if (isFavorite) {
         await removeFavorite(productId, authToken); // ✅ pass token
-        console.log("✅ Successfully removed from favorites");
+        Toast.show("✅ Successfully removed from favorites");
       } else {
         await addFavorite(productId, authToken); // ✅ pass token
-        console.log("✅ Successfully added to favorites");
+        Toast.show("✅ Successfully added to favorites");
       }
     } catch (error) {
       console.error("❌ Error updating favorite:", error);

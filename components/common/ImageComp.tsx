@@ -36,7 +36,7 @@ type ImageInterface = {
 
 const defaultProps = {
   resizeMode: "cover" as ImageResizeMode,
-  fallbackSource: require("../../assets/images/no-image.png"),
+//  fallbackSource: require("../../assets/images/no-image.png"),
 };
 
 const ImageComp = (props: ImageInterface & typeof defaultProps) => {

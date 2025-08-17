@@ -3,15 +3,15 @@ import { View, Text } from "react-native";
 import React from "react";
 import { useCartStore } from "../../state/useCartStore";
 import { MaterialCommunityIcons, AntDesign, Entypo } from "@expo/vector-icons";
-import { CartTab } from "../../constants/icons/tabIcons";
 import { useHideTabBarStore } from "../../state/hideTabBar";
 
 export default function TabsLayout() {
   const { allCarts } = useCartStore();
+
   let totalItems = 0;
   for (const cart of allCarts) {
-    for (const item of cart.items) {
-      totalItems += item.quantity;
+    for (const item of cart.cart_items) {
+      totalItems += item.qty;
     }
   }
 
@@ -63,11 +63,11 @@ export default function TabsLayout() {
           tabBarLabel: "Home",
           title: "Home",
           tabBarIcon: ({ focused }) => (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <Entypo 
-                name="home" 
-                size={22} 
-                color={focused ? activeTabColor : inactiveTabColor} 
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <Entypo
+                name="home"
+                size={22}
+                color={focused ? activeTabColor : inactiveTabColor}
               />
             </View>
           ),
@@ -81,33 +81,37 @@ export default function TabsLayout() {
           tabBarLabel: "Cart",
           title: "Cart",
           tabBarIcon: ({ focused }) => (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ position: 'relative' }}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <View style={{ position: "relative" }}>
                 <MaterialCommunityIcons
                   name="shopping-outline"
                   size={22}
                   color={focused ? activeTabColor : inactiveTabColor}
                 />
                 {totalItems > 0 && (
-                  <View style={{
-                    position: 'absolute',
-                    top: -8,
-                    right: -8,
-                    backgroundColor: '#FF1744',
-                    borderRadius: 10,
-                    minWidth: 18,
-                    height: 18,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderWidth: 2,
-                    borderColor: '#FFFFFF',
-                  }}>
-                    <Text style={{
-                      color: '#FFFFFF',
-                      fontSize: 10,
-                      fontWeight: 'bold',
-                    }}>
-                      {totalItems > 99 ? '99+' : totalItems}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: -8,
+                      right: -8,
+                      backgroundColor: "#FF1744",
+                      borderRadius: 10,
+                      minWidth: 18,
+                      height: 18,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderWidth: 2,
+                      borderColor: "#FFFFFF",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 10,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {totalItems > 99 ? "99+" : totalItems}
                     </Text>
                   </View>
                 )}
@@ -124,9 +128,11 @@ export default function TabsLayout() {
           tabBarLabel: "Orders",
           title: "Orders",
           tabBarIcon: ({ focused }) => (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
               <MaterialCommunityIcons
-                name={focused ? "package-variant-closed" : "package-variant-closed"}
+                name={
+                  focused ? "package-variant-closed" : "package-variant-closed"
+                }
                 size={22}
                 color={focused ? activeTabColor : inactiveTabColor}
               />
@@ -136,42 +142,40 @@ export default function TabsLayout() {
       />
 
       {/* 4. Account Tab */}
-     {/* 4. Account Tab */}
-<Tabs.Screen
-  name="account"
-  options={{
-    tabBarLabel: "Account",
-    title: "Account",
-    tabBarStyle: {
-      display: hideTabBar ? "none" : "flex",
-      height: 70,
-      paddingBottom: 12,
-      paddingTop: 8,
-      backgroundColor: backgroundColor,
-      borderTopWidth: 1,
-      borderTopColor: "#F0F0F0",
-      elevation: 8,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    },
-    tabBarItemStyle: {
-      paddingVertical: 4,
-      borderRightWidth: 0, // no border for last tab
-    },
-    tabBarIcon: ({ focused }) => (
-      <View style={{ alignItems: "center", justifyContent: "center" }}>
-        <MaterialCommunityIcons
-          name={focused ? "account" : "account-outline"}
-          size={22}
-          color={focused ? activeTabColor : inactiveTabColor}
-        />
-      </View>
-    ),
-  }}
-/>
-
+      <Tabs.Screen
+        name="account"
+        options={{
+          tabBarLabel: "Account",
+          title: "Account",
+          tabBarStyle: {
+            display: hideTabBar ? "none" : "flex",
+            height: 70,
+            paddingBottom: 12,
+            paddingTop: 8,
+            backgroundColor: backgroundColor,
+            borderTopWidth: 1,
+            borderTopColor: "#F0F0F0",
+            elevation: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          },
+          tabBarItemStyle: {
+            paddingVertical: 4,
+            borderRightWidth: 0,
+          },
+          tabBarIcon: ({ focused }) => (
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <MaterialCommunityIcons
+                name={focused ? "account" : "account-outline"}
+                size={22}
+                color={focused ? activeTabColor : inactiveTabColor}
+              />
+            </View>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

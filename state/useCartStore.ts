@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { removeCart } from "./removeCart";
 import { removeCartItems as removeCartItemsApi } from "./removeCartItems";
-import { updateQty  } from "./updateQty";
+import { updateQty } from "./updateQty";
 import { addToCartAction } from "./addToCart";
 
 interface CartItem {
@@ -11,6 +11,12 @@ interface CartItem {
   unit_max_price: number;
   total_price: number;
   total_max_price: number;
+  product?: {
+    name?: string;
+    symbol?: string;
+    quantity?: number;
+    instock?: boolean;
+  };
 }
 
 interface Cart {
@@ -39,10 +45,49 @@ interface CartState {
   removeCart: (storeId: string, authToken: string) => Promise<boolean>;
 }
 
+// Helper function to filter out invalid cart items
+const sanitizeCartItems = (items: (CartItem | undefined | null)[]): CartItem[] => {
+  return items.filter((item): item is CartItem => {
+    if (!item) {
+      console.warn("Found null/undefined cart item, filtering out");
+      return false;
+    }
+    if (!item._id) {
+      console.warn("Found cart item without _id, filtering out:", item);
+      return false;
+    }
+    return true;
+  });
+};
+
+// Helper function to sanitize carts
+const sanitizeCarts = (carts: Cart[]): Cart[] => {
+  return carts
+    .filter((cart) => {
+      if (!cart) {
+        console.warn("Found null/undefined cart, filtering out");
+        return false;
+      }
+      if (!cart.store?._id) {
+        console.warn("Found cart without store._id, filtering out:", cart);
+        return false;
+      }
+      return true;
+    })
+    .map((cart) => ({
+      ...cart,
+      cart_items: sanitizeCartItems(cart.cart_items || []),
+    }))
+    .filter((cart) => cart.cart_items.length > 0); // Remove empty carts
+};
+
 export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
 
-  setAllCarts: (carts) => set({ allCarts: carts }),
+  setAllCarts: (carts) => {
+    const sanitizedCarts = sanitizeCarts(carts || []);
+    set({ allCarts: sanitizedCarts });
+  },
 
   addItem: async (
     storeId,
@@ -64,72 +109,100 @@ export const useCartStore = create<CartState>((set, get) => ({
       customizations,
     };
 
-    const { success } = await addToCartAction(input, authToken);
-    return success;
-  },
-
-// In your useCartStore.ts, update the updateQty action:
-updateQty: async (cartItemId, qty, authToken) => {
-  if (!authToken || !cartItemId) return false;
-
-  try {
-    const success = await updateQty(cartItemId, qty, authToken);
-
-    if (!success) {
-      console.error("Failed to update quantity via API");
+    try {
+      const { success } = await addToCartAction(input, authToken);
+      return success;
+    } catch (error) {
+      console.error("addItem error:", error);
       return false;
     }
+  },
 
-    // Update local state optimistically
-    set((state) => {
-      const updatedCarts = state.allCarts.map((cart) => ({
-        ...cart,
-        cart_items: cart.cart_items.map((item) =>
-          item._id === cartItemId
-            ? {
-                ...item,
-                qty,
-                total_price: item.unit_price * qty,
-                total_max_price: item.unit_max_price * qty,
-              }
-            : item
-        ),
-      }));
-      return { allCarts: updatedCarts };
-    });
+  updateQty: async (cartItemId, qty, authToken) => {
+    if (!authToken || !cartItemId) return false;
 
-    return true;
-  } catch (error) {
-    console.error("updateQty error:", error);
-    return false;
-  }
-},
+    try {
+      const success = await updateQty(cartItemId, qty, authToken);
+
+      if (!success) {
+        console.error("Failed to update quantity via API");
+        return false;
+      }
+
+      // Update local state optimistically with validation
+      set((state) => {
+        const updatedCarts = state.allCarts.map((cart) => {
+          if (!cart?.cart_items) return cart;
+          
+          return {
+            ...cart,
+            cart_items: sanitizeCartItems(
+              cart.cart_items.map((item) => {
+                if (!item?._id) return item; // Skip invalid items
+                
+                return item._id === cartItemId
+                  ? {
+                      ...item,
+                      qty,
+                      total_price: item.unit_price * qty,
+                      total_max_price: item.unit_max_price * qty,
+                    }
+                  : item;
+              })
+            ),
+          };
+        });
+        
+        return { allCarts: sanitizeCarts(updatedCarts) };
+      });
+
+      return true;
+    } catch (error) {
+      console.error("updateQty error:", error);
+      return false;
+    }
+  },
+
   removeCartItems: async (itemIds, authToken) => {
     if (!authToken || !itemIds?.length) return false;
 
     const prevState = get().allCarts;
 
-    // Optimistic update
-    set((state) => {
-      const updatedCarts = state.allCarts
-        .map((cart) => ({
-          ...cart,
-          cart_items: cart.cart_items.filter(
-            (item) => !itemIds.includes(item._id)
-          ),
-        }))
-        .filter((cart) => cart.cart_items.length > 0);
-      return { allCarts: updatedCarts };
-    });
+    try {
+      // Optimistic update with validation
+      set((state) => {
+        const updatedCarts = state.allCarts
+          .map((cart) => {
+            if (!cart?.cart_items) return cart;
+            
+            return {
+              ...cart,
+              cart_items: sanitizeCartItems(
+                cart.cart_items.filter((item) => {
+                  if (!item?._id) return false; // Remove invalid items
+                  return !itemIds.includes(item._id);
+                })
+              ),
+            };
+          })
+          .filter((cart) => cart.cart_items.length > 0);
+        
+        return { allCarts: sanitizeCarts(updatedCarts) };
+      });
 
-    // API call
-    const success = await removeCartItemsApi(itemIds, authToken);
+      // API call
+      const success = await removeCartItemsApi(itemIds, authToken);
 
-    if (!success) {
+      if (!success) {
+        set({ allCarts: prevState });
+      }
+
+      return success;
+    } catch (error) {
+      console.error("removeCartItems error:", error);
       set({ allCarts: prevState });
+      return false;
     }
-
-    return success;
   },
 
   removeCart: async (storeId, authToken) => {
@@ -137,20 +210,26 @@ updateQty: async (cartItemId, qty, authToken) => {
 
     const prevState = get().allCarts;
 
-    // Optimistic update
-    set((state) => ({
-      allCarts: state.allCarts.filter(
-        (cart) => cart.store._id !== storeId
-      ),
-    }));
+    try {
+      // Optimistic update with validation
+      set((state) => ({
+        allCarts: sanitizeCarts(
+          state.allCarts.filter((cart) => cart?.store?._id !== storeId)
+        ),
+      }));
 
-    // API call
-    const success = await removeCart(storeId, authToken);
+      // API call
+      const success = await removeCart(storeId, authToken);
 
-    if (!success) {
+      if (!success) {
+        set({ allCarts: prevState });
+      }
+
+      return success;
+    } catch (error) {
+      console.error("removeCart error:", error);
       set({ allCarts: prevState });
+      return false;
     }
-
-    return success;
   },
 }));

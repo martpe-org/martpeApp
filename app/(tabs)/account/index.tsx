@@ -81,7 +81,7 @@ const Profile = () => {
           <TouchableOpacity style={styles.gridButton} onPress={() => router.push("/(tabs)/orders")}>
             <Text style={styles.gridText}>My Orders</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton}>
+          <TouchableOpacity style={styles.gridButton} onPress={() => router.push("/(tabs)/account/wishlist")}>
             <Text style={styles.gridText}>My Favorites</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.gridButton}>

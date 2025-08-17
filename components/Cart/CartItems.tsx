@@ -283,7 +283,7 @@ const CartItems: React.FC<CartItemsProps> = ({
             onPress={() => {
               if (cartId) {
                 router.push({
-                  pathname: "../(tabs)/cart/[checkout]",
+                  pathname: "./cart/[checkout]",
                   params: { id: cartId },
                 });
               }

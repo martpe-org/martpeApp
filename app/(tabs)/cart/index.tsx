@@ -122,9 +122,16 @@ const CartScreen = () => {
     >
       <View style={styles.title}>
         <BackArrow onPress={() => router.back()} />
+
+        {/* Center Title */}
         <Text style={styles.titleText}>
           {carts.length > 1 ? "My Carts" : "My Cart"}
         </Text>
+
+        {/* Heart icon aligned extreme right */}
+        <TouchableOpacity style={{ marginLeft: "auto" }} onPress={() => router.push({ pathname: "../(tabs)/account/wishlist" }  )}>
+          <MaterialCommunityIcons name="heart" size={24} color="#f14343" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.header}>
@@ -169,12 +176,12 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
-    gap: 20,
     marginTop: 20,
   },
   titleText: {
     fontSize: 20,
     fontWeight: "700",
+    marginLeft: 10,
   },
   header: {
     flexDirection: "row",

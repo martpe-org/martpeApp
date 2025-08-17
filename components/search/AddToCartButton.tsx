@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import DynamicButton from "../common/DynamicButton";
 import useUserDetails from "../../hook/useUserDetails";
@@ -14,10 +15,10 @@ import { useCartStore } from "../../state/useCartStore";
 const { width } = Dimensions.get("window");
 
 interface AddToCartButtonProps {
-  storeId: string;       // backend store _id
-  slug: string;          // product slug
-  catalogId: string;     // backend catalog _id
-  cartItemId?: string;   // for existing cart item
+  storeId: string;
+  slug: string;
+  catalogId: string;
+  cartItemId?: string;
   maxQuantity?: number;
   initialQty?: number;
   customizable?: boolean;
@@ -43,7 +44,7 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
   const toast = useToast();
 
   const { authToken, isAuthenticated } = useUserDetails();
-  const { addItem, updateItemQuantity, removeCartItems, removeCart } = useCartStore();
+  const { addItem, updateQty, removeCartItems, removeCart } = useCartStore();
 
   const increment = async () => {
     if (itemCount >= maxQuantity) return;
@@ -54,16 +55,6 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
     setLoading(true);
     try {
       if (itemCount === 0) {
-        // log payload to debug IDs
-        console.log("Add to cart payload", {
-          store_id: storeId,
-          slug,
-          catalog_id: catalogId,
-          qty: 1,
-          customizable,
-          customizations,
-        });
-
         const success = await addItem(
           storeId,
           slug,
@@ -73,19 +64,13 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
           customizations,
           authToken
         );
-
         if (success) {
           setItemCount(1);
           toast.show("Added to cart", { type: "success" });
-        } else {
-          toast.show("Failed to add to cart", { type: "danger" });
         }
       } else {
-        if (!cartItemId) {
-          toast.show("Missing cart item ID", { type: "danger" });
-          return;
-        }
-        const success = await updateItemQuantity(cartItemId, itemCount + 1, authToken);
+        if (!cartItemId) return toast.show("Missing cart item ID", { type: "danger" });
+        const success = await updateQty(cartItemId, itemCount + 1, authToken);
         if (success) setItemCount((prev) => prev + 1);
       }
     } catch (err) {
@@ -112,27 +97,23 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
           if (success) setItemCount(0);
         }
       } else {
-        if (!cartItemId) {
-          toast.show("Missing cart item ID", { type: "danger" });
-          return;
-        }
-        const success = await updateItemQuantity(cartItemId, itemCount - 1, authToken);
+        if (!cartItemId) return toast.show("Missing cart item ID", { type: "danger" });
+        const success = await updateQty(cartItemId, itemCount - 1, authToken);
         if (success) setItemCount((prev) => prev - 1);
       }
     } catch (err) {
-      console.log("Decrement failed", err);
+      console.error("Decrement failed", err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <ActivityIndicator size="small" color="green" />;
-  }
+  if (loading) return <ActivityIndicator size="small" color="green" />;
 
   return (
     <View>
       {itemCount === 0 ? (
+        // Use DynamicButton for first ADD
         <DynamicButton
           isNewItem
           storeId={storeId}
@@ -140,36 +121,24 @@ const AddToCartButton: FC<AddToCartButtonProps> = ({
           catalogId={catalogId}
           customizable={customizable}
           customizations={customizations}
+          onPress={increment} // call increment
         >
           <View style={styles.addButton}>
             <Text style={styles.buttonText}>ADD</Text>
           </View>
         </DynamicButton>
       ) : (
+        // Use increment / decrement directly
         <View style={styles.addButtonNext}>
-          <DynamicButton
-            isUpdated
-            storeId={storeId}
-            cartItemId={cartItemId}
-            quantity={itemCount - 1}
-          >
-            <View style={styles.itemCountChangeButton}>
-              <Text style={styles.incrementDecrementButtonText}>-</Text>
-            </View>
-          </DynamicButton>
+          <TouchableOpacity onPress={decrement} style={styles.itemCountChangeButton}>
+            <Text style={styles.incrementDecrementButtonText}>-</Text>
+          </TouchableOpacity>
 
           <Text style={styles.itemCount}>{itemCount}</Text>
 
-          <DynamicButton
-            isUpdated
-            storeId={storeId}
-            cartItemId={cartItemId}
-            quantity={itemCount + 1}
-          >
-            <View style={styles.itemCountChangeButton}>
-              <Text style={styles.incrementDecrementButtonText}>+</Text>
-            </View>
-          </DynamicButton>
+          <TouchableOpacity onPress={increment} style={styles.itemCountChangeButton}>
+            <Text style={styles.incrementDecrementButtonText}>+</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>

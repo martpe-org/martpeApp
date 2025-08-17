@@ -1,142 +1,574 @@
-import ImageComp from "../../components/common/ImageComp";
-import React, { FC } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Dimensions,
-  Pressable,
-  ScrollView,
+  View,
   Text,
+  Image,
+  ScrollView,
   TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Dimensions,
 } from "react-native";
-import { View } from "react-native";
-import { useFavoriteStore } from "../../state/useFavoriteStore";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-import AddToCartButton from "../../components/search/AddToCartButton";
+import { useCartStore } from "../../state/useCartStore";
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-interface FavItemsProps {
-  itemsData: any;
+import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
+import { AntDesign } from "@expo/vector-icons";
+import useUserDetails from "../../hook/useUserDetails";
+import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
+
+const { width: windowWidth } = Dimensions.get("window");
+const widthPercentageToDP = (percent: string) => {
+  const widthPercent = parseFloat(percent);
+  return (windowWidth * widthPercent) / 100;
+};
+
+interface CartItemsProps {
+  cartId: string;
+  storeSlug: string;
+  items: CartItemType[];
+  onCartChange?: () => void;
 }
 
-const FavItems: FC<FavItemsProps> = ({ itemsData }) => {
-  const { removeFavorite } = useFavoriteStore();
-  return (
-    <ScrollView>
-      {[...itemsData].reverse().map((item: any) => {
-        return (
-          <TouchableOpacity
-            style={{
-              flexDirection: "row",
-              borderRadius: 12,
-              // borderWidth: 1.2,
+const CartItems: React.FC<CartItemsProps> = ({
+  cartId,
+  storeSlug,
+  items,
+  onCartChange,
+}) => {
+  const { removeCartItems, removeCart, updateQty } = useCartStore();
+  const { userDetails, isLoading: isUserLoading } = useUserDetails();
+  const authToken = userDetails?.accessToken;
 
-              backgroundColor: "#F5F7F8",
-              marginTop: Dimensions.get("screen").width * 0.05,
-              paddingVertical: Dimensions.get("screen").width * 0.03,
-              paddingHorizontal: Dimensions.get("screen").width * 0.03,
-              // backgroundColor: "#ff3",
-            }}
-            key={item.id}
-            onPress={() => {
-              router.push(`./(tabs)/home/productDetails/${item.id}`);
-            }}
-          >
-            <ImageComp
-              source={item.descriptor.images[0]}
-              imageStyle={{
-                minHeight: Dimensions.get("screen").width * 0.25,
-                // aspectRatio: 1,
-                width: Dimensions.get("screen").width * 0.25,
-                borderRadius: 10,
-                borderWidth: 1,
-                marginRight: 10,
-                borderColor: "#D0D4CA",
-              }}
-              resizeMode="cover"
-            />
-            <View style={{ width: "65%" }}>
-              <Text style={{ fontSize: 16, fontWeight: "500" }}>
-                {item.descriptor.name.split(" ").slice(0, 7).join(" ")}
-              </Text>
-              <Text
-                style={{ fontSize: 13, fontWeight: "400", color: "#607274" }}
-              >
-                {item.provider.descriptor.name}
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {item.price?.maximum_value > item.price?.value && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "500",
-                      color: "#607274",
-                      marginRight: 5,
-                      textDecorationLine: "line-through",
-                    }}
-                  >
-                    ₹ {item.price?.maximum_value}
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [formatCurrency, setFormatCurrency] = useState<
+    (amount: number) => string
+  >(() => (amount: number) =>
+    `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
+  );
+
+  useEffect(() => {
+    setFormatCurrency(() => (amount: number) =>
+      `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
+    );
+  }, []);
+
+  // Filter out invalid items
+  const validItems = useMemo(() => {
+    if (!items) return [];
+    
+    return items.filter((item) => {
+      if (!item) {
+        console.warn("Found null/undefined cart item, filtering out");
+        return false;
+      }
+      if (!item._id) {
+        console.warn("Found cart item without _id, filtering out:", item);
+        return false;
+      }
+      return true;
+    });
+  }, [items]);
+
+  const handleQuantityChange = async (cartItemId: string, newQty: number) => {
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update item quantity.");
+      return;
+    }
+    if (!cartItemId || newQty <= 0) return;
+    if (isUpdating) return;
+
+    setIsUpdating(cartItemId);
+    try {
+      const success = await updateQty(cartItemId, newQty, authToken);
+      if (!success) {
+        Alert.alert("Error", "Failed to update item quantity.");
+      } else {
+        onCartChange?.();
+      }
+    } catch (error) {
+      console.error("Error updating quantity", error);
+      Alert.alert("Error", "Could not update the item's quantity.");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleDeleteItem = async (cartItemId: string) => {
+    if (!authToken || !cartItemId) return;
+
+    if (validItems?.length === 1) {
+      Alert.alert(
+        "Remove Cart",
+        "This is the last item in your cart. Removing it will delete the entire cart. Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const success = await removeCart(storeSlug, authToken);
+                if (!success) {
+                  Alert.alert("Error", "Failed to remove cart.");
+                } else {
+                  onCartChange?.();
+                }
+              } catch (error) {
+                console.error("Error deleting cart:", error);
+                Alert.alert("Error", "Failed to remove cart.");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      try {
+        const success = await removeCartItems([cartItemId], authToken);
+        if (!success) {
+          Alert.alert("Error", "Failed to remove item.");
+        } else {
+          onCartChange?.();
+        }
+      } catch (error) {
+        console.error("Error deleting cart item:", error);
+        Alert.alert("Error", "Failed to remove item.");
+      }
+    }
+  };
+
+  const renderCartItem = ({ item }: { item: CartItemType }) => {
+    // Additional validation in render function
+    if (!item) {
+      console.warn("Skipping render for null/undefined item");
+      return null;
+    }
+
+    if (!item._id) {
+      console.warn("Skipping render for item without _id:", item);
+      return null;
+    }
+
+    const itemId = item._id;
+    const name = item.product?.name || "Unknown Item";
+    const symbol = item.product?.symbol;
+    const value = item.unit_price || 0;
+    const maximum_value = item.unit_max_price || value;
+    const qty = item.qty || 1;
+    const maxCount = item.product?.quantity || 999;
+    const availableCount = item.product?.instock ? maxCount : 0;
+    const maxLimit = Math.min(maxCount, availableCount);
+
+    const isItemUpdating = isUpdating === itemId;
+    const isDisabled = isItemUpdating || !authToken || isUserLoading;
+
+    return (
+      <View style={styles.itemContainer} key={itemId}>
+        <View style={styles.itemDescContainer}>
+          <View style={styles.itemImgContainer}>
+            {symbol ? (
+              <Image
+                source={{ uri: symbol }}
+                style={styles.productImage}
+                onError={() => console.warn("Failed to load product image")}
+              />
+            ) : (
+              <View style={[styles.productImage, styles.placeholderImage]} />
+            )}
+          </View>
+
+          <View style={styles.itemDetails}>
+            <Text style={styles.name} numberOfLines={2}>
+              {name}
+            </Text>
+
+            <View style={styles.itemPriceInfoContainer}>
+              <Text style={styles.itemPriceText}>
+                {maximum_value > value && (
+                  <Text style={styles.strikethroughPrice}>
+                    {formatCurrency(maximum_value)}{" "}
                   </Text>
                 )}
+                {formatCurrency(value)}
+              </Text>
 
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "500",
-                    color: "#000",
-                  }}
-                >
-                  ₹ {item.price.value}
-                </Text>
-                {
-                  // if offer value is present
-                  item.price.offer_percent && (
-                    <>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "500",
-                          color: "green",
-                          marginHorizontal: 5,
-                          // fontWeight: "500",
-                        }}
-                      >
-                        {Math.ceil(item.price.offer_percent)}% off
-                      </Text>
-                    </>
-                  )
-                }
-              </View>
-              <View
-                style={{
-                  flexDirection: "row-reverse",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Pressable
-                  onPress={() => {
-                    removeFavorite(item.id as string);
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="heart"
-                    size={24}
-                    color="#F13A3A"
-                  />
-                </Pressable>
-                <View style={{ width: 100 }}>
-                  <AddToCartButton
-                    maxQuantity={item.quantity.maximum.count}
-                    storeId={item.vendor_id}
-                    itemId={item.id}
-                  />
-                </View>
-              </View>
+              <Text style={styles.quantityText}>x {qty}</Text>
+              <Text style={styles.itemTotalCostText}>
+                {formatCurrency(item.total_price || (value * qty))}
+              </Text>
             </View>
+          </View>
+        </View>
+
+        <View style={styles.cartItemQuantityContainer}>
+          <TouchableOpacity
+            onPress={() =>
+              qty > 1
+                ? handleQuantityChange(itemId, qty - 1)
+                : handleDeleteItem(itemId)
+            }
+            disabled={isDisabled}
+            activeOpacity={0.7}
+            style={[isDisabled && { opacity: 0.5 }]}
+          >
+            <DecrementIcon />
           </TouchableOpacity>
-        );
-      })}
+
+          <Text style={styles.quantity}>{qty}</Text>
+
+          {qty < maxLimit ? (
+            <TouchableOpacity
+              disabled={isDisabled}
+              onPress={() => handleQuantityChange(itemId, qty + 1)}
+              activeOpacity={0.7}
+              style={[isDisabled && { opacity: 0.5 }]}
+            >
+              <IncrementIcon />
+            </TouchableOpacity>
+          ) : (
+            <IncrementIcon disabled />
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const { totalCost, savings } = useMemo(() => {
+    if (!validItems?.length) return { totalCost: 0, savings: 0 };
+    let cost = 0;
+    let totalSavings = 0;
+    validItems.forEach((item) => {
+      if (item) {
+        cost += item.total_price || 0;
+        totalSavings += (item.total_max_price || 0) - (item.total_price || 0);
+      }
+    });
+    return { totalCost: cost, savings: totalSavings };
+  }, [validItems]);
+
+  if (!validItems?.length) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.itemsContainer}>
+        <Text style={styles.itemsHeader}>
+          Items in the cart ({validItems.length})
+        </Text>
+
+        <View style={styles.listContainer}>
+          <FlashList
+            data={validItems}
+            renderItem={renderCartItem}
+            estimatedItemSize={83}
+            keyExtractor={(item) => item?._id || `fallback-${Math.random()}`}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </View>
+
+      <View style={styles.priceContainer}>
+        <View style={styles.row}>
+          <Text style={[styles.text, styles.bold]}>Total</Text>
+          <Text style={[styles.text, styles.bold]}>
+            {formatCurrency(totalCost)}
+          </Text>
+        </View>
+        {savings > 0 && (
+          <View style={styles.row}>
+            <Text style={[styles.text, styles.savingsText]}>
+              You are saving {formatCurrency(savings)} on this order!
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={styles.addMoreContainer}
+          onPress={() => {
+            if (storeSlug) {
+              router.push({
+                pathname: "/(tabs)/home/result/productListing/[id]",
+                params: { id: storeSlug },
+              });
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <AntDesign name="plus" size={16} color="black" />
+          <Text style={styles.addMoreItemsText}>Add more items</Text>
+        </TouchableOpacity>
+
+        <View style={styles.buttons}>
+          <TouchableOpacity
+            style={styles.checkoutButton}
+            onPress={() => {
+              if (cartId) {
+                router.push({
+                  pathname: "./(tabs)/cart/[checkout]",
+                  params: { id: cartId },
+                });
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.checkoutButtonText}>Check Out</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
   );
 };
 
-export default FavItems;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#e9ecef",
+  },
+  itemsContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    margin: 16,
+    padding: 16,
+    elevation: 2,
+  },
+  itemsHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  listContainer: {
+    minHeight: 100,
+  },
+  itemContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  itemDescContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  itemImgContainer: {
+    marginRight: 12,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#f5f5f5",
+  },
+  placeholderImage: {
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  itemPriceInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  itemPriceText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  strikethroughPrice: {
+    textDecorationLine: "line-through",
+    color: "#999",
+    marginRight: 4,
+  },
+  quantityText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+  },
+  itemTotalCostText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 8,
+    color: "#333",
+  },
+  cartItemQuantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: 100,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 20,
+    padding: 6,
+  },
+  quantity: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  priceContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    elevation: 2,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  text: {
+    fontSize: 14,
+    color: "#333",
+  },
+  bold: {
+    fontWeight: "bold",
+  },
+  savingsText: {
+    color: "#4CAF50",
+    fontSize: 12,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  addMoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+  },
+  addMoreItemsText: {
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  buttons: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  checkoutButton: {
+    backgroundColor: "#2f9740",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingBottom: 30,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    backgroundColor: "white",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+    marginTop: 20,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    backgroundColor: "white",
+    elevation: 2,
+  },
+  headerDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  totalHeaderText: {
+    fontSize: 14,
+  },
+  dot: {
+    color: "#848080",
+    fontSize: 12,
+  },
+  listWrapper: {
+    minHeight: 2,
+    paddingVertical: 10,
+  },
+  animationContainer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  emptyTextContainer: {
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    color: "#292935",
+    fontWeight: "600",
+    fontSize: 20,
+  },
+  emptySubtitle: {
+    color: "#707077",
+    fontWeight: "600",
+    fontSize: 13,
+    marginTop: 10,
+  },
+  startShoppingButton: {
+    backgroundColor: "#f14343",
+    width: widthPercentageToDP("90"),
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  startShoppingText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 20,
+  },
+});
+
+export default CartItems;
