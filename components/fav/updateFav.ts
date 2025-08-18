@@ -1,6 +1,6 @@
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 type UpdateFavParams = {
   action: string;
@@ -13,11 +13,11 @@ export const updateFavAction = async (
   { action, entity, slug }: UpdateFavParams
 ): Promise<{ success: boolean }> => {
   try {
-    if (!BASE_URL) {
+    if (!process.env.EXPO_PUBLIC_API_URL) {
       throw new Error('BASE_URL is not defined');
     }
 
-    const response = await fetch(`${BASE_URL}/users/favs`, {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/favs`, {
       method: 'PUT',
       body: JSON.stringify({ action, entity, slug }),
       headers: {

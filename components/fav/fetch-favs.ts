@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export interface ProductPrice {
   currency: string;
@@ -44,9 +44,9 @@ export const fetchFavs = async (
   authToken: string
 ): Promise<FetchFavsResponseType | null> => {
   try {
-    console.log("Fetching favorites from:", `${BASE_URL}/users/favs`);
+    console.log("Fetching favorites from:", `${process.env.EXPO_PUBLIC_API_URL}/users/favs`);
 
-    const res = await fetch(`${BASE_URL}/users/favs`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/favs`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${authToken}`,

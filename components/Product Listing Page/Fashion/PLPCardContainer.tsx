@@ -65,7 +65,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
         const name = item?.descriptor?.name;
         const desc = item?.descriptor?.long_desc;
         const value = item?.price?.value;
-        const maxPrice = 650; // TODO: Assuming a default value, replace with actual logic
+        const maxPrice = 650;
         const discount = (((maxPrice - value) / maxPrice) * 100).toFixed(0);
         const image = item?.descriptor?.symbol || item?.descriptor?.images[1];
 

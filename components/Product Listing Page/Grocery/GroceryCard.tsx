@@ -1,113 +1,51 @@
-import React, { useEffect } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
-import DynamicButton from "../../common/DynamicButton";
-import { useCartStore } from "../../../state/useCartStore";
-import { FontAwesome } from "@expo/vector-icons";
-import { DecrementIcon, IncrementIcon } from "../../../constants/icons/carticons";
-import { Dimensions } from "react-native";
+import React from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 
 interface GroceryCardProps {
+  id: string;
   itemName: string;
   cost: number;
   imageUrl: string;
-  id: string;
-  category: string;
-  providerId: string;
   maxLimit: number;
+  providerId: string;
+  weight?: string;
+  unit?: string;
+  originalPrice?: number;
+  discount?: number;
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
   itemName,
   cost,
   imageUrl,
-  id,
-  category,
-  providerId,
   maxLimit,
+  weight = "1kg",
+  unit = "piece",
+  originalPrice,
+  discount,
 }) => {
-  const allCarts = useCartStore((state) => state.allCarts);
-  const cart = allCarts.find((cart) => cart.store.id === providerId);
-const cartItem = cart?.items?.find((item) => item.product_slug === id);
-const itemCount = cartItem?.qty ?? 0;
-
-  useEffect(() => {
-    console.log(id);
-  });
-
   return (
-    <View style={styles.groceryCard}>
-      <View
-        style={{
-          flexDirection: "column",
-
-          width: Dimensions.get("screen").width * 0.4,
-        }}
-      >
-        {imageUrl ? (
-          <Image style={styles.groceryImage} source={{ uri: imageUrl }} />
-        ) : (
-          <Image
-            style={styles.groceryImage}
-            source={require("../../../assets/groceryImage.png")}
-          />
-        )}
-        <Text style={styles.groceryCardTitle}>
-          {itemName.length > 15 ? itemName.slice(0, 20) + "..." : itemName}
+    <View style={styles.card}>
+      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={2}>
+          {itemName}
         </Text>
-        <Text style={styles.weight}>10kg</Text>
+        <Text style={styles.weight}>{weight} / {unit}</Text>
 
-        <View style={styles.priceContainer}>
-          <Text style={styles.price} numberOfLines={1}>
-            <FontAwesome name="rupee" size={10} color="#030303" /> {cost}
-          </Text>
-        </View>
-      </View>
-      {itemCount === 0 ? (
-        <View style={styles.buttonGroup}>
-          <DynamicButton
-            storeId={providerId}
-            slug={id}
-            qty={1}
-            isNewItem={true}
-          >
-            <View style={styles.add}>
-              <Image source={require("../../../assets/plus.png")} />
-            </View>
-          </DynamicButton>
-        </View>
-      ) : (
-        <View style={styles.buttonGroup}>
-          <DynamicButton
-            storeId={providerId}
-            slug={id}
-            qty={itemCount - 1}
-            isUpdated={true}
-          >
-            <DecrementIcon />
-          </DynamicButton>
-          <Text>{itemCount}</Text>
-          {itemCount < maxLimit ? (
-            <DynamicButton
-              storeId={providerId}
-              slug={id}
-              qty={itemCount + 1}
-              isUpdated={true}
-            >
-              <IncrementIcon />
-            </DynamicButton>
-          ) : (
-            <DynamicButton
-              storeId={providerId}
-              slug={id}
-              qty={itemCount + 1}
-              isUpdated={true}
-              disabled={true}
-            >
-              <IncrementIcon disabled={true} />
-            </DynamicButton>
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>₹{cost.toFixed(2)}</Text>
+          {discount && originalPrice && (
+            <Text style={styles.originalPrice}>₹{originalPrice.toFixed(2)}</Text>
           )}
         </View>
-      )}
+
+        {discount && <Text style={styles.discount}>{discount}% off</Text>}
+      </View>
+
+      <TouchableOpacity style={styles.addButton}>
+        <Text style={styles.addButtonText}>Add</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -115,117 +53,69 @@ const itemCount = cartItem?.qty ?? 0;
 export default GroceryCard;
 
 const styles = StyleSheet.create({
-  groceryCard: {
-    marginBottom: 10,
-    borderRadius: 10,
-    elevation: 4,
+  card: {
+    width: 150,
+    borderRadius: 12,
     backgroundColor: "#fff",
-    // padding: 5,
-    overflow: "hidden",
+    marginBottom: 15,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  groceryImage: {
+  image: {
     width: "100%",
-    height: Dimensions.get("screen").height * 0.19,
+    height: 110,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: "#f0f0f0",
   },
-  groceryCardTitle: {
-    textAlign: "left",
+  info: {
+    marginBottom: 8,
+  },
+  name: {
     fontSize: 14,
-    fontWeight: "900",
-    marginHorizontal: 5,
-  },
-  addButton: {
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
-    marginTop: 5,
-    height: 30,
-    borderWidth: 0.5,
-    borderColor: "#00BC66",
-  },
-  buttonText: {
-    fontWeight: "900",
-    color: "#00BC66",
-    textAlign: "center",
-    fontSize: 14,
-  },
-  itemCountContainer: {
-    backgroundColor: "#ffffff",
-    flexDirection: "row",
-    alignItems: "center",
-    height: 30,
-    marginTop: 5,
-    borderWidth: 0.5,
-    borderColor: "#00BC66",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  itemCount: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#00BC66",
-    paddingHorizontal: 7,
-    borderRightWidth: 1,
-    borderLeftWidth: 1,
-    flex: 1,
-    textAlign: "center",
-    borderColor: "#D0D0D0",
-  },
-  itemCountButtonText: {
-    paddingHorizontal: 20,
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#00BC66",
-    textAlign: "center",
-  },
-  priceContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 5,
-    marginVertical: 5,
+    fontWeight: "600",
+    marginBottom: 2,
+    color: "#333",
   },
   weight: {
-    fontSize: 10,
-    color: "#7D7777",
-    marginHorizontal: 5,
-  },
-  price: {
     fontSize: 12,
-    fontWeight: "900",
+    color: "#777",
+    marginBottom: 4,
   },
-  buttonGroup: {
+  priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    position: "absolute",
-    right: 10,
-    bottom: 10,
+    gap: 6, // for spacing between price and originalPrice
   },
-  add: {
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 10,
-      height: 2,
-    },
-    shadowRadius: 5,
-    elevation: 1,
-    padding: 5,
-    backgroundColor: "white",
-    borderRadius: 5,
+  price: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#f14343",
   },
-
-  qtyBtn: {
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 10,
-      height: 2,
-    },
-    shadowRadius: 5,
-    elevation: 2,
-    paddingHorizontal: 10,
-    backgroundColor: "white",
-    borderRadius: 5,
+  originalPrice: {
+    fontSize: 12,
+    textDecorationLine: "line-through",
+    color: "#777",
+  },
+  discount: {
+    fontSize: 12,
+    color: "#28a745",
+    marginTop: 2,
+  },
+  addButton: {
+    marginTop: 8,
+    backgroundColor: "#f14343",
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

@@ -1,27 +1,31 @@
 import React from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { View, StyleSheet, Dimensions } from "react-native";
 import GroceryCard from "./GroceryCard";
 
+export interface CatalogItem {
+  id: string;
+  category_id: string;
+  descriptor: {
+    images: string[];
+    name: string;
+  };
+  price: {
+    value: number;
+  };
+  quantity: {
+    maximum: { count: number };
+    available: { count: number };
+  };
+}
+
 interface GroceryCardContainerProps {
-  providerId: string;
-  catalog: {
-    category_id: string;
-    descriptor: {
-      images: string[];
-      name: string;
-    };
-    price: {
-      value: number;
-    };
-    id: string;
-    quantity: {
-      maximum: { count: number };
-      available: { count: number };
-    };
-  }[];
+  catalog: CatalogItem[];
   selectedCategory?: string;
+  providerId: string;
   searchString: string;
 }
+
+const CARD_SPACING = Dimensions.get("window").width * 0.03;
 
 const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   catalog,
@@ -29,65 +33,46 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   providerId,
   searchString,
 }) => {
-  let filteredCatalog =
+  const filteredCatalog =
     !selectedCategory || selectedCategory === "All"
       ? catalog
       : catalog.filter((item) => item.category_id === selectedCategory);
 
-  // Skip rendering if category filter results in no items
-  if (
-    selectedCategory &&
-    selectedCategory !== "All" &&
-    filteredCatalog.length === 0
-  ) {
-    return null;
-  }
+  if (selectedCategory && selectedCategory !== "All" && filteredCatalog.length === 0) return null;
+
+  const displayedCatalog = filteredCatalog.filter((item) =>
+    searchString ? item.descriptor.name.toLowerCase().includes(searchString.toLowerCase()) : true
+  );
 
   return (
-    <View style={styles.groceryCardsContainer}>
-      {filteredCatalog
-        .filter((item) =>
-          searchString
-            ? item?.descriptor?.name
-                .toLowerCase()
-                .includes(searchString.toLowerCase())
-            : true
-        )
-        .map((item) => {
-          const imageUrl = item.descriptor.images[0];
-          const name = item.descriptor.name;
-          const price = item.price.value;
-          const maxLimit = Math.min(
-            item.quantity.maximum.count,
-            item.quantity.available.count
-          );
-
-          return (
-            <GroceryCard
-              key={item.id}
-              itemName={name}
-              cost={price}
-              imageUrl={imageUrl}
-              id={item.id}
-              category={item.category_id}
-              providerId={providerId}
-              maxLimit={maxLimit}
-            />
-          );
-        })}
+    <View style={styles.container}>
+      {displayedCatalog.map((item) => (
+        <View
+          key={item.id}
+          style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
+        >
+          <GroceryCard
+            id={item.id}
+            imageUrl={item.descriptor.images[0]}
+            itemName={item.descriptor.name}
+            cost={item.price.value}
+            maxLimit={Math.min(item.quantity.maximum.count, item.quantity.available.count)}
+            providerId={providerId}
+          />
+        </View>
+      ))}
     </View>
   );
 };
 
+export default GroceryCardContainer;
+
 const styles = StyleSheet.create({
-  groceryCardsContainer: {
+  container: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Dimensions.get("window").width * 0.03,
     justifyContent: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 10,
   },
 });
-
-export default GroceryCardContainer;

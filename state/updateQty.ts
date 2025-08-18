@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const updateQty = async (
   cartItemId: string,
@@ -18,7 +18,7 @@ export const updateQty = async (
       return false;
     }
 
-    const response = await fetch(`${BASE_URL}/carts/update-item`, {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/carts/update-item`, {
       method: "PUT",
       headers: { 
         "Content-Type": "application/json", 

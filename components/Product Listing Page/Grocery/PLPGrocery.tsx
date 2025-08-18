@@ -1,21 +1,30 @@
 import React, { useState } from "react";
-import { View } from "react-native";
-import GroceryCardContainer from "./GroceryCardContainer";
+import { View, StyleSheet } from "react-native";
 import HorizontalNavbar from "./HorizontalNavbar";
+import GroceryCardContainer from "./GroceryCardContainer";
+
+// Define the interface locally to avoid circular dependency
+interface CatalogItem {
+  id: string;
+  category_id: string;
+  descriptor: {
+    images: string[];
+    name: string;
+  };
+  price: {
+    value: number;
+  };
+  quantity: {
+    maximum: { count: number };
+    available: { count: number };
+  };
+}
 
 interface PLPGroceryProps {
   providerId: string;
   searchString: string;
   sidebarTitles: string[];
-  catalog: {
-    category_id: string;
-    descriptor: {
-      name: string;
-    };
-    price: {
-      value: number;
-    };
-  }[];
+  catalog: CatalogItem[];
 }
 
 const PLPGrocery: React.FC<PLPGroceryProps> = ({
@@ -24,88 +33,34 @@ const PLPGrocery: React.FC<PLPGroceryProps> = ({
   providerId,
   searchString,
 }) => {
-  const [selectedCategoryDemo, setSelectedCategoryDemo] = useState<
-    string | null
-  >(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategoryDemo(category);
+  const handleFilterSelect = (title: string) => {
+    console.log('Filter selected:', title);
+    setSelectedCategory(title);
   };
 
-  const buttons = [
-    {
-      title: "Fruits & Vegetables",
-      titleAlternative: "Fruits and Vegetables",
-      image: require("../../../assets/headerImage1.png"),
-    },
-    {
-      title: "Masala & Seasoning",
-      image: require("../../../assets/headerImage2.png"),
-    },
-    {
-      title: "Oil & Ghee",
-      image: require("../../../assets/headerImage3.png"),
-    },
-    {
-      title: "Edibles",
-      image: require("../../../assets/headerImage4.png"),
-    },
-    {
-      title: "Food Grains",
-      image: require("../../../assets/headerImage5.png"),
-    },
-    {
-      title: "Eggs & Meat",
-      image: require("../../../assets/headerImage6.png"),
-    },
-    {
-      title: "Fruits & Vegetables",
-      image: require("../../../assets/headerImage1.png"),
-    },
-    {
-      title: "Masala & Seasoning",
-      image: require("../../../assets/headerImage2.png"),
-    },
-    {
-      title: "Oil & Ghee",
-      image: require("../../../assets/headerImage3.png"),
-    },
-    {
-      title: "Edibles",
-      image: require("../../../assets/headerImage4.png"),
-    },
-    {
-      title: "Food Grains",
-      image: require("../../../assets/headerImage5.png"),
-    },
-    {
-      title: "Eggs & Meat",
-      image: require("../../../assets/headerImage6.png"),
-    },
-  ];
-
   return (
-    <View>
+    <View style={styles.container}>
       <HorizontalNavbar
-        navbarTitles={buttons}
-        onFilterSelect={handleCategorySelect}
-        domainColor="rgba(240, 255, 197, 1)"
+        navbarTitles={sidebarTitles}
+        onFilterSelect={handleFilterSelect}
       />
-   <GroceryCardContainer
-  catalog={catalog as unknown as {
-    category_id: string;
-    descriptor: { images: string[]; name: string };
-    price: { value: number };
-    id: string;
-    quantity: { maximum: { count: number }; available: { count: number } };
-  }[]}
-  searchString={searchString}
- selectedCategory={selectedCategoryDemo ?? undefined}  providerId={providerId}
-/>
-
+      <GroceryCardContainer
+        catalog={catalog}
+        selectedCategory={selectedCategory}
+        providerId={providerId}
+        searchString={searchString}
+      />
     </View>
   );
 };
 
 export default PLPGrocery;
 
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff" 
+  },
+});

@@ -1,7 +1,14 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TextInput } from "react-native";
+import React, { useState, useRef, useCallback } from "react";
+import { 
+  View, 
+  StyleSheet, 
+  TextInput, 
+  Animated, 
+  Platform,
+} from "react-native";
 import SearchboxDropdown from "./SearchboxDropdown";
 import { MaterialIcons } from "@expo/vector-icons";
+
 
 interface CatalogItem {
   descriptor: {
@@ -30,91 +37,186 @@ const Searchbox: React.FC<SearchboxProps> = ({
 }) => {
   const [isSearchboxActive, setIsSearchboxActive] = useState(false);
   const [searchInput, setSearchInput] = useState("");
-  const [filteredSuggestions, setFilteredSuggestions] = useState<
-    SuggestionItem[]
-  >([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<SuggestionItem[]>([]);
+  
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  const inputRef = useRef<TextInput>(null);
 
-  const addedNames: { [key: string]: boolean } = {};
-  const catalogItems: SuggestionItem[] = [];
-  for (const item of catalog) {
-    const name = item?.descriptor?.name;
-    if (!addedNames[name]) {
-      addedNames[name] = true;
-      catalogItems.push({
-        name,
-        image: item.descriptor.images?.[0] || "",
-        id: item.id,
-      });
+  // Memoize catalog processing to avoid recalculation on every render
+  const catalogItems = React.useMemo(() => {
+    const addedNames: { [key: string]: boolean } = {};
+    const items: SuggestionItem[] = [];
+    
+    for (const item of catalog) {
+      const name = item?.descriptor?.name;
+      if (name && !addedNames[name]) {
+        addedNames[name] = true;
+        items.push({
+          name,
+          image: item.descriptor.images?.[0] || "",
+          id: item.id,
+        });
+      }
     }
-  }
+    return items;
+  }, [catalog]);
 
-  const handleInputChange = (text: string) => {
+  const handleInputChange = useCallback((text: string) => {
     setSearchInput(text);
     search(text);
-    const filtered = catalogItems.filter((item) =>
-      item.name.toLowerCase().includes(text.toLowerCase())
-    );
-    setFilteredSuggestions(filtered);
+    
+    if (text.trim()) {
+      const filtered = catalogItems.filter((item) =>
+        item.name.toLowerCase().includes(text.toLowerCase().trim())
+      );
+      setFilteredSuggestions(filtered);
+    } else {
+      setFilteredSuggestions([]);
+    }
+  }, [catalogItems, search]);
+
+  const handleFocus = useCallback(() => {
+    setIsSearchboxActive(true);
+    Animated.spring(animatedValue, {
+      toValue: 1,
+      useNativeDriver: false,
+      tension: 100,
+      friction: 8,
+    }).start();
+  }, [animatedValue]);
+
+  const handleBlur = useCallback(() => {
+    setTimeout(() => {
+      setIsSearchboxActive(false);
+      Animated.spring(animatedValue, {
+        toValue: 0,
+        useNativeDriver: false,
+        tension: 100,
+        friction: 8,
+      }).start();
+    }, 150); // Delay to allow dropdown item press
+  }, [animatedValue]);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setFilteredSuggestions([]);
+    search("");
+    inputRef.current?.blur();
+  }, [search]);
+
+  const animatedStyles = {
+    transform: [
+      {
+        translateY: animatedValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -5],
+        }),
+      },
+    ],
+    shadowOpacity: animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.1, 0.25],
+    }),
+    elevation: animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [2, 8],
+    }),
   };
 
   return (
-    <>
-      <View
-        style={{
-          ...styles.searchBoxContainer,
-          position: isSearchboxActive ? "absolute" : "relative",
-          top: isSearchboxActive ? 17 : 0,
-          left: isSearchboxActive ? 40 : 0,
-          right: isSearchboxActive ? 5 : 0,
-        }}
-      >
+    <View style={styles.container}>
+      <Animated.View style={[styles.searchBoxContainer, animatedStyles]}>
+        <MaterialIcons 
+          name="search" 
+          size={22} 
+          color="#6B7280" 
+          style={styles.searchIcon}
+        />
         <TextInput
+          ref={inputRef}
           onChangeText={handleInputChange}
-          onFocus={() => setIsSearchboxActive(true)}
-          onBlur={() => setIsSearchboxActive(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           value={searchInput}
           style={styles.searchBox}
-          placeholder={`Search in ${placeHolder}`}
-          placeholderTextColor="#8E8A8A"
+          placeholder={`Search ${placeHolder}`}
+          placeholderTextColor="#9CA3AF"
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          autoCorrect={false}
+          autoCapitalize="none"
         />
-        <MaterialIcons name="search" size={24} color="black" />
-      </View>
-
-      {isSearchboxActive && searchInput && filteredSuggestions.length > 0 && (
-        <View
-          style={{
-            position: "absolute",
-            top: 75,
-            right: 0,
-            left: 0,
-          }}
-        >
-          <SearchboxDropdown
-            search={search}
-            suggestions={filteredSuggestions}
+        {searchInput.length > 0 && (
+          <MaterialIcons 
+            name="clear" 
+            size={20} 
+            color="#9CA3AF" 
+            onPress={clearSearch}
+            style={styles.clearIcon}
           />
-        </View>
+        )}
+      </Animated.View>
+
+      {isSearchboxActive && searchInput.trim() && (
+        <SearchboxDropdown
+          search={search}
+          suggestions={filteredSuggestions}
+          isVisible={filteredSuggestions.length > 0}
+          onItemPress={() => {
+            setIsSearchboxActive(false);
+            inputRef.current?.blur();
+          }}
+        />
       )}
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    zIndex: 1000,
+    marginBottom: 10,
+  },
   searchBoxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 7,
-    marginBottom: 10,
-    marginHorizontal: 20,
-    borderRadius: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#9d9d9d",
-    backgroundColor: "#FFF",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowRadius: 8,
+    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.1,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  searchIcon: {
+    marginRight: 12,
   },
   searchBox: {
-    flex: 0.95,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '400',
+    color: "#1F2937",
+    paddingVertical: 0, // Remove default padding
+  },
+  clearIcon: {
+    marginLeft: 8,
+    padding: 4,
   },
 });
 

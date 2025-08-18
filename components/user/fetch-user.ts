@@ -2,7 +2,7 @@ import { FetchUserType } from './fetch-user-type';
 
 export const fetchUser = async (authToken: string) => {
   try {
-    const res = await fetch(`${process.env.BACKEND_BASE_URL}/users`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${authToken}`,

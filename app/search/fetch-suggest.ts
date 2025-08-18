@@ -1,8 +1,8 @@
 import { ApiErrorResponseType } from '../../common-types';
 import { FetchSuggestionsType } from './fetch-suggest-type';
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchSearchSuggesstions = async (
   signal: any,
@@ -16,7 +16,7 @@ export const fetchSearchSuggesstions = async (
   try {
     const res = await fetch(
       `${
-        BASE_URL
+       process.env.EXPO_PUBLIC_API_URL
       }/search/suggest?query=${query}&lat=${lat}&lon=${lon}&pincode=${pincode}${
         domain ? `&domain=${domain?.replace('ONDC:', '')}` : ''
       }`,

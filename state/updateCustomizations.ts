@@ -1,5 +1,5 @@
-import Constants from 'expo-constants';
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// import Constants from 'expo-constants';
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 
 export const updateCustomizations = async (
@@ -10,7 +10,7 @@ export const updateCustomizations = async (
   if (!authToken) return false;
 
   try {
-    const res = await fetch(`${BASE_URL}/cart/items/${cartItemId}/customizations`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/cart/items/${cartItemId}/customizations`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

@@ -1,7 +1,7 @@
-// Fixed updateAddress.ts
-import Constants from 'expo-constants';
+// // Fixed updateAddress.ts
+// import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const updateAddress = async (
   authToken: string,
@@ -19,7 +19,7 @@ export const updateAddress = async (
 ) => {
   try {
     const response = await fetch(
-      `${BASE_URL}/users/address?addressId=${addressId}`,
+      `${process.env.EXPO_PUBLIC_API_URL}/users/address?addressId=${addressId}`,
       {
         method: 'PUT',
         body: JSON.stringify({

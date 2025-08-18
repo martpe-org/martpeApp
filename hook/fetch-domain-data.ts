@@ -1,7 +1,7 @@
 import { FetchDomainType } from './fetch-domain-type';
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchHomeByDomain = async (
   lat: number,
@@ -16,7 +16,7 @@ export const fetchHomeByDomain = async (
   );
   try {
     const res = await fetch(
-      `${BASE_URL}/home/domain/${domain.replace(
+      `${process.env.EXPO_PUBLIC_API_URL}/home/domain/${domain.replace(
         'ONDC:',
         ''
       )}?lat=${lat}&lon=${lon}&pincode=${pincode}${

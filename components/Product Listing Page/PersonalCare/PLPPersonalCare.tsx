@@ -45,42 +45,18 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
   providerId,
   searchString,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const handleCategorySelect = (category: string) => {
+    console.log("Selected category:", category);
     setSelectedCategory(category);
   };
 
+  // Remove duplicates from buttons array
   const buttons = [
     {
-      title: "Bath & Body",
-      image: require("../../../assets/bpcHeaderImage1.png"),
+      title: "All",
     },
-    {
-      title: "Feminine Care",
-      image: require("../../../assets/bpcHeaderImage2.png"),
-    },
-    {
-      title: "Fragnance",
-      image: require("../../../assets/bpcHeaderImage3.png"),
-    },
-    {
-      title: "Hair Care",
-      image: require("../../../assets/bpcHeaderImage4.png"),
-    },
-    {
-      title: "Oral Care",
-      image: require("../../../assets/bpcHeaderImage5.png"),
-    },
-    {
-      title: "Make Up",
-      image: require("../../../assets/bpcHeaderImage6.png"),
-    },
-    {
-      title: "Skin Care",
-      image: require("../../../assets/bpcHeaderImage1.png"),
-    },
-
     {
       title: "Bath & Body",
       image: require("../../../assets/bpcHeaderImage1.png"),
@@ -112,7 +88,7 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
   ];
 
   return (
-    <View>
+    <View style={styles.container}>
       <HorizontalNavbar
         navbarTitles={buttons}
         domainColor="rgba(255, 211, 237, 1)"
@@ -123,10 +99,16 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
         searchString={searchString}
         providerId={providerId}
         catalog={catalog}
+        selectedCategory={selectedCategory}
       />
     </View>
   );
 };
 
-
 export default PLPPersonalCare;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

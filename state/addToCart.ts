@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 type addItemActionInputType = {
   store_id: string;
@@ -48,7 +48,7 @@ export async function addToCartAction(
       return { success: false };
     }
 
-    const response = await fetch(`${BASE_URL}/carts/add-item`, {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/carts/add-item`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${authToken}`,

@@ -1,7 +1,7 @@
 import { SearchStoresResponseType } from './search-stores-type';
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const searchStores = async (input: {
   lat: number;
@@ -17,7 +17,7 @@ export const searchStores = async (input: {
   console.log('page ---->', input.page);
   console.log(
     '---->',
-    `${BASE_URL}/search/stores?query=${input.query}&lat=${
+    `${process.env.EXPO_PUBLIC_API_URL}/search/stores?query=${input.query}&lat=${
       input.lat
     }&lon=${input.lon}&pincode=${input.pincode}${
       input.domain ? `&domain=${input.domain?.replace('ONDC:', '')}` : ''
@@ -30,7 +30,7 @@ export const searchStores = async (input: {
 
   try {
     const res = await fetch(
-      `${BASE_URL}/search/stores?query=${input.query}&lat=${
+      `${process.env.EXPO_PUBLIC_API_URL}/search/stores?query=${input.query}&lat=${
         input.lat
       }&lon=${input.lon}&pincode=${input.pincode}${
         input.domain ? `&domain=${input.domain?.replace('ONDC:', '')}` : ''

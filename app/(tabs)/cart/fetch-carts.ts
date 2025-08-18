@@ -1,12 +1,12 @@
 // import { ApiErrorResponseType } from "../common-types";
 import { FetchCartType } from "./fetch-carts-type";
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchCarts = async (authToken: string) => {
   try {
-    const res = await fetch(`${BASE_URL}/carts`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/carts`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${authToken}`,

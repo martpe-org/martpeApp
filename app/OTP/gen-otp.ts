@@ -1,11 +1,11 @@
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const generateOTP = async (phoneNumber: string) => {
   try {
     const res = await fetch(
-`${BASE_URL}/get-otp?action=gen&sendTo=${phoneNumber}`
+`${process.env.EXPO_PUBLIC_API_URL}/get-otp?action=gen&sendTo=${phoneNumber}`
     );
 
     if (res.status !== 200) {

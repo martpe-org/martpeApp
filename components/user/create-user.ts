@@ -1,4 +1,3 @@
-import Constants from "expo-constants";
 
 export interface CreateUserResponseType {
   _id: string;
@@ -8,7 +7,7 @@ export interface CreateUserResponseType {
   email?: string;
   token: string;
 }
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const createUser = async (
   firstName: string,
@@ -17,7 +16,7 @@ export const createUser = async (
   email?: string
 ) => {
   try {
-    const res = await fetch(`${BASE_URL}/users/create`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/create`, {
       method: "POST",
       body: JSON.stringify({
         firstName,

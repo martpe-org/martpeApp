@@ -15,10 +15,10 @@ import Loader from "../../components/common/Loader";
 import ShareButton from "../../components/common/Share";
 import { deleteAddress } from "../../components/address/deleteAddress";
 import Header from '../../components/address/AddressHeader';
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants';
 import useUserDetails from '../../hook/useUserDetails';
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 // Define the AddressType interface based on your API structure
 interface AddressType {
@@ -43,10 +43,10 @@ interface AddressType {
 const fetchAddress = async (authToken: string): Promise<AddressType[] | null> => {
   try {
     console.log('Fetching addresses with token:', authToken ? 'Token present' : 'No token');
-    console.log('API URL:', `${BASE_URL}/users/address`);
+    console.log('API URL:', `${process.env.EXPO_PUBLIC_API_URL}/users/address`);
     
     const response = await fetch(
-      `${BASE_URL}/users/address`,
+      `${process.env.EXPO_PUBLIC_API_URL}/users/address`,
       {
         method: 'GET',
         headers: {

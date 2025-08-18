@@ -1,7 +1,7 @@
 import { FetchHomeType } from "./fetch-home-type";
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchHome = async (
   lat: number,
@@ -9,12 +9,12 @@ export const fetchHome = async (
   pincode: string
 ): Promise<FetchHomeType | null> => {
   try {
-    if (!BASE_URL) {
+    if (!process.env.EXPO_PUBLIC_API_URL) {
       console.error("❌ BASE_URL is not defined");
       return null;
     }
 
-    const url = `${BASE_URL}/home?lat=${encodeURIComponent(
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/home?lat=${encodeURIComponent(
       lat
     )}&lon=${encodeURIComponent(lon)}&pincode=${encodeURIComponent(pincode)}`;
 

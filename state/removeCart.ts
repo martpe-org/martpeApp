@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const removeCart = async (storeId: string, authToken: string) => {
   try {
@@ -12,7 +12,7 @@ export const removeCart = async (storeId: string, authToken: string) => {
     console.log("Removing cart for store:", storeId);
 
     // Use same endpoint as server — plural "carts" and DELETE method
-    const res = await fetch(`${BASE_URL}/carts/remove/${storeId}`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/carts/remove/${storeId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

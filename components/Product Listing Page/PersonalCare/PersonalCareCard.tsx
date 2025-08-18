@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Image,
@@ -28,14 +29,14 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   providerId,
   id,
 }) => {
+  const handlePress = () => {
+    // router.push(`/productDetails/${id}`);
+    console.log("item.id", id);
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => {
-        () => {
-          // router.push(`/productDetails/${id}`);
-          console.log("item.id", id);
-        };
-      }}
+      onPress={handlePress}
       style={styles.fashionCard}
     >
       <View style={styles.imageContainer}>

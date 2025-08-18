@@ -1,4 +1,4 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 import { AddressType } from "../../common-types";
 
 export interface VerifyOtpResponseType {
@@ -17,7 +17,7 @@ export interface VerifyOtpResponseType {
   isOTPVerified: true;
 }
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const verifyOTP = async (
   phoneNumber: string,
@@ -27,7 +27,7 @@ export const verifyOTP = async (
   status: number;
   data: VerifyOtpResponseType | { error: { message: string } };
 }> => {
-  const url = `${BASE_URL}/get-otp?action=verify&orderId=${orderId}&phoneNumber=${phoneNumber}&otp=${otp}`;
+  const url = `${process.env.EXPO_PUBLIC_API_URL}/get-otp?action=verify&orderId=${orderId}&phoneNumber=${phoneNumber}&otp=${otp}`;
   console.log("Verify OTP URL:", url);
 
   try {

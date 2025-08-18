@@ -53,7 +53,7 @@ export default {
       url:  "https://u.expo.dev/c08fe04a-5464-4863-ae3d-b9d61b4eefc4"
     },
     extra: {
-      BACKEND_BASE_URL: process.env.BACKEND_BASE_URL,
+      BACKEND_BASE_URL: process.env.EXPO_PUBLIC_API_URL,
         GOOGLE_MAPS_API_KEY: "your-key-here",
       eas: {
         projectId:  "c08fe04a-5464-4863-ae3d-b9d61b4eefc4"

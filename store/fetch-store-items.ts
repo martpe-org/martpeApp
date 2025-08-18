@@ -1,16 +1,15 @@
 import { FetchStoreItemsResponseType } from './fetch-store-items-type';
-import Constants from 'expo-constants';
-
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// import Constants from 'expo-constants';
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchStoreItems = async (slug: string) => {
   try {
     console.log(
       '-------------->',
-      `${BASE_URL}/stores/${slug}/products?size=100`
+      `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}/products?size=100`
     );
     const res = await fetch(
-      `${BASE_URL}/stores/${slug}/products?size=100`,
+      `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}/products?size=100`,
       {
         method: 'GET'
       }

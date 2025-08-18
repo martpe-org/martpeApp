@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
+// import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const resendOTP = async ({
   orderId,
@@ -11,7 +11,7 @@ export const resendOTP = async ({
 }) => {
   // Based on generateOTP, your backend uses action=gen, not action=generate!
   // Also notice generateOTP uses sendTo parameter, not phoneNumber
-  const url = `${BASE_URL}/get-otp?action=gen&sendTo=${phoneNumber}&orderId=${orderId}`;
+  const url = `${process.env.EXPO_PUBLIC_API_URL}/get-otp?action=gen&sendTo=${phoneNumber}&orderId=${orderId}`;
   
   console.log("Resend OTP URL (with action=gen):", url);
 
