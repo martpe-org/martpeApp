@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -34,96 +34,80 @@ const CartCard: React.FC<CartCardProps> = ({
 }) => {
   const { removeCart } = useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-  const { userDetails } = useUserDetails();
+  const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
 
   const [isRemoving, setIsRemoving] = useState(false);
+  const [validItems, setValidItems] = useState<CartItemType[]>([]);
+  const [distance, setDistance] = useState<number | null>(null);
 
-  // Validate required props
-  if (!id || !store) {
-    console.warn("CartCard: Missing required props - id or store");
-    return null;
-  }
-
-  // Filter valid items
-  const validItems = useMemo(() => {
-    if (!items || !Array.isArray(items)) return [];
-    
-    return items.filter((item) => {
-      if (!item) {
-        console.warn("CartCard: Found null/undefined item, filtering out");
-        return false;
-      }
-      if (!item._id) {
-        console.warn("CartCard: Found item without _id, filtering out:", item);
-        return false;
-      }
-      return true;
-    });
+  // ✅ Filter valid items
+  useEffect(() => {
+    if (!items || !Array.isArray(items)) {
+      setValidItems([]);
+      return;
+    }
+    const filtered = items.filter((item) => item && item._id);
+    setValidItems(filtered);
   }, [items]);
 
-  const storeId = store._id;
-  const storeName = store.name || "Unknown Store";
-  const storeSymbol = store.symbol;
-  const storeAddress = store.address?.street;
-  const storeLocation = store.gps;
-  const storeSlug = store.slug;
-
-  const distance = useMemo(() => {
+  // ✅ Calculate distance
+  useEffect(() => {
     if (
-      !storeLocation?.lat || 
-      !storeLocation?.lon || 
-      !selectedDetails?.lat || 
+      !store?.gps?.lat ||
+      !store?.gps?.lon ||
+      !selectedDetails?.lat ||
       !selectedDetails?.lng
     ) {
-      return null;
+      setDistance(null);
+      return;
     }
 
     try {
-      const storeLat = Number(storeLocation.lat);
-      const storeLon = Number(storeLocation.lon);
+      const storeLat = Number(store.gps.lat);
+      const storeLon = Number(store.gps.lon);
       const userLat = Number(selectedDetails.lat);
       const userLng = Number(selectedDetails.lng);
 
-      // Validate coordinates
       if (
-        isNaN(storeLat) || isNaN(storeLon) || 
-        isNaN(userLat) || isNaN(userLng) ||
-        Math.abs(storeLat) > 90 || Math.abs(storeLon) > 180 ||
-        Math.abs(userLat) > 90 || Math.abs(userLng) > 180
+        isNaN(storeLat) ||
+        isNaN(storeLon) ||
+        isNaN(userLat) ||
+        isNaN(userLng) ||
+        Math.abs(storeLat) > 90 ||
+        Math.abs(storeLon) > 180 ||
+        Math.abs(userLat) > 90 ||
+        Math.abs(userLng) > 180
       ) {
-        console.warn("CartCard: Invalid coordinates", {
-          store: { lat: storeLat, lon: storeLon },
-          user: { lat: userLat, lng: userLng }
-        });
-        return null;
+        setDistance(null);
+        return;
       }
 
       const distanceInMeters = getDistance(
         { latitude: storeLat, longitude: storeLon },
         { latitude: userLat, longitude: userLng }
       );
-      
-      return Number((distanceInMeters / 1000).toFixed(1));
+      setDistance(Number((distanceInMeters / 1000).toFixed(1)));
     } catch (error) {
       console.error("CartCard: Error calculating distance:", error);
-      return null;
+      setDistance(null);
     }
-  }, [storeLocation, selectedDetails]);
+  }, [store?.gps, selectedDetails]);
 
+  // ✅ Delivery time estimation
   const calculateDeliveryTime = (distanceKm: number) => {
     if (!distanceKm || distanceKm < 0) return "N/A";
-    
+
     try {
       const avgSpeedKmh = 35; // average speed in km/h
       const timeInHours = distanceKm / avgSpeedKmh;
-      
+
       if (timeInHours < 1) {
         const minutes = Math.round(timeInHours * 60);
         return minutes <= 0 ? "< 1 min" : `${minutes} min`;
       } else {
         const hours = Math.round(timeInHours);
-        return `${hours} hr${hours > 1 ? 's' : ''}`;
+        return `${hours} hr${hours > 1 ? "s" : ""}`;
       }
     } catch (error) {
       console.error("CartCard: Error calculating delivery time:", error);
@@ -131,12 +115,18 @@ const CartCard: React.FC<CartCardProps> = ({
     }
   };
 
+  // ✅ Remove Cart Handler
   const handleCloseButton = () => {
-    if (isRemoving || !authToken || !storeId) return;
+    if (isRemoving || !authToken || !store?._id) {
+      if (!authToken) {
+        Alert.alert("Login Required", "Please login to remove cart.");
+      }
+      return;
+    }
 
     Alert.alert(
       "Remove Cart",
-      `Are you sure you want to remove the cart from "${storeName}" and all its items?`,
+      `Are you sure you want to remove the cart from "${store.name}" and all its items?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -145,11 +135,14 @@ const CartCard: React.FC<CartCardProps> = ({
           onPress: async () => {
             setIsRemoving(true);
             try {
-              const success = await removeCart(storeId, authToken);
+              const success = await removeCart(store._id, authToken);
               if (!success) {
-                Alert.alert("Error", "Failed to remove cart. Please try again.");
+                Alert.alert(
+                  "Error",
+                  "Failed to remove cart. Please try again."
+                );
               } else {
-                console.log("Cart removal successful for store:", storeId);
+                console.log("Cart removal successful for store:", store._id);
                 onCartChange?.(); // refresh parent
               }
             } catch (error) {
@@ -164,7 +157,16 @@ const CartCard: React.FC<CartCardProps> = ({
     );
   };
 
-  // Show empty state if no valid items
+  // ✅ Handle invalid props after hooks
+  if (!id || !store) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>⚠️ Cart data is incomplete</Text>
+      </View>
+    );
+  }
+
+  // ✅ Show empty state
   if (validItems.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -174,16 +176,20 @@ const CartCard: React.FC<CartCardProps> = ({
     );
   }
 
+  const isDisabled = isRemoving || !authToken || isUserLoading;
+
   return (
     <View style={styles.container}>
       {/* Store Header */}
       <View style={styles.sellerInfoContainer}>
         <View style={styles.sellerLogoContainer}>
-          {storeSymbol ? (
+          {store.symbol ? (
             <Image
-              source={{ uri: storeSymbol }}
+              source={{ uri: store.symbol }}
               style={styles.sellerLogo}
-              onError={() => console.warn("CartCard: Failed to load store symbol")}
+              onError={() =>
+                console.warn("CartCard: Failed to load store symbol")
+              }
             />
           ) : (
             <View style={[styles.sellerLogo, styles.placeholderLogo]}>
@@ -194,12 +200,12 @@ const CartCard: React.FC<CartCardProps> = ({
 
         <View style={styles.sellerInfo}>
           <Text style={styles.sellerName} numberOfLines={2}>
-            {storeName}
+            {store.name || "Unknown Store"}
           </Text>
 
-          {storeAddress && (
+          {store.address?.street && (
             <Text style={styles.sellerLocation} numberOfLines={2}>
-              📍 {storeAddress}
+              📍 {store.address.street}
             </Text>
           )}
 
@@ -217,13 +223,10 @@ const CartCard: React.FC<CartCardProps> = ({
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.closeIcon, 
-            (isRemoving || !authToken) && styles.disabledButton
-          ]}
+          style={[styles.closeIcon, isDisabled && styles.disabledButton]}
           onPress={handleCloseButton}
           activeOpacity={0.7}
-          disabled={isRemoving || !authToken}
+          disabled={isDisabled}
         >
           {isRemoving ? (
             <ActivityIndicator size="small" color="red" />
@@ -239,10 +242,10 @@ const CartCard: React.FC<CartCardProps> = ({
       </View>
 
       {/* Cart Items */}
-      {storeSlug ? (
+      {store.slug ? (
         <CartItems
           cartId={id}
-          storeSlug={storeSlug}
+          storeSlug={store.slug}
           items={validItems}
           onCartChange={onCartChange}
         />
@@ -282,6 +285,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 120,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emptyText: {
     fontSize: 16,
@@ -300,11 +308,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff3f3",
     borderRadius: 8,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#ffcccb",
   },
   errorText: {
     fontSize: 14,
     color: "#d73a49",
     textAlign: "center",
+    fontWeight: "500",
   },
   sellerInfoContainer: {
     marginBottom: 12,

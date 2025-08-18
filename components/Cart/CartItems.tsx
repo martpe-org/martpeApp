@@ -53,7 +53,7 @@ const CartItems: React.FC<CartItemsProps> = ({
     );
   }, []);
 
-  const handleQuantityChange = async (cartItemId: string, newQty: number, authToken:string) => {
+  const handleQuantityChange = async (cartItemId: string, newQty: number) => {
     if (!authToken) {
       Alert.alert("Login Required", "Please login to update item quantity.");
       return;

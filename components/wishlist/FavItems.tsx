@@ -8,10 +8,9 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
-import { useRouter } from "expo-router"; // ✅ FIXED import
+import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
 import AddToCartButton from "../../components/search/AddToCartButton";
-
 interface FavItemsProps {
   favorites: any[];
   authToken: string;
@@ -19,7 +18,7 @@ interface FavItemsProps {
 
 const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
   const { removeFavorite } = useFavoriteStore();
-  const router = useRouter(); // ✅ FIXED usage
+  const router = useRouter();
 
   if (!favorites || favorites.length === 0) {
     return (
@@ -43,6 +42,8 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
         const imageUrl =
           item?.descriptor?.images?.[0] || item?.images?.[0] || null;
 
+        // For favorites, we don't have cart item ID initially, so we'll let AddToCartButton handle it
+
         return (
           <TouchableOpacity
             key={item.id}
@@ -60,7 +61,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
             onPress={() =>
               router.push({
                 pathname: "/(tabs)/home/result/productDetails/[productDetails]",
-                params: { productDetails: item.slug }, // ✅ pass slug as the dynamic param
+                params: { productDetails: item.slug },
               })
             }
           >
@@ -155,6 +156,8 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                     slug={item.slug}
                     catalogId={item.catalog_id}
                     maxQuantity={item?.quantity?.maximum?.count || 10}
+                    customizable={item.customizable || false}
+                    customizations={item.customizations || []}
                   />
                 </View>
               </View>
