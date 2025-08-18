@@ -7,9 +7,8 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import DynamicButton from "../common/DynamicButton";
 import { useCartStore } from "../../state/useCartStore";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import DynamicButton from "../common/DynamicButton";
 
 interface Descriptor {
   name: string;
@@ -37,22 +36,6 @@ interface Quantity {
   };
 }
 
-interface CartItem {
-  _id: string;
-  qty: number;
-  unit_price: number;
-  unit_max_price: number;
-  total_price: number;
-  total_max_price: number;
-  catalog_id?: string;
-  itemId?: string; // Legacy field
-}
-
-interface Cart {
-  store: { _id: string; id?: string };
-  cart_items: CartItem[];
-}
-
 interface Data {
   id: string;
   descriptor?: Descriptor;
@@ -67,7 +50,7 @@ interface ProductListProps {
   storeId: string;
   catalogs: Data[];
   categoryFiltered: string[];
-  authToken: string; // Add authToken prop
+  authToken: string;
 }
 
 const ProductList: React.FC<ProductListProps> = ({
@@ -76,11 +59,11 @@ const ProductList: React.FC<ProductListProps> = ({
   categoryFiltered,
   authToken,
 }) => {
-  const { allCarts, addItem, updateQty, removeCartItems } = useCartStore();
+  const { allCarts } = useCartStore();
 
-  // Find cart by storeId (check both _id and id fields)
+  // Find the matching cart
   const cart = allCarts.find(
-    (c) => c.store._id === storeId || c.store._id === storeId
+    (c) => c.store._id === storeId
   );
 
   if (!catalogs || catalogs.length === 0) {
@@ -90,56 +73,6 @@ const ProductList: React.FC<ProductListProps> = ({
       </View>
     );
   }
-
-  const handleAddItem = async (catalogId: string, slug: string) => {
-    if (!authToken) {
-      console.error("No auth token available");
-      return;
-    }
-
-    try {
-      const success = await addItem(
-        storeId,
-        slug,
-        catalogId,
-        1,
-        false,
-        [],
-        authToken
-      );
-
-      if (!success) {
-        console.error("Failed to add item to cart");
-      }
-    } catch (error) {
-      console.error("Error adding item:", error);
-    }
-  };
-
-  const handleUpdateQuantity = async (cartItemId: string, qty: number) => {
-    if (!authToken) {
-      console.error("No auth token available");
-      return;
-    }
-
-    try {
-      if (qty === 0) {
-        // Remove item if quantity is 0
-        const success = await removeCartItems([cartItemId], authToken);
-        if (!success) {
-          console.error("Failed to remove item from cart");
-        }
-      } else {
-        // Update quantity
-        const success = await updateQty(cartItemId, qty, authToken);
-        if (!success) {
-          console.error("Failed to update item quantity");
-        }
-      }
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-    }
-  };
 
   const renderProduct = (data: Data) => {
     const {
@@ -158,14 +91,15 @@ const ProductList: React.FC<ProductListProps> = ({
       slug = `product-${id}`,
     } = data;
 
-    // Respect stock + max purchase limits
-    const maxLimit = Math.min(maximum_quantity, available_quantity) || 10;
-
-    // Find matching cart item
+    // Find cart item by matching catalog_id with product id
     const cartItem = cart?.cart_items?.find(
-      (item) => item.catalog_id === id || item.itemId === id
+      (item) => {
+        // Check multiple possible field names for catalog ID
+        const catalogId = item.catalog_id || item.catalogId || item.product_id;
+        return catalogId === id;
+      }
     );
-
+    
     const itemCount = cartItem?.qty || 0;
     const cartItemId = cartItem?._id;
 
@@ -175,7 +109,7 @@ const ProductList: React.FC<ProductListProps> = ({
         style={styles.product}
         onPress={() => router.push(`/(tabs)/home/result/productDetails/${id}`)}
       >
-        {/* Image */}
+        {/* Product Image */}
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: images?.[0] || "https://via.placeholder.com/150" }}
@@ -193,7 +127,7 @@ const ProductList: React.FC<ProductListProps> = ({
           </View>
         )}
 
-        {/* Details */}
+        {/* Product details */}
         <View style={styles.details}>
           <Text numberOfLines={2} style={styles.title}>
             {name}
@@ -213,56 +147,41 @@ const ProductList: React.FC<ProductListProps> = ({
             <Text style={styles.priceText}>₹{price}</Text>
           </View>
 
-          {/* Add / Update Controls */}
+          {/* Cart Controls (using DynamicButton) */}
           <View style={styles.buttonGroup}>
-            {itemCount === 0 ? (
-              <TouchableOpacity
-                style={styles.add}
-                onPress={() => handleAddItem(id, slug)}
-              >
-                <Text style={styles.addText}>Add</Text>
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={16}
-                  color="#0e8910"
-                />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.quantityControls}>
-                {/* Decrement */}
-                <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() => handleUpdateQuantity(cartItemId!, Math.max(0, itemCount - 1))}
-                >
-                  <MaterialCommunityIcons name="minus" size={16} color="red" />
-                </TouchableOpacity>
-
-                <Text style={styles.quantityText}>{itemCount}</Text>
-
-                {/* Increment */}
-                <TouchableOpacity
-                  style={[
-                    styles.qtyBtn,
-                    itemCount >= maxLimit && styles.disabledBtn,
-                  ]}
-                  onPress={() => handleUpdateQuantity(cartItemId!, itemCount + 1)}
-                  disabled={itemCount >= maxLimit}
-                >
-                  <MaterialCommunityIcons
-                    name="plus"
-                    size={16}
-                    color={itemCount >= maxLimit ? "#ccc" : "#0e8910"}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
+            <DynamicButton
+              isNewItem={itemCount === 0}
+              isUpdated={itemCount > 0}
+              storeId={storeId}
+              slug={slug}
+              catalogId={id}
+              cartItemId={cartItemId}
+              qty={itemCount}
+              customizable={false}
+              customizations={[]}
+            >
+              {itemCount === 0 ? (
+                <View style={styles.addButton}>
+                  <Text style={styles.addButtonText}>ADD</Text>
+                </View>
+              ) : (
+                <View style={styles.quantityControls}>
+                  <TouchableOpacity style={styles.quantityButton}>
+                    <Text style={styles.quantityButtonText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>{itemCount}</Text>
+                  <TouchableOpacity style={styles.quantityButton}>
+                    <Text style={styles.quantityButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </DynamicButton>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Category filtering
   const filteredCatalogs = catalogs.filter(
     (catalog) =>
       categoryFiltered.length === 0 ||
@@ -361,57 +280,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  add: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: "white",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#0e8910",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  addText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#0e8910",
-  },
-  quantityControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 6,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  qtyBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabledBtn: {
-    opacity: 0.5,
-  },
-  quantityText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    textAlign: "center",
-    paddingHorizontal: 12,
-    minWidth: 30,
-  },
   imageContainer: {
     height: 100,
     backgroundColor: "#f5f5f5",
@@ -442,6 +310,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
     textAlign: "center",
+  },
+  addButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 50,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  quantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  quantityButton: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 4,
+  },
+  quantityButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  quantityText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+    minWidth: 20,
+    textAlign: "center",
+    paddingHorizontal: 4,
   },
 });
 

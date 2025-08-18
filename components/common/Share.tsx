@@ -9,7 +9,7 @@ interface ShareProps {
   storeId?: string;
   storeName?: string;
   type: string;
-  incentivise: boolean;
+  // incentivise: boolean;
   size?: number;
   address?: string;
 }
@@ -20,7 +20,6 @@ const ShareButton: React.FC<ShareProps> = ({
   storeId,
   storeName,
   type,
-  incentivise,
   size,
   address,
 }) => {

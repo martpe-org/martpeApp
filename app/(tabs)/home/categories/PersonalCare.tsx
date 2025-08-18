@@ -6,8 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
-  Pressable,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,32 +19,41 @@ import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useUserDetails from "../../../../hook/useUserDetails";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import FilterCard from "../../../../components/search/filterCard";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 
 const domain = "ONDC:RET13";
 const domainColor = "#242929";
-const domainBorderColor = `${domainColor}80`;
 
 function Beauty() {
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [isFilterVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState("");
-  const [filterSelected, setFilterSelected] = useState({ category: [], offers: 0, delivery: 100 });
-  const [storesData, setStoresData] = useState([]);
-  const [offersData, setOffersData] = useState([]);
+  const [filterSelected, setFilterSelected] = useState({
+    category: [] as string[],
+    offers: 0,
+    delivery: 100,
+  });
+  const [storesData, setStoresData] = useState<any[]>([]);
+  const [offersData, setOffersData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const { userDetails, getUserDetails } = useUserDetails();
-  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const bottomSheetRef = useRef(null);
+  const selectedAddress = useDeliveryStore((state: any) => state.selectedDetails);
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
 
   const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
-
-  const renderBackdrop = React.useCallback((props) => (
-    <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />
-  ), []);
+  const renderBackdrop = React.useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        {...props}
+      />
+    ),
+    []
+  );
 
   useEffect(() => {
     getUserDetails();
@@ -79,20 +86,28 @@ function Beauty() {
     fetchData();
   }, [selectedAddress]);
 
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
+
   const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store) => store?.catalogs || [])
+    ? storesData.flatMap((store: any) => store?.catalogs || [])
     : [];
 
-  const uniqueCategoryIds = Array.from(new Set(allCatalogs.map((c) => c?.category_id))).map((category, index) => ({
+  const uniqueCategoryIds = Array.from(
+    new Set(allCatalogs.map((c: any) => c?.category_id))
+  ).map((category, index) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
-  const filteredStores = storesData.filter((store) => {
+  const filteredStores = storesData.filter((store: any) => {
     const meetsCategoryCriteria =
       filterSelected.category.length === 0 ||
-      store?.catalogs?.some((catalog) => filterSelected.category.includes(catalog?.category_id));
+      store?.catalogs?.some((catalog: any) =>
+        filterSelected.category.includes(catalog?.category_id)
+      );
 
     const meetsOfferCriteria =
       filterSelected.offers === 0 ||
@@ -100,14 +115,17 @@ function Beauty() {
 
     const meetsDeliveryCriteria =
       filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg ?? Infinity) <= filterSelected.delivery;
+      (store?.time_to_ship_in_hours?.avg ?? Infinity) <=
+        filterSelected.delivery;
 
-    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
+    return (
+      meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria
+    );
   });
 
   const renderSubCategories = () => (
     <View style={styles.subCategories}>
-      {personalCareCategoryData.slice(0, 8).map((subCategory) => (
+      {personalCareCategoryData.slice(0, 8).map((subCategory: any) => (
         <TouchableOpacity
           key={subCategory.id}
           onPress={() =>
@@ -138,32 +156,43 @@ function Beauty() {
 
   return (
     <View style={styles.container}>
+      {/* Header with Back + Search */}
       <View style={styles.headerContainer}>
-        <Search
-          placeholder="Search for beauty products.."
-          showBackArrow={true}
-          showLocation={false}
-          domain={domain}
-          domainColor={domainColor}
-        />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Entypo name="chevron-left" size={22} color="#111" />
+        </TouchableOpacity>
+        <View style={styles.searchWrapper}>
+          <Search onPress={handleSearchPress} />
+        </View>
       </View>
 
       <ScrollView>
+        {/* Offers */}
         {offersData.length > 0 && (
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
             {offersData.map((data, index) => (
               <OfferCard2 offerData={data} key={index} />
             ))}
           </ScrollView>
         )}
 
+        {/* Subheading */}
         <Text style={styles.subHeadingText}>
           {userDetails?.firstName ? `Hey ${userDetails.firstName}, ` : ""}
           Explore the world of beauty
         </Text>
 
+        {/* SubCategories */}
         {renderSubCategories()}
 
+        {/* Stores */}
         <View style={styles.subHeading}>
           <Text style={styles.subHeadingText}>
             {filteredStores.length > 0
@@ -172,11 +201,16 @@ function Beauty() {
           </Text>
         </View>
 
-        {filteredStores.map((storeData) => (
-          <StoreCard key={storeData?.id} storeData={storeData} categoryFiltered={filterSelected.category} />
+        {filteredStores.map((storeData: any) => (
+          <StoreCard
+            key={storeData?.id}
+            storeData={storeData}
+            categoryFiltered={filterSelected.category}
+          />
         ))}
       </ScrollView>
 
+      {/* BottomSheet Filter */}
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
@@ -207,16 +241,24 @@ function Beauty() {
 export default Beauty;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   headerContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
     flexDirection: "row",
-    marginTop:25
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
+  backButton: {
+    padding: 6,
+    marginTop: 11,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+  searchWrapper: { flex: 1 },
   subCategories: {
     flexDirection: "row",
     justifyContent: "space-evenly",
@@ -224,10 +266,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginHorizontal: 10,
   },
-  subCategory: {
-    alignItems: "center",
-    margin: 6,
-  },
+  subCategory: { alignItems: "center", margin: 6 },
   subCategoryImage: {
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
@@ -236,15 +275,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  subCategoryName: {
-    textAlign: "center",
-    fontSize: 10,
-    fontWeight: "500",
-  },
-  subHeading: {
-    marginTop: 20,
-    alignItems: "center",
-  },
+  subCategoryName: { textAlign: "center", fontSize: 10, fontWeight: "500" },
+  subHeading: { marginTop: 20, alignItems: "center" },
   subHeadingText: {
     fontSize: 14,
     fontWeight: "600",

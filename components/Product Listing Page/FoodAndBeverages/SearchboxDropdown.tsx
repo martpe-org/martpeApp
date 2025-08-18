@@ -11,19 +11,20 @@ import {
 import SearchboxDropdownItem from "./SearchboxDropdownItem";
 
 const { height } = Dimensions.get('window');
-const MAX_DROPDOWN_HEIGHT = height * 0.4; // 40% of screen height
+const MAX_DROPDOWN_HEIGHT = height * 0.4;
 
 interface SuggestionItem {
   image: string;
   name: string;
   id: string;
+  slug?: string;
 }
 
 interface SearchboxDropdownProps {
   suggestions: SuggestionItem[];
   search: (text: string) => void;
   isVisible: boolean;
-  onItemPress?: () => void;
+  onItemPress?: (suggestion: SuggestionItem) => void;
 }
 
 const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
@@ -63,7 +64,7 @@ const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
         }),
       ]).start();
     }
-  }, [isVisible, fadeAnim, slideAnim]);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
@@ -89,7 +90,7 @@ const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
               key={`${item.id}-${index}`}
               search={search}
               item={item}
-              onPress={onItemPress}
+              onPress={() => onItemPress?.(item)}
               isLast={index === Math.min(suggestions.length - 1, 7)}
             />
           ))

@@ -15,12 +15,7 @@ import Loader from "../../components/common/Loader";
 import ShareButton from "../../components/common/Share";
 import { deleteAddress } from "../../components/address/deleteAddress";
 import Header from '../../components/address/AddressHeader';
-// import Constants from 'expo-constants';
 import useUserDetails from '../../hook/useUserDetails';
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
-// Define the AddressType interface based on your API structure
 interface AddressType {
   id: string;
   type: 'Home' | 'Work' | 'FriendsAndFamily' | 'Other';
@@ -384,7 +379,7 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
           <TouchableOpacity
             onPress={() =>
               router.push({
-                pathname: "../address/EditAddress",
+                pathname: "./address/EditAddress",
                 params: { addressId: addressId },
               })
             }

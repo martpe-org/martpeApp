@@ -70,7 +70,7 @@ const FilterCard: FC<FilterCardProps> = ({
           }}
         >
           {options.map((option, index) => (
-            <Pressable key={index} onPress={() => setActiveOption(option.name)}>
+            <TouchableOpacity key={index} onPress={() => setActiveOption(option.name)}>
               <View
                 style={{
                   flexDirection: "row",
@@ -91,7 +91,7 @@ const FilterCard: FC<FilterCardProps> = ({
                   {option.name}
                 </Text>
               </View>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 

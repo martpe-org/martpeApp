@@ -91,7 +91,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
         </View>
         <TouchableOpacity
           style={[styles.PLPBannerCardContentContainer, { flex: 1, justifyContent: "space-between" }]}
-          onPress={() => router.push("./address/SavedAddresses")}
+          onPress={() => router.push("/address/SavedAddresses")}
         >
           <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="tail">
             {userAddress || "Select location"}
@@ -104,7 +104,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
       <View style={[styles.PLPBannerCardContentContainer, { justifyContent: "flex-end" }]}>
         <LikeButton productId={productId} />
         <View style={{ width: 5 }} />
-        <ShareButton storeName={title} type="outlet" incentivise={true} storeId={productId} />
+        <ShareButton storeName={title} type="outlet"  storeId={productId} />
       </View>
     </View>
   );

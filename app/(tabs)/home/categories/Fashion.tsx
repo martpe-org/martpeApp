@@ -6,8 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
-  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,30 +21,38 @@ import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import FilterCard from "../../../../components/search/filterCard";
 import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Feather } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
+import { Entypo } from "@expo/vector-icons";
 
 const domain = "ONDC:RET12";
 
 function Fashion() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
-  const [filterSelected, setFilterSelected] = useState({ category: [], offers: 0, delivery: 100 });
+  const setHideTabBar = useHideTabBarStore((state: any) => state.setHideTabBar);
+  const [filterSelected, setFilterSelected] = useState<any>({
+    category: [],
+    offers: 0,
+    delivery: 100,
+  });
   const [activeFilter, setActiveFilter] = useState("");
-  const [storesData, setStoresData] = useState([]);
-  const [offersData, setOffersData] = useState([]);
+  const [storesData, setStoresData] = useState<any[]>([]);
+  const [offersData, setOffersData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
+  const selectedAddress = useDeliveryStore((state: any) => state.selectedDetails);
 
-  const bottomSheetRef = useRef(null);
+  const bottomSheetRef = useRef<any>(null);
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
   const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
+  const renderBackdrop = React.useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />
+    ),
+    []
+  );
 
-  const renderBackdrop = React.useCallback((props) => (
-    <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />
-  ), []);
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -76,19 +82,23 @@ function Fashion() {
   }, [selectedAddress]);
 
   const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store) => store?.catalogs || [])
+    ? storesData.flatMap((store: any) => store?.catalogs || [])
     : [];
 
-  const uniqueCategoryIds = Array.from(new Set(allCatalogs.map((c) => c?.category_id))).map((category, index) => ({
+  const uniqueCategoryIds = Array.from(
+    new Set(allCatalogs.map((c: any) => c?.category_id))
+  ).map((category: any, index) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
-  const filteredStores = storesData.filter((store) => {
+  const filteredStores = storesData.filter((store: any) => {
     const meetsCategoryCriteria =
       filterSelected.category.length === 0 ||
-      store?.catalogs?.some((catalog) => filterSelected.category.includes(catalog?.category_id));
+      store?.catalogs?.some((catalog: any) =>
+        filterSelected.category.includes(catalog?.category_id)
+      );
 
     const meetsOfferCriteria =
       filterSelected.offers === 0 ||
@@ -103,7 +113,7 @@ function Fashion() {
 
   const renderSubCategories = () => (
     <View style={styles.subCategories}>
-      {fashionCategoryData.slice(0, 4).map((subCategory) => (
+      {fashionCategoryData.slice(0, 4).map((subCategory: any) => (
         <TouchableOpacity
           key={subCategory.id}
           onPress={() =>
@@ -134,12 +144,17 @@ function Fashion() {
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
         <View style={styles.headerContainer}>
-          <Search placeholder="Search to style your wardrobe.." showBackArrow showLocation={false} domain={domain} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Entypo name="chevron-left" size={22} color="#111" />
+          </TouchableOpacity>
+          <View style={styles.searchWrapper}>
+            <Search onPress={handleSearchPress} />
+          </View>
         </View>
 
         {offersData.length > 0 && (
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {offersData.map((data, index) => (
+            {offersData.map((data: any, index: number) => (
               <OfferCard3 offerData={data} key={index} />
             ))}
           </ScrollView>
@@ -154,8 +169,12 @@ function Fashion() {
           <Text style={styles.subHeadingText}>Outlets Near me</Text>
         </View>
 
-        {filteredStores.map((storeData) => (
-          <StoreCard2 key={storeData.id} storeData={storeData} categoryFiltered={filterSelected.category} />
+        {filteredStores.map((storeData: any) => (
+          <StoreCard2
+            key={storeData?.id || Math.random()}
+            storeData={storeData}
+            categoryFiltered={filterSelected.category}
+          />
         ))}
       </ScrollView>
 
@@ -194,12 +213,29 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     flex: 1,
   },
+
   headerContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
     flexDirection: "row",
-    paddingVertical: 5,
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
+
+  backButton: {
+    padding: 6,
+    marginTop: 11,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+
+  searchWrapper: {
+    flex: 1,
+  },
+
   subCategories: {
     flexDirection: "row",
     alignItems: "center",
@@ -207,7 +243,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginHorizontal: 2,
   },
- subCategory: {
+  subCategory: {
     position: "relative",
     margin: 5,
     height: 160,

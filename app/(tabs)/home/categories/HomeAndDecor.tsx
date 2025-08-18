@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Pressable,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,28 +18,37 @@ import { homeAndDecorCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { widthPercentageToDP } from "react-native-responsive-screen";
 import FilterCard from "../../../../components/search/filterCard";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Feather } from "@expo/vector-icons";
+import { Entypo, Feather } from "@expo/vector-icons";
 
 const domain = "ONDC:RET16";
+
+interface Store {
+  id: string;
+  catalogs?: { category_id: string }[];
+  calculated_max_offer?: { percent?: number };
+  time_to_ship_in_hours?: { avg?: number };
+}
+
+interface Offer {
+  id?: string;
+  [key: string]: any;
+}
 
 function Interior() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("");
-  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
   const [filterSelected, setFilterSelected] = useState({
-    category: [],
+    category: [] as string[],
     offers: 0,
     delivery: 100,
   });
 
-  const [bottonSheetIndex, setBottonSheetIndex] = useState(-1);
-  const [storesData, setStoresData] = useState<any[]>([]);
-  const [offersData, setOffersData] = useState<any[]>([]);
+  const [storesData, setStoresData] = useState<Store[]>([]);
+  const [offersData, setOffersData] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
 
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
@@ -48,6 +56,7 @@ function Interior() {
 
   const handleClosePress = () => bottomSheetRef.current?.close();
   const handleOpenPress = () => bottomSheetRef.current?.expand();
+
   const renderBackdrop = React.useCallback(
     (props: any) => (
       <BottomSheetBackdrop
@@ -88,23 +97,21 @@ function Interior() {
 
     fetchData();
   }, [selectedAddress]);
-
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
   // Flatten catalogs safely
-  const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store) => Array.isArray(store?.catalogs) ? store.catalogs : [])
-    : [];
+  const allCatalogs = storesData.flatMap((store) =>
+    Array.isArray(store?.catalogs) ? store.catalogs : []
+  );
 
-  // Extract unique category IDs safely
+  // Extract unique category IDs
   const uniqueCategoryIds = Array.from(
-    new Set(
-      (allCatalogs || [])
-        .map((catalog) => catalog?.category_id)
-        .filter(Boolean)
-    )
+    new Set(allCatalogs.map((c) => c?.category_id).filter(Boolean))
   ).map((category, index) => ({
     id: index + 1,
-    label: category,
-    value: category,
+    label: category!,
+    value: category!,
   }));
 
   // Subcategories UI
@@ -149,7 +156,8 @@ function Interior() {
       (store?.calculated_max_offer?.percent ?? 0) >= filterSelected.offers;
     const meetsDeliveryCriteria =
       filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg ?? Infinity) <= filterSelected.delivery;
+      (store?.time_to_ship_in_hours?.avg ?? Infinity) <=
+        filterSelected.delivery;
 
     return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
   });
@@ -159,7 +167,11 @@ function Interior() {
   }
 
   if (!storesData.length && !offersData.length) {
-    return <Text style={{ color: "black", textAlign: "center", marginTop: 20 }}>No data available</Text>;
+    return (
+      <Text style={{ color: "black", textAlign: "center", marginTop: 20 }}>
+        No data available
+      </Text>
+    );
   }
 
   return (
@@ -167,22 +179,26 @@ function Interior() {
       <ScrollView style={styles.container}>
         {/* Search Bar */}
         <View style={styles.headerContainer}>
-          <View style={styles.searchWrapper}>
-            <Search
-              placeholder="Search for home and decor...."
-              showBackArrow={true}
-              showLocation={false}
-              domain={domain}
-            />
-          </View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Entypo name="chevron-left" size={22} color="#111" />
+        </TouchableOpacity>
+        <View style={styles.searchWrapper}>
+          <Search onPress={handleSearchPress} />
         </View>
+      </View>
 
         {/* Offers Slider */}
-        <ScrollView horizontal pagingEnabled>
-          {offersData.map((data, index) => (
-            <OfferCard3 offerData={data} key={index} />
-          ))}
-        </ScrollView>
+        {offersData.length > 0 && (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            {offersData.map((data, index) => (
+              <OfferCard3 offerData={data} key={index} />
+            ))}
+          </ScrollView>
+        )}
 
         {/* Categories */}
         <View>
@@ -265,7 +281,7 @@ function Interior() {
                     }
                   </Text>
 
-                  <Pressable
+                  <TouchableOpacity
                     style={{
                       display:
                         (filter.name === "Category" &&
@@ -296,7 +312,7 @@ function Interior() {
                     }}
                   >
                     <Feather name="x" size={16} color="black" />
-                  </Pressable>
+                  </TouchableOpacity>
                 </TouchableOpacity>
               ))}
 
@@ -344,7 +360,7 @@ function Interior() {
       {/* Bottom Sheet Filter */}
       <BottomSheet
         ref={bottomSheetRef}
-        index={bottonSheetIndex}
+        index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
         handleIndicatorStyle={{ backgroundColor: "#fff" }}
@@ -380,22 +396,24 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     marginTop: 15,
   },
-  headerContainer: {
-    backgroundColor: "#ffff",
+    headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  backButton: {
+    padding: 6,
+    marginTop: 11,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
   },
   searchWrapper: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   subCategories: {
     flexDirection: "row",

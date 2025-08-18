@@ -1,9 +1,9 @@
 import { useRef, FC, ReactNode, useMemo } from "react";
-import { Animated, Pressable } from "react-native";
+import { Animated, TouchableOpacity } from "react-native";
 import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
-import { updateQty as updateQtyApi } from "../../state/updateQty"; // ✅ Explicit import to avoid name clash
+import { updateQty as updateQtyApi } from "../../state/updateQty";
 
 interface DynamicButtonProps {
   children: ReactNode;
@@ -168,13 +168,13 @@ const DynamicButton: FC<DynamicButtonProps> = ({
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <Pressable
+      <TouchableOpacity
         onPress={handlePress}
         disabled={disabled}
         style={disabled ? { opacity: 0.5 } : undefined}
       >
         {children}
-      </Pressable>
+      </TouchableOpacity>
     </Animated.View>
   );
 };

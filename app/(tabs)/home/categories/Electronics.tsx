@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   Pressable,
 } from "react-native";
 import { router } from "expo-router";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet, {
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import Search from "../../../../components/common/Search";
@@ -20,118 +22,115 @@ import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Feather } from "@expo/vector-icons";
+import { Entypo, Feather } from "@expo/vector-icons";
 import FilterCard from "../../../../components/search/filterCard";
 
-const screenWidth = Dimensions.get("window").width;
 const domain = "ONDC:RET14";
-
 function Electronics() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
   const [filterSelected, setFilterSelected] = useState({
-    category: [],
+    category: [] as string[],
     offers: 0,
     delivery: 100,
   });
-  const containerHeight = 200;
-  const [storesData, setStoresData] = useState([]);
-  const [offersData, setOffersData] = useState([]);
-  const [activeFilter, setActiveFilter] = useState<string>("");
+  const [storesData, setStoresData] = useState<any[]>([]);
+  const [offersData, setOffersData] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  
-  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
+  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
+
+  // ✅ properly type the BottomSheet ref
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
-  const handleCollapsePress = () => bottomSheetRef.current?.collapse();
-  const snapeToIndex = (index: number) =>
-    bottomSheetRef.current?.snapToIndex(index);
-  const renderBackdrop = React.useCallback(
+
+  // BottomSheet snap points
+  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
+
+  const handleClosePress = () => {
+    bottomSheetRef.current?.close();
+    setIsFilterVisible(false);
+  };
+
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
+
+  const renderBackdrop = useCallback(
     (props: any) => (
-      <BottomSheetBackdrop
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        {...props}
-      />
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
     ),
     []
   );
 
-  // Fetch data using the correct API pattern
+  // Fetch data
   useEffect(() => {
     async function fetchData() {
       if (!selectedAddress?.lat || !selectedAddress?.lng) {
         setIsLoading(false);
         return;
       }
-
       try {
         const response = await fetchHomeByDomain(
           selectedAddress.lat,
           selectedAddress.lng,
-          selectedAddress.pincode || "110001", // Default pincode if not available
+          selectedAddress.pincode || "110001",
           domain
         );
-
-        if (response) {
- setStoresData(Array.isArray(response?.stores) ? response.stores : []);
-setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-
-        }
+        setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+        setOffersData(Array.isArray(response?.offers) ? response.offers : []);
       } catch (error) {
         console.error("Error fetching domain data:", error);
       } finally {
         setIsLoading(false);
       }
     }
-
     fetchData();
   }, [selectedAddress]);
 
-const allCatalogs = Array.isArray(storesData)
-  ? storesData.flatMap((store) => store.catalogs || [])
-  : [];
-
+  // Categories for filter
+  const allCatalogs = Array.isArray(storesData)
+    ? storesData.flatMap((store) => store.catalogs || [])
+    : [];
   const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs?.map((catalog) => catalog?.category_id))
+    new Set(allCatalogs.map((c) => c?.category_id))
   ).map((category, index) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
+  // Apply filters
   const filteredStores = storesData.filter((store) => {
-    const meetsCategoryCriteria =
-      filterSelected.category.length == 0 ||
-      store.catalogs?.some((catalog) =>
-        filterSelected.category.includes(catalog.category_id)
+    const meetsCategory =
+      filterSelected.category.length === 0 ||
+      store.catalogs?.some((c: any) =>
+        filterSelected.category.includes(c.category_id)
       );
-    const meetsOfferCriteria =
+
+    const meetsOffer =
       filterSelected.offers === 0 ||
       store.calculated_max_offer?.percent >= filterSelected.offers;
-    const meetsDeliveryCriteria =
+
+    const meetsDelivery =
       filterSelected.delivery === 100 ||
       store?.time_to_ship_in_hours?.avg <= filterSelected.delivery;
 
-    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
+    return meetsCategory && meetsOffer && meetsDelivery;
   });
 
-  const renderSubCategories = () => {
-    return electronicsCategoryData.slice(0, 8).map((subCategory) => (
+  // Render subcategories
+  const renderSubCategories = () =>
+    electronicsCategoryData.slice(0, 8).map((subCategory) => (
       <TouchableOpacity
-        onPress={() => {
-          router.push({
-            pathname: "./(tabs)/home/result/[search]",
-            params: {
-              search: subCategory.name,
-              domainData: "ONDC:RET14",
-            },
-          });
-        }}
-        style={styles.subCategory}
         key={subCategory.id}
+        style={styles.subCategory}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/[search]",
+            params: { search: subCategory.name, domainData: domain },
+          })
+        }
       >
         <View style={styles.subCategoryImage}>
           <Image
@@ -143,13 +142,10 @@ const allCatalogs = Array.isArray(storesData)
         <Text style={styles.subHeadingText}>{subCategory.name}</Text>
       </TouchableOpacity>
     ));
-  };
 
-  if (isLoading) {
-    return <Loader />;
-  }
+  if (isLoading) return <Loader />;
 
-  if (!storesData && !offersData) {
+  if (storesData.length === 0 && offersData.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={{ color: "black", textAlign: "center", marginTop: 50 }}>
@@ -162,28 +158,35 @@ const allCatalogs = Array.isArray(storesData)
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
+        {/* Header with Back + Search */}
         <View style={styles.headerContainer}>
-          <Search
-            domain="ONDC:RET14"
-            placeholder="Search for electronics.."
-            showBackArrow={true}
-            showLocation={false}
-          />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Entypo name="chevron-left" size={22} color="#111" />
+          </TouchableOpacity>
+          <View style={styles.searchWrapper}>
+            <Search onPress={handleSearchPress} />
+          </View>
         </View>
 
-        {/* Offers Section */}
-        {offersData && offersData.length > 0 && (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          >
-            {offersData.map((data, index) => (
-              <OfferCard3 offerData={data} key={index} />
-            ))}
-          </ScrollView>
-        )}
+        {/* Offers */}
+      {offersData.length > 0 && (
+  <View style={{ height: 200 }}> 
+    <ScrollView
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+    >
+      {offersData.map((data, index) => (
+        <View key={index} style={{ width: Dimensions.get("window").width }}>
+          <OfferCard3 offerData={data} />
+        </View>
+      ))}
+    </ScrollView>
+  </View>
+)}
 
+
+        {/* SubCategories */}
         <View>
           <View style={styles.subHeading}>
             <View style={styles.line} />
@@ -192,182 +195,116 @@ const allCatalogs = Array.isArray(storesData)
           </View>
           <View style={styles.subCategories}>{renderSubCategories()}</View>
           <TouchableOpacity
-            onPress={() => {
+            style={styles.viewMoreButton}
+            onPress={() =>
               router.push({
                 pathname: "/(tabs)/home/allCategories",
                 params: { category: "electronics" },
-              });
-            }}
-            style={styles.viewMoreButton}
+              })
+            }
           >
             <Text style={styles.viewMoreButtonText}>View More</Text>
           </TouchableOpacity>
 
+          {/* Filters */}
           <View style={styles.subHeading}>
             <View style={styles.line} />
             <Text style={styles.subHeadingText}>Outlets Near me</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Filter Section */}
-          <ScrollView
-            style={{
-              flexDirection: "row",
-              marginHorizontal: 10,
-              marginTop: 10,
-            }}
-            horizontal
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                marginHorizontal: 10,
-                marginTop: 10,
-              }}
-            >
-              <ScrollView
-                style={{
-                  flexDirection: "row",
-                  marginVertical: Dimensions.get("screen").width * 0.02,
-                  position: "relative",
-                  marginHorizontal: Dimensions.get("screen").width * 0.03,
-                }}
-                horizontal
-              >
-                {filters.map((filter, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={{
-                      borderWidth: 1,
-                      borderColor:
-                        (filter.name === "Category" &&
-                          filterSelected.category.length > 0) ||
-                        (filter.name === "Offers" &&
-                          filterSelected.offers > 0) ||
-                        (filter.name === "Delivery" &&
-                          filterSelected.delivery < 100)
-                          ? "black"
-                          : "#EEEEEE",
-                      backgroundColor: "white",
-                      borderRadius: 100,
-                      paddingHorizontal: Dimensions.get("screen").width * 0.03,
-                      paddingVertical: Dimensions.get("screen").width * 0.015,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginHorizontal: Dimensions.get("screen").width * 0.01,
-                      flexDirection: "row",
-                    }}
-                    onPress={() => {
-                      handleOpenPress();
-                      setActiveFilter(filter?.name);
-                      setIsFilterVisible(true);
-                    }}
-                  >
-                    <Text style={{ color: "black", fontWeight: "600" }}>
-                      {
-                        {
-                          Category:
-                            "Category " +
-                            (filterSelected.category.length > 0
-                              ? `(${filterSelected.category.length})`
-                              : ""),
-                          Offers:
-                            filterSelected.offers > 0
-                              ? filterSelected.offers + "% and above"
-                              : "Offers",
-                          Delivery:
-                            filterSelected.delivery < 100
-                              ? filterSelected.delivery + " or min "
-                              : "Delivery",
-                        }[filter?.name]
-                      }
-                    </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ margin: 10 }}>
+            {filters.map((filter, index) => {
+              const isActive =
+                (filter.name === "Category" && filterSelected.category.length > 0) ||
+                (filter.name === "Offers" && filterSelected.offers > 0) ||
+                (filter.name === "Delivery" && filterSelected.delivery < 100);
 
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.filterChip,
+                    { borderColor: isActive ? "black" : "#eee" },
+                  ]}
+                  onPress={() => {
+                    setActiveFilter(filter.name);
+                    setIsFilterVisible(true);
+                    bottomSheetRef.current?.expand(); // ✅ now typed
+                  }}
+                >
+                  <Text style={{ color: "black", fontWeight: "600" }}>
+                    {filter.name === "Category"
+                      ? `Category ${
+                          filterSelected.category.length > 0
+                            ? `(${filterSelected.category.length})`
+                            : ""
+                        }`
+                      : filter.name === "Offers"
+                      ? filterSelected.offers > 0
+                        ? `${filterSelected.offers}% and above`
+                        : "Offers"
+                      : filter.name === "Delivery"
+                      ? filterSelected.delivery < 100
+                        ? `min ${filterSelected.delivery} hrs`
+                        : "Delivery"
+                      : filter.name}
+                  </Text>
+
+                  {isActive && (
                     <Pressable
-                      style={{
-                        display:
-                          (filter.name === "Category" &&
-                            filterSelected.category.length > 0) ||
-                          (filter.name === "Offers" &&
-                            filterSelected.offers > 0) ||
-                          (filter.name === "Delivery" &&
-                            filterSelected.delivery < 100)
-                            ? "flex"
-                            : "none",
-                        marginLeft: 5,
-                      }}
                       onPress={() => {
                         setFilterSelected({
-                          category:
-                            filter.name === "Category"
-                              ? []
-                              : filterSelected.category,
-                          offers:
-                            filter.name === "Offers"
-                              ? 0
-                              : filterSelected.offers,
+                          category: filter.name === "Category" ? [] : filterSelected.category,
+                          offers: filter.name === "Offers" ? 0 : filterSelected.offers,
                           delivery:
-                            filter.name === "Delivery"
-                              ? 100
-                              : filterSelected.delivery,
+                            filter.name === "Delivery" ? 100 : filterSelected.delivery,
                         });
                       }}
+                      style={{ marginLeft: 5 }}
                     >
                       <Feather name="x" size={16} color="black" />
                     </Pressable>
-                  </TouchableOpacity>
-                ))}
-                {(filterSelected.category.length > 0 ||
-                  filterSelected.delivery !== 100 ||
-                  filterSelected.offers !== 0) && (
-                  <TouchableOpacity
-                    style={{
-                      borderWidth: 1,
-                      borderColor: "#F13A3A",
-                      backgroundColor: "white",
-                      borderRadius: 100,
-                      paddingHorizontal: Dimensions.get("screen").width * 0.03,
-                      paddingVertical: Dimensions.get("screen").width * 0.01,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginLeft: Dimensions.get("screen").width * 0.03,
-                    }}
-                    onPress={() => {
-                      setFilterSelected({
-                        category: [],
-                        offers: 0,
-                        delivery: 100,
-                      });
-                    }}
-                  >
-                    <Text style={{ color: "#F13A3A" }}>Reset</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-            </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+
+            {(filterSelected.category.length > 0 ||
+              filterSelected.offers > 0 ||
+              filterSelected.delivery < 100) && (
+              <TouchableOpacity
+                style={[styles.filterChip, { borderColor: "#F13A3A" }]}
+                onPress={() =>
+                  setFilterSelected({ category: [], offers: 0, delivery: 100 })
+                }
+              >
+                <Text style={{ color: "#F13A3A" }}>Reset</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
 
-          {/* Stores List */}
-          {filteredStores?.map((storeData, id) => (
+          {/* Stores */}
+          {filteredStores.map((store) => (
             <StoreCard3
-              categoryFiltered={filterSelected?.category}
-              key={storeData?.id}
-              storeData={storeData}
+              key={store?.id}
+              storeData={store}
+              categoryFiltered={filterSelected.category}
               color="red"
             />
           ))}
         </View>
       </ScrollView>
 
-      {/* Bottom Sheet for Filters */}
+      {/* BottomSheet */}
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
         snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-        backgroundStyle={{ backgroundColor: "#FFFFFF" }}
+        enablePanDownToClose
         backdropComponent={renderBackdrop}
+        onClose={() => setIsFilterVisible(false)}
+        backgroundStyle={{ backgroundColor: "#fff" }}
       >
         {isFilterVisible && (
           <FilterCard
@@ -389,41 +326,47 @@ const allCatalogs = Array.isArray(storesData)
 
 export default Electronics;
 
+// Styles
 const styles = StyleSheet.create({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+
   headerContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
     flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
+
+  backButton: {
+    padding: 6,
+    marginTop:11,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+
+  searchWrapper: {
+    flex: 1,
+  },
+
   subCategories: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     flexWrap: "wrap",
+    justifyContent: "center",
     marginVertical: 8,
     gap: 5,
   },
   subCategory: {
-    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
     margin: 5,
   },
   subCategoryImage: {
     backgroundColor: "#FEEEEE",
     marginBottom: 5,
     borderRadius: 10,
-    shadowColor: "#B1A5A5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
     elevation: 4,
     padding: 10,
   },
@@ -434,31 +377,26 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     marginHorizontal: 10,
   },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "black",
-    marginHorizontal: 10,
-  },
-  subHeadingText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  line: { flex: 1, height: 1, backgroundColor: "black", marginHorizontal: 10 },
+  subHeadingText: { fontSize: 14, fontWeight: "500" },
   viewMoreButton: {
     flexDirection: "row",
-    paddingLeft: 8,
-    paddingHorizontal: 5,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
     alignSelf: "center",
     borderWidth: 1,
     borderColor: "#898989",
   },
-  viewMoreButtonText: {
-    color: "#FB9191",
-    fontSize: 12,
-    fontWeight: "500",
+  viewMoreButtonText: { color: "#FB9191", fontSize: 12, fontWeight: "500" },
+  filterChip: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: "center",
+    marginHorizontal: 5,
+    backgroundColor: "white",
   },
 });

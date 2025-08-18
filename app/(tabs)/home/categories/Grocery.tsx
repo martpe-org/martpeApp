@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Pressable,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,73 +22,26 @@ import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import Carousel from "react-native-reanimated-carousel";
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
 import FilterCard from "../../../../components/search/filterCard";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
 
 const domain = "ONDC:RET10";
 
-interface StoreType {
-  id: string;
-  domain?: string;
-  catalogs?: {
-    category_id?: string;
-    [key: string]: any;
-  }[];
-  descriptor?: {
-    name?: string;
-    images?: string[];
-    symbol?: string;
-  };
-  address?: {
-    street?: string;
-  };
-  geoLocation?: {
-    lat?: number;
-    lng?: number;
-  };
-  calculated_max_offer?: {
-    percent?: number;
-  };
-  time_to_ship_in_hours?: {
-    avg?: number;
-  };
-}
-interface HomeOfferType {
-  id: string;
-  calculated_max_offer?: {
-    percent?: number;
-  };
-  descriptor?: {
-    name?: string;
-    symbol?: string;
-  };
-  // Add other fields as needed...
-}
-
-
-
 function Grocery() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const setHideTabBar = useHideTabBarStore((state) => state.setHideTabBar);
-const [filterSelected, setFilterSelected] = useState<{
-  category: string[];
-  offers: number;
-  delivery: number;
-}>({
-  category: [],
-  offers: 0,
-  delivery: 100,
-});
+  const [filterSelected, setFilterSelected] = useState({
+    category: [] as string[],
+    offers: 0,
+    delivery: 100,
+  });
 
   const screenWidth = Dimensions.get("window").width;
   const containerHeight = 200;
-//  const [myArray, setMyArray] = useState<MyType[]>([]);
-const [storesData, setStoresData] = useState<StoreType[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>("");
-const [offersData, setOffersData] = useState<HomeOfferType[]>([]);
 
+  const [storesData, setStoresData] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState("");
+  const [offersData, setOffersData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [bottonSheetIndex, setBottonSheetIndex] = useState(-1);
+  const [bottonSheetIndex] = useState(-1);
 
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -97,6 +49,7 @@ const [offersData, setOffersData] = useState<HomeOfferType[]>([]);
   const snapPoints = useMemo(() => ["30%", "40%", "50%", "60%", "70%"], []);
   const handleClosePress = () => bottomSheetRef.current?.close();
   const handleOpenPress = () => bottomSheetRef.current?.expand();
+
   const renderBackdrop = React.useCallback(
     (props: any) => (
       <BottomSheetBackdrop
@@ -107,6 +60,10 @@ const [offersData, setOffersData] = useState<HomeOfferType[]>([]);
     ),
     []
   );
+
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -139,47 +96,37 @@ const [offersData, setOffersData] = useState<HomeOfferType[]>([]);
 
   const allCatalogs =
     Array.isArray(storesData) && storesData.length > 0
-      ? storesData.flatMap((store) => store?.catalogs || [])
+      ? storesData.flatMap((store: any) => store?.catalogs || [])
       : [];
 
   const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((catalog) => catalog?.category_id))
+    new Set(allCatalogs.map((catalog: any) => catalog?.category_id))
   ).map((category, index) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
-const filteredStores: StoreType[] = storesData.filter((store) => {
-  const hasValidCatalogs = Array.isArray(store?.catalogs);
+  const filteredStores = storesData.filter((store: any) => {
+    const meetsCategoryCriteria =
+      filterSelected.category.length === 0 ||
+      (Array.isArray(store.catalogs) &&
+        store.catalogs.some(
+          (catalog: any) =>
+            typeof catalog?.category_id === "string" &&
+            filterSelected.category.includes(catalog.category_id)
+        ));
 
- const meetsCategoryCriteria =
-  filterSelected.category.length === 0 ||
-  (Array.isArray(store.catalogs) &&
-    store.catalogs.some(
-      (catalog) =>
-        typeof catalog?.category_id === "string" &&
-        filterSelected.category.includes(catalog.category_id)
-    ));
+    const offerPercent = store?.calculated_max_offer?.percent ?? 0;
+    const meetsOfferCriteria =
+      filterSelected.offers === 0 || offerPercent >= filterSelected.offers;
 
+    const deliveryTime = store?.time_to_ship_in_hours?.avg ?? Infinity;
+    const meetsDeliveryCriteria =
+      filterSelected.delivery === 100 || deliveryTime <= filterSelected.delivery;
 
-  const offerPercent = store?.calculated_max_offer?.percent ?? 0;
-  const meetsOfferCriteria =
-    filterSelected.offers === 0 || offerPercent >= filterSelected.offers;
-
-  const deliveryTime = store?.time_to_ship_in_hours?.avg ?? Infinity;
-  const meetsDeliveryCriteria =
-    filterSelected.delivery === 100 || deliveryTime <= filterSelected.delivery;
-
-  return (
-    meetsCategoryCriteria &&
-    meetsOfferCriteria &&
-    meetsDeliveryCriteria
-  );
-});
-
-
-
+    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
+  });
 
   if (isLoading) {
     return <Loader />;
@@ -226,12 +173,12 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.headerContainer}>
-        <Search
-          placeholder="Search for groceries.."
-          showBackArrow={true}
-          showLocation={false}
-          domain={domain}
-        />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Entypo name="chevron-left" size={22} color="#111" />
+        </TouchableOpacity>
+        <View style={styles.searchWrapper}>
+          <Search onPress={handleSearchPress} />
+        </View>
       </View>
 
       <ScrollView style={styles.container}>
@@ -240,7 +187,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
             loop
             width={screenWidth}
             height={containerHeight}
-            autoPlay={true}
+            autoPlay
             data={offersData}
             scrollAnimationDuration={1000}
             autoPlayInterval={5000}
@@ -262,7 +209,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
               }
             >
               <Text style={{ color: "#FF9130", fontSize: 14, fontWeight: "500" }}>
-                See all{" "}
+                See all {" "}
                 <Entypo name="chevron-small-right" size={14} color="#FF9130" />
               </Text>
             </TouchableOpacity>
@@ -280,11 +227,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
 
           <ScrollView
             horizontal
-            style={{
-              flexDirection: "row",
-              marginHorizontal: 10,
-              marginTop: 10,
-            }}
+            style={{ flexDirection: "row", marginHorizontal: 10, marginTop: 10 }}
           >
             {filters.map((filter, index) => {
               const isActive =
@@ -332,7 +275,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
                   </Text>
 
                   {isActive && (
-                    <Pressable
+                    <TouchableOpacity
                       style={{ marginLeft: 5 }}
                       onPress={() => {
                         setFilterSelected({
@@ -350,7 +293,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
                       }}
                     >
                       <Feather name="x" size={16} color="black" />
-                    </Pressable>
+                    </TouchableOpacity>
                   )}
                 </TouchableOpacity>
               );
@@ -372,11 +315,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
                   marginLeft: 10,
                 }}
                 onPress={() => {
-                  setFilterSelected({
-                    category: [],
-                    offers: 0,
-                    delivery: 100,
-                  });
+                  setFilterSelected({ category: [], offers: 0, delivery: 100 });
                 }}
               >
                 <Text style={{ color: "#F13A3A" }}>Reset</Text>
@@ -389,7 +328,7 @@ const filteredStores: StoreType[] = storesData.filter((store) => {
           </View>
 
           <View style={{ backgroundColor: "#f7f7f8" }}>
-            {filteredStores.map((storeData) => (
+            {filteredStores.map((storeData: any) => (
               <StoreCard
                 categoryFiltered={filterSelected.category}
                 key={storeData?.id}
@@ -436,10 +375,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
     flexDirection: "row",
-    paddingVertical: 5,
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  backButton: {
+    padding: 6,
+    marginTop: 11,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+  searchWrapper: {
+    flex: 1,
   },
   subCategories: {
     flexDirection: "row",

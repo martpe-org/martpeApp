@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar"; // ✅ correct import
-import Feather from "react-native-vector-icons/Feather";
+import {Feather} from "@expo/vector-icons";
 
 interface AddressHeaderProps {
   title?: string;

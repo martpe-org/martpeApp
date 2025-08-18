@@ -28,7 +28,7 @@ export default function LocationBar({ selectedDetails, onPress }: LocationBarPro
         color="white"
         style={{ marginRight: 16 }}
       />
-      <Text style={styles.deliveryTxt}>Delivering to</Text>
+      <Text style={styles.deliveryTxt}>Home</Text>
       <Text style={styles.locationTxt} numberOfLines={1}>
         {selectedDetails?.city || "Select Location"}
         {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}

@@ -58,6 +58,9 @@ const PLPElectronics = ({
       <HorizontalNavbar
         navbarTitles={buttons}
         domainColor="rgba(255, 232, 232, 1)"
+        onFilterSelect={(title) => {
+          console.log("Selected Category:", title);
+        }}
       />
       <PersonalCareCardContainer
         providerId={providerId}

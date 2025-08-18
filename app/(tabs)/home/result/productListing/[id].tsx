@@ -490,6 +490,12 @@ const PLP: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
+             {/* store search box */}
+        <Searchbox
+          search={onInputChanged}
+          placeHolder={descriptor.name || "Store"}
+          catalog={catalog}
+        />
         {/* store banner */}
         <PLPBanner
           address={vendorAddress}
@@ -501,14 +507,6 @@ const PLP: React.FC = () => {
           vendorId={(vendor.id as string) ?? ""}
           productId={foodDetails.itemId}
         />
-
-        {/* store search box */}
-        <Searchbox
-          search={onInputChanged}
-          placeHolder={descriptor.name || "Store"}
-          catalog={catalog}
-        />
-
         {/* plp page */}
         {ProductListingPage}
       </ScrollView>

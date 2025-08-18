@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Image, Text, Pressable } from "react-native";
+import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 import ProductList2 from "./ProductList2";
 import { router } from "expo-router";
 import LikeButton from "../../components/common/likeButton";
@@ -10,6 +10,7 @@ const backgroundColors = {
 } as const;
 
 type AllowedColor = keyof typeof backgroundColors;
+
 interface StoreCard3Props {
   storeData: any;
   color: AllowedColor;
@@ -21,35 +22,19 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
   color,
   categoryFiltered,
 }) => {
-  if (!storeData) {
-    return null;
-  } else {
-    console.log(storeData);
-  }
-const {
-  descriptor = {},
-  domain,
-  id,
-  catalogs = [],
-  address = {},
-  geoLocation = {},
-  calculated_max_offer = {},
-} = storeData;
+  if (!storeData) return null;
 
-const { name = "", images = [], symbol = "" } = descriptor;
-const { street = "Unknown Street" } = address;
-const { lat = 0, lng = 0 } = geoLocation;
-const { percent = 0 } = calculated_max_offer;
+  const {
+    descriptor = {},
+    id,
+    catalogs = [],
+    address = {},
+    geoLocation = {},
+    calculated_max_offer = {},
+  } = storeData;
 
-
-  const heartImages = {
-    red: require("../../assets/heart-red.png"),
-    yellow: require("../../assets/heart-yellow.png"),
-  };
-  const backgroundColors = {
-    red: "#FFF6F6",
-    yellow: "#FFFBEF",
-  };
+  const { name = "", symbol = "" } = descriptor;
+  const { street = "Unknown Street" } = address;
 
   return (
     <View style={{ height: 300, marginTop: 50 }}>
@@ -60,8 +45,10 @@ const { percent = 0 } = calculated_max_offer;
             { backgroundColor: backgroundColors[color] },
           ]}
         >
-          <Pressable
-            onPress={() => router.push(`/(tabs)/home/result/productListing/${id}`)}
+          <TouchableOpacity
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${id}`)
+            }
             style={styles.header}
           >
             <Image
@@ -88,7 +75,7 @@ const { percent = 0 } = calculated_max_offer;
                 </View>
               </View>
             </View>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.productContainer}>
@@ -112,18 +99,15 @@ const styles = StyleSheet.create({
     height: 295,
   },
   header: {
-    display: "flex",
     flexDirection: "row",
   },
   details: {
-    display: "flex",
     flex: 1,
     flexDirection: "row",
     paddingHorizontal: 5,
     justifyContent: "space-between",
   },
   subDetails: {
-    display: "flex",
     flexDirection: "column",
     padding: 5,
   },
@@ -133,7 +117,6 @@ const styles = StyleSheet.create({
     color: "black",
   },
   subText: {
-    display: "flex",
     flexDirection: "row",
   },
   locationText: {
@@ -149,10 +132,7 @@ const styles = StyleSheet.create({
     top: -25,
     borderRadius: 10,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 5,

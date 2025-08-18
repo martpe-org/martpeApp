@@ -15,6 +15,7 @@ interface SearchboxDropdownItemProps {
     image: string;
     name: string;
     id: string;
+    slug?: string;
   };
   search: (text: string) => void;
   onPress?: () => void;
@@ -38,8 +39,9 @@ const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
       // Call onPress if provided (to close dropdown)
       onPress?.();
       
-      // Navigate to product details
-      router.push(`/(tabs)/home/result/productDetails/${item.id}`);
+      // Navigate using slug if available, otherwise use id
+      const identifier = item.slug || item.id;
+      router.push(`/(tabs)/home/result/productDetails/${identifier}`);
     } catch (error) {
       console.error("Navigation error:", error);
     }

@@ -96,8 +96,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
 const styles = StyleSheet.create({
   bannerContainer: {
     position: "relative",
-    paddingVertical: 20,
-    // marginHorizontal: 10,
+    paddingVertical: 30,
   },
   backgroundImage: {
     position: "absolute",
@@ -110,12 +109,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 20,
+    top: -5,
     left: 10,
     zIndex: 1,
     padding: 8,
     marginLeft: 5,
-    // elevation: 15,
+     elevation: 15,
     borderRadius: 100,
     backgroundColor: "#fff",
   },

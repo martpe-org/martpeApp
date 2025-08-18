@@ -107,9 +107,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   button: {
-    // position: "absolute",
-    // bottom: 15,
-    // left: 15,
     backgroundColor: "#FFFFFF",
     paddingVertical: 5,
     width: 72,

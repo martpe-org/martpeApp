@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
+import * as Location from "expo-location";
 import {
   Animated,
   Dimensions,
@@ -13,7 +13,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-  RefreshControl, // ✅ import
+  RefreshControl,
 } from "react-native";
 import { fetchHome } from "../../../hook/fetch-home-data";
 import useDeliveryStore from "../../../state/deliveryAddressStore";
@@ -52,43 +52,74 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
+  //main component
+
+  // const {
+  //   data: homeData,
+  //   isLoading,
+  //   error,
+  //   refetch,
+  //   isRefetching, // ✅ react-query provides this
+  // } = useQuery({
+  //   queryKey: [
+  //     "homeData",
+  //     selectedDetails?.lat,
+  //     selectedDetails?.lng,
+  //     selectedDetails?.pincode,
+  //   ],
+  //   queryFn: async () => {
+  //     let lat = selectedDetails?.lat;
+  //     let lng = selectedDetails?.lng;
+  //     let pin = selectedDetails?.pincode;
+
+  //     if (!lat || !lng || !pin) {
+  //       const { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         throw new Error("Location permission denied");
+  //       }
+  //       const location = await Location.getCurrentPositionAsync({});
+  //       lat = location.coords.latitude;
+  //       lng = location.coords.longitude;
+
+  //       const [address] = await Location.reverseGeocodeAsync({
+  //         latitude: lat,
+  //         longitude: lng,
+  //       });
+  //       pin = address.postalCode || "";
+  //     }
+
+  //     return fetchHome(lat, lng, pin);
+  //   },
+  //   staleTime: 1000 * 60 * 5,
+  //   enabled: true,
+  //   retry: 1,
+  // });
+
+
+
+  // Fetch home data using react-query with hardcoded values
+  
   const {
     data: homeData,
     isLoading,
     error,
     refetch,
-    isRefetching, // ✅ react-query provides this
+    isRefetching,
   } = useQuery({
     queryKey: [
       "homeData",
-      selectedDetails?.lat,
-      selectedDetails?.lng,
-      selectedDetails?.pincode,
+      selectedDetails?.lat ?? 12.9716,
+      selectedDetails?.lng ?? 77.5946,
+      selectedDetails?.pincode ?? "560001",
     ],
     queryFn: async () => {
-      let lat = selectedDetails?.lat;
-      let lng = selectedDetails?.lng;
-      let pin = selectedDetails?.pincode;
-
-      if (!lat || !lng || !pin) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          throw new Error("Location permission denied");
-        }
-        const location = await Location.getCurrentPositionAsync({});
-        lat = location.coords.latitude;
-        lng = location.coords.longitude;
-
-        const [address] = await Location.reverseGeocodeAsync({
-          latitude: lat,
-          longitude: lng,
-        });
-        pin = address.postalCode || "";
-      }
-
+      const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
+      const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
+      const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+      
       return fetchHome(lat, lng, pin);
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: true,
     retry: 1,
   });
@@ -111,14 +142,14 @@ export default function HomeScreen() {
   }, [homeData]);
 
   const handleLocationPress = () => {
-    router.push("../address/SavedAddresses");
+    router.push("/address/SavedAddresses");
   };
 
   const handleSearchPress = () => {
-    router.push("../search");
+    router.push("/search");
   };
 
-  // ✅ Pull-to-refresh handler
+  // Pull-to-refresh handler
   const onRefresh = () => {
     refetch();
   };
@@ -144,7 +175,8 @@ export default function HomeScreen() {
             onPress={handleLocationPress} 
           />
 
-<Search onPress={handleSearchPress} />
+          <Search onPress={handleSearchPress} />
+          
           <FlatList
             data={categoryData}
             horizontal
@@ -243,7 +275,6 @@ export default function HomeScreen() {
               </Animated.View>
             )
           )}
-
           {/* Explore Categories Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
