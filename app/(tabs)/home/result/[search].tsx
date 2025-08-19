@@ -24,7 +24,7 @@ import Svg, {
 import { Colors } from "../../../../theme";
 import ImageComp from "../../../../components/common/ImageComp";
 import Loader from "../../../../components/common/Loader";
-import AddToCartButton from "../../../../components/search/AddToCartButton";
+import AddToCart from "../../../../components/ProductDetails/AddToCart";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import CustomizationGroup from "../../../../components/ProductDetails/CustomizationGroup";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
@@ -581,13 +581,13 @@ const Results: FC = () => {
                 />
               </View>
               <View style={styles.addButtonContainer}>
-                <AddToCartButton
-                  storeId={product.store_id}
-                  slug={product.slug} // ✅ actual product slug
-                  catalogId={product.catalog_id} // ✅ actual catalog ID from backend
-                  maxQuantity={product.quantity || 1}
-                  customizable={product.customizable}
-                />
+               <AddToCart
+  storeId={product.store_id}
+  slug={product.slug}         // ✅ product slug from backend
+  catalogId={product.catalog_id} // ✅ catalog ID from backend
+  customizable={product.customizable || false}
+/>
+
               </View>
               <View style={styles.groceryProductDetails}>
                 <Text style={styles.productName} numberOfLines={2}>

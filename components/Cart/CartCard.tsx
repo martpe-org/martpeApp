@@ -157,14 +157,20 @@ const CartCard: React.FC<CartCardProps> = ({
     );
   };
 
-  // ✅ Handle invalid props after hooks
-  if (!id || !store) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>⚠️ Cart data is incomplete</Text>
-      </View>
-    );
-  }
+ if (!id) {
+  return (
+    <View>
+    </View>
+  );
+}
+
+if (!store || !store._id) {
+  return (
+    <View>
+    </View>
+  );
+}
+
 
   // ✅ Show empty state
   if (validItems.length === 0) {

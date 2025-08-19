@@ -10,7 +10,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
-import AddToCartButton from "../../components/search/AddToCartButton";
+import { Toast } from "react-native-toast-notifications";
+
 interface FavItemsProps {
   favorites: any[];
   authToken: string;
@@ -34,7 +35,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
     <ScrollView
       contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
     >
-      {[...favorites].reverse().map((item: any) => {
+      {[...favorites].reverse().map((item: any, index: number) => {
         const productName =
           item?.descriptor?.name || item?.name || "Unnamed Product";
         const providerName =
@@ -42,21 +43,19 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
         const imageUrl =
           item?.descriptor?.images?.[0] || item?.images?.[0] || null;
 
-        // For favorites, we don't have cart item ID initially, so we'll let AddToCartButton handle it
-
         return (
           <TouchableOpacity
-            key={item.id}
+            key={item.id || item.slug || `fav-${index}`}
             style={{
               flexDirection: "row",
               borderRadius: 12,
               backgroundColor: "#fff",
               marginTop: Dimensions.get("screen").width * 0.05,
-              padding: Dimensions.get("screen").width * 0.03,
-              shadowColor: "#000",
+              padding: Dimensions.get("screen").width * 0.05,
+              shadowColor: "#831f1f",
               shadowOpacity: 0.05,
               shadowRadius: 6,
-              elevation: 2,
+              elevation: 20,
             }}
             onPress={() =>
               router.push({
@@ -77,6 +76,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
               }}
               resizeMode="cover"
             />
+
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: "600" }}>
                 {productName.split(" ").slice(0, 7).join(" ")}
@@ -133,13 +133,14 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   flexDirection: "row-reverse",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginTop: 6,
+                  marginTop: -19,
                 }}
               >
                 {/* Heart / Remove */}
                 <TouchableOpacity
                   onPress={() => {
                     if (authToken) removeFavorite(item.slug, authToken);
+                    Toast.show("Item removed from favorites");
                   }}
                 >
                   <MaterialCommunityIcons
@@ -148,18 +149,6 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                     color="#F13A3A"
                   />
                 </TouchableOpacity>
-
-                {/* Add to Cart */}
-                <View style={{ width: 100 }}>
-                  <AddToCartButton
-                    storeId={item.vendor_id}
-                    slug={item.slug}
-                    catalogId={item.catalog_id}
-                    maxQuantity={item?.quantity?.maximum?.count || 10}
-                    customizable={item.customizable || false}
-                    customizations={item.customizations || []}
-                  />
-                </View>
               </View>
             </View>
           </TouchableOpacity>

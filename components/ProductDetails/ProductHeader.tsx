@@ -1,8 +1,8 @@
 import React, { FC, useEffect } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { useFavoriteStore } from "../../state/useFavoriteStore";
 import ShareButton from "../../components/common/Share";
 import LikeButton from "../../components/common/likeButton";
+import useLocalFavorites from "../../hook/useLocalFavorites";
 import { getAsyncStorageItem, setAsyncStorageItem } from "../../utility/asyncStorage";
 
 interface ProductHeaderProps {
@@ -24,35 +24,39 @@ const ProductHeader: FC<ProductHeaderProps> = ({
   quantity,
   unit,
 }) => {
-  const allFavoritesProducts = useFavoriteStore((state) => state.allFavorites);
+  const { isFavorite, getFavoriteCount } = useLocalFavorites();
 
-  // Convert productId to string if it's an array
+  // Ensure productId is a string
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
 
-  // Debug authentication on component mount
+  // Debug auth token setup
   useEffect(() => {
     const debugAuth = async () => {
       const token = await getAsyncStorageItem("authToken");
-      
-      // Temporary: Set a test token if none exists
       if (!token) {
         await setAsyncStorageItem("authToken", "test-auth-token-123");
       }
     };
-    
     debugAuth();
   }, []);
 
-  // Compute isFavorite for LikeButton
-  const isFavorite = allFavoritesProducts?.products?.some(
-    (item) => item.id === productIdString
-  );
+  // Check if item is favorite
+  const isLocalFavorite = isFavorite(productIdString);
 
   console.log("ProductHeader Debug:", {
     productId: productIdString,
-    isFavorite,
-    favoritesCount: allFavoritesProducts?.products?.length || 0
+    isLocalFavorite,
+    localFavoritesCount: getFavoriteCount(),
   });
+
+  // Data to store with favorite
+  const productData = {
+    name: itemName,
+    category,
+    storeName,
+    quantity,
+    unit,
+  };
 
   return (
     <View style={styles.container}>
@@ -74,12 +78,17 @@ const ProductHeader: FC<ProductHeaderProps> = ({
 
       {/* Right: Like + Share */}
       <View style={styles.actions}>
-        <LikeButton productId={productIdString} color="#E11D48" />
+        <LikeButton
+          productId={productIdString}
+          productData={productData}
+          color="#E11D48"
+          size={24}
+          showToast={true}
+        />
         <ShareButton
           productId={productIdString}
           productName={itemName}
           storeName={storeName}
-          incentivise={true}
           type="item"
         />
       </View>
@@ -100,10 +109,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#2c4372",
-    
     marginBottom: width * 0.05,
-
-    // subtle shadow for floating feel
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,

@@ -1,16 +1,27 @@
-import React, { FC } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import React, { FC, useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  Animated,
+} from "react-native";
 import DynamicButton from "../common/DynamicButton";
+import useUserDetails from "../../hook/useUserDetails";
+import {
+  getAsyncStorageItem,
+  setAsyncStorageItem,
+} from "../../utility/asyncStorage";
 import { useCartStore } from "../../state/useCartStore";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { useToast } from "react-native-toast-notifications";
+
+const { width } = Dimensions.get("window");
 
 interface AddToCartProps {
   price: number;
   storeId: string;
   slug?: string;
-  itemId?: string;
   catalogId?: string;
-  maxLimit: number;
   customizable?: boolean;
   customizations?: {
     _id?: string;
@@ -22,25 +33,29 @@ interface AddToCartProps {
     name: string;
   }[];
   onCartChange?: () => void;
+
+  buttonStyle?: any;
+  textStyle?: any;
 }
 
-const { width } = Dimensions.get("window");
+const STORAGE_KEY = "addedItems";
 
 const AddToCart: FC<AddToCartProps> = ({
   price,
   storeId,
   slug,
   catalogId,
-  maxLimit,
-  customizable = false,
+  customizable,
   customizations = [],
-  onCartChange, // ✅ properly destructured
+  onCartChange,
+  buttonStyle,
+  textStyle,
 }) => {
-  const allCarts = useCartStore((state) => state.allCarts);
-  const cart = allCarts.find((c) => c.store?.id === storeId);
-
-  const item = cart?.items?.find((it: any) => it?.product_slug === slug);
-  const itemCount = item?.qty || 0;
+  const { isAuthenticated, authToken } = useUserDetails();
+  const { removeCart } = useCartStore();
+  const toast = useToast();
+  const [added, setAdded] = useState(false);
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
   const normalizedCustomizations = customizations.map((custom) => ({
     _id: custom._id || custom.id,
@@ -49,131 +64,130 @@ const AddToCart: FC<AddToCartProps> = ({
     name: custom.name,
   }));
 
+  useEffect(() => {
+    const checkAdded = async () => {
+      try {
+        const data = await getAsyncStorageItem(STORAGE_KEY);
+        const addedItems: string[] = data ? JSON.parse(data) : [];
+        if (slug && addedItems.includes(slug)) {
+          setAdded(true);
+          animatedValue.setValue(1);
+        }
+      } catch (error) {
+        console.error("Error loading added state:", error);
+      }
+    };
+    checkAdded();
+  }, [slug]);
+
+  const handleToggle = async () => {
+    if (!isAuthenticated || !authToken || !slug) {
+      toast.show("Please login to continue", { type: "danger" });
+      return;
+    }
+
+    try {
+      const data = await getAsyncStorageItem(STORAGE_KEY);
+      let addedItems: string[] = data ? JSON.parse(data) : [];
+
+      if (!added) {
+        // ✅ ADD (no toast here, DynamicButton already shows "Added to cart")
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: false,
+        }).start();
+
+        addedItems.push(slug);
+        setAdded(true);
+      } else {
+        // ✅ REMOVE (only toast here)
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: false,
+        }).start();
+
+        addedItems = addedItems.filter((s) => s !== slug);
+        setAdded(false);
+
+        try {
+          const success = await removeCart(storeId, authToken);
+          if (!success) {
+            toast.show("Failed to remove item from cart", { type: "danger" });
+          } else {
+            toast.show("Item removed", { type: "danger" });
+          }
+        } catch (err) {
+          console.error("Error removing cart item:", err);
+          toast.show("Failed to remove item", { type: "danger" });
+        }
+      }
+
+      await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(addedItems));
+      onCartChange?.();
+    } catch (error) {
+      console.error("Error toggling item:", error);
+      toast.show("Error updating cart", { type: "danger" });
+    }
+  };
+
+  const backgroundColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#ee1936", "#272b28"],
+  });
+
+  const textColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#fff", "#fff"],
+  });
+
   return (
-    <View style={styles.container}>
-      {itemCount === 0 ? (
-        <DynamicButton
-          isNewItem
-          storeId={storeId}
-          slug={slug}
-          catalogId={catalogId}
-          qty={1}
-          customizable={customizable}
-          customizations={normalizedCustomizations}
-          onSuccess={onCartChange} // ✅ trigger refresh after add
+    <DynamicButton
+      isNewItem
+      storeId={storeId}
+      slug={slug}
+      catalogId={catalogId}
+      customizable={customizable}
+      customizations={normalizedCustomizations}
+      onSuccess={handleToggle} // ✅ only our toggle handles remove
+    >
+      <Animated.View
+        style={[
+          styles.addButton,
+          { backgroundColor },
+          buttonStyle,
+        ]}
+      >
+        <Animated.Text
+          style={[
+            styles.buttonText,
+            { color: textColor },
+            textStyle,
+          ]}
         >
-          <View
-            style={{
-              backgroundColor: "#0e8910",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: width * 0.05,
-              paddingVertical: width * 0.03,
-              borderRadius: 4,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: "#fff",
-                fontSize: 20,
-                fontWeight: "bold",
-                marginRight: 10,
-              }}
-            >
-              Add to Cart
-            </Text>
-          </View>
-        </DynamicButton>
-      ) : (
-        <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "center" }}>
-          {/* decrement */}
-          <DynamicButton
-            isUpdated
-            storeId={storeId}
-            qty={itemCount - 1}
-            cartItemId={item?._id}
-            customizable={customizable}
-            customizations={normalizedCustomizations}
-            onSuccess={onCartChange} // ✅ trigger refresh after update
-          >
-            <View style={styles.itemCountChangeButton}>
-              <MaterialIcons name="remove-circle" size={30} color="red" />
-            </View>
-          </DynamicButton>
-
-          {/* middle info */}
-          <View
-            style={{
-              flex: 1,
-              flexDirection: "row",
-              maxWidth: 100,
-              alignItems: "center",
-              justifyContent: "center",
-              columnGap: 2,
-            }}
-          >
-            <FontAwesome name="rupee" size={8} color="#030303" />
-            <Text style={{ fontSize: 20, fontWeight: "900" }}>
-              {itemCount * price}
-            </Text>
-            <Text>
-              ({itemCount > 1 ? `${itemCount} items` : `${itemCount} item`})
-            </Text>
-          </View>
-
-          {/* increment */}
-          {itemCount < maxLimit ? (
-            <DynamicButton
-              isUpdated
-              storeId={storeId}
-              qty={itemCount + 1}
-              cartItemId={item?._id}
-              customizable={customizable}
-              customizations={normalizedCustomizations}
-              onSuccess={onCartChange} // ✅ trigger refresh after update
-            >
-              <View style={styles.itemCountChangeButton}>
-                <MaterialIcons name="add-circle" size={30} color="green" />
-              </View>
-            </DynamicButton>
-          ) : (
-            <DynamicButton
-              isUpdated
-              storeId={storeId}
-              qty={itemCount + 1}
-              cartItemId={item?._id}
-              disabled
-              customizable={customizable}
-              customizations={normalizedCustomizations}
-            >
-              <View style={styles.itemCountChangeButton}>
-                <MaterialIcons name="add-circle" size={24} color="#0e8910" />
-              </View>
-            </DynamicButton>
-          )}
-        </View>
-      )}
-    </View>
+          {added ? "Added to cart" : "Add to Cart"}
+        </Animated.Text>
+      </Animated.View>
+    </DynamicButton>
   );
 };
 
 export default AddToCart;
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#fff",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    elevation: 5,
-    borderRadius: 10,
-    marginHorizontal: 5,
-  },
-  itemCountChangeButton: {
-    width: Dimensions.get("window").width * 0.1,
-    height: Dimensions.get("window").width * 0.1,
-    justifyContent: "center",
+  addButton: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: width * 0.05,
+    paddingVertical: width * 0.025,
+    borderRadius: 4,
+    elevation: 2,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

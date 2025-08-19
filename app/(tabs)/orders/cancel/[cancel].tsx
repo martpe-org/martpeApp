@@ -17,7 +17,7 @@ import { orderStateMap } from "../../../../components/OrderStatus/orderStateMap"
 import { getUserDetails } from "../../../../hook/useUserDetails";
 import { DotIndicator } from "react-native-indicators";
 import RadioGroup from "react-native-radio-buttons-group";
-import { getAllReasonCodes } from "../../../../gql/api/order";
+//import { getAllReasonCodes } from "../../../../gql/api/order";
 import { RadioButton } from "react-native-paper";
 
 const cancel_ws_url = "wss://api-sandbox.martpe.in/api/v1/user/cancel";

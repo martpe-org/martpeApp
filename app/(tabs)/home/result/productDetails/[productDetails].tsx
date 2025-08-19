@@ -25,11 +25,11 @@ import Search from "../../../../../components/common/Search";
 import { fetchProductDetails } from "../../../../../components/product/fetch-product";
 import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
 import { useRouter } from "expo-router";
+import { Entypo } from "@expo/vector-icons";
 
 // Constants
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CART_FOOTER_HEIGHT = 80;
-const MAX_QUANTITY_LIMIT = 100;
 const DEFAULT_RETURN_DAYS = 10;
 
 // Types
@@ -54,12 +54,6 @@ const ProductDetails: FC = () => {
   const [error, setError] = useState<ErrorState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-
-  // Memoized computed values
-  const maxQuantityLimit = useMemo(() => {
-    if (!productData?.quantity) return 1;
-    return Math.min(productData.quantity, MAX_QUANTITY_LIMIT);
-  }, [productData?.quantity]);
 
   const formattedStoreAddress = useMemo(() => {
     if (!productData?.store?.address) return "";
@@ -138,16 +132,20 @@ const ProductDetails: FC = () => {
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
+    const handleSearchPress = () => {
+      router.push("/search");
+    };
 
   // Render functions
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Search
-        onPress={() => {
-          router.push("../search");
-        }}
-      />
-    </View>
+      <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Entypo name="chevron-left" size={22} color="#111" />
+          </TouchableOpacity>
+          <View style={styles.searchWrapper}>
+            <Search onPress={handleSearchPress} />
+          </View>
+        </View>
   );
 
   const renderError = () => (
@@ -261,15 +259,14 @@ const ProductDetails: FC = () => {
     <SafeAreaView style={styles.container}>
       {renderHeader()}
 
-   <ProductHeader
-  itemName={productData.name}
-  category={productData.category}
-  storeName={productData.store?.name || "Unknown Store"}
-  productId={productDetails!} // product slug/id
-  quantity={productQuantityDisplay.quantity}
-  unit={productQuantityDisplay.unit}
-/>
-
+      <ProductHeader
+        itemName={productData.name}
+        category={productData.category}
+        storeName={productData.store?.name || "Unknown Store"}
+        productId={productDetails!} // product slug/id
+        quantity={productQuantityDisplay.quantity}
+        unit={productQuantityDisplay.unit}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -337,7 +334,6 @@ const ProductDetails: FC = () => {
           slug={String(productDetails)}
           catalogId={productData.catalog_id}
           price={productData.price?.value || 0}
-          maxLimit={maxQuantityLimit}
         />
       </View>
     </SafeAreaView>
@@ -352,24 +348,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#f7f3f3",
   },
   headerContainer: {
-    backgroundColor: "#ffffff",
-    alignItems: "center",
     flexDirection: "row",
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 40,
-      },
-    }),
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+
+  backButton: {
+    padding: 6,
+    marginTop:14,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+
+  searchWrapper: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,

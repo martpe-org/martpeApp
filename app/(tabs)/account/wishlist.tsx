@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import useUserDetails from "../../../hook/useUserDetails";
 import { useFavoriteStore } from "../../../state/useFavoriteStore";
 import HeaderWishlist from "../../../components/wishlist/Header";
@@ -12,6 +19,7 @@ const Wishlist = () => {
   const { allFavorites, isLoading, error, fetchFavs } = useFavoriteStore();
 
   const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (authToken) {
@@ -19,8 +27,18 @@ const Wishlist = () => {
     }
   }, [authToken, fetchFavs]);
 
+  const handleRefresh = useCallback(async () => {
+    if (!authToken) return;
+    try {
+      setRefreshing(true);
+      await fetchFavs(authToken);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [authToken, fetchFavs]);
+
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && !refreshing) {
       return (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#0066CC" />
@@ -33,7 +51,9 @@ const Wishlist = () => {
       return (
         <View style={styles.centered}>
           <Text style={styles.errorText}>❌ {error}</Text>
-          <Text style={styles.errorSubtext}>Pull to refresh or try again later</Text>
+          <Text style={styles.errorSubtext}>
+            Pull to refresh or try again later
+          </Text>
         </View>
       );
     }
@@ -57,7 +77,14 @@ const Wishlist = () => {
     <View style={styles.container}>
       <HeaderWishlist />
       <TabBar selectTab={setSelectedTab} />
-      {renderContent()}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {renderContent()}
+      </ScrollView>
     </View>
   );
 };
@@ -71,6 +98,8 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: "center",
     alignItems: "center",
+    flex: 1,
+    padding: 20,
   },
   loadingText: {
     marginTop: 12,

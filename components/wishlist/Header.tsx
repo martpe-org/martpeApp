@@ -4,7 +4,7 @@ import React from "react";
 import { View, Text, Dimensions, TouchableOpacity } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 
-const wishlistHeading = "Your Favorite items";
+const wishlistHeading = "Wishlist";
 
 const HeaderWishlist = () => {
   return (
@@ -16,6 +16,7 @@ const HeaderWishlist = () => {
         paddingVertical: Dimensions.get("window").width * 0.03,
         flexDirection: "row",
         justifyContent: "center",
+        marginBottom:10
       }}
     >
       <TouchableOpacity
@@ -30,7 +31,7 @@ const HeaderWishlist = () => {
         <BackArrow />
       </TouchableOpacity>
 
-      <Text style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", color: "#000" }}>
         {wishlistHeading.toUpperCase()}
       </Text>
     </View>

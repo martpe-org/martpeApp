@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   openProfileButton: {
-    backgroundColor: "#00C851",
+    backgroundColor: "#ff3c41",
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   gridText: { fontWeight: "600", fontSize: 14 },
-  logoutButton: { backgroundColor: "#00C851" },
+  logoutButton: { backgroundColor: "#ff3c41" },
   logoutText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   modalOverlay: {
     flex: 1,
