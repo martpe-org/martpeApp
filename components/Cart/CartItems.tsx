@@ -12,10 +12,10 @@ import {
 import { useCartStore } from "../../state/useCartStore";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
 import { AntDesign } from "@expo/vector-icons";
 import useUserDetails from "../../hook/useUserDetails";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
+import { useToast } from "react-native-toast-notifications";
 
 const { width: windowWidth } = Dimensions.get("window");
 const widthPercentageToDP = (percent: string) => {
@@ -37,8 +37,9 @@ const CartItems: React.FC<CartItemsProps> = ({
   onCartChange,
 }) => {
   const { removeCartItems, removeCart, updateQty } = useCartStore();
-  const { userDetails, isLoading: isUserLoading } = useUserDetails();
+  const { userDetails, } = useUserDetails();
   const authToken = userDetails?.accessToken;
+  const toast = useToast()
 
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [formatCurrency, setFormatCurrency] = useState<
@@ -53,29 +54,45 @@ const CartItems: React.FC<CartItemsProps> = ({
     );
   }, []);
 
-  const handleQuantityChange = async (cartItemId: string, newQty: number) => {
-    if (!authToken) {
-      Alert.alert("Login Required", "Please login to update item quantity.");
-      return;
-    }
-    if (!cartItemId || newQty <= 0) return;
-    if (isUpdating) return;
+const handleQuantityChange = async (
+  cartItemId: string,
+  qty: number
+) => {
+  if (!authToken) {
+    Alert.alert("Please login to update item quantity.");
+    return;
+  }
+  if (!cartItemId || qty <= 0) return;
+  if (isUpdating) return;
 
-    setIsUpdating(cartItemId);
-    try {
-      const success = await updateQty(cartItemId, newQty, authToken);
-      if (!success) {
-        Alert.alert("Error", "Failed to update item quantity.");
-      } else {
-        onCartChange?.();
-      }
-    } catch (error) {
-      console.error("Error updating quantity", error);
-      Alert.alert("Error", "Could not update the item's quantity.");
-    } finally {
-      setIsUpdating(null);
+  setIsUpdating(cartItemId);
+  try {
+    const success = await updateQty(cartItemId, qty, authToken);
+    if (!success) {
+      Alert.alert("Error", "Failed to update item quantity.");
+    } else {
+      onCartChange?.();
     }
-  };
+  } catch (error) {
+    console.error("Error updating quantity", error);
+    Alert.alert("Error", "Could not update the item's quantity.");
+  } finally {
+    setIsUpdating(null);
+  }
+};
+
+// ✅ Fixed Increment & Decrement handlers
+const increment = (itemId: string, qty: number) => {
+  handleQuantityChange(itemId, qty + 1);
+};
+
+const decrement = (itemId: string, qty: number) => {
+  if (qty > 1) {
+    handleQuantityChange(itemId, qty - 1);
+  } else {
+    handleDeleteItem(itemId);
+  }
+};
 
   const handleDeleteItem = async (cartItemId: string) => {
     if (!authToken || !cartItemId) return;
@@ -129,12 +146,7 @@ const CartItems: React.FC<CartItemsProps> = ({
     const value = item.unit_price || 0;
     const maximum_value = item.unit_max_price || value;
     const qty = item.qty;
-    const maxCount = item.product.quantity || 999;
-    const availableCount = item.product.instock ? maxCount : 0;
-    const maxLimit = Math.min(maxCount, availableCount);
-
-    const isItemUpdating = isUpdating === itemId;
-    const isDisabled = isItemUpdating || !authToken || isUserLoading;
+ 
 
     return (
       <View style={styles.itemContainer} key={itemId}>
@@ -174,35 +186,23 @@ const CartItems: React.FC<CartItemsProps> = ({
           </View>
         </View>
 
-        <View style={styles.cartItemQuantityContainer}>
-          <TouchableOpacity
-            onPress={() =>
-              qty > 1
-                ? handleQuantityChange(itemId, qty - 1)
-                : handleDeleteItem(itemId)
-            }
-            disabled={isDisabled}
-            activeOpacity={0.7}
-            style={[isDisabled && { opacity: 0.5 }]}
-          >
-            <DecrementIcon />
-          </TouchableOpacity>
+<View style={styles.cartItemQuantityContainer}>
+  <TouchableOpacity
+    onPress={() => decrement(itemId, qty)}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.sign}>-</Text>
+  </TouchableOpacity>
 
-          <Text style={styles.quantity}>{qty}</Text>
+  <Text style={styles.quantity}>{qty}</Text>
 
-          {qty < maxLimit ? (
-            <TouchableOpacity
-              disabled={isDisabled}
-              onPress={() => handleQuantityChange(itemId, qty + 1)}
-              activeOpacity={0.7}
-              style={[isDisabled && { opacity: 0.5 }]}
-            >
-              <IncrementIcon />
-            </TouchableOpacity>
-          ) : (
-            <IncrementIcon disabled />
-          )}
-        </View>
+  <TouchableOpacity
+    onPress={() => increment(itemId, qty)}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.sign}>+</Text>
+  </TouchableOpacity>
+</View>
       </View>
     );
   };
@@ -302,6 +302,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#e9ecef",
+  },
+  sign: {
+  fontSize: 20,
+  fontWeight: "bold",
+  paddingHorizontal: 10,
+  color: "#333",
+},
+  disabledText: {
+    color: '#ccc',
   },
   itemsContainer: {
     backgroundColor: "#fff",

@@ -1,7 +1,3 @@
-// import Constants from "expo-constants";
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
 type addItemActionInputType = {
   store_id: string;
   slug: string;

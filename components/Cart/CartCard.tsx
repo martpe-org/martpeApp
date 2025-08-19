@@ -18,6 +18,12 @@ import {
   FetchCartStore,
   CartItemType,
 } from "../../app/(tabs)/cart/fetch-carts-type";
+import { 
+  getAsyncStorageItem, 
+  setAsyncStorageItem 
+} from "../../utility/asyncStorage";
+
+const STORAGE_KEY = "addedItems";
 
 interface CartCardProps {
   id: string;
@@ -40,6 +46,25 @@ const CartCard: React.FC<CartCardProps> = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [validItems, setValidItems] = useState<CartItemType[]>([]);
   const [distance, setDistance] = useState<number | null>(null);
+
+  // Helper function to get item slug from different possible locations
+  const getItemSlug = (item: CartItemType): string | undefined => {
+    return item.slug || 
+           item.product?.slug || 
+           item.product?.name?.toLowerCase().replace(/\s+/g, '-');
+  };
+
+  // Helper function to remove items from AsyncStorage
+  const removeFromAsyncStorage = async (slugsToRemove: string[]) => {
+    try {
+      const data = await getAsyncStorageItem(STORAGE_KEY);
+      const storedItems: string[] = data ? JSON.parse(data) : [];
+      const updatedItems = storedItems.filter(slug => !slugsToRemove.includes(slug));
+      await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
+    } catch (error) {
+      console.error("Error removing from AsyncStorage:", error);
+    }
+  };
 
   // ✅ Filter valid items
   useEffect(() => {
@@ -115,7 +140,7 @@ const CartCard: React.FC<CartCardProps> = ({
     }
   };
 
-  // ✅ Remove Cart Handler
+  // ✅ Remove Cart Handler with AsyncStorage sync
   const handleCloseButton = () => {
     if (isRemoving || !authToken || !store?._id) {
       if (!authToken) {
@@ -135,6 +160,11 @@ const CartCard: React.FC<CartCardProps> = ({
           onPress: async () => {
             setIsRemoving(true);
             try {
+              // Get all slugs from items before removal for AsyncStorage cleanup
+              const slugsToRemove: string[] = validItems
+                .map(item => getItemSlug(item))
+                .filter(Boolean) as string[];
+
               const success = await removeCart(store._id, authToken);
               if (!success) {
                 Alert.alert(
@@ -143,6 +173,12 @@ const CartCard: React.FC<CartCardProps> = ({
                 );
               } else {
                 console.log("Cart removal successful for store:", store._id);
+                
+                // Remove all items from this cart from AsyncStorage
+                if (slugsToRemove.length > 0) {
+                  await removeFromAsyncStorage(slugsToRemove);
+                }
+                
                 onCartChange?.(); // refresh parent
               }
             } catch (error) {
@@ -157,20 +193,13 @@ const CartCard: React.FC<CartCardProps> = ({
     );
   };
 
- if (!id) {
-  return (
-    <View>
-    </View>
-  );
-}
+  if (!id) {
+    return <View />;
+  }
 
-if (!store || !store._id) {
-  return (
-    <View>
-    </View>
-  );
-}
-
+  if (!store || !store._id) {
+    return <View />;
+  }
 
   // ✅ Show empty state
   if (validItems.length === 0) {

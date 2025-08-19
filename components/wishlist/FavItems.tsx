@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
@@ -143,11 +143,11 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                     Toast.show("Item removed from favorites");
                   }}
                 >
-                  <MaterialCommunityIcons
-                    name="heart"
-                    size={24}
-                    color="#F13A3A"
-                  />
+                  <FontAwesome
+              name="trash-o"
+              size={18}
+              color="#000"
+            />
                 </TouchableOpacity>
               </View>
             </View>
