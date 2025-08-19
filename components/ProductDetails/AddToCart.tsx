@@ -1,7 +1,5 @@
 import React, { FC, useEffect, useState, useRef } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
   Dimensions,
   Animated,

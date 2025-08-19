@@ -32,17 +32,17 @@ export interface FavoriteStore {
 
 export interface FetchFavsResponseType {
   products: FavoriteProduct[];
-  stores?: FavoriteStore[]; // optional since API may or may not return
+  stores?: FavoriteStore[];
 }
-
 
 export const fetchFavs = async (
   authToken: string
 ): Promise<FetchFavsResponseType | null> => {
   try {
-    console.log("Fetching favorites from:", `${process.env.EXPO_PUBLIC_API_URL}/users/favs`);
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/users/favs`;
+    console.log("Fetching favorites from:", url);
 
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/favs`, {
+    const res = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -51,15 +51,16 @@ export const fetchFavs = async (
     });
 
     if (!res.ok) {
-      console.log("fetch favs failed", await res.json());
-      throw new Error("Failed to fetch favorites");
+      const errBody = await res.text().catch(() => "");
+      console.warn("⚠️ fetchFavs failed:", res.status, errBody);
+      return null; // <-- don’t throw, return null
     }
 
     const data = (await res.json()) as FetchFavsResponseType;
     console.log("✅ Favorites fetched:", data);
     return data;
   } catch (error) {
-    console.error("❌ Fetch favs error:", error);
-    return null;
+    console.error("❌ Network/parse error in fetchFavs:", error);
+    return null; // <-- safe fallback
   }
 };

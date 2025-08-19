@@ -1,9 +1,8 @@
-import React, { FC, useEffect } from "react";
+import React, { FC } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import ShareButton from "../../components/common/Share";
 import LikeButton from "../../components/common/likeButton";
-import useLocalFavorites from "../../hook/useLocalFavorites";
-import { getAsyncStorageItem, setAsyncStorageItem } from "../../utility/asyncStorage";
+import { useFavoriteStore } from "../../state/useFavoriteStore";
 
 interface ProductHeaderProps {
   itemName: string;
@@ -24,39 +23,21 @@ const ProductHeader: FC<ProductHeaderProps> = ({
   quantity,
   unit,
 }) => {
-  const { isFavorite, getFavoriteCount } = useLocalFavorites();
+  const { allFavorites } = useFavoriteStore();
 
-  // Ensure productId is a string
+  // Convert productId to string if it's an array
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
 
-  // Debug auth token setup
-  useEffect(() => {
-    const debugAuth = async () => {
-      const token = await getAsyncStorageItem("authToken");
-      if (!token) {
-        await setAsyncStorageItem("authToken", "test-auth-token-123");
-      }
-    };
-    debugAuth();
-  }, []);
-
-  // Check if item is favorite
-  const isLocalFavorite = isFavorite(productIdString);
+  // Check favorite state directly from store
+  const isFavorite = allFavorites?.products?.some(
+    (item) => item.id === productIdString
+  );
 
   console.log("ProductHeader Debug:", {
     productId: productIdString,
-    isLocalFavorite,
-    localFavoritesCount: getFavoriteCount(),
+    isFavorite,
+    favoritesCount: allFavorites?.products?.length || 0,
   });
-
-  // Data to store with favorite
-  const productData = {
-    name: itemName,
-    category,
-    storeName,
-    quantity,
-    unit,
-  };
 
   return (
     <View style={styles.container}>
@@ -78,13 +59,7 @@ const ProductHeader: FC<ProductHeaderProps> = ({
 
       {/* Right: Like + Share */}
       <View style={styles.actions}>
-        <LikeButton
-          productId={productIdString}
-          productData={productData}
-          color="#E11D48"
-          size={24}
-          showToast={true}
-        />
+        <LikeButton productId={productIdString} color="#E11D48" />
         <ShareButton
           productId={productIdString}
           productName={itemName}

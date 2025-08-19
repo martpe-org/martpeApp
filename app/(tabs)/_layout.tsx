@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { View, Text } from "react-native";
 import React from "react";
 import { useCartStore } from "../../state/useCartStore";
-import { MaterialCommunityIcons, AntDesign, Entypo } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
 import { useHideTabBarStore } from "../../state/hideTabBar";
 
 export default function TabsLayout() {
@@ -18,7 +18,7 @@ export default function TabsLayout() {
   const hideTabBar = useHideTabBarStore((state) => state.hideTabBar);
 
   // Updated colors to match Martpe design
-  const activeTabColor = "#f2663c"; // Orange/red color from Martpe
+  const activeTabColor = "#ff3c41"; // Orange/red color from Martpe
   const inactiveTabColor = "#060606"; // Light gray
   const backgroundColor = "#ffffff"; // White background
 
