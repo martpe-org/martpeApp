@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import { FlashList } from "@shopify/flash-list";
@@ -17,15 +17,10 @@ import useUserDetails from "../../hook/useUserDetails";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import { useToast } from "react-native-toast-notifications";
 
-const { width: windowWidth } = Dimensions.get("window");
-const widthPercentageToDP = (percent: string) => {
-  const widthPercent = parseFloat(percent);
-  return (windowWidth * widthPercent) / 100;
-};
-
 interface CartItemsProps {
   cartId: string;
   storeSlug: string;
+  storeId?: string; // Add storeId prop
   items: CartItemType[];
   onCartChange?: () => void;
 }
@@ -33,120 +28,224 @@ interface CartItemsProps {
 const CartItems: React.FC<CartItemsProps> = ({
   cartId,
   storeSlug,
+  storeId,
   items,
   onCartChange,
 }) => {
   const { removeCartItems, removeCart, updateQty } = useCartStore();
-  const { userDetails, } = useUserDetails();
+  const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
-  const toast = useToast()
+  const toast = useToast();
 
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
-  const [formatCurrency, setFormatCurrency] = useState<
-    (amount: number) => string
-  >(() => (amount: number) =>
-    `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
+  // Local state for optimistic updates
+  const [localItems, setLocalItems] = useState<CartItemType[]>(items);
+  const [processingItems, setProcessingItems] = useState<Set<string>>(new Set());
+
+  // Update local items when props change
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  const formatCurrency = useCallback(
+    (amount: number) => `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`,
+    []
   );
 
-  useEffect(() => {
-    setFormatCurrency(() => (amount: number) =>
-      `₹${Number(amount).toFixed(2).replace(/\.?0+$/, "")}`
+  // Optimistic quantity update
+  const updateLocalQuantity = useCallback((itemId: string, newQty: number) => {
+    setLocalItems(prev => 
+      prev.map(item => 
+        item._id === itemId 
+          ? { 
+              ...item, 
+              qty: newQty,
+              total_price: (item.unit_price || 0) * newQty
+            }
+          : item
+      )
     );
   }, []);
 
-const handleQuantityChange = async (
-  cartItemId: string,
-  qty: number
-) => {
-  if (!authToken) {
-    Alert.alert("Please login to update item quantity.");
-    return;
-  }
-  if (!cartItemId || qty <= 0) return;
-  if (isUpdating) return;
+  // Remove item from local state
+  const removeLocalItem = useCallback((itemId: string) => {
+    setLocalItems(prev => prev.filter(item => item._id !== itemId));
+  }, []);
 
-  setIsUpdating(cartItemId);
-  try {
-    const success = await updateQty(cartItemId, qty, authToken);
-    if (!success) {
-      Alert.alert("Error", "Failed to update item quantity.");
-    } else {
-      onCartChange?.();
+  // Enhanced quantity update with optimistic UI
+  const handleQuantityChange = useCallback(async (
+    cartItemId: string,
+    newQty: number,
+    currentQty: number
+  ) => {
+    if (isUserLoading || !authToken || newQty < 0 || newQty === currentQty) {
+      if (!authToken && !isUserLoading) {
+        Alert.alert("Login Required", "Please login to update item quantity.");
+      }
+      return;
     }
-  } catch (error) {
-    console.error("Error updating quantity", error);
-    Alert.alert("Error", "Could not update the item's quantity.");
-  } finally {
-    setIsUpdating(null);
-  }
-};
 
-// ✅ Fixed Increment & Decrement handlers
-const increment = (itemId: string, qty: number) => {
-  handleQuantityChange(itemId, qty + 1);
-};
+    // Optimistically update UI
+    updateLocalQuantity(cartItemId, newQty);
+    
+    // Add to processing set
+    setProcessingItems(prev => new Set(prev).add(cartItemId));
 
-const decrement = (itemId: string, qty: number) => {
-  if (qty > 1) {
-    handleQuantityChange(itemId, qty - 1);
-  } else {
-    handleDeleteItem(itemId);
-  }
-};
+    try {
+      const success = await updateQty(cartItemId, newQty, authToken);
+      
+      if (!success) {
+        // Revert optimistic update on failure
+        updateLocalQuantity(cartItemId, currentQty);
+        if (toast?.show) {
+          toast.show("Failed to update quantity", {
+            type: "error",
+            duration: 2000,
+          });
+        }
+      } else {
+        // Optional: trigger cart refresh for server sync
+        // onCartChange?.();
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      
+      // Revert optimistic update on error
+      updateLocalQuantity(cartItemId, currentQty);
+      
+      let errorMessage = "Could not update quantity";
+      if (error instanceof Error && error.message.includes('network')) {
+        errorMessage += ". Check your connection.";
+      }
+      
+      if (toast?.show) {
+        toast.show(errorMessage, {
+          type: "error",
+          duration: 2000,
+        });
+      }
+    } finally {
+      setProcessingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cartItemId);
+        return newSet;
+      });
+    }
+  }, [authToken, isUserLoading, updateQty, updateLocalQuantity, toast]);
 
-  const handleDeleteItem = async (cartItemId: string) => {
-    if (!authToken || !cartItemId) return;
+  // Increment quantity
+  const increment = useCallback((itemId: string, currentQty: number, maxQty?: number) => {
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update quantities.");
+      return;
+    }
 
-    if (items?.length === 1) {
+    if (maxQty && currentQty >= maxQty) {
+      if (toast?.show) {
+        toast.show("Maximum quantity reached", { type: "warning", duration: 2000 });
+      }
+      return;
+    }
+
+    if (currentQty >= 99) {
+      if (toast?.show) {
+        toast.show("Maximum quantity limit reached", { type: "warning", duration: 2000 });
+      }
+      return;
+    }
+
+    handleQuantityChange(itemId, currentQty + 1, currentQty);
+  }, [handleQuantityChange, authToken, toast]);
+
+  // Decrement quantity or delete item
+  const decrement = useCallback((itemId: string, currentQty: number) => {
+    if (!authToken) {
+      Alert.alert("Login Required", "Please login to update quantities.");
+      return;
+    }
+
+    if (currentQty > 1) {
+      handleQuantityChange(itemId, currentQty - 1, currentQty);
+    } else {
+      // Delete item when quantity is 1
+      handleDeleteItem(itemId);
+    }
+  }, [handleQuantityChange, authToken]);
+
+  const handleDeleteItem = useCallback(async (cartItemId: string) => {
+    if (!authToken || !cartItemId) {
+      Alert.alert("Authentication Required", "Please login to remove items.");
+      return;
+    }
+
+    const confirmDelete = () => {
       Alert.alert(
-        "Remove Cart",
-        "This is the last item in your cart. Removing it will delete the entire cart. Are you sure?",
+        localItems.length === 1 ? "Remove Cart" : "Remove Item",
+        localItems.length === 1 
+          ? "This will delete the entire cart. Are you sure?"
+          : "Remove this item from your cart?",
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Remove",
             style: "destructive",
-            onPress: async () => {
-              try {
-                const success = await removeCart(storeSlug, authToken);
-                if (!success) {
-                  Alert.alert("Error", "Failed to remove cart.");
-                } else {
-                  onCartChange?.();
-                }
-              } catch (error) {
-                console.error("Error deleting cart:", error);
-                Alert.alert("Error", "Failed to remove cart.");
-              }
-            },
+            onPress: performDelete,
           },
         ]
       );
-    } else {
+    };
+
+    const performDelete = async () => {
+      // Optimistically remove item
+      removeLocalItem(cartItemId);
+      setProcessingItems(prev => new Set(prev).add(cartItemId));
       try {
-        const success = await removeCartItems([cartItemId], authToken);
-        if (!success) {
-          Alert.alert("Error", "Failed to remove item.");
+        let success;
+        if (localItems.length === 1) {
+          // Use storeId if available, fallback to extracting from first item, or use storeSlug as last resort
+          const targetStoreId = storeId || localItems[0]?.store_id || storeSlug;
+          success = await removeCart(targetStoreId, authToken);
         } else {
-          onCartChange?.();
+          success = await removeCartItems([cartItemId], authToken);
+        }
+        if (success) {
+          const message = localItems.length === 1 ? "Cart removed" : "Item removed";
+          if (toast?.show) {
+            toast.show(message, { type: "success", duration: 2000 });
+          }
+          // Optional: trigger cart refresh
+          // onCartChange?.();
+        } else {
+          // Revert optimistic update
+          setLocalItems(items);
+          Alert.alert("Error", "Failed to remove item.");
         }
       } catch (error) {
-        console.error("Error deleting cart item:", error);
-        Alert.alert("Error", "Failed to remove item.");
+        console.error("Error deleting item:", error);
+        // Revert optimistic update
+        setLocalItems(items);
+        Alert.alert("Error", "Failed to remove item. Please try again.");
+      } finally {
+        setProcessingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(cartItemId);
+          return newSet;
+        });
       }
-    }
-  };
+    };
+
+    confirmDelete();
+  }, [authToken, localItems.length, removeCart, removeCartItems, storeId, storeSlug, toast, removeLocalItem, items]);
 
   const renderCartItem = ({ item }: { item: CartItemType }) => {
     if (!item) return null;
 
     const itemId = item._id;
-    const name = item.product.name || "Unknown Item";
-    const symbol = item.product.symbol;
+    const name = item.product?.name || "Unknown Item";
+    const symbol = item.product?.symbol;
     const value = item.unit_price || 0;
     const maximum_value = item.unit_max_price || value;
-    const qty = item.qty;
- 
+    const qty = item.qty || 1;
+    const maxQty = item.product?.quantity;
 
     return (
       <View style={styles.itemContainer} key={itemId}>
@@ -168,6 +267,12 @@ const decrement = (itemId: string, qty: number) => {
               {name}
             </Text>
 
+            {maxQty && maxQty <= 10 && (
+              <Text style={styles.stockInfo}>
+                Only {maxQty} left in stock
+              </Text>
+            )}
+
             <View style={styles.itemPriceInfoContainer}>
               <Text style={styles.itemPriceText}>
                 {maximum_value > value && (
@@ -180,48 +285,103 @@ const decrement = (itemId: string, qty: number) => {
 
               <Text style={styles.quantityText}>x {qty}</Text>
               <Text style={styles.itemTotalCostText}>
-                {formatCurrency(item.total_price)}
+                {formatCurrency(item.total_price || value * qty)}
               </Text>
             </View>
           </View>
         </View>
 
-<View style={styles.cartItemQuantityContainer}>
-  <TouchableOpacity
-    onPress={() => decrement(itemId, qty)}
-    activeOpacity={0.7}
-  >
-    <Text style={styles.sign}>-</Text>
-  </TouchableOpacity>
+        <View style={styles.cartItemQuantityContainer}>
+          <TouchableOpacity
+            onPress={() => decrement(itemId, qty)}
+            activeOpacity={0.7}
+            disabled={qty <= 1}
+            style={[
+              styles.quantityButton,
+              qty <= 1 && styles.disabledButton
+            ]}
+          >
+            <Text style={[
+              styles.sign,
+              qty <= 1 && styles.disabledText
+            ]}>-</Text>
+          </TouchableOpacity>
 
-  <Text style={styles.quantity}>{qty}</Text>
+          <View style={styles.quantityDisplay}>
+            <Text style={styles.quantity}>{qty}</Text>
+            {isUserLoading && (
+              <Text style={styles.loadingText}>Loading...</Text>
+            )}
+            {!authToken && !isUserLoading && (
+              <Text style={styles.authRequiredText}>Login required</Text>
+            )}
+          </View>
 
-  <TouchableOpacity
-    onPress={() => increment(itemId, qty)}
-    activeOpacity={0.7}
-  >
-    <Text style={styles.sign}>+</Text>
-  </TouchableOpacity>
-</View>
+          <TouchableOpacity
+            onPress={() => increment(itemId, qty, maxQty)}
+            activeOpacity={0.7}
+            style={styles.quantityButton}
+          >
+            <Text style={styles.sign}>+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
 
-  const { totalCost, savings } = useMemo(() => {
-    if (!items?.length) return { totalCost: 0, savings: 0 };
+  const { totalCost, savings, totalItems } = useMemo(() => {
+    if (!localItems?.length) return { totalCost: 0, savings: 0, totalItems: 0 };
+    
     let cost = 0;
     let totalSavings = 0;
-    items.forEach((item) => {
-      cost += item.total_price;
-      totalSavings += item.total_max_price - item.total_price;
+    let itemCount = 0;
+    
+    localItems.forEach((item) => {
+      if (item) {
+        const itemTotal = item.total_price || (item.unit_price * item.qty);
+        const itemMaxTotal = item.total_max_price || (item.unit_max_price * item.qty);
+        
+        cost += itemTotal;
+        totalSavings += Math.max(0, itemMaxTotal - itemTotal);
+        itemCount += item.qty || 1;
+      }
     });
-    return { totalCost: cost, savings: totalSavings };
-  }, [items]);
+    
+    return { 
+      totalCost: cost, 
+      savings: totalSavings, 
+      totalItems: itemCount 
+    };
+  }, [localItems]);
 
-  if (!items?.length) {
+  if (!localItems?.length) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>Your cart is empty</Text>
+        <Text style={styles.emptySubText}>Add some delicious items to get started!</Text>
+      </View>
+    );
+  }
+
+  if (!authToken && !isUserLoading) {
+    return (
+      <View style={styles.authContainer}>
+        <Text style={styles.authText}>Please login to manage your cart</Text>
+        <TouchableOpacity 
+          style={styles.loginButton}
+          onPress={() => Alert.alert("Login Required", "Please login to continue.")}
+        >
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isUserLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2f9740" />
+        <Text style={styles.loadingText}>Loading your cart...</Text>
       </View>
     );
   }
@@ -230,14 +390,14 @@ const decrement = (itemId: string, qty: number) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.itemsContainer}>
         <Text style={styles.itemsHeader}>
-          Items in the cart ({items.length})
+          Items in cart ({localItems.length} {localItems.length === 1 ? 'item' : 'items'}, {totalItems} total)
         </Text>
 
         <View style={styles.listContainer}>
           <FlashList
-            data={items}
+            data={localItems}
             renderItem={renderCartItem}
-            estimatedItemSize={83}
+            estimatedItemSize={90}
             keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
           />
@@ -246,7 +406,7 @@ const decrement = (itemId: string, qty: number) => {
 
       <View style={styles.priceContainer}>
         <View style={styles.row}>
-          <Text style={[styles.text, styles.bold]}>Total</Text>
+          <Text style={[styles.text, styles.bold]}>Subtotal</Text>
           <Text style={[styles.text, styles.bold]}>
             {formatCurrency(totalCost)}
           </Text>
@@ -254,7 +414,7 @@ const decrement = (itemId: string, qty: number) => {
         {savings > 0 && (
           <View style={styles.row}>
             <Text style={[styles.text, styles.savingsText]}>
-              You are saving {formatCurrency(savings)} on this order!
+              You saved {formatCurrency(savings)} on this order! 🎉
             </Text>
           </View>
         )}
@@ -279,8 +439,16 @@ const decrement = (itemId: string, qty: number) => {
 
         <View style={styles.buttons}>
           <TouchableOpacity
-            style={styles.checkoutButton}
+            style={[
+              styles.checkoutButton,
+              !authToken && styles.disabledButton
+            ]}
             onPress={() => {
+              if (!authToken) {
+                Alert.alert("Login Required", "Please login to checkout.");
+                return;
+              }
+              
               if (cartId) {
                 router.push({
                   pathname: "./cart/[checkout]",
@@ -289,8 +457,11 @@ const decrement = (itemId: string, qty: number) => {
               }
             }}
             activeOpacity={0.8}
+            disabled={!authToken}
           >
-            <Text style={styles.checkoutButtonText}>Check Out</Text>
+            <Text style={styles.checkoutButtonText}>
+              {authToken ? `Checkout ` : "Login to Checkout"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -301,28 +472,70 @@ const decrement = (itemId: string, qty: number) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#e9ecef",
+    backgroundColor: "#f8f9fa",
+  },
+  authContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 60,
+    marginHorizontal: 16,
+    borderRadius: 12,
+  },
+  authText: {
+    fontSize: 18,
+    color: "#666",
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  loginButton: {
+    backgroundColor: "#2f9740",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 60,
+    marginHorizontal: 16,
+    borderRadius: 12,
   },
   sign: {
-  fontSize: 20,
-  fontWeight: "bold",
-  paddingHorizontal: 10,
-  color: "#333",
-},
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
   disabledText: {
     color: '#ccc',
   },
+  disabledButton: {
+    opacity: 0.5,
+  },
   itemsContainer: {
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 12,
     margin: 16,
     padding: 16,
-    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   itemsHeader: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#333",
   },
   listContainer: {
     minHeight: 100,
@@ -330,22 +543,23 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
+    alignItems: "flex-start",
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
   itemDescContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     flex: 1,
+    marginRight: 12,
   },
   itemImgContainer: {
     marginRight: 12,
   },
   productImage: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: 8,
     backgroundColor: "#f5f5f5",
   },
@@ -358,7 +572,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+    color: "#333",
+    lineHeight: 20,
+  },
+  stockInfo: {
+    fontSize: 12,
+    color: "#ff6b35",
     fontWeight: "500",
     marginBottom: 4,
   },
@@ -366,10 +588,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
+    marginTop: 4,
   },
   itemPriceText: {
     fontSize: 14,
     color: "#333",
+    fontWeight: "500",
   },
   strikethroughPrice: {
     textDecorationLine: "line-through",
@@ -383,172 +607,142 @@ const styles = StyleSheet.create({
   },
   itemTotalCostText: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "700",
     marginLeft: 8,
-    color: "#333",
+    color: "#2f9740",
   },
   cartItemQuantityContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    width: 100,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 20,
-    padding: 6,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    minWidth: 100,
+  },
+  quantityButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quantityDisplay: {
+    paddingHorizontal: 8,
+    minWidth: 36,
+    alignItems: "center",
   },
   quantity: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  authRequiredText: {
+    fontSize: 10,
+    color: "#ff6b35",
+    textAlign: "center",
   },
   priceContainer: {
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
-    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   text: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#333",
   },
   bold: {
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   savingsText: {
-    color: "#4CAF50",
-    fontSize: 12,
+    color: "#2f9740",
+    fontSize: 14,
+    fontWeight: "600",
   },
   actionButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
+    gap: 12,
   },
   addMoreContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    backgroundColor: "#f0f0f0",
+    padding: 12,
+    backgroundColor: "#f8f9fa",
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   addMoreItemsText: {
     marginLeft: 8,
     fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
   },
   buttons: {
     flex: 1,
     alignItems: "flex-end",
   },
   checkoutButton: {
-    backgroundColor: "#2f9740",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    backgroundColor: "#f14343",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    minWidth: 120,
+    shadowColor: "#f14343",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   checkoutButtonText: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
+    fontWeight: "700",
+    fontSize: 13,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingBottom: 30,
+    paddingVertical: 60,
+    marginHorizontal: 16,
+    borderRadius: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#666",
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
-    marginTop: 20,
-  },
-  titleText: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 15,
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    backgroundColor: "white",
-    elevation: 2,
-  },
-  headerDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  totalHeaderText: {
+  emptySubText: {
     fontSize: 14,
+    color: "#999",
+    textAlign: "center",
   },
-  dot: {
-    color: "#848080",
-    fontSize: 12,
-  },
-  listWrapper: {
-    minHeight: 2,
-    paddingVertical: 10,
-  },
-  animationContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-  emptyTextContainer: {
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyTitle: {
-    color: "#292935",
-    fontWeight: "600",
-    fontSize: 20,
-  },
-  emptySubtitle: {
-    color: "#707077",
-    fontWeight: "600",
-    fontSize: 13,
-    marginTop: 10,
-  },
-  startShoppingButton: {
-    backgroundColor: "#f14343",
-    width: widthPercentageToDP("90"),
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 50,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  startShoppingText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 20,
+  loadingText: {
+    fontSize: 10,
+    color: "#666",
+    textAlign: "center",
   },
 });
 

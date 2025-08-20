@@ -119,9 +119,18 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQty: async (cartItemId, qty, authToken) => {
-    if (!authToken || !cartItemId) return false;
+    if (!authToken || !cartItemId) {
+      console.error("Missing required parameters for updateQty");
+      return false;
+    }
+
+    if (qty < 0) {
+      console.error("Quantity cannot be negative");
+      return false;
+    }
 
     try {
+      // Make API call first
       const success = await updateQty(cartItemId, qty, authToken);
 
       if (!success) {
@@ -129,25 +138,32 @@ export const useCartStore = create<CartState>((set, get) => ({
         return false;
       }
 
-      // Update local state optimistically with validation
+      // Only update local state if API call succeeds
       set((state) => {
         const updatedCarts = state.allCarts.map((cart) => {
           if (!cart?.cart_items) return cart;
+          
+          // Check if this cart contains the item we're updating
+          const hasItem = cart.cart_items.some(item => item._id === cartItemId);
+          if (!hasItem) return cart;
           
           return {
             ...cart,
             cart_items: sanitizeCartItems(
               cart.cart_items.map((item) => {
-                if (!item?._id) return item; // Skip invalid items
+                if (!item?._id || item._id !== cartItemId) return item;
                 
-                return item._id === cartItemId
-                  ? {
-                      ...item,
-                      qty,
-                      total_price: item.unit_price * qty,
-                      total_max_price: item.unit_max_price * qty,
-                    }
-                  : item;
+                // Validate numeric calculations
+                const unit_price = Number(item.unit_price) || 0;
+                const unit_max_price = Number(item.unit_max_price) || unit_price;
+                const validatedQty = Math.max(0, Math.floor(qty));
+                
+                return {
+                  ...item,
+                  qty: validatedQty,
+                  total_price: unit_price * validatedQty,
+                  total_max_price: unit_max_price * validatedQty,
+                };
               })
             ),
           };
