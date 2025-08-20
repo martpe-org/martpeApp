@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
   },
   imageStyle: {
     height: 150,
-    width: "100%",
+    width: 150,
   },
   loader: {
     position: "absolute",
