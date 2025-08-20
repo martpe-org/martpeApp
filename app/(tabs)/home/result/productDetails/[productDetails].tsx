@@ -132,20 +132,20 @@ const ProductDetails: FC = () => {
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
-    const handleSearchPress = () => {
-      router.push("/search");
-    };
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
   // Render functions
   const renderHeader = () => (
-      <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Entypo name="chevron-left" size={22} color="#111" />
-          </TouchableOpacity>
-          <View style={styles.searchWrapper}>
-            <Search onPress={handleSearchPress} />
-          </View>
-        </View>
+    <View style={styles.headerContainer}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Entypo name="chevron-left" size={22} color="#111" />
+      </TouchableOpacity>
+      <View style={styles.searchWrapper}>
+        <Search onPress={handleSearchPress} />
+      </View>
+    </View>
   );
 
   const renderError = () => (
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
 
   backButton: {
     padding: 6,
-    marginTop:14,
+    marginTop: 14,
     marginRight: 8,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",

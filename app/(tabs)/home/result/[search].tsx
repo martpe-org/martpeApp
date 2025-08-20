@@ -428,12 +428,11 @@ const Results: FC = () => {
                         </Text>
                       </TouchableOpacity>
                     ) : (
-                      <AddToCartButton
+                      <AddToCart
                         storeId={product.store_id}
                         slug={product.slug} // ✅ actual product slug
                         catalogId={product.catalog_id} // ✅ actual catalog ID from backend
-                        maxQuantity={product.quantity || 1}
-                        customizable={product.customizable}
+                        price={product.price?.value || 0}
                       />
                     )}
                   </View>
@@ -581,13 +580,12 @@ const Results: FC = () => {
                 />
               </View>
               <View style={styles.addButtonContainer}>
-               <AddToCart
-  storeId={product.store_id}
-  slug={product.slug}         // ✅ product slug from backend
-  catalogId={product.catalog_id} // ✅ catalog ID from backend
-  customizable={product.customizable || false}
-/>
-
+                <AddToCart
+                  storeId={product.store_id}
+                  slug={product.slug} // ✅ product slug from backend
+                  catalogId={product.catalog_id} // ✅ catalog ID from backend
+                  customizable={product.customizable || false}
+                />
               </View>
               <View style={styles.groceryProductDetails}>
                 <Text style={styles.productName} numberOfLines={2}>

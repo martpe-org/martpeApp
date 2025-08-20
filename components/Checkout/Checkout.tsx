@@ -8,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  ALert
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import { BillSummary } from "./BillSummary";

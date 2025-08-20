@@ -212,10 +212,7 @@ const CartItems: React.FC<CartItemsProps> = ({
           if (toast?.show) {
             toast.show(message, { type: "success", duration: 2000 });
           }
-          // Optional: trigger cart refresh
-          // onCartChange?.();
         } else {
-          // Revert optimistic update
           setLocalItems(items);
           Alert.alert("Error", "Failed to remove item.");
         }
@@ -448,7 +445,6 @@ const CartItems: React.FC<CartItemsProps> = ({
                 Alert.alert("Login Required", "Please login to checkout.");
                 return;
               }
-              
               if (cartId) {
                 router.push({
                   pathname: "./cart/[checkout]",
@@ -541,7 +537,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   itemContainer: {
-    flexDirection: "row",
+    flexDirection: "column",
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingVertical: 16,
@@ -601,7 +597,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#666",
     marginLeft: 8,
   },
@@ -616,7 +612,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "black",
+    marginLeft:140,
+    marginTop:10,
     borderRadius: 8,
     backgroundColor: "#fff",
     minWidth: 100,
@@ -630,13 +628,13 @@ const styles = StyleSheet.create({
   },
   quantityDisplay: {
     paddingHorizontal: 8,
-    minWidth: 36,
+    minWidth: 3,
     alignItems: "center",
   },
   quantity: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: "#000",
   },
   authRequiredText: {
     fontSize: 10,

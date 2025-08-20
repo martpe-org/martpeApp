@@ -81,6 +81,24 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
               <Text style={{ fontSize: 16, fontWeight: "600" }}>
                 {productName.split(" ").slice(0, 7).join(" ")}
               </Text>
+                            <View
+                style={{
+                  flexDirection: "row-reverse",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: -19,
+                }}
+              >
+                {/* Heart / Remove */}
+                <TouchableOpacity
+                >
+                  <FontAwesome
+              name="heart"
+              size={18}
+              color="red"
+            />
+                </TouchableOpacity>
+              </View>
               <Text
                 style={{ fontSize: 13, color: "#607274", marginVertical: 2 }}
               >
@@ -128,12 +146,12 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
               </View>
 
               {/* Action Row */}
-              <View
+                  <View
                 style={{
                   flexDirection: "row-reverse",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginTop: -19,
+                  marginTop: -5,
                 }}
               >
                 {/* Heart / Remove */}

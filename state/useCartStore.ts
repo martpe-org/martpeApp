@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { removeCart } from "./removeCart";
 import { removeCartItems as removeCartItemsApi } from "./removeCartItems";
 import { updateQty } from "./updateQty";
@@ -27,6 +28,7 @@ interface Cart {
 interface CartState {
   allCarts: Cart[];
   setAllCarts: (carts: Cart[]) => void;
+  loadCartFromStorage: () => Promise<void>;
   addItem: (
     storeId: string,
     slug: string,
@@ -45,48 +47,56 @@ interface CartState {
   removeCart: (storeId: string, authToken: string) => Promise<boolean>;
 }
 
+const CART_STORAGE_KEY = "user_cart";
+
 // Helper function to filter out invalid cart items
 const sanitizeCartItems = (items: (CartItem | undefined | null)[]): CartItem[] => {
-  return items.filter((item): item is CartItem => {
-    if (!item) {
-      console.warn("Found null/undefined cart item, filtering out");
-      return false;
-    }
-    if (!item._id) {
-      console.warn("Found cart item without _id, filtering out:", item);
-      return false;
-    }
-    return true;
-  });
+  return items.filter((item): item is CartItem => !!item && !!item._id);
 };
 
 // Helper function to sanitize carts
 const sanitizeCarts = (carts: Cart[]): Cart[] => {
   return carts
-    .filter((cart) => {
-      if (!cart) {
-        console.warn("Found null/undefined cart, filtering out");
-        return false;
-      }
-      if (!cart.store?._id) {
-        console.warn("Found cart without store._id, filtering out:", cart);
-        return false;
-      }
-      return true;
-    })
+    .filter((cart) => !!cart && !!cart.store?._id)
     .map((cart) => ({
       ...cart,
       cart_items: sanitizeCartItems(cart.cart_items || []),
     }))
-    .filter((cart) => cart.cart_items.length > 0); // Remove empty carts
+    .filter((cart) => cart.cart_items.length > 0);
+};
+
+// Save carts to storage
+const saveCartToStorage = async (carts: Cart[]) => {
+  try {
+    await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(carts));
+  } catch (error) {
+    console.error("Failed to save cart:", error);
+  }
+};
+
+// Load carts from storage
+const loadCartFromStorage = async (): Promise<Cart[]> => {
+  try {
+    const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+    return stored ? sanitizeCarts(JSON.parse(stored)) : [];
+  } catch (error) {
+    console.error("Failed to load cart:", error);
+    return [];
+  }
 };
 
 export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
 
   setAllCarts: (carts) => {
-    const sanitizedCarts = sanitizeCarts(carts || []);
-    set({ allCarts: sanitizedCarts });
+    const sanitized = sanitizeCarts(carts || []);
+    set({ allCarts: sanitized });
+    saveCartToStorage(sanitized);
+  },
+
+  loadCartFromStorage: async () => {
+    const carts = await loadCartFromStorage();
+    set({ allCarts: carts });
   },
 
   addItem: async (
@@ -111,6 +121,12 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     try {
       const { success } = await addToCartAction(input, authToken);
+      if (success) {
+        // reload from API or optimistically update state
+        const updatedCarts = [...get().allCarts]; // for now keep same
+        set({ allCarts: updatedCarts });
+        saveCartToStorage(updatedCarts);
+      }
       return success;
     } catch (error) {
       console.error("addItem error:", error);
@@ -119,56 +135,32 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQty: async (cartItemId, qty, authToken) => {
-    if (!authToken || !cartItemId) {
-      console.error("Missing required parameters for updateQty");
-      return false;
-    }
+    if (!authToken || !cartItemId) return false;
 
-    if (qty < 0) {
-      console.error("Quantity cannot be negative");
-      return false;
-    }
+    if (qty < 0) return false;
 
     try {
-      // Make API call first
       const success = await updateQty(cartItemId, qty, authToken);
 
-      if (!success) {
-        console.error("Failed to update quantity via API");
-        return false;
-      }
+      if (!success) return false;
 
-      // Only update local state if API call succeeds
       set((state) => {
-        const updatedCarts = state.allCarts.map((cart) => {
-          if (!cart?.cart_items) return cart;
-          
-          // Check if this cart contains the item we're updating
-          const hasItem = cart.cart_items.some(item => item._id === cartItemId);
-          if (!hasItem) return cart;
-          
-          return {
-            ...cart,
-            cart_items: sanitizeCartItems(
-              cart.cart_items.map((item) => {
-                if (!item?._id || item._id !== cartItemId) return item;
-                
-                // Validate numeric calculations
-                const unit_price = Number(item.unit_price) || 0;
-                const unit_max_price = Number(item.unit_max_price) || unit_price;
-                const validatedQty = Math.max(0, Math.floor(qty));
-                
-                return {
-                  ...item,
-                  qty: validatedQty,
-                  total_price: unit_price * validatedQty,
-                  total_max_price: unit_max_price * validatedQty,
-                };
-              })
-            ),
-          };
-        });
-        
+        const updatedCarts = state.allCarts.map((cart) => ({
+          ...cart,
+          cart_items: sanitizeCartItems(
+            cart.cart_items.map((item) =>
+              item._id === cartItemId
+                ? {
+                    ...item,
+                    qty,
+                    total_price: item.unit_price * qty,
+                    total_max_price: item.unit_max_price * qty,
+                  }
+                : item
+            )
+          ),
+        }));
+        saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
       });
 
@@ -185,34 +177,19 @@ export const useCartStore = create<CartState>((set, get) => ({
     const prevState = get().allCarts;
 
     try {
-      // Optimistic update with validation
       set((state) => {
-        const updatedCarts = state.allCarts
-          .map((cart) => {
-            if (!cart?.cart_items) return cart;
-            
-            return {
-              ...cart,
-              cart_items: sanitizeCartItems(
-                cart.cart_items.filter((item) => {
-                  if (!item?._id) return false; // Remove invalid items
-                  return !itemIds.includes(item._id);
-                })
-              ),
-            };
-          })
-          .filter((cart) => cart.cart_items.length > 0);
-        
+        const updatedCarts = state.allCarts.map((cart) => ({
+          ...cart,
+          cart_items: sanitizeCartItems(
+            cart.cart_items.filter((item) => !itemIds.includes(item._id))
+          ),
+        }));
+        saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
       });
 
-      // API call
       const success = await removeCartItemsApi(itemIds, authToken);
-
-      if (!success) {
-        set({ allCarts: prevState });
-      }
-
+      if (!success) set({ allCarts: prevState });
       return success;
     } catch (error) {
       console.error("removeCartItems error:", error);
@@ -227,20 +204,16 @@ export const useCartStore = create<CartState>((set, get) => ({
     const prevState = get().allCarts;
 
     try {
-      // Optimistic update with validation
-      set((state) => ({
-        allCarts: sanitizeCarts(
-          state.allCarts.filter((cart) => cart?.store?._id !== storeId)
-        ),
-      }));
+      set((state) => {
+        const updatedCarts = state.allCarts.filter(
+          (cart) => cart.store._id !== storeId
+        );
+        saveCartToStorage(updatedCarts);
+        return { allCarts: sanitizeCarts(updatedCarts) };
+      });
 
-      // API call
       const success = await removeCart(storeId, authToken);
-
-      if (!success) {
-        set({ allCarts: prevState });
-      }
-
+      if (!success) set({ allCarts: prevState });
       return success;
     } catch (error) {
       console.error("removeCart error:", error);
