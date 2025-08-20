@@ -13,7 +13,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   imageStyle: {
-    height: "auto",
+    height: 150,
+    width: "100%",
   },
   loader: {
     position: "absolute",
@@ -32,17 +33,28 @@ type ImageInterface = {
   imageStyle?: ImageStyle;
   resizeMode?: ImageResizeMode;
   fallbackSource?: { uri: string } | number;
+  loaderColor?: string;
+  loaderSize?: "small" | "large";
 };
 
 const defaultProps = {
   resizeMode: "cover" as ImageResizeMode,
-//  fallbackSource: require("../../assets/images/no-image.png"),
+  fallbackSource: { uri: "https://via.placeholder.com/150?text=Image" },
+  loaderColor: "black",
+  loaderSize: "small" as const,
 };
 
 const ImageComp = (props: ImageInterface & typeof defaultProps) => {
-  const { source, imageStyle, resizeMode, fallbackSource } = props;
+  const {
+    source,
+    imageStyle,
+    resizeMode,
+    fallbackSource,
+    loaderColor,
+    loaderSize,
+  } = props;
 
-  // Normalize the source so it works for Search, ProductDetails, etc.
+  // Normalize all possible source types into a valid RN Image source
   const normalizedSource = useMemo(() => {
     if (!source) return fallbackSource;
 
@@ -93,7 +105,7 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
       />
       {isLoading && (
         <View style={styles.loader}>
-          <ActivityIndicator size="small" color="black" />
+          <ActivityIndicator size={loaderSize} color={loaderColor} />
         </View>
       )}
     </View>

@@ -581,6 +581,7 @@ const Results: FC = () => {
               </View>
               <View style={styles.addButtonContainer}>
                 <AddToCart
+                  price={product.price?.value || 0}
                   storeId={product.store_id}
                   slug={product.slug} // ✅ product slug from backend
                   catalogId={product.catalog_id} // ✅ catalog ID from backend
@@ -810,116 +811,6 @@ const Results: FC = () => {
 
       {isItem ? (
         <View style={styles.itemsContainer}>
-          {/* Filters */}
-          <View style={styles.filtersContainer}>
-            <ScrollView style={styles.filtersScrollView} horizontal>
-              {filters.map((filter, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.filterButton,
-                    {
-                      borderColor:
-                        (filter.name === "Category" &&
-                          filterSelected.category.length > 0) ||
-                        (filter.name === "Offers" &&
-                          filterSelected.offers > 0) ||
-                        (filter.name === "Delivery" &&
-                          filterSelected.delivery < 100)
-                          ? "black"
-                          : "#EEEEEE",
-                    },
-                  ]}
-                  onPress={() => {
-                    handleOpenPress();
-                    setActiveFilter(filter?.name);
-                    setFoodDetails({ ...foodDetails, visible: false });
-                    setIsFilterVisible(true);
-                    setCustomizableGroup({
-                      ...customizableGroup,
-                      customizable: false,
-                    });
-                  }}
-                >
-                  <Text style={styles.filterButtonText}>
-                    {
-                      {
-                        Category:
-                          "Category " +
-                          (filterSelected.category.length > 0
-                            ? `(${filterSelected.category.length})`
-                            : ""),
-                        Offers:
-                          filterSelected.offers > 0
-                            ? filterSelected.offers + "% and above"
-                            : "Offers",
-                        Delivery:
-                          filterSelected.delivery < 100
-                            ? filterSelected.delivery + " min or less"
-                            : "Delivery",
-                      }[filter?.name]
-                    }
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.filterClearButton,
-                      {
-                        display:
-                          (filter.name === "Category" &&
-                            filterSelected.category.length > 0) ||
-                          (filter.name === "Offers" &&
-                            filterSelected.offers > 0) ||
-                          (filter.name === "Delivery" &&
-                            filterSelected.delivery < 100)
-                            ? "flex"
-                            : "none",
-                      },
-                    ]}
-                    onPress={() => {
-                      setFoodDetails({ ...foodDetails, visible: false });
-                      setCustomizableGroup({
-                        ...customizableGroup,
-                        customizable: false,
-                      });
-                      setFilterSelected({
-                        category:
-                          filter.name === "Category"
-                            ? []
-                            : filterSelected.category,
-                        offers:
-                          filter.name === "Offers" ? 0 : filterSelected.offers,
-                        delivery:
-                          filter.name === "Delivery"
-                            ? 100
-                            : filterSelected.delivery,
-                      });
-                    }}
-                  >
-                    <Feather name="x" size={16} color="black" />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
-
-              {(filterSelected.category.length > 0 ||
-                filterSelected.delivery !== 100 ||
-                filterSelected.offers !== 0) && (
-                <TouchableOpacity
-                  style={styles.resetButton}
-                  onPress={() =>
-                    setFilterSelected({
-                      category: [],
-                      offers: 0,
-                      delivery: 100,
-                    })
-                  }
-                >
-                  <Text style={styles.resetButtonText}>Reset</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </View>
-
           <View style={styles.resultsContainer}>
             <ScrollView contentContainerStyle={styles.content}>
               <View style={styles.cardContainer}>
