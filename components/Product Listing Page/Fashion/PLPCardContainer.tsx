@@ -119,112 +119,124 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   ];
 
   // Filter catalog based on selected category
+// Filter catalog based on selected category
 const getFilteredCatalog = (): CatalogItem[] => {
-  if (selectedCategory === "All") {
+  if (!selectedCategory || selectedCategory === "All") {
     return catalog;
   }
 
-  return catalog.filter((item) => {
-    const itemName = item?.descriptor?.name?.toLowerCase() || "";
-    const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
-    const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
+  const category = String(selectedCategory);
 
-    switch (selectedCategory.toLowerCase()) {
+  return catalog.filter((item) => {
+ const itemName = item?.descriptor?.name?.toLowerCase() || "";
+const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
+const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
+
+
+    const match = (text: string, keyword: string | RegExp) => {
+      if (typeof keyword === "string") {
+        return new RegExp(`\\b${keyword}\\b`, "i").test(text); // case-insensitive
+      }
+      return keyword.test(text);
+    };
+
+    switch (category.toLowerCase()) {
       case "men":
         return (
-          itemName.includes("men") ||
-          itemName.includes("man") ||
-          itemDesc.includes("men") ||
-          itemDesc.includes("male")
+          match(itemName, "men") ||
+          match(itemName, "man") ||
+          match(itemDesc, "men") ||
+          match(itemDesc, "male")
         );
 
       case "women":
         return (
-          itemName.includes("women") ||
-          itemName.includes("woman") ||
-          itemName.includes("ladies") ||
-          itemDesc.includes("women") ||
-          itemDesc.includes("female")
+          match(itemName, "women") ||
+          match(itemName, "woman") ||
+          match(itemName, "ladies") ||
+          match(itemDesc, "women") ||
+          match(itemDesc, "female")
         );
 
       case "kids":
         return (
-          itemName.includes("kid") ||
-          itemName.includes("child") ||
-          itemName.includes("boy") ||
-          itemName.includes("girl") ||
-          itemDesc.includes("kids")
+          match(itemName, "kid") ||
+          match(itemName, "child") ||
+          match(itemName, "boy") ||
+          match(itemName, "girl") ||
+          match(itemDesc, "kids")
         );
 
       case "infants":
         return (
-          itemName.includes("infant") ||
-          itemName.includes("baby") ||
-          itemName.includes("newborn") ||
-          itemDesc.includes("infant")
+          match(itemName, "infant") ||
+          match(itemName, "baby") ||
+          match(itemName, "newborn") ||
+          match(itemDesc, "infant")
         );
 
       case "t-shirts":
         return (
-          itemName.includes("t-shirt") ||
-          itemName.includes("tshirt") ||
-          itemName.includes("t shirt")
+          match(itemName, "t-shirt") ||
+          match(itemName, "tshirt") ||
+          match(itemName, "t shirt")
         );
 
       case "shirts":
         return (
-          itemName.includes("shirt") &&
-          !itemName.includes("t-shirt") &&
-          !itemName.includes("tshirt")
+          match(itemName, "shirt") &&
+          !match(itemName, "t-shirt") &&
+          !match(itemName, "tshirt")
         );
 
       case "trousers":
         return (
-          itemName.includes("trouser") ||
-          itemName.includes("pant") ||
-          itemName.includes("jean")
+          match(itemName, "trouser") ||
+          match(itemName, "pant") ||
+          match(itemName, "jean")
         );
 
       case "accessories":
         return (
-          itemName.includes("accessory") ||
-          itemName.includes("belt") ||
-          itemName.includes("watch") ||
-          itemName.includes("wallet")
+          match(itemName, "accessory") ||
+          match(itemName, "belt") ||
+          match(itemName, "watch") ||
+          match(itemName, "wallet")
         );
 
       case "footwear":
         return (
-          itemName.includes("shoe") ||
-          itemName.includes("sandal") ||
-          itemName.includes("boot") ||
-          itemName.includes("slipper")
+          match(itemName, "shoe") ||
+          match(itemName, "sandal") ||
+          match(itemName, "boot") ||
+          match(itemName, "slipper")
         );
 
       case "bags":
         return (
-          itemName.includes("bag") ||
-          itemName.includes("backpack") ||
-          itemName.includes("purse")
+          match(itemName, "bag") ||
+          match(itemName, "backpack") ||
+          match(itemName, "purse")
         );
 
       case "jewellery":
         return (
-          itemName.includes("jewel") ||
-          itemName.includes("ring") ||
-          itemName.includes("necklace") ||
-          itemName.includes("earring")
+          match(itemName, "jewel") ||
+          match(itemName, "ring") ||
+          match(itemName, "necklace") ||
+          match(itemName, "earring")
         );
 
       default:
         return (
-          itemName.includes(selectedCategory.toLowerCase()) ||
-          itemDesc.includes(selectedCategory.toLowerCase()) ||
-          itemShortDesc.includes(selectedCategory.toLowerCase())
+          match(itemName, category) ||
+          match(itemDesc, category) ||
+          match(itemShortDesc, category)
         );
     }
   });
 };
+
 
   const filteredCatalog = getFilteredCatalog();
 

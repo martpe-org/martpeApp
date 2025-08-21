@@ -32,22 +32,18 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
       }}
     >
       {footerText.map((content, idx) => (
-        <Text
-          key={idx}
-          style={{ marginTop: 5, color: "#79787D", fontSize: 12 }}
-        >
-          <Text>{" \u25CF"}</Text> {content}
-        </Text>
-      ))}
-      <View style={{ marginTop: 20 }}>
-        <Text style={{ color: "#F48232", fontWeight: "900", fontSize: 16 }}>
-          {vendorName}
-        </Text>
-        <Text style={{ color: "#79787D" }}>
-          (Outlet:{" "}
-          {<Text style={{ fontWeight: "bold" }}>{outletLocation}</Text>})
-        </Text>
-      </View>
+  <Text
+    key={`footer-${idx}`}
+    style={{ marginTop: 5, color: "#79787D", fontSize: 12 }}
+  >
+    {"\u25CF"} {content}
+  </Text>
+))}
+
+<Text style={{ color: "#79787D" }}>
+  (Outlet: <Text style={{ fontWeight: "bold" }}>{outletLocation}</Text>)
+</Text>
+
       <View
         style={{ flexDirection: "row", marginTop: 5, alignItems: "center" }}
       >

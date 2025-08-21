@@ -1,56 +1,91 @@
-import React from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { View, StyleSheet, Dimensions, Text, Animated } from "react-native";
 import GroceryCard from "./GroceryCard";
 
 export interface CatalogItem {
-  id: string; // product slug or id
-  catalog_id: string; // ✅ product's ObjectId
-  store_id: string; // ✅ seller's ObjectId
-  slug?: string; // product slug
+  id: string;
+  catalog_id: string;
   category_id: string;
-  symbol?: string; // ✅ added product/store symbol
   descriptor: {
-    images: string[];
-    name: string;
+    name?: string;
     long_desc?: string;
+    images?: string[];
   };
   price: {
     value: number;
-    maximum_value?: number; // for original price
-    offerPercent?: number; // for discount
+    maximum_value?: number;
+    offerPercent?: number;
   };
-  quantity: {
-    maximum: { count: number };
-    available: { count: number };
+  quantity?: {
+    maximum?: { count: number };
+    available?: { count: number };
   };
-  weight?: string; // product weight
-  unit?: string; // product unit
-  customizable?: boolean; // for customizable products
-  customizations?: {
-    _id?: string;
-    id?: string;
-    groupId?: string;
-    group_id?: string;
-    optionId?: string;
-    option_id?: string;
-    name: string;
-  }[]; // customization options
+  slug?: string;
+  symbol?: string;
+  weight?: string;
+  unit?: string;
 }
 
 interface GroceryCardContainerProps {
   catalog: CatalogItem[];
-  providerId: string; // ✅ Added missing prop
+  providerId: string;
   selectedCategory?: string;
   searchString: string;
+  handleOpenModal?: (item: CatalogItem) => void;
 }
+
+// ✅ Export NoItemsDisplay so it can be used elsewhere
+interface NoItemsDisplayProps {
+  category?: string;
+}
+
+export const NoItemsDisplay: React.FC<NoItemsDisplayProps> = ({ category = "this category" }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        noItemsStyles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: bounceAnim }],
+        },
+      ]}
+    >
+      <Text style={noItemsStyles.emoji}>🛒</Text>
+      <Text style={noItemsStyles.title}>No Products Found</Text>
+      <Text style={noItemsStyles.subtitle}>
+        No items available in <Text style={{ fontWeight: "bold" }}>{category}</Text>
+      </Text>
+    </Animated.View>
+  );
+};
 
 const CARD_SPACING = Dimensions.get("window").width * 0.03;
 
 const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   catalog,
-  providerId, // ✅ Now receiving providerId
+  providerId,
   selectedCategory,
   searchString,
+  handleOpenModal,
 }) => {
   const filteredCatalog =
     !selectedCategory || selectedCategory === "All"
@@ -58,40 +93,34 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
       : catalog.filter((item) => item.category_id === selectedCategory);
 
   const displayedCatalog = filteredCatalog.filter((item) => {
-    const itemName = item?.descriptor?.name?.toLowerCase() || "";
+    const itemName = item?.descriptor?.name || "";
     return searchString
-      ? itemName.includes(searchString.toLowerCase())
+      ? itemName.toLowerCase().includes(searchString.toLowerCase())
       : true;
   });
 
-  if (
-    selectedCategory &&
-    selectedCategory !== "All" &&
-    displayedCatalog.length === 0
-  ) {
-    return null;
-  }
-
+  // ✅ Remove the NoItemsDisplay logic from here since it's handled in parent
   return (
     <View style={containerStyles.container}>
-      {displayedCatalog.map((item) => (
+      {displayedCatalog.map((item, index) => (
         <View
-          key={item.id}
+          key={`${item.id || item.catalog_id}-${index}-${item.descriptor?.name?.slice(0,10) || 'item'}`}
           style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
         >
           <GroceryCard
             id={item.id}
             itemName={item.descriptor?.name || "Unnamed Product"}
             cost={item.price.value}
-            maxLimit={item.quantity.maximum.count}
-            providerId={providerId} // ✅ Using the providerId prop instead of item.store_id
-            slug={item.slug || item.id} // ✅ fallback
-            catalogId={item.catalog_id} // ✅ ObjectId
-            symbol={item.symbol} // ✅ now passing symbol
-            weight={item.weight} // ✅ passing weight if available
-            unit={item.unit} // ✅ passing unit if available
-            originalPrice={item.price.maximum_value} // ✅ for showing original price
-            discount={item.price.offerPercent} // ✅ for showing discount
+            maxLimit={item.quantity?.maximum?.count ?? 0} 
+            providerId={providerId}
+            slug={item.slug || item.id}
+            catalogId={item.catalog_id}
+            symbol={item.symbol}
+            weight={item.weight}
+            unit={item.unit}
+            originalPrice={item.price.maximum_value}
+            discount={item.price.offerPercent}
+            onPress={() => handleOpenModal?.(item)}
           />
         </View>
       ))}
@@ -108,5 +137,33 @@ const containerStyles = StyleSheet.create({
     justifyContent: "space-evenly",
     paddingHorizontal: 10,
     paddingVertical: 10,
+  },
+});
+
+const noItemsStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 50,
+    marginBottom: 50,
+    paddingHorizontal: 20,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#777",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

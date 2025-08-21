@@ -8,20 +8,24 @@ import {
   View,
 } from "react-native";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import useUserDetails from "../../hook/useUserDetails";
+import { Toast } from "react-native-toast-notifications";
 
 interface FavOutletsProps {
   itemsData: any[];
+  authToken?: string;
 }
 
-const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
-  const { removeStoreFavorite } = useFavoriteStore(); // Use store-specific method
+const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
+  const { removeStoreFavorite } = useFavoriteStore();
   const { userDetails } = useUserDetails();
 
   const handleRemoveFavorite = async (storeId: string) => {
-    if (!userDetails?.accessToken) {
+    const token = authToken || userDetails?.accessToken;
+    
+    if (!token) {
       console.error("No access token available");
       return;
     }
@@ -31,7 +35,8 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
       return;
     }
 
-    await removeStoreFavorite(storeId, userDetails.accessToken); // Use correct method
+    await removeStoreFavorite(storeId, token);
+    Toast.show("Store removed from favorites");
   };
 
   const handleStorePress = (storeId: string) => {
@@ -57,12 +62,12 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
           color="#D0D4CA" 
         />
         <Text style={{ 
-          fontSize: 18, 
-          color: '#607274', 
+          fontSize: 16, 
+          color: '#888', 
           marginTop: 16,
           textAlign: 'center'
         }}>
-          No favorite outlets yet
+          No favorite outlets yet ❤️
         </Text>
       </View>
     );
@@ -70,7 +75,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
 
   return (
     <ScrollView
-      style={{ marginBottom: Dimensions.get("screen").width * 0.2 }}
+      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
       showsVerticalScrollIndicator={false}
     >
       {[...itemsData].reverse().map((store: any, index: number) => {
@@ -80,8 +85,8 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
           return null;
         }
 
-        const storeName = store.descriptor?.name || "Unnamed Store";
-        const storeImage = store.descriptor?.symbol || "https://via.placeholder.com/150?text=Store";
+        const storeName = store.descriptor?.name || store?.name || "Unnamed Store";
+        const storeImage = store.descriptor?.symbol || store.descriptor?.images?.[0] || "https://via.placeholder.com/150?text=Store";
         const locality = store.address?.locality || "";
         const state = store.address?.state || "";
         const city = store.address?.city || "";
@@ -89,53 +94,87 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
 
         return (
           <TouchableOpacity
-            onPress={() => handleStorePress(store.id)}
-            key={`${store.id}-${index}`} // More unique key
+            key={store.id || `store-${index}`}
             style={{
               flexDirection: "row",
-              marginTop: Dimensions.get("screen").width * 0.05,
-              justifyContent: "flex-start",
-              paddingHorizontal: Dimensions.get("screen").width * 0.03,
-              paddingVertical: Dimensions.get("screen").width * 0.03,
               borderRadius: 12,
-              alignItems: "center",
-              backgroundColor: "#F5F7F8",
+              backgroundColor: "#fff",
+              marginTop: Dimensions.get("screen").width * 0.05,
+              padding: Dimensions.get("screen").width * 0.05,
+              shadowColor: "#831f1f",
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 20,
             }}
+            onPress={() => handleStorePress(store.id)}
           >
             {/* Store Image */}
-            <View>
-              <ImageComp
-                source={{ uri: storeImage }}
-                imageStyle={{
-                  aspectRatio: 1,
-                  height: 60,
-                  borderRadius: 100,
-                }}
-                resizeMode="cover"
-              />
-            </View>
+            <ImageComp
+              source={{ uri: storeImage }}
+              imageStyle={{
+                minHeight: Dimensions.get("screen").width * 0.25,
+                width: Dimensions.get("screen").width * 0.25,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "#eee",
+                marginRight: 10,
+              }}
+              resizeMode="cover"
+            />
 
             {/* Store Info */}
-            <View style={{ 
-              marginHorizontal: Dimensions.get("screen").width * 0.03,
-              flex: 1 
-            }}>
+            <View style={{ flex: 1 }}>
               <Text
                 style={{
                   fontSize: 16,
                   fontWeight: "600",
-                  color: "#3D3B40",
+                  color: "#000",
                 }}
                 numberOfLines={2}
               >
-                {storeName}
+                {storeName.split(" ").slice(0, 7).join(" ")}
               </Text>
 
-              {/* Rating + Offer */}
-              <View style={{ flexDirection: "row", marginVertical: 4, alignItems: "center" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 20 }}>
-                  <MaterialCommunityIcons name="star" size={18} color="#FFD523" />
-                  <Text style={{ fontSize: 14, fontWeight: "400", marginLeft: 2 }}>
+              {/* Heart Icon - Top Right */}
+              <View
+                style={{
+                  flexDirection: "row-reverse",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: -19,
+                }}
+              >
+                <TouchableOpacity>
+                  <FontAwesome name="heart" size={18} color="red" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Location */}
+              {(locality || state) && (
+                <Text
+                  style={{
+                    color: "#607274",
+                    fontSize: 13,
+                    marginVertical: 2,
+                  }}
+                  numberOfLines={1}
+                >
+                  <MaterialCommunityIcons name="map-marker" size={12} />{" "}
+                  {locality && state ? `${locality}, ${state}` : locality || state}
+                </Text>
+              )}
+
+              {/* Rating + Offer Row */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginVertical: 4,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 15 }}>
+                  <MaterialCommunityIcons name="star" size={14} color="#FFD523" />
+                  <Text style={{ fontSize: 14, fontWeight: "500", marginLeft: 2 }}>
                     4.2
                   </Text>
                 </View>
@@ -143,8 +182,8 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
                 {Math.ceil(maxOfferPercent) > 0 && (
                   <Text
                     style={{
-                      color: "#00BC66",
-                      fontSize: 14,
+                      color: "green",
+                      fontSize: 12,
                       fontWeight: "500",
                     }}
                   >
@@ -153,59 +192,38 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData }) => {
                 )}
               </View>
 
-              {/* Address + Delivery + Favorite */}
-              <View style={{ flexDirection: "column" }}>
-                {(locality || state) && (
-                  <Text
-                    style={{
-                      color: "#3D3B40",
-                      fontWeight: "500",
-                      fontSize: 13,
-                      marginBottom: 4,
-                    }}
-                    numberOfLines={1}
-                  >
-                    <MaterialCommunityIcons name="map-marker" />{" "}
-                    {locality && state ? `${locality}, ${state}` : locality || state}
-                  </Text>
-                )}
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+              {/* Delivery Info + Remove Button */}
+              <View
+                style={{
+                  flexDirection: "row-reverse",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: -5,
+                }}
+              >
+                {/* Remove Favorite */}
+                <TouchableOpacity
+                  onPress={() => handleRemoveFavorite(store.id)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  {/* Delivery Info */}
-                  <Text
-                    style={{
-                      color: "#73777B",
-                      fontSize: 13,
-                      flex: 1,
-                    }}
-                    numberOfLines={1}
-                  >
-                    <MaterialCommunityIcons name="truck" />{" "}
-                    {store?.panIndia 
-                      ? "Delivers Across India"
-                      : `Delivers within ${city || "local area"}`
-                    }
-                  </Text>
+                  <FontAwesome name="trash-o" size={18} color="#000" />
+                </TouchableOpacity>
 
-                  {/* Remove Favorite */}
-                  <TouchableOpacity
-                    onPress={() => handleRemoveFavorite(store.id)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={{ marginLeft: 8 }}
-                  >
-                    <MaterialCommunityIcons
-                      name="heart"
-                      size={24}
-                      color="#F13A3A"
-                    />
-                  </TouchableOpacity>
-                </View>
+                {/* Delivery Info */}
+                <Text
+                  style={{
+                    color: "#607274",
+                    fontSize: 13,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  <MaterialCommunityIcons name="truck" size={12} />{" "}
+                  {store?.panIndia 
+                    ? "Delivers Across India"
+                    : `Delivers within ${city || "local area"}`
+                  }
+                </Text>
               </View>
             </View>
           </TouchableOpacity>

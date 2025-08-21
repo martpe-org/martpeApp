@@ -68,7 +68,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
               source={imageUrl}
               imageStyle={{
                 minHeight: Dimensions.get("screen").width * 0.25,
-                width: Dimensions.get("screen").width * 0.25,
+                width: Dimensions.get("screen").width * 0.45,
                 borderRadius: 10,
                 borderWidth: 1,
                 borderColor: "#eee",

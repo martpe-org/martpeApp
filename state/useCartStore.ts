@@ -29,22 +29,25 @@ interface CartState {
   allCarts: Cart[];
   setAllCarts: (carts: Cart[]) => void;
   loadCartFromStorage: () => Promise<void>;
-  addItem: (
-    storeId: string,
-    slug: string,
-    catalogId: string,
-    quantity: number,
-    customizable: boolean,
-    customizations: any[],
-    authToken: string
-  ) => Promise<boolean>;
-  updateQty: (
-    cartItemId: string,
-    qty: number,
-    authToken: string
-  ) => Promise<boolean>;
-  removeCartItems: (itemIds: string[], authToken: string) => Promise<boolean>;
-  removeCart: (storeId: string, authToken: string) => Promise<boolean>;
+addItem: (
+  storeId: string,
+  slug: string,
+  catalogId: string,
+  quantity: number,
+  customizable: boolean,
+  customizations: any[],
+  authToken: string | null   // ✅ allow null
+) => Promise<boolean>;
+
+updateQty: (
+  cartItemId: string,
+  qty: number,
+  authToken: string | null   // ✅ allow null
+) => Promise<boolean>;
+
+removeCartItems: (itemIds: string[], authToken: string | null) => Promise<boolean>;
+removeCart: (storeId: string, authToken: string | null) => Promise<boolean>;
+
 }
 
 const CART_STORAGE_KEY = "user_cart";

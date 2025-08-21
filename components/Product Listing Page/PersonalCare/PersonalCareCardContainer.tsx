@@ -3,8 +3,6 @@ import React from "react";
 import PersonalCareCard from "./PersonalCareCard";
 
 interface CatalogItem {
-  bpp_id: string;
-  bpp_uri: string;
   catalog_id: string;
   category_id: string;
   descriptor: {
@@ -15,20 +13,11 @@ interface CatalogItem {
     symbol: string;
   };
   id: string;
-  location_id: string;
-  non_veg: null;
   price: {
     maximum_value: number;
-    offer_percent: null;
-    offer_value: null;
     value: number;
   };
   provider_id: string;
-  quantity: {
-    available: null;
-    maximum: null;
-  };
-  veg: null;
 }
 
 interface PersonalCareCardContainerProps {
@@ -47,17 +36,17 @@ const PersonalCareCardContainer: React.FC<PersonalCareCardContainerProps> = ({
   const getFilteredCatalog = () => {
     let filtered = catalog;
 
-    // Filter by category if selected and not "All"
     if (selectedCategory && selectedCategory !== "All") {
-      filtered = filtered.filter((item) => item.category_id === selectedCategory);
+      filtered = filtered.filter(
+        (item) => item.category_id === selectedCategory
+      );
     }
 
-    // Filter by search string
     if (searchString) {
       filtered = filtered.filter((item) =>
         item?.descriptor?.name
-          .toLowerCase()
-          .includes(searchString?.toLowerCase())
+          ?.toLowerCase()
+          .includes(searchString.toLowerCase())
       );
     }
 
@@ -73,12 +62,14 @@ const PersonalCareCardContainer: React.FC<PersonalCareCardContainerProps> = ({
         const description = item.descriptor.long_desc;
         const price = item.price.value;
         const maxValue = item.price.maximum_value;
-        const discount = Math.round(((maxValue - price) / maxValue) * 100);
-        const image = item.descriptor.images[0];
-        
+        const discount = maxValue
+          ? Math.round(((maxValue - price) / maxValue) * 100)
+          : 0;
+        const image = item.descriptor.images?.[0];
+
         return (
           <PersonalCareCard
-            key={`${item.id}-${title}`} // Better key to avoid duplicates
+            key={item.catalog_id} // ✅ use catalog_id as unique key
             title={title}
             description={description}
             price={price}
@@ -98,12 +89,10 @@ export default PersonalCareCardContainer;
 
 const styles = StyleSheet.create({
   cardsContainer: {
+    flexDirection: "row",
     flexWrap: "wrap",
-    marginLeft: 5,
-    flex: 0.96,
+    justifyContent: "space-between",
     paddingHorizontal: 10,
     marginTop: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
   },
-})
+});

@@ -18,16 +18,11 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ buttonTitles }) => {
     setActiveButton(title);
   }
 
-  const count = 0;
-  function handleCount(count: number): number {
-    return count + 1;
-  }
-
   return (
     <View style={styles.button_container}>
-      {buttonTitles.map((button) => (
+      {buttonTitles.map((button, idx) => (
         <FilterButton
-          key={handleCount(count)}
+          key={`${button}-${idx}`} // unique key
           handleClick={handleClick}
           title={button}
           activeButton={activeButton}

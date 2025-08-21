@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import HomeAndDecorHeaderTabs from "./HomeAndDecorHeaderTabs";
 import PLPCardContainer from "../Fashion/PLPCardContainer";
@@ -43,14 +43,15 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
 
   // ✅ Safe filtering
 const getFilteredCatalog = () => {
-  if (!activeTab || activeTab === "Home & Decor") {
+  if (!activeTab || activeTab === "All") {
     return catalog;
   }
 
   return catalog.filter((item) => {
-    const itemName = item?.descriptor?.name?.toLowerCase() || "";
-    const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
-    const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
+const itemName = item?.descriptor?.name?.toLowerCase() || "";
+const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
+const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
+
 
     switch (activeTab) {
       case "Furniture":
@@ -93,16 +94,17 @@ const getFilteredCatalog = () => {
 
       default:
         return (
-          itemName.includes(activeTab.toLowerCase()) ||
-          itemDesc.includes(activeTab.toLowerCase()) ||
-          itemShortDesc.includes(activeTab.toLowerCase())
+          itemName.includes(activeTab) ||
+          itemDesc.includes(activeTab) ||
+          itemShortDesc.includes(activeTab)
         );
     }
   });
 };
 
 
-  const filteredCatalog = getFilteredCatalog();
+
+const filteredCatalog = useMemo(() => getFilteredCatalog(), [catalog, activeTab]);
 
   // Animation for "No items"
   useEffect(() => {
@@ -168,24 +170,20 @@ const getFilteredCatalog = () => {
     );
   };
 
-  return (
-    <View style={{ flex: 1 }}>
-      <HomeAndDecorHeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      {filteredCatalog.length > 0 ? (
-        <PLPCardContainer
-          domainColor="rgba(252, 225, 89, 1)"
-          catalog={filteredCatalog}
-        />
-      ) : activeTab !== "Home & Decor" ? (
-        <NoItemsDisplay />
-      ) : (
-        <PLPCardContainer
-          domainColor="rgba(252, 225, 89, 1)"
-          catalog={catalog}
-        />
-      )}
-    </View>
-  );
+return (
+  <View style={{ flex: 1 }}>
+    <HomeAndDecorHeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+    {filteredCatalog.length > 0 ? (
+      <PLPCardContainer domainColor="rgba(252, 225, 89, 1)" catalog={filteredCatalog} />
+    ) : activeTab !== "Home & Decor" ? (
+      <NoItemsDisplay category={activeTab} />
+    ) : (
+      <PLPCardContainer domainColor="rgba(252, 225, 89, 1)" catalog={catalog} />
+    )}
+  </View>
+);
+
 };
 
 const styles = StyleSheet.create({

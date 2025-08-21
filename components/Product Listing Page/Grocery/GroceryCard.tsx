@@ -1,8 +1,11 @@
 import ImageComp from "@/components/common/ImageComp";
 import AddToCart from "../../../components/ProductDetails/AddToCart";
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = width * 0.44;
 
 interface GroceryCardProps {
   id: string;
@@ -16,7 +19,8 @@ interface GroceryCardProps {
   unit?: string;
   originalPrice?: number;
   discount?: number;
-  symbol?: string; // ✅ seller/product symbol
+  symbol?: string;
+  onPress?: () => void; // ✅ added optional onPress
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
@@ -31,19 +35,17 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   originalPrice,
   discount,
   symbol,
+  onPress,
 }) => {
   return (
     <TouchableOpacity
       style={cardStyles.card}
-      onPress={() =>
-        router.push(`/(tabs)/home/result/productDetails/${slug || id}`)
-      }
+      onPress={onPress ?? (() => router.push(`/(tabs)/home/result/productDetails/${slug || id}`))}
+      activeOpacity={0.8}
     >
       {/* Product Image */}
       <ImageComp
-        source={{
-          uri: symbol || "https://via.placeholder.com/150?text=No+Image",
-        }}
+        source={symbol || "https://via.placeholder.com/150?text=No+Image"}
         imageStyle={cardStyles.image}
         resizeMode="cover"
         fallbackSource={{
@@ -74,22 +76,27 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </View>
 
-      {/* ✅ AddToCart Button */}
-      <AddToCart
-        storeId={providerId} // ✅ ObjectId from backend
-        slug={slug || id} // ✅ same fallback logic as ProductDetails
-        catalogId={catalogId}
-        price={cost}
-      />
+      {/* ✅ AddToCart aligned to bottom */}
+      <View style={cardStyles.cartWrapper}>
+        <AddToCart
+          storeId={providerId}
+          slug={slug || id}
+          catalogId={catalogId}
+          price={cost}
+          buttonStyle={cardStyles.cartButton}
+          textStyle={cardStyles.cartText}
+        />
+      </View>
     </TouchableOpacity>
   );
 };
 
 export default GroceryCard;
 
+
 const cardStyles = StyleSheet.create({
   card: {
-    width: 150,
+    width: CARD_WIDTH,
     borderRadius: 12,
     backgroundColor: "#fff",
     marginBottom: 15,
@@ -98,17 +105,17 @@ const cardStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 10,
+    elevation: 5,
   },
   image: {
     width: "100%",
-    height: 110,
+    height: 120,
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
   },
   info: {
-    marginBottom: 8,
+    flexGrow: 1,
   },
   name: {
     fontSize: 14,
@@ -140,5 +147,17 @@ const cardStyles = StyleSheet.create({
     fontSize: 12,
     color: "#28a745",
     marginTop: 2,
+  },
+  cartWrapper: {
+    marginTop: 8,
+  },
+  cartButton: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  cartText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

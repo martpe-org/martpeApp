@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { useCartStore } from "../../../state/useCartStore";
 import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
-
+import useUserDetails from "../../../hook/useUserDetails";
 interface PLPCardProps {
   veg: boolean;
   itemName: string;
@@ -38,32 +38,32 @@ const PLPCard: React.FC<PLPCardProps> = ({
   handleOpenPress,
   foodDetails,
 }) => {
-  const { allCarts, addItem, updateItemQuantity } = useCartStore();
-  const cart = allCarts.find((c) => c.store.id === providerId);
+  const { allCarts, addItem, updateQty } = useCartStore();
+ const cart = allCarts.find((c) => c.store._id === providerId);
+const item = cart?.cart_items.find((i) => i._id === id); // ✅ corrected
+const itemCount = item?.qty ?? 0;
+const { authToken } = useUserDetails();
 
-  // Match your CartItem structure
-  const item = cart?.items.find((i) => i.catalog_id === id);
-  const itemCount = item?.qty ?? 0;
 
   const discountPercentage = Math.floor(
     ((originalPrice - offerPrice) / originalPrice) * 100
   );
 
-  const handleAdd = () => {
-    addItem(providerId, slug, id, 1, customizable);
-  };
+const handleAdd = () => {
+  if (!authToken) return; // prevent calling with null
+  addItem(providerId, slug, id, 1, customizable, [], authToken);
+};
 
-  const handleIncrease = () => {
-    if (item) {
-      updateItemQuantity(item._id, item.qty + 1);
-    }
-  };
+const handleIncrease = () => {
+  if (!authToken || !item) return;
+  updateQty(item._id, item.qty + 1, authToken);
+};
 
-  const handleDecrease = () => {
-    if (item) {
-      updateItemQuantity(item._id, item.qty - 1);
-    }
-  };
+const handleDecrease = () => {
+  if (!authToken || !item) return;
+  updateQty(item._id, item.qty - 1, authToken);
+};
+
 
   return (
     <View style={styles.plpCard_container}>

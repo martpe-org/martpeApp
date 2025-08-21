@@ -17,7 +17,10 @@ const tabOptions = [
 export type WishlistTab = "Items" | "Outlets";
 
 interface TabBarProps {
-  selectTab: React.Dispatch<React.SetStateAction<WishlistTab>>;
+  selectTab: (tab: WishlistTab) => void;
+  selectedTab?: WishlistTab;
+  itemsCount?: number;
+  outletsCount?: number;
 }
 
 const TabBar: FC<TabBarProps> = ({ selectTab }) => {

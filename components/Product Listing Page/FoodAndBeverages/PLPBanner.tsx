@@ -5,7 +5,6 @@ import { getDistance } from "geolib";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-
 interface Point {
   coordinates: number[];
   type: string;
@@ -29,8 +28,7 @@ interface PLPBannerProps {
   userLocation: any;
   searchbox?: boolean;
   userAddress: string;
-  productId: string;
-  vendorId?: string;
+  vendorId: string | string[]; // ✅ Updated to match PLPBannerCard
 }
 
 const PLPBanner: React.FC<PLPBannerProps> = ({
@@ -41,7 +39,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
   userLocation,
   searchbox,
   userAddress,
-  productId,
+  vendorId, // ✅ Now using vendorId instead of productId
 }) => {
   const bgImg = descriptor?.images?.[0] || descriptor?.symbol;
   // const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
@@ -87,7 +85,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         distance={distance}
         delivery="Free Delivery"
         userAddress={userAddress}
-        productId={productId}
+        vendorId={vendorId} // ✅ Correctly passing vendorId
       />
     </View>
   );
@@ -114,7 +112,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 8,
     marginLeft: 5,
-     elevation: 15,
+    elevation: 15,
     borderRadius: 100,
     backgroundColor: "#fff",
   },

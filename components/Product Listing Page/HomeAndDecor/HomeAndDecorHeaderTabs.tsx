@@ -51,7 +51,7 @@ const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
   function handleActiveButton(title: string) {
     // Toggle logic: if clicking the same tab, deselect it (show all)
     if (activeTab === title) {
-      onTabChange("Home & Decor"); // Reset to show all items
+      onTabChange("All"); // Reset to show all items
     } else {
       onTabChange(title);
     }

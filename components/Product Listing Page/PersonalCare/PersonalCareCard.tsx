@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Image,
@@ -6,7 +5,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from "react-native";
+import { router } from "expo-router";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = width * 0.46; // responsive: 2 per row
 
 interface PersonalCareCardProps {
   title: string;
@@ -30,43 +34,43 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   id,
 }) => {
   const handlePress = () => {
-    // router.push(`/productDetails/${id}`);
-    console.log("item.id", id);
+    router.push(`/(tabs)/home/result/productDetails/${id}`);
   };
 
   return (
     <TouchableOpacity
       onPress={handlePress}
-      style={styles.fashionCard}
+      style={styles.card}
+      activeOpacity={0.85}
     >
+      {/* Product Image */}
       <View style={styles.imageContainer}>
         <Image
-          style={styles.fashionCardImage}
+          style={styles.image}
           source={{
-            uri: image,
+            uri: image || "https://via.placeholder.com/150?text=No+Image",
           }}
         />
       </View>
-      <View style={{ paddingHorizontal: 5 }}>
-        <Text style={styles.cardTitle}>
-          {title.length > 30 ? title.slice(0, 30) + "..." : title}
+
+      {/* Info */}
+      <View style={styles.info}>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
         </Text>
-        <Text style={styles.cardDescription}>
-          {description.length > 15
-            ? description.slice(0, 15) + "..."
-            : description}
+        <Text style={styles.description} numberOfLines={2}>
+          {description || "No description available"}
         </Text>
+
+        {/* Prices */}
         {discount > 1 && (
-          <Text style={{ ...styles.amount, ...styles.strikedOff }}>
-            Rs.{maxValue}
-          </Text>
+          <Text style={styles.strikedOff}>Rs.{maxValue}</Text>
         )}
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={styles.amount}>Rs{price}</Text>
+
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>Rs.{price}</Text>
           {discount > 1 && (
-            <Text style={{ ...styles.amount, ...styles.discount }}>
-              {discount}% Off
-            </Text>
+            <Text style={styles.discount}>{discount}% Off</Text>
           )}
         </View>
       </View>
@@ -77,48 +81,58 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
 export default PersonalCareCard;
 
 const styles = StyleSheet.create({
-  fashionCard: {
-    width: "49%",
-    elevation: 5,
-    backgroundColor: "#ffffff",
+  card: {
+    width: CARD_WIDTH,
+    elevation: 4,
+    backgroundColor: "#fff",
     paddingBottom: 10,
-    marginBottom: 5,
+    marginBottom: 12,
     borderRadius: 10,
-  },
-  fashionCardImage: {
-    width: "100%",
-    height: 125,
-    borderRadius: 10,
+    overflow: "hidden",
   },
   imageContainer: {
-    backgroundColor: "#ffffff",
-    overflow: "hidden",
-    borderRadius: 10,
+    backgroundColor: "#f7f7f7",
   },
-  cardTitle: {
-    marginTop: 10,
-    fontWeight: "900",
+  image: {
+    width: "100%",
+    height: 140,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  info: {
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  title: {
+    fontWeight: "700",
     fontSize: 13,
+    color: "#333",
+    marginBottom: 4,
   },
-  cardDescription: {
-    color: "#838181",
-    marginTop: 5,
-  },
-  amount: {
+  description: {
+    color: "#777",
     fontSize: 12,
-    marginRight: 5,
-    fontWeight: "900",
-    marginTop: 5,
+    marginBottom: 6,
   },
   strikedOff: {
-    color: "#746F6F",
-    marginTop: 5,
-    fontSize: 10,
+    color: "#999",
+    fontSize: 11,
     textDecorationLine: "line-through",
-    textDecorationStyle: "solid",
+    marginBottom: 2,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  price: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#f14343",
   },
   discount: {
-    color: "#00BC66",
-    marginLeft: 5,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#28a745",
   },
 });
