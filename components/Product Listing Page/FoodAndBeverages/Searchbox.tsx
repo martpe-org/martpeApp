@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     marginBottom: 10,
     marginTop: 30,
+    marginLeft:50
   },
   searchBoxContainer: {
     flexDirection: "row",

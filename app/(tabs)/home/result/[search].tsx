@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState, useRef } from "react";
-import {Feather } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import {
   ScrollView,
   StyleSheet,
@@ -84,7 +84,7 @@ const getDomainName = (domain: string): string => {
 // Simple components
 const VegIndicator = () => (
   <View style={styles.vegIndicator}>
-    <Text style={[styles.vegDot, { color: '#4CAF50' }]}>●</Text>
+    <Text style={[styles.vegDot, { color: "#4CAF50" }]}>●</Text>
   </View>
 );
 
@@ -117,14 +117,15 @@ const Results: FC = () => {
     discount: 0,
   });
 
-  const [customizableGroup, setCustomizableGroup] = useState<CustomizableGroupState>({
-    customizable: false,
-    vendorId: "",
-    customGroup: [],
-    itemId: "",
-    maxLimit: 0,
-    price: 0,
-  });
+  const [customizableGroup, setCustomizableGroup] =
+    useState<CustomizableGroupState>({
+      customizable: false,
+      vendorId: "",
+      customGroup: [],
+      itemId: "",
+      maxLimit: 0,
+      price: 0,
+    });
 
   const snapPoints = useMemo(() => ["50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -134,7 +135,11 @@ const Results: FC = () => {
 
   const renderBackdrop = React.useCallback(
     (props: any) => (
-      <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />
+      <BottomSheetBackdrop
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        {...props}
+      />
     ),
     []
   );
@@ -197,10 +202,12 @@ const Results: FC = () => {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-           <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/result/productListing/${store.slug}`)}
+          <TouchableOpacity
+            style={styles.storeInfo}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+            }
           >
-          <View style={styles.storeInfo}>
             <ImageComp
               source={{ uri: store.symbol || "https://via.placeholder.com/60" }}
               imageStyle={styles.storeImage}
@@ -211,7 +218,9 @@ const Results: FC = () => {
                 {store.name}
               </Text>
               <Text style={styles.storeMetrics}>
-                ★ {store.rating || "4.2"} • {Math.round((firstProduct.tts_in_h || 1) * 60)}min • {firstProduct.distance_in_km.toFixed(1)}km
+                ★ {store.rating || "4.2"} •{" "}
+                {Math.round((firstProduct.tts_in_h || 1) * 60)}min •{" "}
+                {firstProduct.distance_in_km.toFixed(1)}km
               </Text>
               {(firstProduct.price.offerPercent || 0) > 0 && (
                 <Text style={styles.offerText}>
@@ -219,7 +228,6 @@ const Results: FC = () => {
                 </Text>
               )}
             </View>
-          </View>
           </TouchableOpacity>
         </View>
 
@@ -229,23 +237,35 @@ const Results: FC = () => {
           contentContainerStyle={styles.productsContainer}
         >
           {products.map((product, index) => (
-            <View key={index} style={styles.productCard}>
+            <TouchableOpacity
+              key={index}
+              style={styles.productCard}
+              onPress={() =>
+                router.push(
+                  `/(tabs)/home/result/productDetails/${product.slug}`
+                )
+              }
+            >
               <ImageComp
-                source={{ uri: product.symbol || "https://via.placeholder.com/120" }}
+                source={{
+                  uri: product.symbol || "https://via.placeholder.com/120",
+                }}
                 imageStyle={styles.productImage}
                 resizeMode="cover"
               />
-              
+
               <View style={styles.productInfo}>
                 {domainName === "F&B" && <VegIndicator />}
                 <Text style={styles.productName} numberOfLines={2}>
                   {product.name}
                 </Text>
-                
+
                 <View style={styles.priceRow}>
                   <Text style={styles.price}>₹{product.price.value}</Text>
                   {product.price.offerPercent && (
-                    <Text style={styles.originalPrice}>₹{product.price.maximum_value}</Text>
+                    <Text style={styles.originalPrice}>
+                      ₹{product.price.maximum_value}
+                    </Text>
                   )}
                 </View>
 
@@ -256,7 +276,8 @@ const Results: FC = () => {
                         setCustomizableGroup({
                           customizable: true,
                           vendorId: product.store_id,
-                          customGroup: product.directlyLinkedCustomGroupIds || [],
+                          customGroup:
+                            product.directlyLinkedCustomGroupIds || [],
                           itemId: product.symbol,
                           maxLimit: product.quantity || 1,
                           price: product.price.value,
@@ -275,7 +296,7 @@ const Results: FC = () => {
                       price={product.price?.value || 0}
                     />
                   )}
-                  
+
                   {domainName === "F&B" && (
                     <TouchableOpacity
                       onPress={() => {
@@ -302,7 +323,7 @@ const Results: FC = () => {
                   )}
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -326,14 +347,19 @@ const Results: FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <Feather name="arrow-left" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Results</Text>
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "/search", params: { domain: domainData } })}
+          onPress={() =>
+            router.push({ pathname: "/search", params: { domain: domainData } })
+          }
           style={styles.searchBar}
         >
           <TextInput
@@ -367,9 +393,7 @@ const Results: FC = () => {
 
       {/* Content */}
       <ScrollView style={styles.content}>
-        <Text style={styles.resultsTitle}>
-          Showing Results for {search}
-        </Text>
+        <Text style={styles.resultsTitle}>Showing Results for {search}</Text>
 
         {isItem ? (
           <>
@@ -393,18 +417,25 @@ const Results: FC = () => {
               searchResults.stores.map((store, index) => (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => router.push(`/(tabs)/home/result/productListing/${store.slug}`)}
+                  onPress={() =>
+                    router.push(
+                      `/(tabs)/home/result/productListing/${store.slug}`
+                    )
+                  }
                   style={styles.storeCard}
                 >
                   <ImageComp
-                    source={{ uri: store.symbol || "https://via.placeholder.com/60" }}
+                    source={{
+                      uri: store.symbol || "https://via.placeholder.com/60",
+                    }}
                     imageStyle={styles.storeCardImage}
                     resizeMode="cover"
                   />
                   <View style={styles.storeCardInfo}>
                     <Text style={styles.storeCardName}>{store.name}</Text>
                     <Text style={styles.storeCardDetails}>
-                      ★ {store.rating || "4.2"} • {store.distance_in_km.toFixed(1)}km
+                      ★ {store.rating || "4.2"} •{" "}
+                      {store.distance_in_km.toFixed(1)}km
                     </Text>
                     <Text style={styles.storeCardAddress} numberOfLines={1}>
                       {store.address.city}
@@ -491,8 +522,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     fontSize: 14,
     color: "#333",
-    marginBottom:12,
- },
+    marginBottom: 12,
+  },
   tabs: {
     flexDirection: "row",
   },
@@ -501,7 +532,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     borderColor: "transparent",
-    borderRadius:20
+    borderRadius: 20,
   },
   activeTab: {
     borderWidth: 2,

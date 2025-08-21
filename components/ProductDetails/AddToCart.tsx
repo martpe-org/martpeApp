@@ -19,6 +19,7 @@ interface AddToCartProps {
   price: number;
   storeId: string;
   slug?: string;
+   storeSlug?: string;
   catalogId?: string;
   customizable?: boolean;
   customizations?: {

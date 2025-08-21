@@ -1,6 +1,8 @@
 import { router } from "expo-router";
 import { FC } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ImageComp from "@/components/common/ImageComp";
+import AddToCart from "../../../components/ProductDetails/AddToCart";
 
 interface FashionCardProps {
   itemName: string;
@@ -10,6 +12,9 @@ interface FashionCardProps {
   discount: number | string;
   image: string;
   id: string;
+  catalogId: string;
+  providerId: string;
+  slug?: string;
 }
 
 const FashionCard: FC<FashionCardProps> = ({
@@ -20,48 +25,70 @@ const FashionCard: FC<FashionCardProps> = ({
   discount,
   image,
   id,
+  catalogId,
+  providerId,
+  slug,
 }) => {
   return (
-    <Pressable
-      onPress={() => {
-        router.push(`/(tabs)/home/result/productDetails/${id}`);
-      }}
-      style={styles.fashionCard}
-    >
-      <Image style={styles.fashionCardImage} source={{ uri: image }} />
-      <View style={styles.fashionCardContent}>
-        <Text
-          style={styles.fashionCardTitle}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {itemName}
-        </Text>
-        <Text
-          style={styles.fashionCardDescription}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {desc}
-        </Text>
-        <View style={{ flexDirection: "row", marginTop: 3 }}>
-          <Text style={styles.fashionCardPrice}>
-            <Text style={{ fontSize: 16 }}>₹{value}</Text>{" "}
-            {maxPrice && <Text style={styles.strikedOffText}>₹{maxPrice}</Text>}
+    <View style={styles.fashionCard}>
+      <TouchableOpacity
+        onPress={() => {
+          router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+        }}
+        style={styles.cardContent}
+      >
+        <ImageComp
+          source={image}
+          imageStyle={styles.fashionCardImage}
+          resizeMode="cover"
+          fallbackSource={{ uri: "https://via.placeholder.com/185?text=Fashion" }}
+          loaderColor="#666"
+          loaderSize="small"
+        />
+        <View style={styles.fashionCardContent}>
+          <Text
+            style={styles.fashionCardTitle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {itemName}
           </Text>
-          {typeof discount === "number" && discount > 1 && (
-            <Text style={styles.fashionCardDiscount}>
-              {"  "}
-              {discount > 1 ? discount : null}% Off
+          <Text
+            style={styles.fashionCardDescription}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {desc}
+          </Text>
+          <View style={{ flexDirection: "row", marginTop: 3 }}>
+            <Text style={styles.fashionCardPrice}>
+              <Text style={{ fontSize: 16 }}>₹{value}</Text>{" "}
+              {maxPrice && <Text style={styles.strikedOffText}>₹{maxPrice}</Text>}
             </Text>
-          )}
+            {typeof discount === "number" && discount > 1 && (
+              <Text style={styles.fashionCardDiscount}>
+                {"  "}
+                {discount > 1 ? discount : null}% Off
+              </Text>
+            )}
+          </View>
         </View>
+      </TouchableOpacity>
+      
+      {/* Add to Cart Button */}
+      <View style={styles.addToCartContainer}>
+        <AddToCart
+          price={value}
+          storeId={providerId}
+          slug={slug || id}
+          catalogId={catalogId}
+          buttonStyle={styles.addToCartButton}
+          textStyle={styles.addToCartText}
+        />
       </View>
-    </Pressable>
+    </View>
   );
 };
-
-export default FashionCard;
 
 const styles = StyleSheet.create({
   fashionCard: {
@@ -73,15 +100,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     elevation: 3,
   },
+  cardContent: {
+    flex: 1,
+  },
   fashionCardImage: {
     width: 185,
     height: 185,
-    resizeMode: "cover",
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
   fashionCardContent: {
     padding: 10,
+    paddingBottom: 5,
   },
   fashionCardTitle: {
     fontWeight: "900",
@@ -105,4 +135,18 @@ const styles = StyleSheet.create({
     color: "#00BC66",
     fontWeight: "900",
   },
+  addToCartContainer: {
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+  addToCartButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  addToCartText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
 });
+
+export default FashionCard;

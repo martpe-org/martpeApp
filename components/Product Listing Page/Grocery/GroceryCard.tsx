@@ -1,58 +1,93 @@
+import ImageComp from "@/components/common/ImageComp";
+import AddToCart from "../../../components/ProductDetails/AddToCart";
 import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { router } from "expo-router";
 
 interface GroceryCardProps {
   id: string;
   itemName: string;
   cost: number;
-  imageUrl: string;
   maxLimit: number;
   providerId: string;
+  slug?: string;
+  catalogId: string;
   weight?: string;
   unit?: string;
   originalPrice?: number;
   discount?: number;
+  symbol?: string; // ✅ seller/product symbol
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
+  id,
   itemName,
   cost,
-  imageUrl,
-  maxLimit,
+  providerId,
+  slug,
+  catalogId,
   weight = "1kg",
   unit = "piece",
   originalPrice,
   discount,
+  symbol,
 }) => {
   return (
-    <View style={styles.card}>
-      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={2}>
+    <TouchableOpacity
+      style={cardStyles.card}
+      onPress={() =>
+        router.push(`/(tabs)/home/result/productDetails/${slug || id}`)
+      }
+    >
+      {/* Product Image */}
+      <ImageComp
+        source={{
+          uri: symbol || "https://via.placeholder.com/150?text=No+Image",
+        }}
+        imageStyle={cardStyles.image}
+        resizeMode="cover"
+        fallbackSource={{
+          uri: "https://via.placeholder.com/150?text=No+Image",
+        }}
+        loaderColor="#f14343"
+        loaderSize="small"
+      />
+
+      {/* Info Section */}
+      <View style={cardStyles.info}>
+        <Text style={cardStyles.name} numberOfLines={2}>
           {itemName}
         </Text>
-        <Text style={styles.weight}>{weight} / {unit}</Text>
+        <Text style={cardStyles.weight}>
+          {weight} / {unit}
+        </Text>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{cost.toFixed(2)}</Text>
+        <View style={cardStyles.priceRow}>
+          <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
           {discount && originalPrice && (
-            <Text style={styles.originalPrice}>₹{originalPrice.toFixed(2)}</Text>
+            <Text style={cardStyles.originalPrice}>
+              ₹{originalPrice.toFixed(2)}
+            </Text>
           )}
         </View>
 
-        {discount && <Text style={styles.discount}>{discount}% off</Text>}
+        {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </View>
 
-      <TouchableOpacity style={styles.addButton}>
-        <Text style={styles.addButtonText}>Add</Text>
-      </TouchableOpacity>
-    </View>
+      {/* ✅ AddToCart Button */}
+      <AddToCart
+        storeId={providerId} // ✅ ObjectId from backend
+        slug={slug || id} // ✅ same fallback logic as ProductDetails
+        catalogId={catalogId}
+        price={cost}
+      />
+    </TouchableOpacity>
   );
 };
 
 export default GroceryCard;
 
-const styles = StyleSheet.create({
+const cardStyles = StyleSheet.create({
   card: {
     width: 150,
     borderRadius: 12,
@@ -63,7 +98,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    elevation: 10,
   },
   image: {
     width: "100%",
@@ -89,7 +124,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6, // for spacing between price and originalPrice
+    gap: 6,
   },
   price: {
     fontSize: 14,
@@ -105,17 +140,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#28a745",
     marginTop: 2,
-  },
-  addButton: {
-    marginTop: 8,
-    backgroundColor: "#f14343",
-    paddingVertical: 6,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14,
   },
 });

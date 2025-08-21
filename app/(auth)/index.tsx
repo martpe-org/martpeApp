@@ -41,7 +41,7 @@ const NewLogin: React.FC = () => {
     const checkAuth = async () => {
       if (!authLoading && isAuthenticated && checkAuthentication()) {
         console.log("User is already authenticated, redirecting to home");
-        router.replace("../(tabs)/home"); // Replace with your home screen route
+        router.replace("./(tabs)/home"); // Replace with your home screen route
       }
     };
     
@@ -182,11 +182,11 @@ const NewLogin: React.FC = () => {
         {/* Footer Links */}
         <Text style={styles.footerText}>
           {t("By continuing, you agree to our")}
-          <Link style={styles.footerLink} href="../../(aux)/terms-and-conditions">
+          <Link style={styles.footerLink} href="/(aux)/terms-and-conditions">
             {t(" Terms of Service ")}
           </Link>
           &
-          <Link style={styles.footerLink} href="../(aux)/privacy-policy">
+          <Link style={styles.footerLink} href="/(aux)/privacy-policy">
             {t(" Privacy Policy")}
           </Link>
         </Text>

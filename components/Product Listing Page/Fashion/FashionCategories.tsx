@@ -1,5 +1,6 @@
 import { useState, FC } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ImageComp from "@/components/common/ImageComp";
 import FashionCategoriesDropdown from "./FashionCategoriesDropdown";
 import { fashionHeaderData } from "../../../data";
 
@@ -7,39 +8,57 @@ interface FashionCategoriesButtonProps {
   headerTitle: string;
   image: string;
   onClick: () => void;
+  isActive: boolean;
+}
+
+interface FashionCategoriesProps {
+  onCategorySelect: (category: string) => void;
+  activeCategory: string;
 }
 
 const FashionCategoriesButton: FC<FashionCategoriesButtonProps> = ({
   headerTitle,
   image,
   onClick,
+  isActive,
 }) => {
   return (
     <TouchableOpacity
       style={{
         ...styles.fashionCategoriesButton,
-        backgroundColor: "#fff",
+        backgroundColor: isActive ? "#007AFF" : "#fff",
       }}
       onPress={onClick}
     >
-      <Image
-        style={styles.fashionCategoriesButtonImage}
-        source={{ uri: image }}
+      <ImageComp
+        source={image}
+        imageStyle={styles.fashionCategoriesButtonImage}
+        resizeMode="cover"
+        fallbackSource={{ uri: "https://via.placeholder.com/50?text=Cat" }}
+        loaderColor="#666"
+        loaderSize="small"
       />
-      <Text style={styles.fashionCategoriesButtonText}>
+      <Text 
+        style={[
+          styles.fashionCategoriesButtonText,
+          { color: isActive ? "#fff" : "#000" }
+        ]}
+      >
         {headerTitle.length > 7 ? headerTitle.slice(0, 7) : headerTitle}
       </Text>
     </TouchableOpacity>
   );
 };
 
-const FashionCategories = () => {
-  const [activeButton, setActiveButton] = useState<string | null>(null);
+const FashionCategories: FC<FashionCategoriesProps> = ({ 
+  onCategorySelect, 
+  activeCategory 
+}) => {
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
-  function toggleDropdown(headerTitle: string) {
-    setActiveButton((prevActiveButton) =>
-      prevActiveButton === headerTitle ? null : headerTitle
-    );
+  function handleCategoryClick(headerTitle: string) {
+    onCategorySelect(headerTitle);
+    setShowDropdown(headerTitle !== "All");
   }
 
   return (
@@ -52,11 +71,17 @@ const FashionCategories = () => {
             key={header.title}
             image={header.image}
             headerTitle={header.title}
-            onClick={() => toggleDropdown(header.title)}
+            isActive={activeCategory === header.title}
+            onClick={() => handleCategoryClick(header.title)}
           />
         ))}
       </View>
-      {activeButton && <FashionCategoriesDropdown />}
+      {showDropdown && activeCategory !== "All" && (
+        <FashionCategoriesDropdown 
+          onSubCategorySelect={onCategorySelect}
+          activeCategory={activeCategory}
+        />
+      )}
     </View>
   );
 };

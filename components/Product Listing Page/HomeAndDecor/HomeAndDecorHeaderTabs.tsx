@@ -1,29 +1,62 @@
-import React, { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
+import ImageComp from "../../../components/common/ImageComp";
+import React from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface HeaderTabButtonProps {
   onClick: (title: string) => void;
   activeButton: string;
   title: string;
+  imageSource: string;
 }
 
-const HomeAndDecorHeaderTabs: React.FC = () => {
-  const data = [
-    "Home & Decor",
-    "Furniture",
-    "Home Furnishing",
-    "Cooking & Dining",
-    "Garden & Outdoors",
+interface TabData {
+  title: string;
+  image: string;
+}
+
+interface HomeAndDecorHeaderTabsProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
+  activeTab,
+  onTabChange
+}) => {
+  // Define different images for each tab
+  const data: TabData[] = [
+    {
+      title: "Home & Decor",
+      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=150&fit=crop&crop=center"
+    },
+    {
+      title: "Furniture", 
+      image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop&crop=center"
+    },
+    {
+      title: "Home Furnishing",
+      image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=150&h=150&fit=crop&crop=center"
+    },
+    {
+      title: "Cooking & Dining",
+      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=center"
+    },
+    {
+      title: "Garden & Outdoors",
+      image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=150&h=150&fit=crop&crop=center"
+    }
   ];
-  const [activeButton, setActiveButton] = useState("");
 
   function handleActiveButton(title: string) {
-    setActiveButton((prevActiveButton) =>
-      prevActiveButton === title ? "" : title
-    );
+    // Toggle logic: if clicking the same tab, deselect it (show all)
+    if (activeTab === title) {
+      onTabChange("Home & Decor"); // Reset to show all items
+    } else {
+      onTabChange(title);
+    }
   }
-
+    
   return (
     <LinearGradient
       colors={[
@@ -40,12 +73,13 @@ const HomeAndDecorHeaderTabs: React.FC = () => {
         horizontal={true}
         showsHorizontalScrollIndicator={false}
       >
-        {data.map((header) => (
+        {data.map((item) => (
           <HeaderTabButton
-            key={header}
-            activeButton={activeButton}
+            key={item.title}
+            activeButton={activeTab}
             onClick={handleActiveButton}
-            title={header}
+            title={item.title}
+            imageSource={item.image}
           />
         ))}
       </ScrollView>
@@ -57,27 +91,35 @@ const HeaderTabButton: React.FC<HeaderTabButtonProps> = ({
   onClick,
   activeButton,
   title,
+  imageSource,
 }) => (
   <TouchableOpacity
     onPress={() => onClick(title)}
-    style={{
-      ...styles.headerTabButton,
-    }}
+    style={styles.headerTabButton}
+    activeOpacity={0.7}
   >
-    <Image
-      style={{
-        ...styles.headerTabButtonImage,
-        borderColor: title === activeButton ? "#FDD059" : "transparent",
-      }}
-      source={{
-        uri: "https://www.ulcdn.net/media/furniture-stores/chennai/thoraipakkam/Thoraipakkam_-TN-store-mobile.jpg?1683052402",
+    <ImageComp
+      source={imageSource}
+      imageStyle={[
+        styles.headerTabButtonImage,
+        {
+          borderColor: title === activeButton ? "#FDD059" : "transparent",
+        }
+      ]}
+      resizeMode="cover"
+      loaderColor="#FDD059"
+      loaderSize="small"
+      fallbackSource={{
+        uri: "https://via.placeholder.com/60x60/FDD059/FFFFFF?text=" + encodeURIComponent(title.charAt(0))
       }}
     />
     <Text
-      style={{
-        ...styles.headerButtonText,
-        fontWeight: title === activeButton ? "bold" : "normal",
-      }}
+      style={[
+        styles.headerButtonText,
+        {
+          fontWeight: title === activeButton ? "bold" : "normal",
+        }
+      ]}
     >
       {title.length > 7 ? title.slice(0, 7) + "..." : title}
     </Text>
@@ -97,13 +139,15 @@ const styles = StyleSheet.create({
   headerTabButtonImage: {
     height: 60,
     width: 60,
-    borderRadius: 50,
-    borderWidth: 5,
+    borderRadius: 30,
+    borderWidth: 3,
   },
   headerButtonText: {
     marginTop: 5,
     fontSize: 12,
     fontWeight: "900",
+    textAlign: "center",
+    maxWidth: 70,
   },
 });
 

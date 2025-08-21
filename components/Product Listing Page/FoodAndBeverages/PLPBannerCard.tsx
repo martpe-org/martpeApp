@@ -102,7 +102,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 
       {/* Actions */}
       <View style={[styles.PLPBannerCardContentContainer, { justifyContent: "flex-end" }]}>
-        <LikeButton productId={productId} />
+        <LikeButton productId={productId} color="#E11D48" />
         <View style={{ width: 5 }} />
         <ShareButton storeName={title} type="outlet"  storeId={productId} />
       </View>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginHorizontal: 15,
     overflow: "hidden",
-    padding: 20,
+    padding: 10,
     elevation: 3,
   },
   PLPBannerCardTitle: {

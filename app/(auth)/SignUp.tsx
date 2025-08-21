@@ -65,7 +65,7 @@ const SignUp: React.FC = () => {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       console.log("User is already authenticated, redirecting to home");
-      router.replace("../(tabs)/home");
+      router.replace("./(tabs)/home");
     }
   }, [isAuthenticated, authLoading, router]);
 

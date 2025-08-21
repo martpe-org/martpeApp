@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     resizeMode: "cover",
-    height: 275,
+    height: 200,
   },
   backButton: {
     position: "absolute",
-    top: -5,
+    top: -52,
     left: 10,
     zIndex: 1,
     padding: 8,

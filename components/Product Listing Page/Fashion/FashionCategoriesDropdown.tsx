@@ -1,47 +1,61 @@
-
 import { FC } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import ImageComp from "@/components/common/ImageComp";
 import { fashionCategories } from "../../../data";
 
-const FashionCategoriesDropdown: FC = () => {
+interface FashionCategoriesDropdownProps {
+  onSubCategorySelect: (category: string) => void;
+  activeCategory: string;
+}
+
+const FashionCategoriesDropdown: FC<FashionCategoriesDropdownProps> = ({
+  onSubCategorySelect,
+  activeCategory
+}) => {
   return (
     <ScrollView
+      horizontal
       style={styles.dropdownContainer}
       contentContainerStyle={{
-        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         columnGap: 10,
       }}
+      showsHorizontalScrollIndicator={false}
     >
       {fashionCategories.map((category, index) => {
+        const isActive = activeCategory === category.title;
         return (
-          <TouchableOpacity key={index} style={styles.dropdownItem}>
+          <TouchableOpacity 
+            key={index} 
+            style={styles.dropdownItem}
+            onPress={() => onSubCategorySelect(category.title)}
+          >
             <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                borderColor: "#e8e8e8",
-                // backgroundColor: "#a3fbfb20",
-                backgroundColor: "#fff",
-                borderWidth: 0.5,
-                paddingVertical: 5,
-                borderRadius: 10,
-              }}
+              style={[
+                styles.dropdownItemContainer,
+                { backgroundColor: isActive ? "#007AFF" : "#fff" }
+              ]}
             >
-              <Image
-                style={styles.dropdownItemImage}
-                source={{ uri: category.image }}
+              <ImageComp
+                source={category.image}
+                imageStyle={styles.dropdownItemImage}
+                resizeMode="cover"
+                fallbackSource={{ uri: "https://via.placeholder.com/25?text=C" }}
+                loaderColor="#666"
+                loaderSize="small"
               />
               <Text
-                style={styles.dropdownItemText}
+                style={[
+                  styles.dropdownItemText,
+                  { color: isActive ? "#fff" : "#000" }
+                ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -55,14 +69,9 @@ const FashionCategoriesDropdown: FC = () => {
   );
 };
 
-export default FashionCategoriesDropdown;
-
 const styles = StyleSheet.create({
   dropdownContainer: {
     flex: 1,
-    flexDirection: "row",
-    columnGap: 10,
-    flexWrap: "wrap",
     backgroundColor: "#fff",
     paddingBottom: 10,
     paddingTop: 5,
@@ -70,9 +79,16 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
   },
   dropdownItem: {
-    color: "#bdbdbd",
     marginVertical: 5,
-    borderRadius: 5,
+  },
+  dropdownItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderColor: "#e8e8e8",
+    borderWidth: 0.5,
+    paddingVertical: 5,
+    borderRadius: 10,
+    paddingHorizontal: 8,
   },
   dropdownItemImage: {
     width: 25,
@@ -83,5 +99,8 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     fontSize: 12,
     marginHorizontal: 5,
+    minWidth: 60,
   },
 });
+
+export default FashionCategoriesDropdown;
