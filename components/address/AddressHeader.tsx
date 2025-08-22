@@ -6,7 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import { StatusBar } from "expo-status-bar"; // ✅ correct import
+import { StatusBar } from "expo-status-bar";
 import {Feather} from "@expo/vector-icons";
 
 interface AddressHeaderProps {

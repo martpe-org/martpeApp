@@ -92,12 +92,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
     }
   };
 
-  const handleBlur = () => {
-    // Delay closing to allow touch events on suggestions
-    blurTimeoutRef.current = setTimeout(() => {
-      setIsSearchboxActive(false);
-    }, 300);
-  };
+
 
   const handleSuggestionSelect = (suggestion: SuggestionItem) => {
     // Clear any pending blur timeout immediately
@@ -145,7 +140,6 @@ const Searchbox: React.FC<SearchboxProps> = ({
         <TextInput
           onChangeText={handleInputChange}
           onFocus={handleFocus}
-          onBlur={handleBlur}
           value={searchInput}
           style={styles.searchBox}
           placeholder={`Search in ${placeHolder}`}

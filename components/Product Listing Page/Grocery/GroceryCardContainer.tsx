@@ -107,21 +107,22 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
           key={`${item.id || item.catalog_id}-${index}-${item.descriptor?.name?.slice(0,10) || 'item'}`}
           style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
         >
-          <GroceryCard
-            id={item.id}
-            itemName={item.descriptor?.name || "Unnamed Product"}
-            cost={item.price.value}
-            maxLimit={item.quantity?.maximum?.count ?? 0} 
-            providerId={providerId}
-            slug={item.slug || item.id}
-            catalogId={item.catalog_id}
-            symbol={item.symbol}
-            weight={item.weight}
-            unit={item.unit}
-            originalPrice={item.price.maximum_value}
-            discount={item.price.offerPercent}
-            onPress={() => handleOpenModal?.(item)}
-          />
+     <GroceryCard
+  id={item.id}
+  itemName={item.descriptor?.name || "Unnamed Product"}
+  cost={item.price.value}
+  maxLimit={item.quantity?.maximum?.count ?? 0} 
+  providerId={item.provider?.store_id} // ✅ use actual store ObjectId
+  slug={item.slug || item.id}
+  catalogId={item.catalog_id}
+  symbol={item.symbol}
+  weight={item.weight}
+  unit={item.unit}
+  originalPrice={item.price.maximum_value}
+  discount={item.price.offerPercent}
+  onPress={() => handleOpenModal?.(item)}
+/>
+
         </View>
       ))}
     </View>

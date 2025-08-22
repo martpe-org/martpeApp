@@ -45,8 +45,7 @@ const SearchScreen: React.FC = () => {
   const selectedDetails = useDeliveryStore(
     (state) => state.selectedDetails
   ) as SelectedDetails;
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   // Rotate placeholder text
   useEffect(() => {
@@ -65,7 +64,7 @@ const SearchScreen: React.FC = () => {
     loadRecentSearches();
   }, []);
 
-  // Arrow icon
+  // Arrow icon component
   const GotoArrow: React.FC = () => (
     <Svg width={24} height={24} fill="none" viewBox="0 0 24 24">
       <Path
@@ -96,7 +95,8 @@ const SearchScreen: React.FC = () => {
       setSuggestions([]);
       return;
     }
-    async function fetchSuggestions() {
+
+    const fetchSuggestions = async () => {
       try {
         if (abortController) abortController.abort();
 
@@ -121,8 +121,10 @@ const SearchScreen: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
-    }
+    };
+
     fetchSuggestions();
+
     return () => {
       if (abortController) abortController.abort();
     };
@@ -142,9 +144,7 @@ const SearchScreen: React.FC = () => {
   const saveSearchTerm = async (searchTerm: string): Promise<void> => {
     try {
       const currentSearches = await getAsyncStorageItem("recentSearches");
-      let searches: string[] = currentSearches
-        ? JSON.parse(currentSearches)
-        : [];
+      let searches: string[] = currentSearches ? JSON.parse(currentSearches) : [];
       searches = searches.filter((s) => s !== searchTerm);
       searches.unshift(searchTerm);
       searches = searches.slice(0, 10);
@@ -158,9 +158,7 @@ const SearchScreen: React.FC = () => {
   const removeSearchTerm = async (searchTerm: string): Promise<void> => {
     try {
       const currentSearches = await getAsyncStorageItem("recentSearches");
-      let searches: string[] = currentSearches
-        ? JSON.parse(currentSearches)
-        : [];
+      let searches: string[] = currentSearches ? JSON.parse(currentSearches) : [];
       searches = searches.filter((s) => s !== searchTerm);
       await setAsyncStorageItem("recentSearches", JSON.stringify(searches));
       setRecentSearches(searches);
@@ -169,7 +167,6 @@ const SearchScreen: React.FC = () => {
     }
   };
 
-  // Unified navigation
   const navigateToSearch = async (term: string): Promise<void> => {
     if (term.length < 3) return;
     await saveSearchTerm(term);
@@ -218,51 +215,37 @@ const SearchScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <View style={{ alignItems: "center", flexDirection: "row" }}>
+        <View style={styles.headerRow}>
           <Feather
             name="arrow-left"
             style={styles.headerLeftIcon}
             onPress={() => router.back()}
           />
-          <Text style={{ ...Fonts.medium(16), color: Colors.BLACK_COLOR }}>
-            Search anything you want
-          </Text>
+          <Text style={styles.headerTitle}>Search anything you want</Text>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <TextInput
             value={inputValue}
             onChangeText={setInputValue}
             autoFocus
-            placeholder={
-              placeHolder || `Search for '${searchTexts[searchTextIndex]}'`
-            }
-            style={{
-              height: 50,
-              borderRadius: 10,
-              flex: 1,
-              paddingHorizontal: 10,
-              color: "#8E8A8A",
-            }}
+            placeholder={placeHolder || `Search for '${searchTexts[searchTextIndex]}'`}
+            style={styles.textInput}
             selectionColor="#8E8A8A"
             placeholderTextColor="#8E8A8A"
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
           />
-          <TouchableOpacity onPress={handleSearchSubmit} style={styles.icon}>
+          <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchIcon}>
             <Feather name="search" size={20} color="#8E8A8A" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Recent Searches */}
       {inputValue.length < 3 ? (
         <View style={styles.recentSearchContainer}>
           <Text style={styles.recentSearchHeader}>
-            {recentSearches.length > 0
-              ? "Recent Searches"
-              : "Discover something new!"}
+            {recentSearches.length > 0 ? "Recent Searches" : "Discover something new!"}
           </Text>
           <View style={styles.recentSearchItemsContainer}>
             {recentSearches.slice(0, 5).map((term, index) => (
@@ -275,32 +258,22 @@ const SearchScreen: React.FC = () => {
                 <Text style={styles.recentSearchText}>
                   {term.length < 20 ? term : term.slice(0, 20) + "..."}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => removeSearchTerm(term)}
-                  style={styles.removeRecentSearch}
-                >
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={14}
-                    color="#35374B"
-                  />
+                <TouchableOpacity onPress={() => removeSearchTerm(term)}>
+                  <MaterialCommunityIcons name="close" size={14} color="#35374B" />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       ) : (
-        // Suggestions
         <View>
-          <Text style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            Suggestions
-          </Text>
+          <Text style={styles.suggestionsHeader}>Suggestions</Text>
           {isLoading ? (
-            <View style={{ alignItems: "center", marginTop: 20 }}>
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="red" />
             </View>
           ) : suggestions.length > 0 ? (
-            <SafeAreaView style={{ flex: 1, minHeight: height * 0.8 }}>
+            <SafeAreaView style={styles.suggestionsContainer}>
               <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
                 {suggestions.map((suggestion, index) => (
                   <TouchableOpacity
@@ -310,35 +283,14 @@ const SearchScreen: React.FC = () => {
                   >
                     <ImageComp
                       source={getImageSource(suggestion.symbol)}
-                      imageStyle={{
-                        height: 40,
-                        width: 40,
-                        borderRadius: 20,
-                      }}
+                      imageStyle={styles.suggestionImage}
                       resizeMode="cover"
                     />
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        width: "80%",
-                      }}
-                    >
+                    <View style={styles.suggestionContent}>
                       <View>
-                        <Text style={styles.productName}>
-                          {suggestion.name}
-                        </Text>
-                        <Text
-                          style={{
-                            color: "gray",
-                            marginLeft: 15,
-                            fontSize: 12,
-                          }}
-                        >
-                          {getItemTypeLabel(
-                            suggestion.type,
-                            suggestion.domain
-                          )}
+                        <Text style={styles.productName}>{suggestion.name}</Text>
+                        <Text style={styles.productType}>
+                          {getItemTypeLabel(suggestion.type, suggestion.domain)}
                         </Text>
                       </View>
                       <GotoArrow />
@@ -348,7 +300,7 @@ const SearchScreen: React.FC = () => {
               </ScrollView>
             </SafeAreaView>
           ) : (
-            <View style={{ marginTop: 20, marginHorizontal: 20 }}>
+            <View style={styles.noResultsContainer}>
               <Text>No results found</Text>
             </View>
           )}
@@ -371,24 +323,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: Colors.WHITE_COLOR,
   },
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+  },
   headerLeftIcon: {
     color: Colors.BLACK_COLOR,
     marginRight: 15,
     fontSize: 25,
   },
-  removeRecentSearch: {},
-  searchRow: {
-    paddingVertical: 15,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.CARD_BORDER_COLOR,
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  productName: {
-    ...Fonts.boldMontserrat(14),
+  headerTitle: {
+    ...Fonts.medium(16),
     color: Colors.BLACK_COLOR,
-    marginLeft: 15,
   },
   searchContainer: {
     flexDirection: "row",
@@ -399,7 +345,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 10,
   },
-  icon: {
+  textInput: {
+    height: 50,
+    borderRadius: 10,
+    flex: 1,
+    paddingHorizontal: 10,
+    color: "#8E8A8A",
+  },
+  searchIcon: {
     paddingRight: 20,
   },
   recentSearchContainer: {
@@ -429,5 +382,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#35374B",
     marginHorizontal: width * 0.01,
+  },
+  suggestionsHeader: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  suggestionsContainer: {
+    flex: 1,
+    minHeight: height * 0.8,
+  },
+  searchRow: {
+    paddingVertical: 15,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.CARD_BORDER_COLOR,
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  suggestionImage: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+  },
+  suggestionContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "80%",
+  },
+  productName: {
+    ...Fonts.boldMontserrat(14),
+    color: Colors.BLACK_COLOR,
+    marginLeft: 15,
+  },
+  productType: {
+    color: "gray",
+    marginLeft: 15,
+    fontSize: 12,
+  },
+  noResultsContainer: {
+    marginTop: 20,
+    marginHorizontal: 20,
   },
 });

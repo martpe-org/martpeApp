@@ -1,8 +1,4 @@
-// fetchAddress.ts
 import { AddressType } from '../../common-types';
-// import Constants from 'expo-constants';
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchAddress = async (authToken: string): Promise<AddressType[] | null> => {
   try {

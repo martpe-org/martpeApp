@@ -9,13 +9,11 @@ import {
 } from "react-native";
 import useUserDetails from "../../../hook/useUserDetails";
 import { router } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import Fontisto from '@expo/vector-icons/Fontisto';
+import Fontisto from "@expo/vector-icons/Fontisto";
 const Profile = () => {
   const { removeUserDetails, userDetails, getUserDetails } = useUserDetails();
 
   const [isProfileVisible, setProfileVisible] = useState(true);
-
 
   useEffect(() => {
     getUserDetails();
@@ -36,15 +34,18 @@ const Profile = () => {
         {/* Profile Card */}
         <View style={styles.profileBox}>
           <View style={styles.avatarAndGreeting}>
-         <Fontisto name="person" style = {styles.avatar} />
+            <Fontisto name="person" style={styles.avatar} />
             <Text style={styles.greeting}>
               Hey{"\n"}
-              <Text style={styles.name}>{userDetails?.firstName ?? "User"}</Text>!
+              <Text style={styles.name}>
+                {userDetails?.firstName ?? "User"}
+              </Text>
+              !
             </Text>
           </View>
 
-          <TouchableOpacity 
-            style={styles.openProfileButton} 
+          <TouchableOpacity
+            style={styles.openProfileButton}
             onPress={toggleProfileVisibility}
           >
             <Text style={styles.openProfileButtonText}>
@@ -58,7 +59,9 @@ const Profile = () => {
 
               <View style={styles.detailItem}>
                 <Text style={styles.detailTitle}>Full Name:</Text>
-                <Text>{userDetails?.firstName} {userDetails?.lastName}</Text>
+                <Text>
+                  {userDetails?.firstName} {userDetails?.lastName}
+                </Text>
               </View>
 
               <View style={styles.detailItem}>
@@ -70,18 +73,22 @@ const Profile = () => {
                 <Text style={styles.detailTitle}>Email:</Text>
                 <Text>{userDetails?.email}</Text>
               </View>
-
-        
             </View>
           )}
         </View>
 
         {/* Action Buttons */}
         <View style={styles.grid}>
-          <TouchableOpacity style={styles.gridButton} onPress={() => router.push("/(tabs)/orders")}>
+          <TouchableOpacity
+            style={styles.gridButton}
+            onPress={() => router.push("/(tabs)/orders")}
+          >
             <Text style={styles.gridText}>My Orders</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton} onPress={() => router.push("/(tabs)/account/wishlist")}>
+          <TouchableOpacity
+            style={styles.gridButton}
+            onPress={() => router.push("/(tabs)/account/wishlist")}
+          >
             <Text style={styles.gridText}>My Favorites</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.gridButton}>
@@ -93,7 +100,10 @@ const Profile = () => {
           <TouchableOpacity style={styles.gridButton}>
             <Text style={styles.gridText}>Contact us</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.gridButton, styles.logoutButton]} onPress={handleLogout}>
+          <TouchableOpacity
+            style={[styles.gridButton, styles.logoutButton]}
+            onPress={handleLogout}
+          >
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -128,16 +138,19 @@ const styles = StyleSheet.create({
   },
   greeting: { textAlign: "center", fontSize: 18, color: "#666" },
   name: { fontWeight: "bold", fontSize: 20, color: "#000" },
-  profileDetails: { 
+  profileDetails: {
     marginTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#eee",
-    paddingTop: 16
+    paddingTop: 16,
   },
   profileLabel: { fontWeight: "bold", fontSize: 16, marginBottom: 12 },
-  detailItem: { marginBottom: 6,   flexDirection: "row",
+  detailItem: {
+    marginBottom: 6,
+    flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12, },
+    gap: 12,
+  },
   detailTitle: { fontWeight: "600", fontSize: 13, color: "#333" },
   editButton: {
     marginTop: 12,

@@ -1,5 +1,6 @@
 import React, { useState, FC, useEffect } from "react";
-import { Pressable, View, Text } from "react-native";
+import { TouchableOpacity } from "react-native";
+import {  View, Text } from "react-native";
 
 const typeData = [
   {
@@ -59,7 +60,7 @@ const Type: FC<TypeProps> = ({ saveAs, initialValue = "Home" }) => {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
       {typeData.map((item) => (
-        <Pressable
+        <TouchableOpacity
           style={{
             paddingHorizontal: 12,
             paddingVertical: 8,
@@ -83,7 +84,7 @@ const Type: FC<TypeProps> = ({ saveAs, initialValue = "Home" }) => {
           >
             {item.name}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       ))}
     </View>
   );

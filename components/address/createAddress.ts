@@ -1,8 +1,4 @@
-// createAddress.ts
 import { AddressType, ApiErrorResponseType } from '../../common-types';
-// import Constants from 'expo-constants';
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const createAddress = async (
   authToken: string,

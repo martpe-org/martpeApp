@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
-  ActivityIndicator,
   Text,
   ScrollView,
   RefreshControl,
@@ -13,6 +12,8 @@ import HeaderWishlist from "../../../components/wishlist/Header";
 import TabBar, { WishlistTab } from "../../../components/wishlist/TabBar";
 import FavItems from "../../../components/wishlist/FavItems";
 import FavOutlets from "../../../components/wishlist/FavOutlets";
+import Loader from "../../../components/common/Loader";
+
 
 const Wishlist = () => {
   const { authToken } = useUserDetails();
@@ -42,15 +43,9 @@ const Wishlist = () => {
   const outletsCount = allFavorites?.stores?.length ?? 0;
 
   const renderContent = () => {
-    if (isLoading && !refreshing) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#0066CC" />
-          <Text style={styles.loadingText}>Loading favorites...</Text>
-        </View>
-      );
-    }
-
+  if (isLoading && !refreshing) {
+  return <Loader />;
+}
     if (error) {
       return (
         <View style={styles.centered}>
@@ -89,31 +84,21 @@ const Wishlist = () => {
   };
 
   const renderTabContent = () => {
-    // Show loading state in tab content area
-    if (isLoading && !refreshing && !allFavorites) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#0066CC" />
-          <Text style={styles.loadingText}>Loading favorites...</Text>
-        </View>
-      );
-    }
-
-    return renderContent();
+ if (isLoading && !refreshing && !allFavorites) {
+  return <Loader />;
+}
+ return renderContent();
   };
 
   return (
     <View style={styles.container}>
       <HeaderWishlist />
-      
-      {/* Pass counts to TabBar for better UX */}
       <TabBar 
         selectTab={setSelectedTab} 
         selectedTab={selectedTab}
         itemsCount={itemsCount}
         outletsCount={outletsCount}
       />
-      
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

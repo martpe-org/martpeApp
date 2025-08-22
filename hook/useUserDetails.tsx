@@ -16,6 +16,8 @@ export const getUserDetails = async () => {
 };
 
 interface UserDetails {
+  _id:string;
+  email:string;
   accessToken: string;
   refreshToken: string;
   firstName: string;

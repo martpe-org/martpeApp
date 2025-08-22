@@ -1,4 +1,3 @@
-// app/(tabs)/account/_layout.tsx
 import { Stack } from "expo-router";
 import { ToastProvider } from "react-native-toast-notifications";
 import { GestureHandlerRootView } from "react-native-gesture-handler";

@@ -58,17 +58,19 @@ const uniqueBy = <T,>(arr: T[], keyFn: (x: T) => string) => {
   const seen = new Set<string>();
   const out: T[] = [];
   let counter = 0;
-  
+
   for (const item of arr) {
     const primaryKey = keyFn(item);
     let key = primaryKey;
-    
+
     // If key is empty or already seen, generate a more unique key
     if (!key || seen.has(key)) {
-      key = `${primaryKey}_${counter}_${Math.random().toString(36).slice(2, 8)}`;
+      key = `${primaryKey}_${counter}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
       counter++;
     }
-    
+
     if (!seen.has(key)) {
       seen.add(key);
       out.push(item);
@@ -307,12 +309,12 @@ const PLP: React.FC = () => {
   // ✅ FIXED: Enhanced deduplication with multiple fields
   const uniqueCatalogs = useMemo(() => {
     if (!vendorData?.catalogs) return [];
-    
+
     // More robust deduplication using multiple fields
     return uniqueBy(vendorData.catalogs, (x) => {
-      const id = x.id || x.catalog_id || '';
-      const name = x.descriptor?.name || '';
-      const categoryId = x.category_id || '';
+      const id = x.id || x.catalog_id || "";
+      const name = x.descriptor?.name || "";
+      const categoryId = x.category_id || "";
       return `${id}::${name}::${categoryId}`;
     });
   }, [vendorData?.catalogs]);
@@ -387,16 +389,13 @@ const PLP: React.FC = () => {
           setVendorData(convertedData);
 
           // Initialize pagination with better deduplication
-          const deduped = uniqueBy(
-            convertedData.catalogs,
-            (x) => {
-              const id = x.id || x.catalog_id || '';
-              const name = x.descriptor?.name || '';
-              const categoryId = x.category_id || '';
-              return `${id}::${name}::${categoryId}`;
-            }
-          );
-          
+          const deduped = uniqueBy(convertedData.catalogs, (x) => {
+            const id = x.id || x.catalog_id || "";
+            const name = x.descriptor?.name || "";
+            const categoryId = x.category_id || "";
+            return `${id}::${name}::${categoryId}`;
+          });
+
           const firstBatch = deduped.slice(0, ITEMS_PER_PAGE);
           setPaginatedCatalog(firstBatch);
           setHasMoreItems(deduped.length > ITEMS_PER_PAGE);
@@ -558,7 +557,11 @@ const PLP: React.FC = () => {
 
       case "ONDC:RET12":
         return (
-          <PLPFashion headers={dropdownHeaders} catalog={paginatedCatalog} providerId={vendorSlug} />
+          <PLPFashion
+            headers={dropdownHeaders}
+            catalog={paginatedCatalog}
+            providerId={vendorSlug}
+          />
         );
 
       case "ONDC:RET13":
@@ -607,12 +610,11 @@ const PLP: React.FC = () => {
         data={[1]} // single container
         renderItem={() => (
           <View>
-          <Searchbox
-  search={onInputChanged}
-  placeHolder={vendorData.descriptor?.name || "Store"}
-  catalog={vendorData.catalogs || []}
-/>
-
+            <Searchbox
+              search={onInputChanged}
+              placeHolder={vendorData.descriptor?.name || "Store"}
+              catalog={vendorData.catalogs || []}
+            />
             <PLPBanner
               address={vendorAddress}
               descriptor={vendorData.descriptor}

@@ -15,7 +15,6 @@ import Header from "../../components/address/AddressHeader";
 import { InputField } from "../../app/address/AddNewAddress";
 import { fetchAddress } from "../../components/address/fetchAddress";
 import { updateAddress } from "../../components/address/updateAddress";
-import { deleteAddress } from "../../components/address/deleteAddress";
 import { useLocalSearchParams, router } from "expo-router";
 import Type from "../../components/address/type";
 import useUserDetails from '../../hook/useUserDetails';
@@ -43,7 +42,7 @@ const EditAddress: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting] = useState(false);
   const [addressInput, setAddressInput] = useState<AddressInput>({
     type: 'Home',
     name: "",
@@ -211,54 +210,7 @@ const EditAddress: React.FC = () => {
       setIsSaving(false);
     }
   };
-console.log("Calling deleteAddress with token:", authToken);
 
-  const handleDeleteAddress = async (id :string) => {
-    Alert.alert(
-      "Delete Address", 
-      "Are you sure you want to delete this address?", 
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!addressId) {
-              Alert.alert("Error", "Address ID is missing.");
-              return;
-            }
-
-            setIsDeleting(true);
-            try {
-              const result = await deleteAddress(authToken, addressId as string ,id as string);
-                            console.log(authToken)
-
-              if (result) {
-                Alert.alert("Success", "Address deleted successfully!", [
-                  { text: "OK", onPress: () => router.back() },
-                ]);
-                              console.log(authToken)
-
-              } else {
-                Alert.alert("Error", "Failed to delete address. Please try again.");
-              }
-            } catch (e: any) {
-              console.error("Delete error:", e);
-              Alert.alert(
-                "Delete Failed", 
-                e.message || "Failed to delete address. Please try again.",
-                [
-                  { text: "OK" }
-                ]
-              );
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleTypeChange = (value: string) => {
     let apiValue: AddressInput["type"];
@@ -280,20 +232,6 @@ console.log("Calling deleteAddress with token:", authToken);
     }
     
     setAddressInput((prev) => ({ ...prev, type: apiValue }));
-  };
-
-  const getDisplayType = (type: AddressInput["type"]): string => {
-    switch (type) {
-      case "FriendsAndFamily":
-        return "Friends & Family";
-      case "Home":
-        return "Home";
-      case "Work":
-        return "Work";
-      case "Other":
-      default:
-        return "Other";
-    }
   };
 
   if (authLoading || isLoading) {
@@ -383,7 +321,6 @@ console.log("Calling deleteAddress with token:", authToken);
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              onPress ={handleDeleteAddress} 
               style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
               disabled={isDeleting || isSaving}
             >

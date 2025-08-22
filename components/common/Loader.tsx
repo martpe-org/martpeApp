@@ -1,20 +1,22 @@
-import { View, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
+import React from "react";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
 
-const Loader = () => {
+interface LoaderProps {
+  size?: "small" | "large";
+  color?: string;
+}
+
+const Loader: React.FC<LoaderProps> = ({ size = "large", color = "#0000ff" }) => {
   return (
     <View style={styles.container}>
-
-      <ActivityIndicator size="large" color="#FB3E44" />
+      <ActivityIndicator size={size} color={color} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },

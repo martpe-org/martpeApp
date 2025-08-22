@@ -17,7 +17,6 @@ import { verifyOTP } from "../OTP/verify-otp";
 
 const textInputColor = "#C7C4C4";
 const resendOTPDuration = 30;
-
 interface VerifyOtpResponseType {
   status: number;
   data: {
@@ -72,92 +71,89 @@ const VerifyOTP: React.FC = () => {
     return number.length === 10 ? `${number}` : number;
   };
 
-
-const handleResendOTP = async () => {
-  if (count === 0 && otpOrderId && mobileNumber) {
-    try {
-      const decodedOrderId = decodeURIComponent(otpOrderId);
-      const formattedNumber = getFormattedMobileNumber(mobileNumber);
-      
-      console.log("Resending OTP with params:", {
-        orderId: decodedOrderId,
-        phoneNumber: formattedNumber
-      });
-
-      const response = await resendOTP({
-        orderId: decodedOrderId,
-        phoneNumber: formattedNumber
-      });
-
-      console.log("Resend OTP response:", response);
-
-      if (response.status === 200) {
-        toast.show("OTP has been resent to your mobile number", {
-          type: "success",
-          placement: "bottom",
-          duration: 3000,
+  const handleResendOTP = async () => {
+    if (count === 0 && otpOrderId && mobileNumber) {
+      try {
+        const decodedOrderId = decodeURIComponent(otpOrderId);
+        const formattedNumber = getFormattedMobileNumber(mobileNumber);
+        console.log("Resending OTP with params:", {
+          orderId: decodedOrderId,
+          phoneNumber: formattedNumber,
         });
-        setCount(resendOTPDuration);
-        setOtp(""); // Clear existing OTP input
-      } else {
-        console.error("OTP resend failed:", response);
-        const errorMessage = response.data?.message || response.data?.error?.message || "Failed to resend OTP";
+
+        const response = await resendOTP({
+          orderId: decodedOrderId,
+          phoneNumber: formattedNumber,
+        });
+
+        if (response.status === 200) {
+          toast.show("OTP has been resent to your mobile number", {
+            type: "success",
+            placement: "bottom",
+            duration: 3000,
+          });
+          setCount(resendOTPDuration);
+          setOtp(""); // Clear existing OTP input
+        } else {
+          const errorMessage =
+            response.data?.message ||
+            response.data?.error?.message ||
+            "Failed to resend OTP";
+          toast.show(errorMessage, {
+            type: "danger",
+            placement: "bottom",
+            duration: 3000,
+          });
+        }
+      } catch (error) {
+        // More detailed error handling
+        let errorMessage = "Error resending OTP";
+        if (error instanceof Error) {
+          if (error.message.includes("Network request failed")) {
+            errorMessage =
+              "Network connection failed. Please check your internet connection.";
+          } else if (error.message.includes("timeout")) {
+            errorMessage = "Request timed out. Please try again.";
+          } else {
+            errorMessage = `Network error: ${error.message}`;
+          }
+        }
         toast.show(errorMessage, {
           type: "danger",
           placement: "bottom",
-          duration: 3000,
+          duration: 4000,
         });
       }
-    } catch (error) {
-      console.error(`Error resending OTP for [${otpOrderId}]:`, error);
-      
-      // More detailed error handling
-      let errorMessage = "Error resending OTP";
-      if (error instanceof Error) {
-        if (error.message.includes('Network request failed')) {
-          errorMessage = "Network connection failed. Please check your internet connection.";
-        } else if (error.message.includes('timeout')) {
-          errorMessage = "Request timed out. Please try again.";
-        } else {
-          errorMessage = `Network error: ${error.message}`;
-        }
+    } else {
+      // Handle missing parameters
+      if (!otpOrderId) {
+        toast.show("Missing OTP order ID", {
+          type: "danger",
+          placement: "bottom",
+        });
+      } else if (!mobileNumber) {
+        toast.show("Missing mobile number", {
+          type: "danger",
+          placement: "bottom",
+        });
+      } else if (count > 0) {
+        toast.show(`Please wait ${count} seconds before requesting again`, {
+          type: "warning",
+          placement: "bottom",
+        });
       }
-      
-      toast.show(errorMessage, {
-        type: "danger",
-        placement: "bottom",
-        duration: 4000,
-      });
     }
-  } else {
-    // Handle missing parameters
-    if (!otpOrderId) {
-      toast.show("Missing OTP order ID", { type: "danger", placement: "bottom" });
-    } else if (!mobileNumber) {
-      toast.show("Missing mobile number", { type: "danger", placement: "bottom" });
-    } else if (count > 0) {
-      toast.show(`Please wait ${count} seconds before requesting again`, { 
-        type: "warning", 
-        placement: "bottom" 
-      });
-    }
-  }
-};
+  };
 
   const validateOTP = async (mobileNumber: string) => {
     try {
       const formattedNumber = getFormattedMobileNumber(mobileNumber);
       const decodedOrderId = decodeURIComponent(otpOrderId!);
-
-      console.log("Verifying OTP for:", formattedNumber);
-
       const response = (await verifyOTP(
         formattedNumber,
         decodedOrderId,
         otp
       )) as VerifyOtpResponseType;
-
-      console.log("Verify OTP response:", response);
 
       if (response.status === 200) {
         const { token, user, isOTPVerified } = response.data;
@@ -176,7 +172,7 @@ const handleResendOTP = async () => {
 
           console.log("Saving user details...");
           await saveUserDetails(userDetails);
-          router.replace("/(auth)/SignUp");
+          router.push("/(auth)/SignUp");
         } else if (isOTPVerified && !user) {
           router.push({
             pathname: "/(auth)/SignUp",
@@ -248,7 +244,7 @@ const handleResendOTP = async () => {
 
       {count === 0 ? (
         <Text style={styles.resendOtpText}>
-          Did not receive the OTP yet?    
+          Did not receive the OTP yet?
           <Text
             style={{
               color: "#030303",
@@ -257,15 +253,14 @@ const handleResendOTP = async () => {
             }}
             onPress={handleResendOTP}
           >
-
-              Resend OTP
+            Resend OTP
           </Text>
         </Text>
       ) : (
         <Text style={styles.resendOtpText}>
           OTP request to resend in
           <Text style={styles.resendOtpCounter}> 00:{padZero(count, 2)}</Text>
-             sec
+          sec
         </Text>
       )}
 

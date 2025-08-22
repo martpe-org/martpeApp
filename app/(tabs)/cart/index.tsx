@@ -39,7 +39,6 @@ const CartScreen = () => {
 
   const loadCarts = async () => {
     if (!authToken) {
-      console.log("No auth token available");
       setCarts([]);
       setLoading(false);
       return;
@@ -49,7 +48,6 @@ const CartScreen = () => {
       const fetchedCarts = await fetchCarts(authToken);
       setCarts(fetchedCarts || []);
     } catch (error) {
-      console.error("Error fetching carts:", error);
       setCarts([]);
     } finally {
       setLoading(false);
@@ -102,7 +100,7 @@ const CartScreen = () => {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "../(tabs)/home" })}
+          onPress={() => router.push({ pathname: "./(tabs)/home" })}
           style={styles.startShoppingButton}
         >
           <Text style={styles.startShoppingText}>Start Shopping</Text>

@@ -11,9 +11,9 @@ interface FashionCardProps {
   maxPrice?: number;
   discount: number | string;
   image: string;
-  id: string;
+    id: string;
   catalogId: string;
-  providerId: string;
+  storeId: string; // this will receive product.store_id
   slug?: string;
 }
 
@@ -26,7 +26,7 @@ const FashionCard: FC<FashionCardProps> = ({
   image,
   id,
   catalogId,
-  providerId,
+  storeId, // ✅ make sure to destructure it
   slug,
 }) => {
   return (
@@ -41,34 +41,49 @@ const FashionCard: FC<FashionCardProps> = ({
           source={image}
           imageStyle={styles.fashionCardImage}
           resizeMode="cover"
-          fallbackSource={{ uri: "https://via.placeholder.com/185?text=Fashion" }}
+          fallbackSource={{
+            uri: "https://via.placeholder.com/185?text=Fashion",
+          }}
           loaderColor="#666"
           loaderSize="small"
         />
         <View style={styles.fashionCardContent}>
-          <Text style={styles.fashionCardTitle} numberOfLines={1} ellipsizeMode="tail">
+          <Text
+            style={styles.fashionCardTitle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {itemName}
           </Text>
-          <Text style={styles.fashionCardDescription} numberOfLines={1} ellipsizeMode="tail">
+          <Text
+            style={styles.fashionCardDescription}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {desc}
           </Text>
           <View style={{ flexDirection: "row", marginTop: 3 }}>
             <Text style={styles.fashionCardPrice}>
               <Text style={{ fontSize: 16 }}>₹{value}</Text>{" "}
-              {maxPrice && <Text style={styles.strikedOffText}>₹{maxPrice}</Text>}
+              {maxPrice && (
+                <Text style={styles.strikedOffText}>₹{maxPrice}</Text>
+              )}
             </Text>
             {typeof discount === "number" && discount > 1 && (
-              <Text style={styles.fashionCardDiscount}>{"  "}{discount}% Off</Text>
+              <Text style={styles.fashionCardDiscount}>
+                {"  "}
+                {discount}% Off
+              </Text>
             )}
           </View>
         </View>
       </TouchableOpacity>
 
-      {/* Add to Cart Button using DynamicButton-based AddToCart */}
+      {/* Add to Cart Button */}
       <View style={styles.addToCartContainer}>
         <AddToCart
           price={value}
-          storeId={providerId}
+          storeId={storeId}
           slug={slug || id}
           catalogId={catalogId}
           buttonStyle={styles.addToCartButton}
@@ -78,6 +93,7 @@ const FashionCard: FC<FashionCardProps> = ({
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   fashionCard: {

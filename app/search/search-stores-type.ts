@@ -1,5 +1,3 @@
-//import { StoreCardOfferType } from "../../../../../../../(tabs)/home/fetch-home-type";
-
 export interface SearchStoresResponseType {
   total: number;
   results: StoreSearchResult[];
@@ -15,7 +13,6 @@ export interface StoreSearchResult {
   holidays?: any[];
   avg_tts_in_h?: number;
   status_timestamp: string;
- // offers?: StoreCardOfferType[];
   slug: string;
   images?: string[];
   address: Address;

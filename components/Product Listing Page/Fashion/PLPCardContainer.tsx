@@ -9,6 +9,7 @@ interface CatalogItem {
   bpp_uri: string;
   catalog_id: string;
   category_id: string;
+    provider: { store_id: string };
   descriptor: {
     images: string[];
     long_desc?: string;
@@ -203,22 +204,20 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
       end={[0, 0.1]}
       style={styles.container}
     >
-      {filteredCatalog.map((item, idx) => {
-        const name = item?.descriptor?.name || "";
-        const desc = item?.descriptor?.long_desc || "";
-        const value = item?.price?.value || 0;
-        const maxPrice = item?.price?.maximum_value || 0;
-        const discount =
-          item?.price?.offer_percent ||
-          (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
-        const image =
-          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+   {filteredCatalog.map((item, idx) => {
+  const name = item?.descriptor?.name || "";
+  const desc = item?.descriptor?.long_desc || "";
+  const value = item?.price?.value || 0;
+  const maxPrice = item?.price?.maximum_value || 0;
+  const discount =
+    item?.price?.offer_percent ||
+    (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
+  const image = item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
 
-        // Create a unique key by combining id with index to prevent duplicate key errors
-        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
+  const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-        return (
-       <FashionCard
+  return (
+<FashionCard
   key={uniqueKey}
   itemName={name}
   desc={desc}
@@ -228,12 +227,13 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   image={image}
   id={item.id}
   catalogId={item.catalog_id}
-  storeId={item.store?._id || storeId} // fallback to prop storeId
+   storeId={item.provider?.store_id || storeId}// ✅ safe fallback
   slug={item.slug}
 />
 
-        );
-      })}
+  );
+})}
+
     </LinearGradient>
   );
 };

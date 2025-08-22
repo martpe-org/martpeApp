@@ -1,8 +1,4 @@
-import { ApiErrorResponseType } from "../../common-types";
 import { SearchProductsResponseType } from "./search-products-type";
-// import Constants from "expo-constants";
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const searchProducts = async (input: {
   lat: number;
@@ -15,20 +11,6 @@ export const searchProducts = async (input: {
   size?: number;
   quicksearch?: string;
 }) => {
-  console.log("page ---->", input.page);
-  console.log(
-    "---->",
-    `${process.env.EXPO_PUBLIC_API_URL}/search/products?query=${input.query}&lat=${
-      input.lat
-    }&lon=${input.lon}&pincode=${input.pincode}${
-      input.domain ? `&domain=${input.domain?.replace("ONDC:", "")}` : ""
-    }${input.page ? `&page=${input.page}` : ""}${
-      input.category ? `&category=${input.category}` : ""
-    }${input.size ? `&size=${input.size}` : ""}${
-      input.quicksearch ? `&quicksearch=${input.quicksearch}` : ""
-    }`
-  );
-
   try {
     const res = await fetch(
       `${process.env.EXPO_PUBLIC_API_URL}/search/products?query=${
@@ -51,7 +33,6 @@ export const searchProducts = async (input: {
     console.log(res);
 
     if (!res.ok) {
-      console.log("search products failed");
       throw new Error();
     }
 

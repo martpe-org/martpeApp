@@ -1,9 +1,4 @@
-import { ApiErrorResponseType } from '../../common-types';
 import { FetchSuggestionsType } from './fetch-suggest-type';
-// import Constants from "expo-constants";
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
 export const fetchSearchSuggesstions = async (
   signal: any,
   lat: number,
@@ -12,7 +7,6 @@ export const fetchSearchSuggesstions = async (
   query: string,
   domain?: string
 ) => {
-  console.log(`lat=${lat}lon=${lon}pincode=${pincode}domain=${domain}`);
   try {
     const res = await fetch(
       `${
@@ -36,7 +30,6 @@ export const fetchSearchSuggesstions = async (
 
     return (await res.json()) as FetchSuggestionsType;
   } catch (error) {
-    console.log('Fetch suggestions error ', error);
     return null;
   }
 };

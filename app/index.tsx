@@ -44,9 +44,9 @@ export default function Page() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         {isLoggedIn ? (
-          <Redirect href={"../(tabs)/home"} />
+          <Redirect href={"./(tabs)/home"} />
         ) : (
-          <Redirect href={"../(auth)/"} />
+          <Redirect href={"./(auth)/"} />
         )}
       </ToastProvider>
     </QueryClientProvider>

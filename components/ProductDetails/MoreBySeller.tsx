@@ -14,6 +14,7 @@ import { router } from "expo-router";
 const { width } = Dimensions.get("window");
 const snapInterval = width * 0.72;
 
+// 🔹 Types
 interface PriceType {
   value: number;
   maximum_value?: number;
@@ -25,8 +26,9 @@ interface DescriptorType {
   images?: string[];
 }
 
-interface ProductType {
+export interface ProductType {
   id: string;
+  slug: string;
   descriptor: DescriptorType;
   price: PriceType;
 }
@@ -58,20 +60,24 @@ const MoreBySeller: FC<SellerDetailsProps> = ({ products, originalId }) => {
         {filteredProducts.map((product) => (
           <TouchableOpacity
             key={product.id}
-            onPress={() => {
-              router.push(`/(tabs)/home/result/productDetails/${product.id}`);
-            }}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productDetails/${product.id}`)
+            }
             style={styles.card}
+            activeOpacity={0.8}
           >
-            {product?.price?.offer_percent && product.price.offer_percent > 0 && (
-              <View style={styles.discountTag}>
-                <Discount />
-                <Text style={styles.discountText}>
-                  {Math.ceil(product.price.offer_percent)}% OFF
-                </Text>
-              </View>
-            )}
+            {/* Discount badge */}
+            {product?.price?.offer_percent &&
+              product.price.offer_percent > 0 && (
+                <View style={styles.discountTag}>
+                  <Discount />
+                  <Text style={styles.discountText}>
+                    {Math.ceil(product.price.offer_percent)}% OFF
+                  </Text>
+                </View>
+              )}
 
+            {/* Product Image */}
             <View style={styles.imageContainer}>
               <ImageComp
                 source={{
@@ -82,6 +88,7 @@ const MoreBySeller: FC<SellerDetailsProps> = ({ products, originalId }) => {
               />
             </View>
 
+            {/* Product details */}
             <View style={styles.detailsContainer}>
               <Text style={styles.productName}>
                 {product.descriptor.name.length > 15
@@ -90,7 +97,9 @@ const MoreBySeller: FC<SellerDetailsProps> = ({ products, originalId }) => {
               </Text>
 
               <View style={styles.priceRow}>
-                <Text style={styles.price}>₹{Math.ceil(product?.price?.value)}</Text>
+                <Text style={styles.price}>
+                  ₹{Math.ceil(product?.price?.value)}
+                </Text>
 
                 {product.price?.offer_percent && (
                   <>
@@ -119,6 +128,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingVertical: width * 0.07,
     marginVertical: width * 0.05,
+    borderRadius: 10,
   },
   title: {
     fontSize: 14,
@@ -166,6 +176,8 @@ const styles = StyleSheet.create({
   productName: {
     fontWeight: "500",
     marginBottom: 4,
+    fontSize: 13,
+    color: "#222",
   },
   priceRow: {
     flexDirection: "row",
@@ -174,7 +186,8 @@ const styles = StyleSheet.create({
   },
   price: {
     color: "black",
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: "600",
   },
   strikePrice: {
     textDecorationLine: "line-through",
@@ -185,5 +198,6 @@ const styles = StyleSheet.create({
   offerPercent: {
     color: "#00BC66",
     fontSize: 12,
+    fontWeight: "500",
   },
 });

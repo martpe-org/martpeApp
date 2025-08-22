@@ -14,6 +14,7 @@ export interface CartItemType {
   product_slug: string;
   catalog_id: string;
   qty: number;
+  slug:string;
   unit_price: number;
   total_price: number;
   unit_max_price: number;

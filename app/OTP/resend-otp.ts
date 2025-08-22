@@ -1,7 +1,3 @@
-// import Constants from "expo-constants";
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
 export const resendOTP = async ({
   orderId,
   phoneNumber,
@@ -9,10 +5,8 @@ export const resendOTP = async ({
   orderId: string;
   phoneNumber: string;
 }) => {
-  // Based on generateOTP, your backend uses action=gen, not action=generate!
-  // Also notice generateOTP uses sendTo parameter, not phoneNumber
   const url = `${process.env.EXPO_PUBLIC_API_URL}/get-otp?action=gen&sendTo=${phoneNumber}&orderId=${orderId}`;
-  
+
   console.log("Resend OTP URL (with action=gen):", url);
 
   try {
@@ -27,16 +21,13 @@ export const resendOTP = async ({
 
     if (res.status !== 200) {
       const data = await res.json();
-      console.log('Resend OTP Error Response:', data);
       return { status: res.status, data };
     }
 
     const data = await res.json();
-    console.log('Resend OTP Success Response:', data);
     return { status: 200, data };
   } catch (error) {
-    console.log('Resend OTP Fetch error:', error);
-    return { status: 500, data: { error: { message: 'resend otp failed' } } };
+    return { status: 500, data: { error: { message: "resend otp failed" } } };
   }
 };
 
@@ -49,25 +40,19 @@ export const resendOTPWithoutOrderId = async ({
   phoneNumber: string;
 }) => {
   // Exactly like generateOTP - no orderId parameter
-  const url = `${BASE_URL}/get-otp?action=gen&sendTo=${phoneNumber}`;
-  
-  console.log("Resend OTP URL (no orderId):", url);
-
+  const url = `${process.env.EXPO_PUBLIC_API_URL}/get-otp?action=gen&sendTo=${phoneNumber}`;
   try {
     const res = await fetch(url);
 
     if (res.status !== 200) {
       const data = await res.json();
-      console.log('Resend OTP Error Response:', data);
       return { status: res.status, data };
     }
 
     const data = await res.json();
-    console.log('Resend OTP Success Response:', data);
     return { status: 200, data };
   } catch (error) {
-    console.log('Resend OTP Fetch error:', error);
-    return { status: 500, data: { error: { message: 'resend otp failed' } } };
+    return { status: 500, data: { error: { message: "resend otp failed" } } };
   }
 };
 

@@ -26,10 +26,6 @@ const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
 }) => {
   const handlePress = () => {
     try {
-      // Call onPress first to update parent state
-      onPress?.();
-      
-      // Navigate immediately
       const identifier = item.slug || item.id;
       router.push(`/(tabs)/home/result/productDetails/${identifier}`);
       

@@ -176,7 +176,7 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
           domainColor="rgba(252, 225, 89, 1)" 
           catalog={filteredCatalog}
           selectedCategory={activeTab}
-          providerId="default-provider"
+         // providerId="default-provider"
         />
       ) : activeTab !== "Home & Decor" ? (
         <NoItemsDisplay />
@@ -185,7 +185,7 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
           domainColor="rgba(252, 225, 89, 1)" 
           catalog={catalog}
           selectedCategory="All"
-          providerId="default-provider"
+          //providerId="default-provider"
         />
       )}
     </View>

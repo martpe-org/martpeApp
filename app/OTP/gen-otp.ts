@@ -1,7 +1,3 @@
-// import Constants from 'expo-constants';
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
 export const generateOTP = async (phoneNumber: string) => {
   try {
     const res = await fetch(

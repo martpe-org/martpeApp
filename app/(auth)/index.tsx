@@ -15,9 +15,8 @@ import {
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 import { generateOTP } from "../OTP/gen-otp";
-import useUserDetails from "../../hook/useUserDetails"; // Add this import
+import useUserDetails from "../../hook/useUserDetails";
 
-// Constants
 const PRIMARY_COLOR = "#FB3E44";
 const DISABLED_COLOR = "#d9d9d9";
 const TEXT_INPUT_COLOR = "#C7C4C4";
