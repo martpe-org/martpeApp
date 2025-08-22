@@ -42,69 +42,66 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   // ✅ Safe filtering
-const getFilteredCatalog = () => {
-  if (!activeTab || activeTab === "All") {
-    return catalog;
-  }
-
-  return catalog.filter((item) => {
-const itemName = item?.descriptor?.name?.toLowerCase() || "";
-const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
-const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
-
-
-    switch (activeTab) {
-      case "Furniture":
-        return (
-          itemName.includes("furniture") ||
-          itemName.includes("chair") ||
-          itemName.includes("table") ||
-          itemName.includes("sofa") ||
-          itemDesc.includes("furniture")
-        );
-
-      case "Home Furnishing":
-        return (
-          itemName.includes("curtain") ||
-          itemName.includes("carpet") ||
-          itemName.includes("bedsheet") ||
-          itemName.includes("pillow") ||
-          itemDesc.includes("furnishing")
-        );
-
-      case "Cooking & Dining":
-        return (
-          itemName.includes("kitchen") ||
-          itemName.includes("dining") ||
-          itemName.includes("cookware") ||
-          itemName.includes("utensil") ||
-          itemDesc.includes("cooking") ||
-          itemDesc.includes("dining")
-        );
-
-      case "Garden & Outdoors":
-        return (
-          itemName.includes("garden") ||
-          itemName.includes("outdoor") ||
-          itemName.includes("plant") ||
-          itemName.includes("patio") ||
-          itemDesc.includes("garden") ||
-          itemDesc.includes("outdoor")
-        );
-
-      default:
-        return (
-          itemName.includes(activeTab) ||
-          itemDesc.includes(activeTab) ||
-          itemShortDesc.includes(activeTab)
-        );
+  const getFilteredCatalog = () => {
+    if (!activeTab || activeTab === "All" || activeTab === "Home & Decor") {
+      return catalog;
     }
-  });
-};
 
+    return catalog.filter((item) => {
+      const itemName = item?.descriptor?.name?.toLowerCase() || "";
+      const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
+      const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
 
+      switch (activeTab) {
+        case "Furniture":
+          return (
+            itemName.includes("furniture") ||
+            itemName.includes("chair") ||
+            itemName.includes("table") ||
+            itemName.includes("sofa") ||
+            itemDesc.includes("furniture")
+          );
 
-const filteredCatalog = useMemo(() => getFilteredCatalog(), [catalog, activeTab]);
+        case "Home Furnishing":
+          return (
+            itemName.includes("curtain") ||
+            itemName.includes("carpet") ||
+            itemName.includes("bedsheet") ||
+            itemName.includes("pillow") ||
+            itemDesc.includes("furnishing")
+          );
+
+        case "Cooking & Dining":
+          return (
+            itemName.includes("kitchen") ||
+            itemName.includes("dining") ||
+            itemName.includes("cookware") ||
+            itemName.includes("utensil") ||
+            itemDesc.includes("cooking") ||
+            itemDesc.includes("dining")
+          );
+
+        case "Garden & Outdoors":
+          return (
+            itemName.includes("garden") ||
+            itemName.includes("outdoor") ||
+            itemName.includes("plant") ||
+            itemName.includes("patio") ||
+            itemDesc.includes("garden") ||
+            itemDesc.includes("outdoor")
+          );
+
+        default:
+          return (
+            itemName.includes(activeTab.toLowerCase()) ||
+            itemDesc.includes(activeTab.toLowerCase()) ||
+            itemShortDesc.includes(activeTab.toLowerCase())
+          );
+      }
+    });
+  };
+
+  const filteredCatalog = useMemo(() => getFilteredCatalog(), [catalog, activeTab]);
 
   // Animation for "No items"
   useEffect(() => {
@@ -161,7 +158,7 @@ const filteredCatalog = useMemo(() => getFilteredCatalog(), [catalog, activeTab]
           },
         ]}
       >
-        <Text style={styles.noItemsText}>📦</Text>
+        <Text style={styles.noItemsText}>🏠</Text>
         <Text style={styles.noItemsTitle}>No Items Found</Text>
         <Text style={styles.noItemsSubtext}>
           No products available in {activeTab} category
@@ -170,20 +167,29 @@ const filteredCatalog = useMemo(() => getFilteredCatalog(), [catalog, activeTab]
     );
   };
 
-return (
-  <View style={{ flex: 1 }}>
-    <HomeAndDecorHeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
+  return (
+    <View style={{ flex: 1 }}>
+      <HomeAndDecorHeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-    {filteredCatalog.length > 0 ? (
-      <PLPCardContainer domainColor="rgba(252, 225, 89, 1)" catalog={filteredCatalog} />
-    ) : activeTab !== "Home & Decor" ? (
-      <NoItemsDisplay category={activeTab} />
-    ) : (
-      <PLPCardContainer domainColor="rgba(252, 225, 89, 1)" catalog={catalog} />
-    )}
-  </View>
-);
-
+      {filteredCatalog.length > 0 ? (
+        <PLPCardContainer 
+          domainColor="rgba(252, 225, 89, 1)" 
+          catalog={filteredCatalog}
+          selectedCategory={activeTab}
+          providerId="default-provider"
+        />
+      ) : activeTab !== "Home & Decor" ? (
+        <NoItemsDisplay />
+      ) : (
+        <PLPCardContainer 
+          domainColor="rgba(252, 225, 89, 1)" 
+          catalog={catalog}
+          selectedCategory="All"
+          providerId="default-provider"
+        />
+      )}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

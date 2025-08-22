@@ -35,6 +35,7 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
   searchString,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -42,68 +43,15 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
     setSelectedCategory(category);
   };
 
-  // Define tabs
-  const buttons = [
-    { title: "All" },
-    { title: "Bath & Body", image: require("../../../assets/bpcHeaderImage1.png") },
-    { title: "Feminine Care", image: require("../../../assets/bpcHeaderImage2.png") },
-    { title: "Fragnance", image: require("../../../assets/bpcHeaderImage3.png") },
-    { title: "Hair Care", image: require("../../../assets/bpcHeaderImage4.png") },
-    { title: "Oral Care", image: require("../../../assets/bpcHeaderImage5.png") },
-    { title: "Make Up", image: require("../../../assets/bpcHeaderImage6.png") },
-    { title: "Skin Care", image: require("../../../assets/bpcHeaderImage1.png") },
-  ];
+  // Filter catalog based on selected category
+  const filteredCatalog =
+    selectedCategory === "All"
+      ? catalog
+      : catalog.filter((item) => item.category_id === selectedCategory);
 
-  // Animated "No Items"
-  const NoItemsDisplay = () => {
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-
-    useEffect(() => {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
-    }, []);
-
-    return (
-      <Animated.View
-        style={[
-          styles.noItemsContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }, { scale: pulseAnim }],
-          },
-        ]}
-      >
-        <Text style={styles.noItemsEmoji}>🧴</Text>
-        <Text style={styles.noItemsTitle}>No Products Found</Text>
-        <Text style={styles.noItemsSubtext}>
-          No items available in {selectedCategory} category
-        </Text>
-      </Animated.View>
-    );
-  };
-
-  // Animate when no items
+  // Animate "No Items"
   useEffect(() => {
-    const filtered =
-      selectedCategory === "All"
-        ? catalog
-        : catalog.filter((item) => item.category_id === selectedCategory);
-
-    if (filtered.length === 0 && selectedCategory !== "All") {
+    if (filteredCatalog.length === 0 && selectedCategory !== "All") {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -121,29 +69,55 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.9);
     }
-  }, [catalog, selectedCategory]);
+  }, [filteredCatalog, selectedCategory]);
+
+  // Default buttons in case sidebarTitles is empty
+  const defaultButtons = [
+    "All",
+    "Bath & Body",
+    "Feminine Care",
+    "Fragrance",
+    "Hair Care",
+    "Oral Care",
+    "Make Up",
+    "Skin Care",
+  ];
+
+  // Animated "No Items" Display
+  const NoItemsDisplay = () => (
+    <Animated.View
+      style={[
+        styles.noItemsContainer,
+        { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      <Text style={styles.noItemsEmoji}>🧴</Text>
+      <Text style={styles.noItemsTitle}>No Products Found</Text>
+      <Text style={styles.noItemsSubtext}>
+        Nothing available in <Text style={{ fontWeight: "bold" }}>{selectedCategory}</Text>
+      </Text>
+    </Animated.View>
+  );
 
   return (
     <View style={styles.container}>
       <HorizontalNavbar
-        navbarTitles={buttons}
+        navbarTitles={sidebarTitles.length ? sidebarTitles : defaultButtons}
         domainColor="rgba(255, 211, 237, 1)"
         onFilterSelect={handleCategorySelect}
+        activeCategory={selectedCategory}
       />
 
       {/* Cards */}
       <PersonalCareCardContainer
         searchString={searchString}
         providerId={providerId}
-        catalog={catalog}
+        catalog={filteredCatalog} // ✅ pass filtered catalog
         selectedCategory={selectedCategory}
       />
 
       {/* Show "No items" when nothing matches */}
-      {selectedCategory !== "All" &&
-        catalog.filter((item) => item.category_id === selectedCategory).length === 0 && (
-          <NoItemsDisplay />
-        )}
+      {selectedCategory !== "All" && filteredCatalog.length === 0 && <NoItemsDisplay />}
     </View>
   );
 };

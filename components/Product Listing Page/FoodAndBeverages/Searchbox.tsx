@@ -40,24 +40,32 @@ const Searchbox: React.FC<SearchboxProps> = ({
   const [searchInput, setSearchInput] = useState("");
   const [filteredSuggestions, setFilteredSuggestions] = useState<SuggestionItem[]>([]);
   
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const inputRef = useRef<TextInput>(null);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Process catalog items
-  const catalogItems = catalog.map(item => ({
-    name: item?.descriptor?.name || "",
-    image: item.descriptor.images?.[0] || "",
-    id: item.id,
-    slug: item.slug || item.id,
-  })).filter(item => item.name);
+  // Process catalog items (similar to the example)
+  const addedNames: { [key: string]: boolean } = {};
+  const catalogItems: SuggestionItem[] = [];
+  
+  for (const item of catalog) {
+    const name = item?.descriptor?.name;
+    if (name && !addedNames[name]) {
+      addedNames[name] = true;
+      catalogItems.push({
+        name,
+        image: item.descriptor.images?.[0] || "",
+        id: item.id,
+        slug: item.slug || item.id,
+      });
+    }
+  }
 
-  // Handle search input changes
-  useEffect(() => {
-    search(searchInput);
+  const handleInputChange = (text: string) => {
+    setSearchInput(text);
+    search(text);
     
-    if (searchInput.trim()) {
+    if (text.trim()) {
       const filtered = catalogItems.filter((item) =>
-        item.name.toLowerCase().includes(searchInput.toLowerCase().trim())
+        item.name.toLowerCase().includes(text.toLowerCase().trim())
       );
       setFilteredSuggestions(filtered);
       setIsSearchboxActive(filtered.length > 0);
@@ -65,72 +73,69 @@ const Searchbox: React.FC<SearchboxProps> = ({
       setFilteredSuggestions([]);
       setIsSearchboxActive(false);
     }
-  }, [searchInput]);
-
-  // Handle animation
-  useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: isSearchboxActive ? 1 : 0,
-      useNativeDriver: false,
-      tension: 100,
-      friction: 8,
-    }).start();
-  }, [isSearchboxActive]);
-
-  const handleInputChange = (text: string) => {
-    setSearchInput(text);
   };
 
   const handleFocus = () => {
-    if (searchInput.trim() && filteredSuggestions.length > 0) {
-      setIsSearchboxActive(true);
+    // Clear any pending blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    
+    // Always show suggestions if there's input and matches
+    if (searchInput.trim()) {
+      const filtered = catalogItems.filter((item) =>
+        item.name.toLowerCase().includes(searchInput.toLowerCase().trim())
+      );
+      setFilteredSuggestions(filtered);
+      setIsSearchboxActive(filtered.length > 0);
     }
   };
 
   const handleBlur = () => {
-    setTimeout(() => {
+    // Delay closing to allow touch events on suggestions
+    blurTimeoutRef.current = setTimeout(() => {
       setIsSearchboxActive(false);
-    }, 150);
+    }, 300);
   };
+
+  const handleSuggestionSelect = (suggestion: SuggestionItem) => {
+    // Clear any pending blur timeout immediately
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    
+    // Don't immediately close the dropdown - let it stay open briefly
+    setSearchInput(suggestion.name);
+    search(suggestion.name);
+    
+    // Close dropdown after navigation completes
+    setTimeout(() => {
+      setFilteredSuggestions([]);
+      setIsSearchboxActive(false);
+    }, 100);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const clearSearch = () => {
     setSearchInput("");
     setFilteredSuggestions([]);
     setIsSearchboxActive(false);
     search("");
-    inputRef.current?.blur();
-  };
-
-  const handleSuggestionSelect = (suggestion: SuggestionItem) => {
-    setSearchInput(suggestion.name);
-    setFilteredSuggestions([]);
-    setIsSearchboxActive(false);
-    search(suggestion.name);
-    inputRef.current?.blur();
-  };
-
-  const animatedStyles = {
-    transform: [
-      {
-        translateY: animatedValue.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -5],
-        }),
-      },
-    ],
-    shadowOpacity: animatedValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.1, 0.25],
-    }),
-    elevation: animatedValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [2, 8],
-    }),
   };
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.searchBoxContainer, animatedStyles]}>
+      <View style={styles.searchBoxContainer}>
         <MaterialIcons 
           name="search" 
           size={22} 
@@ -138,16 +143,14 @@ const Searchbox: React.FC<SearchboxProps> = ({
           style={styles.searchIcon}
         />
         <TextInput
-          ref={inputRef}
           onChangeText={handleInputChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
           value={searchInput}
           style={styles.searchBox}
-          placeholder={`Search ${placeHolder}`}
+          placeholder={`Search in ${placeHolder}`}
           placeholderTextColor="#9CA3AF"
           returnKeyType="search"
-          clearButtonMode="while-editing"
           autoCorrect={false}
           autoCapitalize="none"
         />
@@ -160,15 +163,17 @@ const Searchbox: React.FC<SearchboxProps> = ({
             style={styles.clearIcon}
           />
         )}
-      </Animated.View>
+      </View>
 
-      {isSearchboxActive && filteredSuggestions.length > 0 && (
-        <SearchboxDropdown
-          search={search}
-          suggestions={filteredSuggestions}
-          isVisible={true}
-          onItemPress={handleSuggestionSelect}
-        />
+      {isSearchboxActive && searchInput && filteredSuggestions.length > 0 && (
+        <View style={styles.dropdownWrapper}>
+          <SearchboxDropdown
+            search={search}
+            suggestions={filteredSuggestions}
+            isVisible={true}
+            onItemPress={handleSuggestionSelect}
+          />
+        </View>
       )}
     </View>
   );
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     marginBottom: 10,
     marginTop: 30,
-    marginLeft:50
+    marginLeft: 50
   },
   searchBoxContainer: {
     flexDirection: "row",
@@ -221,6 +226,13 @@ const styles = StyleSheet.create({
   clearIcon: {
     marginLeft: 8,
     padding: 4,
+  },
+  dropdownWrapper: {
+    position: "absolute",
+    top: 70,
+    right: 16,
+    left: 16,
+    zIndex: 1000,
   },
 });
 

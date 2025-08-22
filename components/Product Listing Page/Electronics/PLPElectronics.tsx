@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import HorizontalNavbar from "../Grocery/HorizontalNavbar";
-import GroceryCardContainer, { CatalogItem, NoItemsDisplay } from "../Grocery/GroceryCardContainer"; // ✅ Import NoItemsDisplay
+import GroceryCardContainer, { CatalogItem, NoItemsDisplay } from "../Grocery/GroceryCardContainer";
 
 interface PLPElectronicsProps {
-  catalog: CatalogItem[]; // ✅ Use the same interface as GroceryCardContainer
+  catalog: CatalogItem[];
   sidebarTitles?: string[];
   providerId: string;
   searchString: string;
@@ -71,13 +71,27 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
     ];
 
     if (sidebarTitles && sidebarTitles.length > 0) {
-      // Map sidebarTitles to their corresponding images
-      const mappedButtons = sidebarTitles.map((title) => {
+      // Map sidebarTitles to their corresponding images or create fallback images
+      const mappedButtons = sidebarTitles.map((title, index) => {
         // Find matching button from defaultButtons
         const matchingButton = defaultButtons.find(
           (btn) => btn.title === title
         );
-        return matchingButton || { title, image: undefined };
+        
+        if (matchingButton) {
+          return matchingButton;
+        }
+        
+        // Create fallback with placeholder image URL or use a default asset
+        const fallbackImageIndex = (index % 10) + 1; // Cycle through available images
+        const fallbackImage = defaultButtons[fallbackImageIndex]?.image || defaultButtons[0].image;
+        
+        return { 
+          title, 
+          image: fallbackImage,
+          // Alternative: use a web-based placeholder
+          imageUrl: `https://via.placeholder.com/55x55/007ACC/FFFFFF?text=${encodeURIComponent(title.charAt(0))}`
+        };
       });
 
       // Add "All" to the beginning if not present
@@ -204,15 +218,16 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
     <View style={{ flex: 1 }}>
       <HorizontalNavbar
         navbarTitles={navbarButtons}
-        domainColor=""
+        domainColor="#007ACC" // Electronics theme color
         onFilterSelect={handleCategorySelect}
         activeCategory={activeCategory}
+        hasProducts={filteredCatalog.length > 0}
       />
       {filteredCatalog.length > 0 ? (
         <GroceryCardContainer
           providerId={providerId}
           searchString={searchString}
-          catalog={filteredCatalog as CatalogItem[]} // ✅ explicit cast
+          catalog={filteredCatalog as CatalogItem[]}
           selectedCategory={activeCategory}
           handleOpenModal={handleOpenModal}
         />
@@ -222,7 +237,7 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
         <GroceryCardContainer
           providerId={providerId}
           searchString={searchString}
-          catalog={catalog as CatalogItem[]} // ✅ explicit cast
+          catalog={catalog as CatalogItem[]}
           selectedCategory={activeCategory}
           handleOpenModal={handleOpenModal}
         />

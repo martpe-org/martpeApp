@@ -40,7 +40,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   return (
     <TouchableOpacity
       style={cardStyles.card}
-      onPress={onPress ?? (() => router.push(`/(tabs)/home/result/productDetails/${slug || id}`))}
+      onPress={onPress = (() => router.push(`/(tabs)/home/result/productDetails/${id}`))}
       activeOpacity={0.8}
     >
       {/* Product Image */}

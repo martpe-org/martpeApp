@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { FC } from "react";
-import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ImageComp from "@/components/common/ImageComp";
 import AddToCart from "../../../components/ProductDetails/AddToCart";
 
@@ -32,9 +32,9 @@ const FashionCard: FC<FashionCardProps> = ({
   return (
     <View style={styles.fashionCard}>
       <TouchableOpacity
-        onPress={() => {
-          router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
-        }}
+        onPress={() =>
+          router.push(`/(tabs)/home/result/productDetails/${slug || id}`)
+        }
         style={styles.cardContent}
       >
         <ImageComp
@@ -46,18 +46,10 @@ const FashionCard: FC<FashionCardProps> = ({
           loaderSize="small"
         />
         <View style={styles.fashionCardContent}>
-          <Text
-            style={styles.fashionCardTitle}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <Text style={styles.fashionCardTitle} numberOfLines={1} ellipsizeMode="tail">
             {itemName}
           </Text>
-          <Text
-            style={styles.fashionCardDescription}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <Text style={styles.fashionCardDescription} numberOfLines={1} ellipsizeMode="tail">
             {desc}
           </Text>
           <View style={{ flexDirection: "row", marginTop: 3 }}>
@@ -66,16 +58,13 @@ const FashionCard: FC<FashionCardProps> = ({
               {maxPrice && <Text style={styles.strikedOffText}>₹{maxPrice}</Text>}
             </Text>
             {typeof discount === "number" && discount > 1 && (
-              <Text style={styles.fashionCardDiscount}>
-                {"  "}
-                {discount > 1 ? discount : null}% Off
-              </Text>
+              <Text style={styles.fashionCardDiscount}>{"  "}{discount}% Off</Text>
             )}
           </View>
         </View>
       </TouchableOpacity>
-      
-      {/* Add to Cart Button */}
+
+      {/* Add to Cart Button using DynamicButton-based AddToCart */}
       <View style={styles.addToCartContainer}>
         <AddToCart
           price={value}
@@ -145,7 +134,7 @@ const styles = StyleSheet.create({
   },
   addToCartText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

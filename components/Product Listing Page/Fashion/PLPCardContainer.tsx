@@ -1,5 +1,5 @@
 import { FC } from "react";
-import {  Text, StyleSheet, Animated } from "react-native";
+import { Text, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useEffect } from "react";
 import FashionCard from "./FashionCard";
@@ -11,34 +11,32 @@ interface CatalogItem {
   category_id: string;
   descriptor: {
     images: string[];
-    long_desc: string;
-    name: string;
-    short_desc: string;
-    symbol: string;
+    long_desc?: string;
+    name?: string;
+    short_desc?: string;
+    symbol?: string;
   };
   id: string;
   location_id: string;
-  non_veg: boolean | null;
+  non_veg: any;
   price: {
     maximum_value: number;
-    offer_percent: number | null;
-    offer_value: number | null;
+    offer_percent: any;
+    offer_value: any;
     value: number;
   };
   provider_id: string;
-  quantity: {
-    available: number | null;
-    maximum: number | null;
-  };
-  veg: boolean | null;
+  quantity: { available: any; maximum: any };
+  veg: any;
   slug?: string;
+  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // <-- add this
 }
 
 interface PLPCardContainerProps {
   catalog: CatalogItem[];
   domainColor: string;
-  selectedCategory: string;
-  providerId: string;
+  selectedCategory?: string; // Made optional
+  storeId?: string; // Made optional
 }
 
 // No Items Animation Component
@@ -89,17 +87,14 @@ const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
         noItemsStyles.container,
         {
           opacity: fadeAnim,
-          transform: [
-            { scale: scaleAnim },
-            { scale: pulseAnim }
-          ],
+          transform: [{ scale: scaleAnim }, { scale: pulseAnim }],
         },
       ]}
     >
-      <Text style={noItemsStyles.emoji}>👗</Text>
+      <Text style={noItemsStyles.emoji}>🏠</Text>
       <Text style={noItemsStyles.title}>No Items Available</Text>
       <Text style={noItemsStyles.subtitle}>
-        No fashion items found in {category} category
+        No items found in {category} category
       </Text>
     </Animated.View>
   );
@@ -108,8 +103,8 @@ const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
 const PLPCardContainer: FC<PLPCardContainerProps> = ({
   catalog,
   domainColor,
-  selectedCategory,
-  providerId,
+  selectedCategory = "All",
+  storeId = "default-provider",
 }) => {
   const bgColor = domainColor.slice(0, -3);
   const gradientColors = [
@@ -119,128 +114,85 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   ];
 
   // Filter catalog based on selected category
-// Filter catalog based on selected category
-const getFilteredCatalog = (): CatalogItem[] => {
-  if (!selectedCategory || selectedCategory === "All") {
-    return catalog;
-  }
-
-  const category = String(selectedCategory);
-
-  return catalog.filter((item) => {
- const itemName = item?.descriptor?.name?.toLowerCase() || "";
-const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
-const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
-
-
-    const match = (text: string, keyword: string | RegExp) => {
-      if (typeof keyword === "string") {
-        return new RegExp(`\\b${keyword}\\b`, "i").test(text); // case-insensitive
-      }
-      return keyword.test(text);
-    };
-
-    switch (category.toLowerCase()) {
-      case "men":
-        return (
-          match(itemName, "men") ||
-          match(itemName, "man") ||
-          match(itemDesc, "men") ||
-          match(itemDesc, "male")
-        );
-
-      case "women":
-        return (
-          match(itemName, "women") ||
-          match(itemName, "woman") ||
-          match(itemName, "ladies") ||
-          match(itemDesc, "women") ||
-          match(itemDesc, "female")
-        );
-
-      case "kids":
-        return (
-          match(itemName, "kid") ||
-          match(itemName, "child") ||
-          match(itemName, "boy") ||
-          match(itemName, "girl") ||
-          match(itemDesc, "kids")
-        );
-
-      case "infants":
-        return (
-          match(itemName, "infant") ||
-          match(itemName, "baby") ||
-          match(itemName, "newborn") ||
-          match(itemDesc, "infant")
-        );
-
-      case "t-shirts":
-        return (
-          match(itemName, "t-shirt") ||
-          match(itemName, "tshirt") ||
-          match(itemName, "t shirt")
-        );
-
-      case "shirts":
-        return (
-          match(itemName, "shirt") &&
-          !match(itemName, "t-shirt") &&
-          !match(itemName, "tshirt")
-        );
-
-      case "trousers":
-        return (
-          match(itemName, "trouser") ||
-          match(itemName, "pant") ||
-          match(itemName, "jean")
-        );
-
-      case "accessories":
-        return (
-          match(itemName, "accessory") ||
-          match(itemName, "belt") ||
-          match(itemName, "watch") ||
-          match(itemName, "wallet")
-        );
-
-      case "footwear":
-        return (
-          match(itemName, "shoe") ||
-          match(itemName, "sandal") ||
-          match(itemName, "boot") ||
-          match(itemName, "slipper")
-        );
-
-      case "bags":
-        return (
-          match(itemName, "bag") ||
-          match(itemName, "backpack") ||
-          match(itemName, "purse")
-        );
-
-      case "jewellery":
-        return (
-          match(itemName, "jewel") ||
-          match(itemName, "ring") ||
-          match(itemName, "necklace") ||
-          match(itemName, "earring")
-        );
-
-      default:
-        return (
-          match(itemName, category) ||
-          match(itemDesc, category) ||
-          match(itemShortDesc, category)
-        );
+  const getFilteredCatalog = (): CatalogItem[] => {
+    if (
+      !selectedCategory ||
+      selectedCategory === "All" ||
+      selectedCategory === "Home & Decor"
+    ) {
+      return catalog;
     }
-  });
-};
 
+    const category = String(selectedCategory);
+
+    return catalog.filter((item) => {
+      const itemName = item?.descriptor?.name?.toLowerCase() || "";
+      const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
+      const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
+
+      const match = (text: string, keyword: string | RegExp) => {
+        if (typeof keyword === "string") {
+          return new RegExp(`\\b${keyword}\\b`, "i").test(text);
+        }
+        return keyword.test(text);
+      };
+
+      switch (category.toLowerCase()) {
+        case "furniture":
+          return (
+            match(itemName, "furniture") ||
+            match(itemName, "chair") ||
+            match(itemName, "table") ||
+            match(itemName, "sofa") ||
+            match(itemDesc, "furniture")
+          );
+
+        case "home furnishing":
+          return (
+            match(itemName, "curtain") ||
+            match(itemName, "carpet") ||
+            match(itemName, "bedsheet") ||
+            match(itemName, "pillow") ||
+            match(itemDesc, "furnishing")
+          );
+
+        case "cooking & dining":
+          return (
+            match(itemName, "kitchen") ||
+            match(itemName, "dining") ||
+            match(itemName, "cookware") ||
+            match(itemName, "utensil") ||
+            match(itemDesc, "cooking") ||
+            match(itemDesc, "dining")
+          );
+
+        case "garden & outdoors":
+          return (
+            match(itemName, "garden") ||
+            match(itemName, "outdoor") ||
+            match(itemName, "plant") ||
+            match(itemName, "patio") ||
+            match(itemDesc, "garden") ||
+            match(itemDesc, "outdoor")
+          );
+
+        default:
+          return (
+            match(itemName, category) ||
+            match(itemDesc, category) ||
+            match(itemShortDesc, category)
+          );
+      }
+    });
+  };
 
   const filteredCatalog = getFilteredCatalog();
 
-  if (filteredCatalog.length === 0 && selectedCategory !== "All") {
+  if (
+    filteredCatalog.length === 0 &&
+    selectedCategory !== "All" &&
+    selectedCategory !== "Home & Decor"
+  ) {
     return <NoItemsDisplay category={selectedCategory} />;
   }
 
@@ -251,29 +203,35 @@ const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
       end={[0, 0.1]}
       style={styles.container}
     >
-      {filteredCatalog.map((item) => {
-        const name = item?.descriptor?.name;
-        const desc = item?.descriptor?.long_desc;
-        const value = item?.price?.value;
-        const maxPrice = item?.price?.maximum_value;
-        const discount = item?.price?.offer_percent || 
+      {filteredCatalog.map((item, idx) => {
+        const name = item?.descriptor?.name || "";
+        const desc = item?.descriptor?.long_desc || "";
+        const value = item?.price?.value || 0;
+        const maxPrice = item?.price?.maximum_value || 0;
+        const discount =
+          item?.price?.offer_percent ||
           (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
-        const image = item?.descriptor?.symbol || item?.descriptor?.images?.[0];
+        const image =
+          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+
+        // Create a unique key by combining id with index to prevent duplicate key errors
+        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
         return (
-          <FashionCard
-            key={item?.id}
-            itemName={name}
-            desc={desc}
-            value={value}
-            maxPrice={maxPrice}
-            discount={discount}
-            image={image}
-            id={item.id}
-            catalogId={item.catalog_id}
-            providerId={providerId}
-            slug={item.slug}
-          />
+       <FashionCard
+  key={uniqueKey}
+  itemName={name}
+  desc={desc}
+  value={value}
+  maxPrice={maxPrice}
+  discount={discount}
+  image={image}
+  id={item.id}
+  catalogId={item.catalog_id}
+  storeId={item.store?._id || storeId} // fallback to prop storeId
+  slug={item.slug}
+/>
+
         );
       })}
     </LinearGradient>
@@ -298,7 +256,7 @@ const noItemsStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     marginTop: 50,
-    marginBottom:50
+    marginBottom: 50,
   },
   emoji: {
     fontSize: 48,
@@ -320,3 +278,4 @@ const noItemsStyles = StyleSheet.create({
 });
 
 export default PLPCardContainer;
+export type { CatalogItem };

@@ -216,6 +216,7 @@ const navbarStyles = StyleSheet.create({
     borderRadius: 30,
     overflow: "hidden",
     marginBottom: 5,
+    backgroundColor:"#f1f1e6"
   },
   buttonImage: {
     width: 55,

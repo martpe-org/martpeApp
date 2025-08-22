@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -8,9 +7,12 @@ import {
   Dimensions,
 } from "react-native";
 import { router } from "expo-router";
+import { useCartStore } from "@/state/useCartStore";
+import ImageComp from "@/components/common/ImageComp";
+ // ✅ assuming you already have this
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.46; // responsive: 2 per row
+const CARD_WIDTH = width * 0.46;
 
 interface PersonalCareCardProps {
   title: string;
@@ -30,12 +32,45 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   discount,
   image,
   maxValue,
-  providerId,
   id,
+  providerId,
 }) => {
+const addItem = useCartStore((state) => state.addItem);
+
   const handlePress = () => {
     router.push(`/(tabs)/home/result/productDetails/${id}`);
   };
+
+const handleAddToCart = async () => {
+  // you probably have storeId, slug, and authToken in context/state
+  const storeId = Array.isArray(providerId) ? providerId[0] : providerId;
+  const slug = title?.toLowerCase().replace(/\s+/g, "-") || "";
+  const catalogId = id;
+  const quantity = 1;
+  const customizable = false;
+  const customizations: any[] = [];
+
+  // fetch authToken from AsyncStorage or your useUserDetails hook
+  const authToken = null; // 🔄 replace with real token
+
+  const success = await addItem(
+    storeId,
+    slug,
+    catalogId,
+    quantity,
+    customizable,
+    customizations,
+    authToken
+  );
+
+  if (success) {
+    // Optionally show toast
+    console.log("✅ Added to cart");
+  } else {
+    console.log("❌ Failed to add to cart");
+  }
+};
+
 
   return (
     <TouchableOpacity
@@ -45,11 +80,10 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
     >
       {/* Product Image */}
       <View style={styles.imageContainer}>
-        <Image
-          style={styles.image}
-          source={{
-            uri: image || "https://via.placeholder.com/150?text=No+Image",
-          }}
+        <ImageComp
+          source={{ uri: image }}
+          imageStyle={styles.image}
+          resizeMode="cover"
         />
       </View>
 
@@ -62,10 +96,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           {description || "No description available"}
         </Text>
 
-        {/* Prices */}
-        {discount > 1 && (
-          <Text style={styles.strikedOff}>Rs.{maxValue}</Text>
-        )}
+        {discount > 1 && <Text style={styles.strikedOff}>Rs.{maxValue}</Text>}
 
         <View style={styles.priceRow}>
           <Text style={styles.price}>Rs.{price}</Text>
@@ -73,6 +104,15 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
             <Text style={styles.discount}>{discount}% Off</Text>
           )}
         </View>
+
+        {/* Add to Cart Button */}
+        <TouchableOpacity
+          onPress={handleAddToCart}
+          style={styles.addToCartBtn}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.addToCartText}>Add to Cart</Text>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -134,5 +174,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#28a745",
+  },
+  addToCartBtn: {
+    marginTop: 8,
+    backgroundColor: "#f14343",
+    borderRadius: 6,
+    paddingVertical: 6,
+    alignItems: "center",
+  },
+  addToCartText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
   },
 });

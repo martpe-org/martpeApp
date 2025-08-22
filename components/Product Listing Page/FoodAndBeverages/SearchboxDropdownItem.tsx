@@ -1,14 +1,12 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 
 interface SearchboxDropdownItemProps {
   item: {
@@ -19,94 +17,38 @@ interface SearchboxDropdownItemProps {
   };
   search: (text: string) => void;
   onPress?: () => void;
-  isLast?: boolean;
 }
 
 const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
   item,
   search,
   onPress,
-  isLast = false,
 }) => {
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-
   const handlePress = () => {
     try {
-      // Call the search function to update the parent state
-      search(item.name);
-      
-      // Call onPress if provided (to close dropdown)
+      // Call onPress first to update parent state
       onPress?.();
       
-      // Navigate using slug if available, otherwise use id
+      // Navigate immediately
       const identifier = item.slug || item.id;
       router.push(`/(tabs)/home/result/productDetails/${identifier}`);
+      
+      // Update search after navigation starts
+      search(item.name);
     } catch (error) {
       console.error("Navigation error:", error);
     }
   };
 
-  const handleImageLoad = () => {
-    setImageLoading(false);
-  };
-
-  const handleImageError = () => {
-    setImageLoading(false);
-    setImageError(true);
-  };
-
-  const renderImage = () => {
-    if (imageError) {
-      return (
-        <View style={[styles.itemImg, styles.imagePlaceholder]}>
-          <MaterialIcons name="image-not-supported" size={20} color="#9CA3AF" />
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.imageContainer}>
-        {imageLoading && (
-          <View style={[styles.itemImg, styles.imagePlaceholder]}>
-            <ActivityIndicator size="small" color="#6B7280" />
-          </View>
-        )}
-        <Image
-          source={{ uri: item.image }}
-          style={[styles.itemImg, imageLoading && styles.hiddenImage]}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          resizeMode="cover"
-        />
-      </View>
-    );
-  };
-
   return (
     <TouchableOpacity
       onPress={handlePress}
-      style={[
-        styles.dropdownItemContainer,
-        !isLast && styles.borderBottom,
-      ]}
-      activeOpacity={0.7}
+      style={styles.dropdownItemContainer}
     >
       <View style={styles.dropdownItem}>
-        {renderImage()}
-        <View style={styles.textContainer}>
-          <Text style={styles.itemName} numberOfLines={2}>
-            {item.name}
-          </Text>
-        </View>
+        <Image source={{ uri: item.image }} style={styles.itemImg} />
+        <Text style={styles.itemName}>{item.name}</Text>
       </View>
-      
-      <MaterialIcons 
-        name="arrow-forward-ios" 
-        size={16} 
-        color="#9CA3AF" 
-        style={styles.linkIcon}
-      />
     </TouchableOpacity>
   );
 };
@@ -116,52 +58,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-  },
-  borderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    paddingTop: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#ccc",
   },
   dropdownItem: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 5,
     flex: 1,
-    marginRight: 12,
-  },
-  imageContainer: {
-    position: 'relative',
-    marginRight: 12,
   },
   itemImg: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-  },
-  hiddenImage: {
-    position: 'absolute',
-    opacity: 0,
-  },
-  imagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  textContainer: {
-    flex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   itemName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#1F2937",
-    lineHeight: 20,
-  },
-  linkIcon: {
-    marginLeft: 8,
+    fontWeight: "900",
+    marginLeft: 10,
+    flex: 1,
   },
 });
 

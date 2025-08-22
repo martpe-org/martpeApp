@@ -57,30 +57,31 @@ const PersonalCareCardContainer: React.FC<PersonalCareCardContainerProps> = ({
 
   return (
     <View style={styles.cardsContainer}>
-      {filteredCatalog.map((item) => {
-        const title = item.descriptor.name;
-        const description = item.descriptor.long_desc;
-        const price = item.price.value;
-        const maxValue = item.price.maximum_value;
-        const discount = maxValue
-          ? Math.round(((maxValue - price) / maxValue) * 100)
-          : 0;
-        const image = item.descriptor.images?.[0];
+{filteredCatalog.map((item, index) => {
+  const title = item.descriptor.name;
+  const description = item.descriptor.long_desc;
+  const price = item.price.value;
+  const maxValue = item.price.maximum_value;
+  const discount = maxValue
+    ? Math.round(((maxValue - price) / maxValue) * 100)
+    : 0;
+  const image = item.descriptor.images?.[0];
 
-        return (
-          <PersonalCareCard
-            key={item.catalog_id} // ✅ use catalog_id as unique key
-            title={title}
-            description={description}
-            price={price}
-            maxValue={maxValue}
-            discount={discount}
-            image={image}
-            id={item.id}
-            providerId={providerId}
-          />
-        );
-      })}
+  return (
+    <PersonalCareCard
+      key={`${item.id}-${item.provider_id}-${index}`} // ✅ guaranteed unique
+      title={title}
+      description={description}
+      price={price}
+      maxValue={maxValue}
+      discount={discount}
+      image={image}
+      id={item.id}
+      providerId={providerId}
+    />
+  );
+})}
+
     </View>
   );
 };

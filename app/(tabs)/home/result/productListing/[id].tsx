@@ -38,7 +38,6 @@ import {
   StoreItem,
 } from "../../../../../components/store/fetch-store-items-type";
 import useDeliveryStore from "../../../../../state/deliveryAddressStore";
-import {CatalogItem} from "../../../../../components/Product Listing Page/Grocery/GroceryCardContainer";
 
 // ===================
 // Pagination constants
@@ -608,11 +607,11 @@ const PLP: React.FC = () => {
         data={[1]} // single container
         renderItem={() => (
           <View>
-            <Searchbox
-              search={onInputChanged}
-              placeHolder={vendorData.descriptor.name || "Store"}
-              catalog={vendorData.catalogs}
-            />
+          <Searchbox
+  search={onInputChanged}
+  placeHolder={vendorData.descriptor?.name || "Store"}
+  catalog={vendorData.catalogs || []}
+/>
 
             <PLPBanner
               address={vendorAddress}
