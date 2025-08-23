@@ -24,7 +24,7 @@ const OfferCard = ({ items }) => {
     const interval = setInterval(() => {
       const nextIndex = activeIndex === items.length - 1 ? 0 : activeIndex + 1;
       setActiveIndex(nextIndex);
-      
+
       // Auto scroll to next item
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
@@ -37,7 +37,7 @@ const OfferCard = ({ items }) => {
     return () => clearInterval(interval);
   }, [activeIndex, items?.length]);
 
-  const getOfferBackground = (num:any) => {
+  const getOfferBackground = (num: any) => {
     switch (num) {
       case 0:
         return "#FF5151";
@@ -64,7 +64,7 @@ const OfferCard = ({ items }) => {
     }
   };
 
-  const handleScroll = (event:any) => {
+  const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / (screenWidth * 0.85));
     setActiveIndex(index);
@@ -106,10 +106,9 @@ const OfferCard = ({ items }) => {
             {/* offer text */}
             <View style={styles.textContainer}>
               {/* offer header text */}
-         <Text style={styles.offerHeaderText}>
-  Upto {Math.ceil(item?.calculated_max_offer?.percent ?? 0)}% Off
-</Text>
-
+              <Text style={styles.offerHeaderText}>
+                Upto {Math.ceil(item?.calculated_max_offer?.percent ?? 0)}% Off
+              </Text>
 
               {/* offer sub-header text */}
               <Text style={styles.offerSubHeaderText}>
@@ -123,7 +122,7 @@ const OfferCard = ({ items }) => {
                     styles.shopNowText,
                     {
                       color: getOfferBackground(index),
-                    }
+                    },
                   ]}
                 >
                   Order Now
@@ -165,7 +164,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   scrollContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   cardOffer: {
     backgroundColor: "red",
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 25,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginVertical: 15,
     shadowColor: "#000",
     shadowOffset: {

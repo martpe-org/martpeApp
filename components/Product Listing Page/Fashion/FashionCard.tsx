@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { FC } from "react";
+import { FC, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ImageComp from "@/components/common/ImageComp";
 import AddToCart from "../../../components/ProductDetails/AddToCart";
@@ -11,9 +11,9 @@ interface FashionCardProps {
   maxPrice?: number;
   discount: number | string;
   image: string;
-    id: string;
+  id: string;
   catalogId: string;
-  storeId: string; // this will receive product.store_id
+  storeId?: string; // ✅ optional
   slug?: string;
 }
 
@@ -26,11 +26,24 @@ const FashionCard: FC<FashionCardProps> = ({
   image,
   id,
   catalogId,
-  storeId, // ✅ make sure to destructure it
+  storeId,
   slug,
 }) => {
+  // ✅ safe fallback like ProductDetails
+  const safeStoreId = storeId || "unknown-store";
+
+  // ✅ log when fallback is used (debug only)
+  useEffect(() => {
+    if (safeStoreId === "unknown-store") {
+      console.warn(
+        `⚠️ FashionCard: Missing storeId for product ${id} (${itemName})`
+      );
+    }
+  }, [safeStoreId, id, itemName]);
+
   return (
     <View style={styles.fashionCard}>
+      {/* Card Clickable Content */}
       <TouchableOpacity
         onPress={() =>
           router.push(`/(tabs)/home/result/productDetails/${slug || id}`)
@@ -83,17 +96,14 @@ const FashionCard: FC<FashionCardProps> = ({
       <View style={styles.addToCartContainer}>
         <AddToCart
           price={value}
-          storeId={storeId}
+          storeId={safeStoreId}
           slug={slug || id}
           catalogId={catalogId}
-          buttonStyle={styles.addToCartButton}
-          textStyle={styles.addToCartText}
         />
       </View>
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   fashionCard: {

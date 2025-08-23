@@ -8,6 +8,7 @@ import { addToCartAction } from "./addToCart";
 interface CartItem {
   _id: string;
   qty: number;
+  slug: string;
   unit_price: number;
   unit_max_price: number;
   total_price: number;
@@ -29,46 +30,39 @@ interface CartState {
   allCarts: Cart[];
   setAllCarts: (carts: Cart[]) => void;
   loadCartFromStorage: () => Promise<void>;
-addItem: (
-  storeId: string,
-  slug: string,
-  catalogId: string,
-  quantity: number,
-  customizable: boolean,
-  customizations: any[],
-  authToken: string | null   // ✅ allow null
-) => Promise<boolean>;
-
-updateQty: (
-  cartItemId: string,
-  qty: number,
-  authToken: string | null   // ✅ allow null
-) => Promise<boolean>;
-
-removeCartItems: (itemIds: string[], authToken: string | null) => Promise<boolean>;
-removeCart: (storeId: string, authToken: string | null) => Promise<boolean>;
-
+  addItem: (
+    storeId: string,
+    slug: string,
+    catalogId: string,
+    quantity: number,
+    customizable: boolean,
+    customizations: any[],
+    authToken: string | null
+  ) => Promise<boolean>;
+  updateQty: (
+    cartItemId: string,
+    qty: number,
+    authToken: string | null
+  ) => Promise<boolean>;
+  removeCartItems: (itemIds: string[], authToken: string | null) => Promise<boolean>;
+  removeCart: (storeId: string, authToken: string | null) => Promise<boolean>;
 }
 
 const CART_STORAGE_KEY = "user_cart";
 
-// Helper function to filter out invalid cart items
-const sanitizeCartItems = (items: (CartItem | undefined | null)[]): CartItem[] => {
-  return items.filter((item): item is CartItem => !!item && !!item._id);
-};
+// Helpers
+const sanitizeCartItems = (items: (CartItem | undefined | null)[]): CartItem[] =>
+  items.filter((item): item is CartItem => !!item && !!item._id);
 
-// Helper function to sanitize carts
-const sanitizeCarts = (carts: Cart[]): Cart[] => {
-  return carts
+const sanitizeCarts = (carts: Cart[]): Cart[] =>
+  carts
     .filter((cart) => !!cart && !!cart.store?._id)
     .map((cart) => ({
       ...cart,
       cart_items: sanitizeCartItems(cart.cart_items || []),
     }))
     .filter((cart) => cart.cart_items.length > 0);
-};
 
-// Save carts to storage
 const saveCartToStorage = async (carts: Cart[]) => {
   try {
     await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(carts));
@@ -77,7 +71,6 @@ const saveCartToStorage = async (carts: Cart[]) => {
   }
 };
 
-// Load carts from storage
 const loadCartFromStorage = async (): Promise<Cart[]> => {
   try {
     const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
@@ -88,6 +81,7 @@ const loadCartFromStorage = async (): Promise<Cart[]> => {
   }
 };
 
+// ---------------- STORE ----------------
 export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
 
@@ -123,28 +117,53 @@ export const useCartStore = create<CartState>((set, get) => ({
     };
 
     try {
-      const { success } = await addToCartAction(input, authToken);
-      if (success) {
-        // reload from API or optimistically update state
-        const updatedCarts = [...get().allCarts]; // for now keep same
-        set({ allCarts: updatedCarts });
-        saveCartToStorage(updatedCarts);
-      }
+const { success } = await addToCartAction(input, authToken);
+
+if (success) {
+  set((state) => {
+    const updatedCarts = [...state.allCarts];
+    const cartIndex = updatedCarts.findIndex((c) => c.store._id === storeId);
+
+    const newItem = {
+      _id: Date.now().toString(), // temporary ID
+      qty: quantity,
+      slug,
+      unit_price: 0,
+      unit_max_price: 0,
+      total_price: 0,
+      total_max_price: 0,
+    };
+
+    if (cartIndex >= 0) {
+      updatedCarts[cartIndex] = {
+        ...updatedCarts[cartIndex],
+        cart_items: [...updatedCarts[cartIndex].cart_items, newItem],
+      };
+    } else {
+      updatedCarts.push({
+        store: { _id: storeId },
+        cart_items: [newItem],
+      });
+    }
+
+    saveCartToStorage(updatedCarts);
+    return { allCarts: sanitizeCarts(updatedCarts) };
+  });
+}
+
+
       return success;
     } catch (error) {
       console.error("addItem error:", error);
       return false;
     }
   },
-
   updateQty: async (cartItemId, qty, authToken) => {
     if (!authToken || !cartItemId) return false;
-
     if (qty < 0) return false;
 
     try {
       const success = await updateQty(cartItemId, qty, authToken);
-
       if (!success) return false;
 
       set((state) => {
@@ -176,7 +195,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   removeCartItems: async (itemIds, authToken) => {
     if (!authToken || !itemIds?.length) return false;
-
     const prevState = get().allCarts;
 
     try {
@@ -203,7 +221,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   removeCart: async (storeId, authToken) => {
     if (!authToken || !storeId) return false;
-
     const prevState = get().allCarts;
 
     try {

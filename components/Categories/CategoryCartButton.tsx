@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-import DynamicButton from "../common/DynamicButton";
+import React, { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, View } from "react-native";
+import DynamicButton from "../ProductDetails/DynamicButton";
 
 interface CategoryCartButtonProps {
   storeId: string;
@@ -105,10 +105,12 @@ const CategoryCartButton: React.FC<CategoryCartButtonProps> = ({
             onSuccess={handleUpdateSuccess}
             disabled={itemCount >= maxQuantity}
           >
-            <View style={[
-              styles.incrementButtonStyle,
-              itemCount >= maxQuantity && styles.disabled
-            ]}>
+            <View
+              style={[
+                styles.incrementButtonStyle,
+                itemCount >= maxQuantity && styles.disabled,
+              ]}
+            >
               <Text style={styles.buttonText}>+</Text>
             </View>
           </DynamicButton>

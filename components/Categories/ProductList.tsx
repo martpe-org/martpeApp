@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import {
-  ScrollView,
   Image,
-  Text,
-  View,
+  ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
-import DynamicButton from "../common/DynamicButton";
+import DynamicButton from "../ProductDetails/DynamicButton";
 
 interface Descriptor {
   name: string;
@@ -62,9 +62,7 @@ const ProductList: React.FC<ProductListProps> = ({
   const { allCarts } = useCartStore();
 
   // Find the matching cart
-  const cart = allCarts.find(
-    (c) => c.store._id === storeId
-  );
+  const cart = allCarts.find((c) => c.store._id === storeId);
 
   if (!catalogs || catalogs.length === 0) {
     return (
@@ -92,14 +90,12 @@ const ProductList: React.FC<ProductListProps> = ({
     } = data;
 
     // Find cart item by matching catalog_id with product id
-    const cartItem = cart?.cart_items?.find(
-      (item) => {
-        // Check multiple possible field names for catalog ID
-        const catalogId = item.catalog_id || item.catalogId || item.product_id;
-        return catalogId === id;
-      }
-    );
-    
+    const cartItem = cart?.cart_items?.find((item) => {
+      // Check multiple possible field names for catalog ID
+      const catalogId = item.catalog_id || item.catalogId || item.product_id;
+      return catalogId === id;
+    });
+
     const itemCount = cartItem?.qty || 0;
     const cartItemId = cartItem?._id;
 

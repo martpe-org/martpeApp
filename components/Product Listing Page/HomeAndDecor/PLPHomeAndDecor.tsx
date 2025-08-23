@@ -10,9 +10,9 @@ interface CatalogItem {
   category_id: string;
   descriptor: {
     images: string[];
-    long_desc?: string;  // ✅ made optional
-    name?: string;       // ✅ made optional
-    short_desc?: string; // ✅ made optional
+    long_desc?: string;
+    name?: string;
+    short_desc?: string;
     symbol?: string;
   };
   id: string;
@@ -25,11 +25,12 @@ interface CatalogItem {
     value: number;
   };
   provider_id: string;
-  quantity: {
-    available: any;
-    maximum: any;
-  };
+  quantity: { available: any; maximum: any };
   veg: any;
+
+  // ✅ Add these
+  provider?: { store_id: string };
+  store?: { _id: string; slug?: string; name?: string; symbol?: string };
 }
 
 interface PLPHomeAndDecorProps {
@@ -171,23 +172,24 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
     <View style={{ flex: 1 }}>
       <HomeAndDecorHeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {filteredCatalog.length > 0 ? (
-        <PLPCardContainer 
-          domainColor="rgba(252, 225, 89, 1)" 
-          catalog={filteredCatalog}
-          selectedCategory={activeTab}
-         // providerId="default-provider"
-        />
-      ) : activeTab !== "Home & Decor" ? (
-        <NoItemsDisplay />
-      ) : (
-        <PLPCardContainer 
-          domainColor="rgba(252, 225, 89, 1)" 
-          catalog={catalog}
-          selectedCategory="All"
-          //providerId="default-provider"
-        />
-      )}
+    {filteredCatalog.length > 0 ? (
+  <PLPCardContainer 
+    domainColor="rgba(252, 225, 89, 1)" 
+    catalog={filteredCatalog}
+    selectedCategory={activeTab}
+    storeId="default-provider"   // ✅ fixed
+  />
+) : activeTab !== "Home & Decor" ? (
+  <NoItemsDisplay />
+) : (
+  <PLPCardContainer 
+    domainColor="rgba(252, 225, 89, 1)" 
+    catalog={catalog}
+    selectedCategory="All"
+    storeId="default-provider"   // ✅ fixed
+  />
+)}
+
     </View>
   );
 };

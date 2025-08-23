@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { FC } from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Pressable, TouchableOpacity } from "react-native";
 import Svg, { Mask, Path, G } from "react-native-svg";
 import useDeliveryStore from "../../state/deliveryAddressStore";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -185,7 +185,7 @@ const Services: FC<ServicesProps> = ({
             </Text>
 
             {/* change address button */}
-            <Pressable
+            <TouchableOpacity
               onPress={() => {
                 router.push({
                   pathname: "/address/SavedAddresses",
@@ -217,7 +217,7 @@ const Services: FC<ServicesProps> = ({
               >
                 edit
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

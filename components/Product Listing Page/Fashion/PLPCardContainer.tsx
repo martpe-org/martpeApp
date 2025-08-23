@@ -105,7 +105,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   catalog,
   domainColor,
   selectedCategory = "All",
-  storeId = "default-provider",
+  storeId = "safeStoreId",
 }) => {
   const bgColor = domainColor.slice(0, -3);
   const gradientColors = [
@@ -204,7 +204,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
       end={[0, 0.1]}
       style={styles.container}
     >
-   {filteredCatalog.map((item, idx) => {
+ {filteredCatalog.map((item, idx) => {
   const name = item?.descriptor?.name || "";
   const desc = item?.descriptor?.long_desc || "";
   const value = item?.price?.value || 0;
@@ -216,23 +216,31 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
 
   const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-  return (
-<FashionCard
-  key={uniqueKey}
-  itemName={name}
-  desc={desc}
-  value={value}
-  maxPrice={maxPrice}
-  discount={discount}
-  image={image}
-  id={item.id}
-  catalogId={item.catalog_id}
-   storeId={item.provider?.store_id || storeId}// ✅ safe fallback
-  slug={item.slug}
-/>
+  // ✅ safe fallback for storeId
+  const safeStoreId = item.provider?.store_id || storeId || "unknown-store";
+  if (safeStoreId === "unknown-store") {
+    console.warn(
+      `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
+    );
+  }
 
+  return (
+    <FashionCard
+      key={uniqueKey}
+      itemName={name}
+      desc={desc}
+      value={value}
+      maxPrice={maxPrice}
+      discount={discount}
+      image={image}
+      id={item.id}
+      catalogId={item.catalog_id}
+      storeId={safeStoreId}
+      slug={item.slug}
+    />
   );
 })}
+
 
     </LinearGradient>
   );
