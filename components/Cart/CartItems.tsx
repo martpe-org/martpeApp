@@ -22,12 +22,7 @@ interface CartItemsProps {
   items: CartItemType[];
 }
 
-const CartItems: React.FC<CartItemsProps> = ({
-  cartId,
-  storeSlug,
-  storeId,
-  items,
-}) => {
+const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
   const { userDetails, isLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const toast = useToast();
@@ -139,14 +134,13 @@ const CartItems: React.FC<CartItemsProps> = ({
         </Text>
         <TouchableOpacity
           style={styles.checkout}
-          onPress={() =>
-            authToken &&
-            router.push({
-              pathname: "./cart/[checkout]",
-              params: { id: cartId },
-            })
-          }
-        >
+            onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/cart/[checkout]",
+                  params: { checkout: cartId },
+                })
+              }
+          >
           <Text style={styles.checkoutText}>Checkout</Text>
         </TouchableOpacity>
       </View>

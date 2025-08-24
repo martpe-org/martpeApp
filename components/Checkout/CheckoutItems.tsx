@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -11,50 +10,23 @@ import {
 import { useCartStore } from "../../state/useCartStore";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { DecrementIcon, IncrementIcon } from "../../constants/icons/carticons";
-import { AntDesign } from "@expo/vector-icons";
-import { FontAwesome } from "@expo/vector-icons";
-
-interface CartItem {
-  _id: string;
-  qty: number;
-  unit_price: number;
-  unit_max_price: number;
-  total_price: number;
-  total_max_price: number;
-  name?: string;
-  image?: string;
-  available?: boolean;
-  maxQuantity?: number;
-  max_qty?: number;
-  log?: string[];
-  details?: {
-    descriptor?: {
-      name?: string;
-      symbol?: string;
-    };
-  };
-}
+import { DecrementIcon, IncrementIcon } from "@/constants/icons/carticons";
+import { AntDesign, FontAwesome } from "@expo/vector-icons";
+import ImageComp from "../common/ImageComp";
 
 interface CheckoutItemsProps {
   storeId: string;
-  items: CartItem[];
-  authToken: string;
+  items: any[];
 }
 
-const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items, authToken }) => {
-  const { updateQty, removeCartItems, removeCart } = useCartStore();
+const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
+  const { removeCart, updateQty } = useCartStore();
 
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     try {
-      console.log("Updating quantity:", itemId, newQuantity);
-      const success = await updateQty(itemId, newQuantity, authToken);
-      if (!success) {
-        Alert.alert("Error", "Failed to update item quantity");
-      }
+      await updateQty(storeId, itemId, newQuantity);
     } catch (error) {
-      console.error("Error updating the item quantity", error);
-      Alert.alert("Error", "Failed to update item quantity");
+      console.error("Error updating the item quantity", error.message);
     }
   };
 
@@ -69,131 +41,109 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items, authToken
           text: "Remove",
           onPress: async () => {
             try {
-              const success = await removeCart(storeId, authToken);
-              if (!success) {
-                Alert.alert("Error", "Failed to remove cart");
-              }
+              await removeCart(storeId, itemId);
+              router.back(); // Navigate back if cart is empty
             } catch (error) {
-              console.error("Error deleting cart:", error);
-              Alert.alert("Error", "Failed to remove cart");
+              console.error("Error deleting cart item:", error.message);
             }
           },
         },
       ]);
     } else {
       try {
-        const success = await removeCartItems([itemId], authToken);
-        if (!success) {
-          Alert.alert("Error", "Failed to remove item");
-        }
+        await removeItem(storeId, itemId);
       } catch (error) {
-        console.error("Error deleting cart item:", error);
-        Alert.alert("Error", "Failed to remove item");
+        console.error("Error deleting cart item:", error.message);
       }
     }
   };
 
-  const renderItem = ({ item }: { item: CartItem }) => {
-    // Adjust property names to match your actual data structure
-    const itemId = item._id;
-    const quantity = item.qty;
-    const unitPrice = item.unit_price;
-    const totalPrice = item.total_price;
-    
-    // These properties might need to be adjusted based on your actual item structure
-    const name = item.name || item.details?.descriptor?.name || "Unknown Item";
-    const imageUri = item.image || item.details?.descriptor?.symbol || "";
-    const available = item.available !== false; // Default to true if not specified
-    const maxQuantity = item.maxQuantity || item.max_qty || 99; // Default max quantity
-    const log = item.log || [];
+  const renderItem = ({ item }) => {
+    const { itemId, details, quantity, available, log, maxQuantity } = item;
+    const {
+      descriptor: { name, symbol },
+      price: { value },
+    } = details;
 
     return (
       <View
-        style={[styles.itemContainer, !available && { opacity: 0.6 }]}
+        style={[styles.itemContainer, !available && styles.unavailableItem]}
         key={itemId}
       >
         <View style={styles.itemDescContainer}>
           <View style={styles.itemImgContainer}>
-            <Image source={{ uri: imageUri }} style={styles.productImage} />
+            <ImageComp
+              source={{ uri: symbol }}
+              imageStyle={styles.productImage}
+              resizeMode="contain"
+            />
           </View>
+          
           <View style={styles.itemDetails}>
             <Text style={styles.name} numberOfLines={2}>
               {name}
             </Text>
+            
             <View style={styles.itemPriceInfoContainer}>
               <Text style={styles.itemPriceText}>
-                ₹{" "}
-                {Number(unitPrice)
-                  .toFixed(2)
-                  .replace(/\.?0+$/, "")}
+                ₹{Number(value).toFixed(2).replace(/\.?0+$/, "")}
               </Text>
-
               <Text style={styles.itemPriceText}>x {quantity}</Text>
               <Text style={styles.itemTotalCostText}>
-                ₹{" "}
-                {Number(totalPrice)
-                  .toFixed(2)
-                  .replace(/\.?0+$/, "")}
+                ₹{Number(value * quantity).toFixed(2).replace(/\.?0+$/, "")}
               </Text>
             </View>
-            {log &&
+            
+            {log && log.length > 0 &&
               log.map((logItem, index) => (
                 <Text style={styles.log} key={index}>
                   {logItem}
                 </Text>
-              ))}
+              ))
+            }
           </View>
         </View>
 
-        {/* quantity container */}
+        {/* Quantity Controls */}
         {available ? (
           <View style={styles.cartItemQuantityContainer}>
             <TouchableOpacity
               onPress={() => {
-                if (quantity > 1) {
-                  handleQuantityChange(itemId, quantity - 1);
-                } else {
-                  handleDeleteItem(itemId);
-                }
+                quantity > 1
+                  ? handleQuantityChange(itemId, quantity - 1)
+                  : handleDeleteItem(itemId);
               }}
+              disabled={!available}
             >
               <DecrementIcon />
             </TouchableOpacity>
+            
             <Text style={styles.quantity}>{quantity}</Text>
 
-            {quantity < maxQuantity ? (
-              <TouchableOpacity
-                onPress={() => {
-                  if (quantity < maxQuantity) {
-                    handleQuantityChange(itemId, quantity + 1);
-                  }
-                }}
-              >
+            <TouchableOpacity
+              onPress={() =>
+                quantity < maxQuantity &&
+                handleQuantityChange(itemId, quantity + 1)
+              }
+              disabled={quantity >= maxQuantity}
+            >
+              {quantity < maxQuantity ? (
                 <IncrementIcon />
-              </TouchableOpacity>
-            ) : (
-              <IncrementIcon disabled={true} />
-            )}
+              ) : (
+                <IncrementIcon disabled={true} />
+              )}
+            </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
             style={styles.closeIcon}
-            onPress={() => {
-              handleDeleteItem(itemId);
-            }}
+            onPress={() => handleDeleteItem(itemId)}
           >
             <FontAwesome
               name="trash-o"
               size={20}
               color="red"
-              style={{
-                padding: 5,
-                paddingLeft: 7,
-                borderWidth: 1,
-                borderColor: "#e9ecef",
-                borderRadius: 5,
-                alignSelf: "center",
-              }}
+              style={styles.trashIcon}
             />
           </TouchableOpacity>
         )}
@@ -201,32 +151,42 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items, authToken
     );
   };
 
-  if (!items || !authToken) return null;
-  
+  if (!items || items.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No items in cart</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.itemsContainer}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}> Items in the cart ({items?.length})</Text>
+          <Text style={styles.title}>Items in the cart ({items?.length})</Text>
         </View>
-        <View style={{ minHeight: 2, marginBottom: 10 }}>
+        
+        <View style={styles.listContainer}>
           <FlashList
             data={items}
             renderItem={renderItem}
-            estimatedItemSize={83}
+            estimatedItemSize={100}
+            showsVerticalScrollIndicator={false}
           />
         </View>
       </View>
+      
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.addMoreContainer}
           onPress={() => {
-            router.push(`../(tabs)/home/productListing/${storeId}`);
+            router.push(`/(tabs)/home/result/productListing/${storeId}`);
           }}
         >
           <AntDesign name="plus" size={16} color="black" />
           <Text style={styles.addMoreItemsText}>Add more items</Text>
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.addMoreContainer}>
           <AntDesign name="file-markdown" size={16} color="black" />
           <Text style={styles.addMoreItemsText}>Apply Coupon</Text>
@@ -240,27 +200,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  
+  emptyContainer: {
+    padding: 20,
+    alignItems: "center",
+  },
+  
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
   },
-  title: { paddingVertical: 10, fontWeight: "500", fontSize: 14 },
+  
+  title: { 
+    paddingVertical: 10, 
+    fontWeight: "500", 
+    fontSize: 14 
+  },
+  
   itemsContainer: {
     backgroundColor: "white",
     borderRadius: 10,
   },
+  
+  listContainer: {
+    minHeight: 2,
+    marginBottom: 10,
+  },
+  
   itemContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 10,
+    paddingHorizontal: 5,
   },
+  
+  unavailableItem: {
+    opacity: 0.6,
+  },
+  
   itemDescContainer: {
     flexDirection: "row",
     flex: 3,
     alignItems: "center",
   },
+  
   itemImgContainer: {
     backgroundColor: "white",
     width: 50,
@@ -268,26 +258,53 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 16,
   },
+  
   productImage: {
     borderWidth: 1,
     borderColor: "#e9ecef",
     width: 50,
     height: 50,
     borderRadius: 8,
-    objectFit: "contain",
   },
+  
   itemDetails: {
     justifyContent: "center",
-    maxWidth: 100,
+    flex: 1,
+    maxWidth: 180,
   },
+  
   name: {
     fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
   },
+  
+  itemPriceInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  
   itemPriceText: {
     fontSize: 12,
     color: "#666",
     marginRight: 10,
   },
+  
+  itemTotalCostText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  
+  log: {
+    fontSize: 10,
+    fontWeight: "500",
+    opacity: 0.7,
+    marginVertical: 1,
+    color: "#FF6B6B",
+  },
+  
   cartItemQuantityContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -295,133 +312,57 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e9ecef",
     borderRadius: 5,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 8,
+    minWidth: 80,
   },
+  
   quantity: {
     fontSize: 16,
     fontWeight: "500",
     color: "#00BC66",
+    minWidth: 20,
+    textAlign: "center",
   },
-  totalItemCostContainer: {
-    flex: 1,
-    alignItems: "flex-end",
+  
+  closeIcon: {
+    alignItems: "center",
     justifyContent: "center",
+    minWidth: 80,
   },
-  itemsTotalCostText: {
-    fontSize: 15,
-    fontWeight: "bold",
+  
+  trashIcon: {
+    padding: 8,
+    paddingLeft: 10,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 5,
+    textAlign: "center",
   },
-  itemTotalCostText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    marginLeft: 10,
+  
+  buttons: { 
+    flexDirection: "row", 
+    marginVertical: 10, 
+    gap: 10 
   },
+  
   addMoreContainer: {
     flex: 1,
     flexDirection: "row",
     backgroundColor: "#e8e8e8",
-    borderRadius: 50,
+    borderRadius: 25,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     justifyContent: "center",
-    alignSelf: "center",
-  },
-  itemsTotalContainer: {
-    borderTopWidth: 1,
-    borderColor: "#e9ecef",
-    flexDirection: "row",
-    marginVertical: 5,
-    borderRadius: 10,
-    padding: 10,
-    justifyContent: "space-between",
     alignItems: "center",
   },
-  itemPriceInfoContainer: {
-    flex: 1,
-    flexDirection: "row",
-  },
+  
   addMoreItemsText: {
     color: "#000",
     fontSize: 12,
     fontWeight: "500",
     paddingLeft: 5,
-  },
-  moreItemsText: {
-    color: "#000",
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  total: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    marginVertical: 5,
-  },
-  itemsTotalText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  detailsContainer: {
-    paddingVertical: 15,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  showMoreButton: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-  },
-  modalScrollView: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: "100%",
-    backgroundColor: "white",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    padding: 15,
-  },
-  closeModalButton: {
-    alignSelf: "flex-end",
-    marginBottom: 10,
-  },
-  buttons: { flexDirection: "row", marginVertical: 10, gap: 10 },
-  checkoutButton: {
-    marginRight: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#208b3a",
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: "#208b3a",
-    width: "100%",
-  },
-  checkoutButtonText: {
-    fontWeight: "900",
-    fontSize: 14,
-    color: "#fff",
-  },
-  log: {
-    fontSize: 8,
-    fontWeight: "500",
-    opacity: 0.5,
-    marginVertical: 2,
-  },
-  closeIcon: {
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
 

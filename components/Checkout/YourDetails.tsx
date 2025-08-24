@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TextInput } from "react-native";
 import useUserDetails from "../../hook/useUserDetails";
 import useDeliveryStore from "../../state/deliveryAddressStore";
-import { DotIndicator } from "react-native-indicators";
+//import { DotIndicator } from "react-native-indicators"; import loader here
 
 interface YourDetailsProps {
   onDeliveryInstructionsChange?: (instructions: string) => void;

@@ -1,18 +1,13 @@
 import React from "react";
-import Checkout from "../../../components/Checkout/Checkout";
 import { useLocalSearchParams } from "expo-router";
-import { AlertNotificationRoot } from "react-native-alert-notification";
+import Checkout from "@/components/Checkout/Checkout";
 
-const CheckOut = () => {
-  const { id } = useLocalSearchParams();
-  return (
-    <AlertNotificationRoot>
-      <Checkout id={id} />
-    </AlertNotificationRoot>
+export default function CheckoutScreen() {
+  const { checkout: storeId } = useLocalSearchParams<{ checkout: string }>();
 
-  );
-};
+  if (!storeId) {
+    return null;
+  }
 
-export default CheckOut;
-
-
+  return <Checkout storeId={storeId} />;
+}
