@@ -10,7 +10,7 @@ interface CatalogItem {
     long_desc: string;
     name: string;
     short_desc: string;
-    symbol: string;
+    symbol?: string; // ✅ Add symbol field like PLPCardContainer
   };
   id: string;
   price: {
@@ -18,6 +18,8 @@ interface CatalogItem {
     value: number;
   };
   provider_id: string;
+  provider?: { store_id: string }; // ✅ Add provider field for better storeId resolution
+  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // ✅ Add store field like PLPCardContainer
 }
 
 interface PersonalCareCardContainerProps {
@@ -27,26 +29,25 @@ interface PersonalCareCardContainerProps {
   selectedCategory?: string;
 }
 
-const PersonalCareCardContainer: React.FC<PersonalCareCardContainerProps> = ({
-  catalog,
-  providerId,
-  searchString,
-  selectedCategory,
-}) => {
+const PersonalCareCardContainer: React.FC<
+  PersonalCareCardContainerProps
+> = ({ catalog, providerId, searchString, selectedCategory }) => {
   const getFilteredCatalog = () => {
     let filtered = catalog;
 
+    // ✅ Filter by category
     if (selectedCategory && selectedCategory !== "All") {
       filtered = filtered.filter(
         (item) => item.category_id === selectedCategory
       );
     }
 
-    if (searchString) {
+    // ✅ Filter by search string
+    if (searchString && searchString.trim() !== "") {
       filtered = filtered.filter((item) =>
         item?.descriptor?.name
           ?.toLowerCase()
-          .includes(searchString.toLowerCase())
+          .includes(searchString.toLowerCase().trim())
       );
     }
 
@@ -57,31 +58,70 @@ const PersonalCareCardContainer: React.FC<PersonalCareCardContainerProps> = ({
 
   return (
     <View style={styles.cardsContainer}>
-{filteredCatalog.map((item, index) => {
-  const title = item.descriptor.name;
-  const description = item.descriptor.long_desc;
-  const price = item.price.value;
-  const maxValue = item.price.maximum_value;
-  const discount = maxValue
-    ? Math.round(((maxValue - price) / maxValue) * 100)
-    : 0;
-  const image = item.descriptor.images?.[0];
+      {filteredCatalog.map((item, index) => {
+        const {
+          id,
+          catalog_id,
+          descriptor: { name, long_desc, images, symbol },
+          price: { value: price, maximum_value: maxValue },
+          provider_id,
+          provider,
+          store,
+        } = item;
 
-  return (
-    <PersonalCareCard
-      key={`${item.id}-${item.provider_id}-${index}`} // ✅ guaranteed unique
-      title={title}
-      description={description}
-      price={price}
-      maxValue={maxValue}
-      discount={discount}
-      image={image}
-      id={item.id}
-      providerId={providerId}
-    />
-  );
-})}
+        const discount = maxValue && maxValue > price
+          ? Math.round(((maxValue - price) / maxValue) * 100)
+          : 0;
 
+        const image = images?.[0];
+
+        // ✅ Enhanced storeId resolution (matches PLPCardContainer pattern exactly)
+        const resolveStoreId = (): string | undefined => {
+          // Priority order: item.provider.store_id > item.store?._id > providerId prop > provider_id
+          if (provider?.store_id && provider.store_id !== "unknown-store") {
+            return provider.store_id;
+          }
+          if (store?._id && store._id !== "unknown-store") {
+            return store._id;
+          }
+          if (providerId && providerId !== "unknown-store") {
+            if (Array.isArray(providerId)) {
+              const validId = providerId.find(id => id && id !== "unknown-store" && id.trim() !== "");
+              return validId;
+            }
+            return providerId;
+          }
+          if (provider_id && provider_id !== "unknown-store") {
+            return provider_id;
+          }
+          return undefined; // No valid storeId found
+        };
+
+        const resolvedStoreId = resolveStoreId();
+
+        // ✅ Log warning for debugging (like PLPCardContainer)
+        if (!resolvedStoreId) {
+          console.warn(
+            `⚠️ PersonalCareCardContainer: Missing storeId for product ${id} (${name})`
+          );
+        }
+
+        return (
+          <PersonalCareCard
+            key={`${id}-${catalog_id}-${index}`}
+            title={name}
+            description={long_desc}
+            price={price}
+            maxValue={maxValue}
+            discount={discount}
+            image={image}
+            symbol={symbol}
+            id={id}
+            providerId={resolvedStoreId} // ✅ Pass simple resolved storeId string (not array)
+            catalogId={catalog_id}
+          />
+        );
+      })}
     </View>
   );
 };

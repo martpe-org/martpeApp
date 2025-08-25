@@ -12,7 +12,7 @@ interface GroceryCardProps {
   itemName: string;
   cost: number;
   maxLimit: number;
-  providerId: string;
+  providerId?: string; // ✅ Make optional since it might be undefined
   slug?: string;
   catalogId: string;
   weight?: string;
@@ -20,7 +20,7 @@ interface GroceryCardProps {
   originalPrice?: number;
   discount?: number;
   symbol?: string;
-  onPress?: () => void; // ✅ added optional onPress
+  onPress?: () => void;
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
@@ -37,10 +37,31 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   symbol,
   onPress,
 }) => {
+  // ✅ Fixed syntax error in onPress assignment
+  const handlePress = onPress || (() => router.push(`/(tabs)/home/result/productDetails/${id}`));
+
+  // ✅ Validate providerId before rendering AddToCart
+  const renderAddToCart = () => {
+    if (!providerId || providerId === "unknown-store") {
+      return (
+        <Text style={cardStyles.errorText}>Store ID missing</Text>
+      );
+    }
+
+    return (
+      <AddToCart
+        storeId={providerId}
+        slug={slug || id}
+        catalogId={catalogId}
+        price={cost}
+      />
+    );
+  };
+
   return (
     <TouchableOpacity
       style={cardStyles.card}
-      onPress={onPress = (() => router.push(`/(tabs)/home/result/productDetails/${id}`))}
+      onPress={handlePress}
       activeOpacity={0.8}
     >
       {/* Product Image */}
@@ -76,23 +97,15 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </View>
 
-      {/* ✅ AddToCart aligned to bottom */}
+      {/* ✅ AddToCart with validation */}
       <View style={cardStyles.cartWrapper}>
-        <AddToCart
-          storeId={providerId}
-          slug={slug || id}
-          catalogId={catalogId}
-          price={cost}
-          buttonStyle={cardStyles.cartButton}
-          textStyle={cardStyles.cartText}
-        />
+        {renderAddToCart()}
       </View>
     </TouchableOpacity>
   );
 };
 
 export default GroceryCard;
-
 
 const cardStyles = StyleSheet.create({
   card: {
@@ -151,13 +164,10 @@ const cardStyles = StyleSheet.create({
   cartWrapper: {
     marginTop: 8,
   },
-  cartButton: {
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  cartText: {
-    fontSize: 12,
-    fontWeight: "600",
+  errorText: {
+    fontSize: 10,
+    color: "#ff6b6b",
+    textAlign: "center",
+    fontWeight: "500",
   },
 });

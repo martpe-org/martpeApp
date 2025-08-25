@@ -7,10 +7,8 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import Animated, {
+import {
   interpolate,
-  interpolateColor,
-  useAnimatedStyle,
 } from "react-native-reanimated";
 import Carousel from "react-native-reanimated-carousel";
 import { LinearGradient } from "expo-linear-gradient";

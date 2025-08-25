@@ -24,6 +24,8 @@ export interface CatalogItem {
   symbol?: string;
   weight?: string;
   unit?: string;
+  provider_id?: string; // ✅ Add provider_id
+  provider?: { store_id: string }; // ✅ Add provider field
 }
 
 interface GroceryCardContainerProps {
@@ -99,32 +101,55 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
       : true;
   });
 
-  // ✅ Remove the NoItemsDisplay logic from here since it's handled in parent
   return (
     <View style={containerStyles.container}>
-      {displayedCatalog.map((item, index) => (
-        <View
-          key={`${item.id || item.catalog_id}-${index}-${item.descriptor?.name?.slice(0,10) || 'item'}`}
-          style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
-        >
-     <GroceryCard
-  id={item.id}
-  itemName={item.descriptor?.name || "Unnamed Product"}
-  cost={item.price.value}
-  maxLimit={item.quantity?.maximum?.count ?? 0} 
-  providerId={item.provider?.store_id} // ✅ use actual store ObjectId
-  slug={item.slug || item.id}
-  catalogId={item.catalog_id}
-  symbol={item.symbol}
-  weight={item.weight}
-  unit={item.unit}
-  originalPrice={item.price.maximum_value}
-  discount={item.price.offerPercent}
-  onPress={() => handleOpenModal?.(item)}
-/>
+      {displayedCatalog.map((item, index) => {
+        // ✅ Resolve storeId with proper fallback logic
+        const resolveStoreId = (): string | undefined => {
+          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+            return item.provider.store_id;
+          }
+          if (item.provider_id && item.provider_id !== "unknown-store") {
+            return item.provider_id;
+          }
+          if (providerId && providerId !== "unknown-store") {
+            return providerId;
+          }
+          return undefined;
+        };
 
-        </View>
-      ))}
+        const storeId = resolveStoreId();
+
+        // ✅ Log warning if no valid storeId found
+        if (!storeId) {
+          console.warn(
+            `⚠️ GroceryCardContainer: Missing storeId for product ${item.id} (${item.descriptor?.name})`
+          );
+        }
+
+        return (
+          <View
+            key={`${item.id || item.catalog_id}-${index}-${item.descriptor?.name?.slice(0,10) || 'item'}`}
+            style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
+          >
+            <GroceryCard
+              id={item.id}
+              itemName={item.descriptor?.name || "Unnamed Product"}
+              cost={item.price.value}
+              maxLimit={item.quantity?.maximum?.count ?? 0} 
+              providerId={storeId} // ✅ Use resolved storeId
+              slug={item.slug || item.id}
+              catalogId={item.catalog_id}
+              symbol={item.symbol}
+              weight={item.weight}
+              unit={item.unit}
+              originalPrice={item.price.maximum_value}
+              discount={item.price.offerPercent}
+              onPress={() => handleOpenModal?.(item)}
+            />
+          </View>
+        );
+      })}
     </View>
   );
 };

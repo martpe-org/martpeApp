@@ -1,11 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { 
-  View, 
-  StyleSheet, 
-  TextInput, 
-  Animated, 
-  Platform,
-} from "react-native";
+import { View, StyleSheet, TextInput, Animated, Platform } from "react-native";
 import SearchboxDropdown from "./SearchboxDropdown";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -38,14 +32,16 @@ const Searchbox: React.FC<SearchboxProps> = ({
 }) => {
   const [isSearchboxActive, setIsSearchboxActive] = useState(false);
   const [searchInput, setSearchInput] = useState("");
-  const [filteredSuggestions, setFilteredSuggestions] = useState<SuggestionItem[]>([]);
-  
+  const [filteredSuggestions, setFilteredSuggestions] = useState<
+    SuggestionItem[]
+  >([]);
+
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Process catalog items (similar to the example)
   const addedNames: { [key: string]: boolean } = {};
   const catalogItems: SuggestionItem[] = [];
-  
+
   for (const item of catalog) {
     const name = item?.descriptor?.name;
     if (name && !addedNames[name]) {
@@ -61,8 +57,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
 
   const handleInputChange = (text: string) => {
     setSearchInput(text);
-    search(text);
-    
+
     if (text.trim()) {
       const filtered = catalogItems.filter((item) =>
         item.name.toLowerCase().includes(text.toLowerCase().trim())
@@ -81,7 +76,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
     }
-    
+
     // Always show suggestions if there's input and matches
     if (searchInput.trim()) {
       const filtered = catalogItems.filter((item) =>
@@ -92,24 +87,29 @@ const Searchbox: React.FC<SearchboxProps> = ({
     }
   };
 
-
-
   const handleSuggestionSelect = (suggestion: SuggestionItem) => {
-    // Clear any pending blur timeout immediately
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
     }
-    
-    // Don't immediately close the dropdown - let it stay open briefly
+
     setSearchInput(suggestion.name);
+
+    // trigger search only here
     search(suggestion.name);
-    
-    // Close dropdown after navigation completes
+
     setTimeout(() => {
       setFilteredSuggestions([]);
       setIsSearchboxActive(false);
     }, 100);
+  };
+
+  // ✅ handle keyboard submit
+  const handleSubmitEditing = () => {
+    if (searchInput.trim()) {
+      search(searchInput.trim());
+      setIsSearchboxActive(false);
+    }
   };
 
   // Cleanup timeout on unmount
@@ -131,15 +131,16 @@ const Searchbox: React.FC<SearchboxProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchBoxContainer}>
-        <MaterialIcons 
-          name="search" 
-          size={22} 
-          color="#6B7280" 
+        <MaterialIcons
+          name="search"
+          size={22}
+          color="#6B7280"
           style={styles.searchIcon}
         />
         <TextInput
           onChangeText={handleInputChange}
           onFocus={handleFocus}
+          onSubmitEditing={handleSubmitEditing} // 👈 only here
           value={searchInput}
           style={styles.searchBox}
           placeholder={`Search in ${placeHolder}`}
@@ -148,11 +149,12 @@ const Searchbox: React.FC<SearchboxProps> = ({
           autoCorrect={false}
           autoCapitalize="none"
         />
+
         {searchInput.length > 0 && (
-          <MaterialIcons 
-            name="clear" 
-            size={20} 
-            color="#9CA3AF" 
+          <MaterialIcons
+            name="clear"
+            size={20}
+            color="#9CA3AF"
             onPress={clearSearch}
             style={styles.clearIcon}
           />
@@ -175,11 +177,11 @@ const Searchbox: React.FC<SearchboxProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    position: "relative",
     zIndex: 1000,
     marginBottom: 10,
     marginTop: 30,
-    marginLeft: 50
+    marginLeft: 50,
   },
   searchBoxContainer: {
     flexDirection: "row",
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
   searchBox: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: "400",
     color: "#1F2937",
     paddingVertical: 0,
   },

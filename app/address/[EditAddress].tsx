@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Header from "../../components/address/AddressHeader";
-import { InputField } from "../../app/address/AddNewAddress";
+import { InputField } from "./AddNewAddress";
 import { fetchAddress } from "../../components/address/fetchAddress";
 import { updateAddress } from "../../components/address/updateAddress";
 import { useLocalSearchParams, router } from "expo-router";

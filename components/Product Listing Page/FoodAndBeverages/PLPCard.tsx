@@ -1,8 +1,10 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { useCartStore } from "../../../state/useCartStore";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
+import { useCartStore } from "../../../state/useCartStore";
 import useUserDetails from "../../../hook/useUserDetails";
+import ImageComp from "@/components/common/ImageComp";
+
 interface PLPCardProps {
   veg: boolean;
   itemName: string;
@@ -39,34 +41,46 @@ const PLPCard: React.FC<PLPCardProps> = ({
   foodDetails,
 }) => {
   const { allCarts, addItem, updateQty } = useCartStore();
- const cart = allCarts.find((c) => c.store._id === providerId);
-const item = cart?.cart_items.find((i) => i._id === id); // ✅ corrected
-const itemCount = item?.qty ?? 0;
-const { authToken } = useUserDetails();
+  const { authToken } = useUserDetails();
 
+  // ✅ Safe storeId handling
+  const safeStoreId = providerId && providerId !== "unknown-store" ? providerId : null;
+
+  useEffect(() => {
+    if (!safeStoreId) {
+      console.warn(`⚠️ PLPCard: Missing storeId for product ${id} (${itemName})`);
+    }
+  }, [safeStoreId, id, itemName]);
+
+  const cart = safeStoreId
+    ? allCarts.find((c) => c.store._id === safeStoreId)
+    : null;
+
+  const item = cart?.cart_items.find((i) => i._id === id);
+  const itemCount = item?.qty ?? 0;
 
   const discountPercentage = Math.floor(
     ((originalPrice - offerPrice) / originalPrice) * 100
   );
 
-const handleAdd = () => {
-  if (!authToken) return; // prevent calling with null
-  addItem(providerId, slug, id, 1, customizable, [], authToken);
-};
+  const handleAdd = () => {
+    if (!authToken || !safeStoreId) return;
+    addItem(safeStoreId, slug, id, 1, customizable, [], authToken);
+  };
 
-const handleIncrease = () => {
-  if (!authToken || !item) return;
-  updateQty(item._id, item.qty + 1, authToken);
-};
+  const handleIncrease = () => {
+    if (!authToken || !item) return;
+    updateQty(item._id, item.qty + 1, authToken);
+  };
 
-const handleDecrease = () => {
-  if (!authToken || !item) return;
-  updateQty(item._id, item.qty - 1, authToken);
-};
-
+  const handleDecrease = () => {
+    if (!authToken || !item) return;
+    updateQty(item._id, item.qty - 1, authToken);
+  };
 
   return (
     <View style={styles.plpCard_container}>
+      {/* Left content */}
       <View style={styles.plpCard_content}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <MaterialCommunityIcons
@@ -74,18 +88,13 @@ const handleDecrease = () => {
             size={20}
             color={veg ? "green" : "red"}
           />
-          <Text style={styles.itemName}>
-            {itemName.length > 20 ? itemName.slice(0, 20) + "..." : itemName}
+          <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">
+            {itemName}
           </Text>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", width: 120 }}>
-          <FontAwesome
-            name="star"
-            size={14}
-            color="#fbbf24"
-            style={{ marginRight: 3 }}
-          />
+        <View style={{ flexDirection: "row", alignItems: "center", width: 140 }}>
+          <FontAwesome name="star" size={14} color="#fbbf24" style={{ marginRight: 3 }} />
           <Text style={{ fontSize: 12, fontWeight: "500" }}>{rating}</Text>
           <Text style={{ color: "#848080", fontSize: 8, marginHorizontal: 2 }}>
             {" \u25CF"}
@@ -95,9 +104,7 @@ const handleDecrease = () => {
             {discountPercentage >= 1 && (
               <>
                 <Text style={styles.strikedOffText}>₹ {originalPrice}</Text>
-                <Text style={{ color: "#1DA578" }}>
-                  {discountPercentage}% off
-                </Text>
+                <Text style={{ color: "#1DA578" }}> {discountPercentage}% off</Text>
               </>
             )}
           </Text>
@@ -112,7 +119,7 @@ const handleDecrease = () => {
               discount: discountPercentage,
               price: offerPrice,
               short_desc: shortDesc,
-              storeId: providerId,
+              storeId: safeStoreId,
               itemId: id,
               maxQuantity: maxLimit,
               maxPrice: originalPrice,
@@ -123,37 +130,50 @@ const handleDecrease = () => {
           style={styles.moreDetailsButton}
         >
           <Text style={{ color: "#030303", fontSize: 10 }}>More details</Text>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={14}
-            color="#030303"
-          />
+          <MaterialCommunityIcons name="chevron-right" size={14} color="#030303" />
         </TouchableOpacity>
       </View>
 
+      {/* Right side: image & Add-to-Cart */}
       <View style={{ alignItems: "center", width: "35%" }}>
-        <Image source={{ uri: itemImg }} style={styles.cardImg} />
-        {itemCount === 0 ? (
-          <TouchableOpacity style={styles.buttonGroup} onPress={handleAdd}>
-            <Text style={{ color: "#0e8910", fontWeight: "bold" }}>Add</Text>
-            <MaterialCommunityIcons name="plus" size={20} color="#0e8910" />
-          </TouchableOpacity>
+        <ImageComp
+          source={itemImg}
+          imageStyle={styles.cardImg}
+          resizeMode="cover"
+          fallbackSource={{
+            uri: "https://via.placeholder.com/100?text=Food",
+          }}
+          loaderColor="#666"
+          loaderSize="small"
+        />
+
+        {safeStoreId ? (
+          itemCount === 0 ? (
+            <TouchableOpacity style={styles.buttonGroup} onPress={handleAdd}>
+              <Text style={{ color: "#0e8910", fontWeight: "bold" }}>Add</Text>
+              <MaterialCommunityIcons name="plus" size={20} color="#0e8910" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity onPress={handleDecrease}>
+                <MaterialCommunityIcons name="minus" size={20} color="red" />
+              </TouchableOpacity>
+              <Text>{itemCount}</Text>
+              <TouchableOpacity
+                onPress={handleIncrease}
+                disabled={itemCount >= maxLimit}
+              >
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={20}
+                  color={itemCount >= maxLimit ? "#ccc" : "green"}
+                />
+              </TouchableOpacity>
+            </View>
+          )
         ) : (
           <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={handleDecrease}>
-              <MaterialCommunityIcons name="minus" size={20} color="red" />
-            </TouchableOpacity>
-            <Text>{itemCount}</Text>
-            <TouchableOpacity
-              onPress={handleIncrease}
-              disabled={itemCount >= maxLimit}
-            >
-              <MaterialCommunityIcons
-                name="plus"
-                size={20}
-                color={itemCount >= maxLimit ? "#ccc" : "green"}
-              />
-            </TouchableOpacity>
+            <Text style={{ fontSize: 10, color: "#ff6b6b" }}>Store ID missing</Text>
           </View>
         )}
       </View>
@@ -174,6 +194,7 @@ const styles = StyleSheet.create({
     borderColor: "#9B9B9B",
     marginBottom: 10,
     marginHorizontal: 10,
+    backgroundColor: "#fff",
   },
   plpCard_content: {
     flex: 1,
@@ -182,6 +203,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontWeight: "900",
     fontSize: 14,
+    maxWidth: 180,
   },
   price: {
     fontWeight: "900",
@@ -191,9 +213,10 @@ const styles = StyleSheet.create({
   },
   strikedOffText: {
     textDecorationLine: "line-through",
-    marginLeft: 20,
+    marginLeft: 8,
     color: "#808080",
     fontWeight: "normal",
+    fontSize: 12,
   },
   moreDetailsButton: {
     flexDirection: "row",
@@ -204,7 +227,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 10,
     width: 90,
-    marginTop: 30,
+    marginTop: 20,
   },
   cardImg: {
     width: "100%",

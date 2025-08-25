@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -18,10 +18,12 @@ interface PersonalCareCardProps {
   description: string;
   price: number;
   discount: number;
-  image: string;
+  image?: string;
+  symbol?: string;
   maxValue: number;
   id: string;
-  providerId: string | string[];
+  providerId?: string; // ✅ Make it simple string like FashionCard's storeId
+  catalogId?: string;
 }
 
 const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
@@ -30,18 +32,63 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   price,
   discount,
   image,
+  symbol, // ✅ Add symbol parameter
   maxValue,
   id,
   providerId,
+  catalogId,
 }) => {
   const handlePress = () => {
     router.push(`/(tabs)/home/result/productDetails/${id}`);
   };
 
-  // ✅ Ensure correct storeId
-  const storeId = Array.isArray(providerId) ? providerId[0] : providerId;
+  // ✅ Fixed: Exact pattern from working FashionCard
+  const safeStoreId = providerId && providerId !== "unknown-store" ? providerId : null;
+
+  // ✅ Fixed: Only log warning when storeId is actually missing (like FashionCard)
+  useEffect(() => {
+    if (!safeStoreId) {
+      console.warn(
+        `⚠️ PersonalCareCard: Missing storeId for product ${id} (${title})`
+      );
+    }
+  }, [safeStoreId, id, title]);
+
   const slug = title?.toLowerCase().replace(/\s+/g, "-") || "";
-  const catalogId = id;
+  const safeCatalogId = catalogId || id;
+
+  // ✅ Enhanced image resolution - prioritize symbol over image (like FashionCard)
+  const getImageSource = () => {
+    if (symbol && symbol.trim() !== "") {
+      return { uri: symbol };
+    }
+    if (image && image.trim() !== "") {
+      return { uri: image };
+    }
+    return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
+  };
+
+  // ✅ Don't render AddToCart if we don't have a valid storeId (exact FashionCard pattern)
+  const renderAddToCart = () => {
+    if (!safeStoreId) {
+      return (
+        <View style={styles.cartWrapper}>
+          <Text style={styles.errorText}>Store ID missing</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.cartWrapper}>
+        <AddToCart
+          price={price}
+          storeId={safeStoreId}
+          slug={slug || id}
+          catalogId={safeCatalogId}
+        />
+      </View>
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -49,16 +96,19 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
       style={styles.card}
       activeOpacity={0.85}
     >
-      {/* Product Image */}
       <View style={styles.imageContainer}>
         <ImageComp
-          source={{ uri: image }}
+          source={getImageSource()}
           imageStyle={styles.image}
           resizeMode="cover"
+          fallbackSource={{
+            uri: "https://via.placeholder.com/150?text=Personal+Care",
+          }}
+          loaderColor="#530633"
+          loaderSize="small"
         />
       </View>
 
-      {/* Info */}
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {title}
@@ -67,22 +117,19 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           {description || "No description available"}
         </Text>
 
-        {discount > 1 && <Text style={styles.strikedOff}>Rs.{maxValue}</Text>}
+        {discount > 1 && (
+          <Text style={styles.strikedOff}>₹{maxValue}</Text>
+        )}
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>Rs.{price}</Text>
+          <Text style={styles.price}>₹{price}</Text>
           {discount > 1 && (
             <Text style={styles.discount}>{discount}% Off</Text>
           )}
         </View>
 
-        {/* Reusable AddToCart */}
-        <AddToCart
-          price={price}
-          storeId={storeId}
-          slug={slug}
-          catalogId={catalogId}
-        />
+        {/* ✅ AddToCart with exact FashionCard pattern */}
+        {renderAddToCart()}
       </View>
     </TouchableOpacity>
   );
@@ -99,6 +146,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 10,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   imageContainer: {
     backgroundColor: "#f7f7f7",
@@ -108,10 +159,12 @@ const styles = StyleSheet.create({
     height: 140,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
+    backgroundColor: "#f0f0f0",
   },
   info: {
     paddingHorizontal: 8,
     paddingTop: 8,
+    flexGrow: 1,
   },
   title: {
     fontWeight: "700",
@@ -134,15 +187,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 8,
   },
   price: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#f14343",
+    color: "#530633",
   },
   discount: {
     fontSize: 12,
     fontWeight: "600",
     color: "#28a745",
+  },
+  cartWrapper: {
+    marginTop: 4,
+  },
+  errorText: {
+    fontSize: 10,
+    color: "#ff6b6b",
+    textAlign: "center",
+    fontWeight: "500",
+    padding: 4,
+    backgroundColor: "#ffe6e6",
+    borderRadius: 4,
   },
 });

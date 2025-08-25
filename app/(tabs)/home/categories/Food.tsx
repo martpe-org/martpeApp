@@ -13,7 +13,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Pressable,
+  FlatList,
+  RefreshControl,
 } from "react-native";
 import { router } from "expo-router";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
@@ -30,8 +31,10 @@ import {
   offerData,
   deliveryData,
 } from "../../../../constants/filters";
-import { Entypo, Feather } from "@expo/vector-icons";
-import FilterCard from "../../../../components/search/filterCard";
+import { Entypo, Feather, Ionicons } from "@expo/vector-icons";
+import { useRenderFunctions } from "@/components/Landing Page/render";
+import { StoreSearchResult } from "@/app/search/search-stores-type";
+import { LinearGradient } from "expo-linear-gradient";
 
 const domain = "ONDC:RET11";
 const screenWidth = Dimensions.get("window").width;
@@ -43,60 +46,50 @@ function Food() {
     offers: 0,
     delivery: 100,
   });
-  const [storesData, setStoresData] = useState<any[]>([]);
+  const [storesData, setStoresData] = useState<StoreSearchResult[]>([]);
   const [offersData, setOffersData] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
+  const { renderNearbyItem, renderRestaurantItem } = useRenderFunctions();
 
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
 
-  const handleClosePress = () => {
-    bottomSheetRef.current?.close();
-    setIsFilterVisible(false);
-  };
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    []
-  );
 
   // Fetch domain data
-  useEffect(() => {
-    async function fetchData() {
-      if (!selectedAddress?.lat || !selectedAddress?.lng) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const response = await fetchHomeByDomain(
-          selectedAddress.lat,
-          selectedAddress.lng,
-          selectedAddress.pincode || "110001",
-          domain,
-          1,
-          20
-        );
-        setStoresData(
-          Array.isArray(response?.stores?.items) ? response.stores.items : []
-        );
-        setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-      } catch (error) {
-        console.error("Error fetching domain data:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchData = async () => {
+    if (!selectedAddress?.lat || !selectedAddress?.lng) {
+      setIsLoading(false);
+      return;
     }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchHomeByDomain(
+        selectedAddress.lat,
+        selectedAddress.lng,
+        selectedAddress.pincode || "110001",
+        domain,
+        1,
+        20
+      );
+      setStoresData(
+        Array.isArray(response?.stores?.items) ? response.stores.items : []
+      );
+      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
+    } catch (err) {
+      console.error("Error fetching domain data:", err);
+      setError("Something went wrong while loading restaurants.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [selectedAddress]);
+
   const handleSearchPress = () => {
     router.push("/search");
   };
@@ -129,34 +122,66 @@ function Food() {
     return meetsCategory && meetsOffer && meetsDelivery;
   });
 
-  const renderSubCategories = () =>
-    foodCategoryData.slice(0, 8).map((subCategory) => (
-      <TouchableOpacity
-        key={subCategory.id}
-        style={styles.subCategory}
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/[search]",
-            params: { search: subCategory.name, domainData: domain },
-          })
-        }
-      >
-        <View style={styles.subCategoryImage}>
-          <Image
-            source={{ uri: subCategory.image }}
-            resizeMode="contain"
-            style={{ width: 80, height: 60 }}
-          />
-        </View>
-        <Text style={styles.subCategoryName}>{subCategory.name}</Text>
-      </TouchableOpacity>
-    ));
+  // Render subcategories in horizontal layout
+  const renderSubCategories = () => (
+    <FlatList
+      data={foodCategoryData.slice(0, 8)}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.subCategoriesContainer}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.subCategory}
+                 onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
+
+        >
+       <LinearGradient
+            colors={["#F9E7B0", "rgba(231, 223, 201, 0)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.subCategoryImage}
+          >
+            <Image
+              source={{ uri: item.image }}
+              resizeMode="contain"
+              style={styles.subCategoryIcon}
+            />
+          </LinearGradient>
+<Text style={styles.subCategoryName}>{item.name}</Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
+  const handleViewMore = () => {
+    if (storesData.length > 0) {
+      const firstStore = storesData[0];
+      router.push(`/(tabs)/home/result/productListing/${firstStore.slug}`);
+    } else {
+      router.push({
+        pathname: "/(tabs)/home/result/[search]",
+        params: { search: "foodAndBeverages", domainData: domain },
+      });
+    }
+  }
 
   if (isLoading) return <Loader />;
 
-  if (!storesData.length && !offersData.length) {
-    return (
-      <View style={styles.container}>
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={["#f2663c"]}
+            tintColor="#f2663c"
+          />
+        }
+      >
+        {/* Header */}
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -168,187 +193,113 @@ function Food() {
             <Search onPress={handleSearchPress} />
           </View>
         </View>
-        <Text style={{ color: "black", textAlign: "center", justifyContent:"center",alignItems:"center" }}>
-          No restaurants available in your area
-        </Text>
-      </View>
-    );
-  }
 
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.headerContainer}>
-        {/* {/* <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Entypo name="chevron-left" size={22} color="#111" />
-        </TouchableOpacity>
-        <View style={styles.searchWrapper}>
-          <Search onPress={handleSearchPress} />
-        </View> */}
-      </View> 
-
-      <ScrollView style={styles.container}>
         {/* Offers */}
-        {offersData.length > 0 && (
-          <View style={{ height: 200 }}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-            >
-              {offersData.map((data, index) => (
-                <View key={index} style={{ width: screenWidth }}>
-                  <OfferCard3 offerData={data} />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+        <View style={styles.offersContainer}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.offersScrollContainer}
+          >
+            {offersData.map((data, index) => (
+              <OfferCard3 key={index} offerData={data} />
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Categories */}
-        <View style={styles.subHeading}>
-          <Text style={styles.subHeadingText}>What’s on your mind?</Text>
+        <View>
+          <View style={styles.sectionHeading}>
+            <View style={styles.line} />
+            <Text style={styles.sectionHeadingText}>What's on your mind?</Text>
+            <View style={styles.line} />
+          </View>
           <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/home/allCategories",
-                params: { category: "food" },
-              })
-            }
+            style={styles.viewMoreButton}
+            onPress={handleViewMore}
           >
-            <Text style={{ color: "#FF9130", fontSize: 14, fontWeight: "500" }}>
-              See all{" "}
-              <Entypo name="chevron-small-right" size={14} color="#FF9130" />
-            </Text>
+            <Text style={styles.viewMoreButtonText}>View More</Text>
+            <Entypo 
+              name="chevron-right" 
+              size={18} 
+              color="red" 
+              style={{
+                alignItems: "center", 
+                marginLeft: 60, 
+                marginTop: -17
+              }}
+            />
           </TouchableOpacity>
+          {renderSubCategories()}
         </View>
-        <View style={styles.subCategories}>{renderSubCategories()}</View>
 
-        {/* Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ margin: 10 }}
-        >
-          {filters.map((filter, index) => {
-            const isActive =
-              (filter.name === "Category" &&
-                filterSelected.category.length > 0) ||
-              (filter.name === "Offers" && filterSelected.offers > 0) ||
-              (filter.name === "Delivery" && filterSelected.delivery < 100);
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.filterChip,
-                  { borderColor: isActive ? "black" : "#eee" },
-                ]}
-                onPress={() => {
-                  setActiveFilter(filter.name);
-                  setIsFilterVisible(true);
-                  bottomSheetRef.current?.expand();
-                }}
-              >
-                <Text style={{ color: "black", fontWeight: "600" }}>
-                  {filter.name === "Category"
-                    ? `Category ${
-                        filterSelected.category.length > 0
-                          ? `(${filterSelected.category.length})`
-                          : ""
-                      }`
-                    : filter.name === "Offers"
-                    ? filterSelected.offers > 0
-                      ? `${filterSelected.offers}% and above`
-                      : "Offers"
-                    : filter.name === "Delivery"
-                    ? filterSelected.delivery < 100
-                      ? `min ${filterSelected.delivery} hrs`
-                      : "Delivery"
-                    : filter.name}
-                </Text>
-
-                {isActive && (
-                  <Pressable
-                    onPress={() =>
-                      setFilterSelected({
-                        category:
-                          filter.name === "Category"
-                            ? []
-                            : filterSelected.category,
-                        offers:
-                          filter.name === "Offers" ? 0 : filterSelected.offers,
-                        delivery:
-                          filter.name === "Delivery"
-                            ? 100
-                            : filterSelected.delivery,
-                      })
-                    }
-                    style={{ marginLeft: 5 }}
-                  >
-                    <Feather name="x" size={16} color="black" />
-                  </Pressable>
-                )}
+        {/* Stores Section */}
+        <View style={styles.storesSection}>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading restaurants...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
-            );
-          })}
-
-          {(filterSelected.category.length > 0 ||
-            filterSelected.offers > 0 ||
-            filterSelected.delivery < 100) && (
-            <TouchableOpacity
-              style={[styles.filterChip, { borderColor: "#F13A3A" }]}
-              onPress={() =>
-                setFilterSelected({ category: [], offers: 0, delivery: 100 })
-              }
-            >
-              <Text style={{ color: "#F13A3A" }}>Reset</Text>
-            </TouchableOpacity>
+            </View>
+          ) : storesData.length > 0 ? (
+            <>
+              <View style={styles.sectionHeading}>
+                <View style={styles.line} />
+                <Text style={styles.sectionHeadingText}>
+                  Your Nearby Restaurants
+                </Text>
+                <View style={styles.line} />
+              </View>
+              <FlatList
+                data={filteredStores as any}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+                contentContainerStyle={styles.storesContainer}
+                renderItem={renderNearbyItem}
+              />
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionHeadingTextNearby}>
+                  Your Nearby Restaurants
+                </Text>
+              </View>
+              <Ionicons name="restaurant-outline" size={40} color="#999" />
+              <Text style={styles.emptyText}>No restaurants available in your area</Text>
+            </View>
           )}
-        </ScrollView>
-
-        {/* Stores */}
-        <View style={styles.subHeading}>
-          <Text style={styles.subHeadingText}>
-            Explore {filteredStores.length} Restaurants nearby
-          </Text>
         </View>
-        {filteredStores.map((store, index) => (
-          <StoreCard4
-            key={store?.id || index}
-            storeData={store}
-            categoryFiltered={filterSelected.category}
-            index={index}
-          />
-        ))}
+
+        {/* Traditional Store Cards for filtered view */}
+        {storesData.length > 0 && (filterSelected.category.length > 0 ||
+          filterSelected.offers > 0 ||
+          filterSelected.delivery < 100) && (
+          <View style={styles.filteredStoresSection}>
+            <View style={styles.subHeading}>
+              <Text style={styles.subHeadingText}>
+                Explore {filteredStores.length} Restaurants nearby
+              </Text>
+            </View>
+            {filteredStores.map((store, index) => (
+              <StoreCard4
+                key={store?.id || index}
+                storeData={store}
+                categoryFiltered={filterSelected.category}
+                index={index}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
 
-      {/* BottomSheet */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        onClose={() => setIsFilterVisible(false)}
-        backgroundStyle={{ backgroundColor: "#fff" }}
-      >
-        {isFilterVisible && (
-          <FilterCard
-            options={filters}
-            activeOption={activeFilter}
-            selectOption={setFilterSelected}
-            categoryData={uniqueCategoryIds}
-            filterSelected={filterSelected}
-            offerData={offerData}
-            deliveryData={deliveryData}
-            setActiveOption={setActiveFilter}
-            closeFilter={handleClosePress}
-          />
-        )}
-      </BottomSheet>
     </View>
   );
 }
@@ -356,47 +307,100 @@ function Food() {
 export default Food;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff" 
+  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
   },
-
   backButton: {
-    padding: 6,
-    marginTop: 11,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    marginRight: 12,
+    padding: 4,
+    marginTop: -9,
   },
-
   searchWrapper: {
     flex: 1,
+    marginTop: -20,
   },
-  subCategories: {
+  offersContainer: {
+    height: 200,
+    marginVertical: 15,
+    paddingHorizontal: 5,
+  },
+  offersScrollContainer: {
+    paddingHorizontal: 10,
+  },
+    storesSection: {
+    marginBottom: 30,
+  },
+  sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-evenly",
-    flexWrap: "wrap",
-    marginVertical: 5,
-    rowGap: 5,
+    marginVertical: 10,
+    marginHorizontal: 16,
   },
-  subCategory: { flexDirection: "column", alignItems: "center", margin: 3 },
-  subCategoryImage: {},
-  subCategoryName: { fontWeight: "400", fontSize: 12 },
-  subHeading: {
-    flexDirection: "row",
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#0a0909",
+  },
+  sectionHeadingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginHorizontal: 16,
+  },
+  subCategoriesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  subCategory: {
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 15,
-    marginHorizontal: 20,
+    marginRight: 20,
+    width: 80,
   },
-  subHeadingText: { fontSize: 14, fontWeight: "600", marginVertical: 10 },
+  subCategoryImage: {
+    width: 80,
+    height: 60,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    backgroundColor: "#f8f8f8",
+  },
+  subCategoryIcon: {
+    width: 60,
+    height: 45,
+  },
+  subCategoryName: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#333",
+    textAlign: "center",
+  },
+  viewMoreButton: {
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignSelf: "flex-end",
+    marginRight: 10,
+  },
+  viewMoreButtonText: {
+    color: "#f73e3e",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  viewMoreIcon: {
+    marginLeft: 2,
+  },
+  filtersContainer: {
+    margin: 10,
+  },
   filterChip: {
     flexDirection: "row",
     borderWidth: 1,
@@ -406,5 +410,65 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 5,
     backgroundColor: "white",
+  },
+  subHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 15,
+    marginHorizontal: 20,
+  },
+  subHeadingText: { fontSize: 14, fontWeight: "600", marginVertical: 10 },
+  sectionHeadingTextNearby: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: -20,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  storesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  filteredStoresSection: {
+    marginTop: 20,
+  },
+  errorContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#d32f2f",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#FB3E44",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 8,
+    textAlign: "center",
   },
 });

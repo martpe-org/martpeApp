@@ -18,7 +18,6 @@ import Loader from "../../../../components/common/Loader";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useUserDetails from "../../../../hook/useUserDetails";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import FilterCard from "../../../../components/search/filterCard";
 import { filters, offerData, deliveryData } from "../../../../constants/filters";
 import { Entypo } from "@expo/vector-icons";
 
@@ -87,7 +86,7 @@ function Beauty() {
   }, [selectedAddress]);
 
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("./search");
   };
 
   const allCatalogs = Array.isArray(storesData)

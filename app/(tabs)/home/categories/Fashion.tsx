@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,145 +6,127 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  FlatList,
+  RefreshControl,
 } from "react-native";
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { Entypo, Ionicons } from "@expo/vector-icons";
 
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
-import StoreCard2 from "../../../../components/Categories/StoreCard2";
 import Search from "../../../../components/common/Search";
 import { fashionCategoryData } from "../../../../constants/categories";
-import Loader from "../../../../components/common/Loader";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import FilterCard from "../../../../components/search/filterCard";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
-import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Entypo } from "@expo/vector-icons";
+import { useRenderFunctions } from "@/components/Landing Page/render";
+import { StoreSearchResult } from "@/app/search/search-stores-type";
 
 const domain = "ONDC:RET12";
 
 function Fashion() {
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const setHideTabBar = useHideTabBarStore((state: any) => state.setHideTabBar);
-  const [filterSelected, setFilterSelected] = useState<any>({
-    category: [],
-    offers: 0,
-    delivery: 100,
-  });
-  const [activeFilter, setActiveFilter] = useState("");
-  const [storesData, setStoresData] = useState<any[]>([]);
   const [offersData, setOffersData] = useState<any[]>([]);
+  const [storesData, setStoresData] = useState<StoreSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedAddress = useDeliveryStore((state: any) => state.selectedDetails);
-
-  const bottomSheetRef = useRef<any>(null);
-  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const renderBackdrop = React.useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />
-    ),
-    []
-  );
+  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
+  const { renderNearbyItem } = useRenderFunctions();
 
   const handleSearchPress = () => {
     router.push("/search");
   };
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!selectedAddress?.lat || !selectedAddress?.lng) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetchHomeByDomain(
-          selectedAddress.lat,
-          selectedAddress.lng,
-          selectedAddress.pincode || "110001",
-          domain
-        );
-
-        setStoresData(Array.isArray(response?.stores) ? response.stores : []);
-        setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-      } catch (error) {
-        console.error("Error fetching domain data:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  // Fetch data
+  const fetchData = async () => {
+    if (!selectedAddress?.lat || !selectedAddress?.lng) {
+      setIsLoading(false);
+      return;
     }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchHomeByDomain(
+        selectedAddress.lat,
+        selectedAddress.lng,
+        selectedAddress.pincode || "110001",
+        domain
+      );
+      setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
+    } catch (err) {
+      console.error("Error fetching domain data:", err);
+      setError("Something went wrong while loading stores.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [selectedAddress]);
 
-  const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store: any) => store?.catalogs || [])
-    : [];
-
-  const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((c: any) => c?.category_id))
-  ).map((category: any, index) => ({
-    id: index + 1,
-    label: category,
-    value: category,
-  }));
-
-  const filteredStores = storesData.filter((store: any) => {
-    const meetsCategoryCriteria =
-      filterSelected.category.length === 0 ||
-      store?.catalogs?.some((catalog: any) =>
-        filterSelected.category.includes(catalog?.category_id)
-      );
-
-    const meetsOfferCriteria =
-      filterSelected.offers === 0 ||
-      (store?.calculated_max_offer?.percent ?? 0) >= filterSelected.offers;
-
-    const meetsDeliveryCriteria =
-      filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg ?? Infinity) <= filterSelected.delivery;
-
-    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
-  });
-
+  // Render subcategories in horizontal layout
   const renderSubCategories = () => (
-    <View style={styles.subCategories}>
-      {fashionCategoryData.slice(0, 4).map((subCategory: any) => (
+    <FlatList
+      data={fashionCategoryData.slice(0, 8)}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.subCategoriesContainer}
+      renderItem={({ item }) => (
         <TouchableOpacity
-          key={subCategory.id}
+          style={styles.subCategory}
           onPress={() =>
             router.push({
               pathname: "/(tabs)/home/result/[search]",
-              params: { search: subCategory.name, domainData: domain },
+              params: { search: item.name, domainData: domain },
             })
           }
-          style={styles.subCategory}
         >
-          <Image source={{ uri: subCategory.image }} style={styles.subCategoryImage} />
-          <LinearGradient
-            colors={["black", "rgba(0,0,0,0.1)"]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.subCategoryTextContainer}
-          >
-            <Text style={styles.subCategoryText}>{subCategory.name}</Text>
-          </LinearGradient>
+          <View style={styles.subCategoryImage}>
+            <Image
+              source={{ uri: item.image }}
+              resizeMode="contain"
+              style={styles.subCategoryIcon}
+            />
+          </View>
+          <Text style={styles.subCategoryText}>{item.name}</Text>
         </TouchableOpacity>
-      ))}
-    </View>
+      )}
+    />
   );
 
-  if (isLoading) return <Loader />;
+  // Handle View More button press
+  const handleViewMore = () => {
+    if (storesData.length > 0) {
+      const firstStore = storesData[0];
+      router.push(`/(tabs)/home/result/productListing/${firstStore.slug}`);
+    } else {
+      router.push({
+        pathname: "/(tabs)/home/result/[search]",
+        params: { search: "fashion", domainData: domain },
+      });
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={["#f2663c"]}
+            tintColor="#f2663c"
+          />
+        }
+      >
+        {/* Header with Back + Search */}
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <Entypo name="chevron-left" size={22} color="#111" />
           </TouchableOpacity>
           <View style={styles.searchWrapper}>
@@ -152,55 +134,92 @@ function Fashion() {
           </View>
         </View>
 
+        {/* Offers */}
         {offersData.length > 0 && (
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {offersData.map((data: any, index: number) => (
-              <OfferCard3 offerData={data} key={index} />
-            ))}
-          </ScrollView>
+          <View style={styles.offersContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.offersScrollContainer}
+            >
+              {offersData.map((data, index) => (
+                <OfferCard3 key={index} offerData={data} />
+              ))}
+            </ScrollView>
+          </View>
         )}
 
-        <View style={styles.subHeadingWrapper}>
-          <Text style={styles.subHeadingText}>Explore by Category</Text>
+        {/* SubCategories */}
+        <View>
+          <View style={styles.sectionHeading}>
+            <View style={styles.line} />
+            <Text style={styles.sectionHeadingText}>Shop by Category</Text>
+            <View style={styles.line} />
+          </View>
+          <TouchableOpacity
+            style={styles.viewMoreButton}
+            onPress={handleViewMore}
+          >
+            <Text style={styles.viewMoreButtonText}>View More</Text>
+            <Entypo 
+              name="chevron-right" 
+              size={18} 
+              color="red" 
+              style={{
+                alignItems: "center", 
+                marginLeft: 60, 
+                marginTop: -17
+              }}
+            />
+          </TouchableOpacity>
+          {renderSubCategories()}
         </View>
-        {renderSubCategories()}
 
-        <View style={styles.subHeadingWrapper}>
-          <Text style={styles.subHeadingText}>Outlets Near me</Text>
+        {/* Stores Section */}
+        <View style={styles.storesSection}>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading stores...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : storesData.length > 0 ? (
+            <>
+              <View style={styles.sectionHeading}>
+                <View style={styles.line} />
+                <Text style={styles.sectionHeadingText}>
+                  Your Nearby Fashion Outlets
+                </Text>
+                <View style={styles.line} />
+              </View>
+              <FlatList
+                data={storesData as any}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => item.slug || index.toString()}
+                contentContainerStyle={styles.storesContainer}
+                renderItem={renderNearbyItem}
+              />
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionHeadingTextNearby}>
+                  Your Nearby Fashion Outlets
+                </Text>
+              </View>
+              <Ionicons name="storefront-outline" size={40} color="#999" />
+              <Text style={styles.emptyText}>No stores found in your area</Text>
+            </View>
+          )}
         </View>
-
-        {filteredStores.map((storeData: any) => (
-          <StoreCard2
-            key={storeData?.id || Math.random()}
-            storeData={storeData}
-            categoryFiltered={filterSelected.category}
-          />
-        ))}
       </ScrollView>
-
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-        backgroundStyle={{ backgroundColor: "#fff", borderRadius: 20 }}
-        backdropComponent={renderBackdrop}
-      >
-        {isFilterVisible && (
-          <FilterCard
-            options={filters}
-            activeOption={activeFilter}
-            selectOption={setFilterSelected}
-            categoryData={uniqueCategoryIds}
-            filterSelected={filterSelected}
-            offerData={offerData}
-            deliveryData={deliveryData}
-            setActiveOption={setActiveFilter}
-            closeFilter={handleClosePress}
-          />
-        )}
-      </BottomSheet>
     </View>
   );
 }
@@ -209,73 +228,143 @@ export default Fashion;
 
 const styles = StyleSheet.create({
   container: {
-    display: "flex",
-    flexDirection: "column",
     flex: 1,
+    backgroundColor: "#fff",
   },
-
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
     backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
-
   backButton: {
-    padding: 6,
-    marginTop: 11,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    marginRight: 12,
+    padding: 4,
+    marginTop: -9,
   },
-
   searchWrapper: {
     flex: 1,
+    marginTop: -20,
   },
-
-  subCategories: {
+  offersContainer: {
+    height: 200,
+    marginVertical: 15,
+    paddingHorizontal: 5,
+  },
+  offersScrollContainer: {
+    paddingHorizontal: 10,
+  },
+  sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    marginHorizontal: 2,
+    marginVertical: 10,
+    marginHorizontal: 16,
+  },
+  sectionHeadingTextNearby: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#df1010",
+    marginTop: -20,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#0a0909",
+  },
+  sectionHeadingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginHorizontal: 16,
+  },
+  subCategoriesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   subCategory: {
-    position: "relative",
-    margin: 5,
-    height: 160,
-    width: 90,
-    borderRadius: 10,
-    overflow: "hidden",
-    elevation: 3,
+    alignItems: "center",
+    marginRight: 20,
+    width: 80,
   },
   subCategoryImage: {
-    width: "100%",
-    height: "100%",
-  },
-  subCategoryTextContainer: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    paddingVertical: 5,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#f5f5f5",
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  subCategoryIcon: {
+    width: 50,
+    height: 50,
   },
   subCategoryText: {
     fontSize: 12,
-    fontWeight: "bold",
-    color: "white",
+    fontWeight: "500",
+    color: "#333",
     textAlign: "center",
   },
-  subHeadingWrapper: {
-    paddingHorizontal: 15,
+  viewMoreButton: {
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignSelf: "flex-end",
+    marginRight: 10,
+  },
+  viewMoreButtonText: {
+    color: "#f73e3e",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  storesSection: {
+    marginBottom: 30,
+  },
+  storesContainer: {
+    paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  subHeadingText: {
+  loadingContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  loadingText: {
     fontSize: 16,
+    color: "#555",
+  },
+  errorContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#d32f2f",
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: "#FB3E44",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 8,
   },
 });

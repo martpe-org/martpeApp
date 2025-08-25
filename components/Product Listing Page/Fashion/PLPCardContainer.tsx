@@ -9,7 +9,7 @@ interface CatalogItem {
   bpp_uri: string;
   catalog_id: string;
   category_id: string;
-    provider: { store_id: string };
+  provider: { store_id: string };
   descriptor: {
     images: string[];
     long_desc?: string;
@@ -30,14 +30,14 @@ interface CatalogItem {
   quantity: { available: any; maximum: any };
   veg: any;
   slug?: string;
-  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // <-- add this
+  store?: { _id: string; name?: string; slug?: string; symbol?: string };
 }
 
 interface PLPCardContainerProps {
   catalog: CatalogItem[];
   domainColor: string;
-  selectedCategory?: string; // Made optional
-  storeId?: string; // Made optional
+  selectedCategory?: string;
+  storeId?: string;
 }
 
 // No Items Animation Component
@@ -92,7 +92,7 @@ const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
         },
       ]}
     >
-      <Text style={noItemsStyles.emoji}>🏠</Text>
+      <Text style={noItemsStyles.emoji}>🔍</Text>
       <Text style={noItemsStyles.title}>No Items Available</Text>
       <Text style={noItemsStyles.subtitle}>
         No items found in {category} category
@@ -105,7 +105,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   catalog,
   domainColor,
   selectedCategory = "All",
-  storeId = "safeStoreId",
+  storeId,
 }) => {
   const bgColor = domainColor.slice(0, -3);
   const gradientColors = [
@@ -148,7 +148,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemDesc, "furniture")
           );
 
-        case "home furnishing":
+        case "furnishing":
           return (
             match(itemName, "curtain") ||
             match(itemName, "carpet") ||
@@ -157,7 +157,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemDesc, "furnishing")
           );
 
-        case "cooking & dining":
+        case "cooking":
           return (
             match(itemName, "kitchen") ||
             match(itemName, "dining") ||
@@ -167,7 +167,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemDesc, "dining")
           );
 
-        case "garden & outdoors":
+        case "Garden":
           return (
             match(itemName, "garden") ||
             match(itemName, "outdoor") ||
@@ -204,44 +204,62 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
       end={[0, 0.1]}
       style={styles.container}
     >
- {filteredCatalog.map((item, idx) => {
-  const name = item?.descriptor?.name || "";
-  const desc = item?.descriptor?.long_desc || "";
-  const value = item?.price?.value || 0;
-  const maxPrice = item?.price?.maximum_value || 0;
-  const discount =
-    item?.price?.offer_percent ||
-    (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
-  const image = item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+      {filteredCatalog.map((item, idx) => {
+        const name = item?.descriptor?.name || "";
+        const desc = item?.descriptor?.long_desc || "";
+        const value = item?.price?.value || 0;
+        const maxPrice = item?.price?.maximum_value || 0;
+        const discount =
+          item?.price?.offer_percent ||
+          (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
+        const image =
+          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
 
-  const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
+        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-  // ✅ safe fallback for storeId
-  const safeStoreId = item.provider?.store_id || storeId || "unknown-store";
-  if (safeStoreId === "unknown-store") {
-    console.warn(
-      `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
-    );
-  }
+        // ✅ Fixed: Better storeId resolution logic
+        const resolveStoreId = (): string | undefined => {
+          // Priority order: item.provider.store_id > item.store?._id > storeId prop > provider_id
+          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+            return item.provider.store_id;
+          }
+          if (item.store?._id && item.store._id !== "unknown-store") {
+            return item.store._id;
+          }
+          if (storeId && storeId !== "unknown-store") {
+            return storeId;
+          }
+          if (item.provider_id && item.provider_id !== "unknown-store") {
+            return item.provider_id;
+          }
+          return undefined; // No valid storeId found
+        };
 
-  return (
-    <FashionCard
-      key={uniqueKey}
-      itemName={name}
-      desc={desc}
-      value={value}
-      maxPrice={maxPrice}
-      discount={discount}
-      image={image}
-      id={item.id}
-      catalogId={item.catalog_id}
-      storeId={safeStoreId}
-      slug={item.slug}
-    />
-  );
-})}
+        const safeStoreId = resolveStoreId();
 
+        // ✅ Fixed: Only log warning when we truly don't have a storeId
+        if (!safeStoreId) {
+          console.warn(
+            `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
+          );
+        }
 
+        return (
+          <FashionCard
+            key={uniqueKey}
+            itemName={name}
+            desc={desc}
+            value={value}
+            maxPrice={maxPrice}
+            discount={discount}
+            image={image}
+            id={item.id}
+            catalogId={item.catalog_id}
+            storeId={safeStoreId}
+            slug={item.slug}
+          />
+        );
+      })}
     </LinearGradient>
   );
 };

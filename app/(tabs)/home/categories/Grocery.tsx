@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,362 +6,224 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  FlatList,
+  RefreshControl,
 } from "react-native";
 import { router } from "expo-router";
+import { Entypo, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Entypo, Feather } from "@expo/vector-icons";
 
-import StoreCard from "../../../../components/Categories/StoreCard";
-import Search from "../../../../components/common/Search";
-import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
-import { groceriesCategoryData } from "../../../../constants/categories";
-import Loader from "../../../../components/common/Loader";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import Carousel from "react-native-reanimated-carousel";
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
-import FilterCard from "../../../../components/search/filterCard";
-import { filters, offerData, deliveryData } from "../../../../constants/filters";
+import Search from "../../../../components/common/Search";
+import { groceriesCategoryData } from "../../../../constants/categories";
+import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import useDeliveryStore from "../../../../state/deliveryAddressStore";
+import { useRenderFunctions } from "@/components/Landing Page/render";
+import { StoreSearchResult } from "@/app/search/search-stores-type";
 
 const domain = "ONDC:RET10";
 
 function Grocery() {
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const [filterSelected, setFilterSelected] = useState({
-    category: [] as string[],
-    offers: 0,
-    delivery: 100,
-  });
-
-  const screenWidth = Dimensions.get("window").width;
-  const containerHeight = 200;
-
-  const [storesData, setStoresData] = useState<any[]>([]);
-  const [activeFilter, setActiveFilter] = useState("");
   const [offersData, setOffersData] = useState<any[]>([]);
+  const [storesData, setStoresData] = useState<StoreSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [bottonSheetIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-  const snapPoints = useMemo(() => ["30%", "40%", "50%", "60%", "70%"], []);
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
-
-  const renderBackdrop = React.useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        {...props}
-      />
-    ),
-    []
-  );
+  const { renderNearbyItem } = useRenderFunctions();
 
   const handleSearchPress = () => {
     router.push("/search");
   };
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!selectedAddress?.lat || !selectedAddress?.lng) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetchHomeByDomain(
-          selectedAddress.lat,
-          selectedAddress.lng,
-          selectedAddress.pincode || "110001",
-          domain
-        );
-
-        if (response) {
-          setStoresData(Array.isArray(response.stores) ? response.stores : []);
-          setOffersData(Array.isArray(response.offers) ? response.offers : []);
-        }
-      } catch (error) {
-        console.error("Error fetching domain data:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  // Fetch data
+  const fetchData = async () => {
+    if (!selectedAddress?.lat || !selectedAddress?.lng) {
+      setIsLoading(false);
+      return;
     }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchHomeByDomain(
+        selectedAddress.lat,
+        selectedAddress.lng,
+        selectedAddress.pincode || "110001",
+        domain
+      );
+      setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
+    } catch (err) {
+      console.error("Error fetching domain data:", err);
+      setError("Something went wrong while loading stores.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [selectedAddress]);
 
-  const allCatalogs =
-    Array.isArray(storesData) && storesData.length > 0
-      ? storesData.flatMap((store: any) => store?.catalogs || [])
-      : [];
-
-  const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((catalog: any) => catalog?.category_id))
-  ).map((category, index) => ({
-    id: index + 1,
-    label: category,
-    value: category,
-  }));
-
-  const filteredStores = storesData.filter((store: any) => {
-    const meetsCategoryCriteria =
-      filterSelected.category.length === 0 ||
-      (Array.isArray(store.catalogs) &&
-        store.catalogs.some(
-          (catalog: any) =>
-            typeof catalog?.category_id === "string" &&
-            filterSelected.category.includes(catalog.category_id)
-        ));
-
-    const offerPercent = store?.calculated_max_offer?.percent ?? 0;
-    const meetsOfferCriteria =
-      filterSelected.offers === 0 || offerPercent >= filterSelected.offers;
-
-    const deliveryTime = store?.time_to_ship_in_hours?.avg ?? Infinity;
-    const meetsDeliveryCriteria =
-      filterSelected.delivery === 100 || deliveryTime <= filterSelected.delivery;
-
-    return meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria;
-  });
-
-  if (isLoading) {
-    return <Loader />;
-  }
-
-  if (!storesData && !offersData) {
-    return (
-      <View style={styles.container}>
-        <Text style={{ color: "black", textAlign: "center", marginTop: 50 }}>
-          No data available
-        </Text>
-      </View>
-    );
-  }
-
-  const renderSubCategories = () =>
-    groceriesCategoryData.slice(0, 6).map((subCategory) => (
-      <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/[search]",
-            params: { search: subCategory.name, domainData: domain },
-          })
-        }
-        style={styles.subCategory}
-        key={subCategory.id}
-      >
-        <LinearGradient
-          colors={["#E3F9BE", "rgba(231, 223, 201, 0)"]}
-          style={styles.subCategoryImage}
+  // Render subcategories in horizontal layout
+  const renderSubCategories = () => (
+    <FlatList
+      data={groceriesCategoryData.slice(0, 8)}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.subCategoriesContainer}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.subCategory}
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/home/result/[search]",
+              params: { search: item.name, domainData: domain },
+            })
+          }
         >
-          <Image
-            source={{ uri: subCategory.image }}
-            resizeMode="contain"
-            style={{ width: 100, height: 80 }}
-          />
-        </LinearGradient>
-        <Text numberOfLines={1} style={styles.subCategoryName}>
-          {subCategory?.name}
-        </Text>
-      </TouchableOpacity>
-    ));
+          <LinearGradient
+            colors={["#E3F9BE", "rgba(231, 223, 201, 0)"]}
+            style={styles.subCategoryImage}
+          >
+            <Image
+              source={{ uri: item.image }}
+              resizeMode="contain"
+              style={styles.subCategoryIcon}
+            />
+          </LinearGradient>
+          <Text style={styles.subCategoryText}>{item.name}</Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
+  // Handle View More button press
+  const handleViewMore = () => {
+    if (storesData.length > 0) {
+      const firstStore = storesData[0];
+      router.push(`/(tabs)/home/result/productListing/${firstStore.slug}`);
+    } else {
+      router.push({
+        pathname: "/(tabs)/home/result/[search]",
+        params: { search: "grocery", domainData: domain },
+      });
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Entypo name="chevron-left" size={22} color="#111" />
-        </TouchableOpacity>
-        <View style={styles.searchWrapper}>
-          <Search onPress={handleSearchPress} />
-        </View>
-      </View>
-
-      <ScrollView style={styles.container}>
-        {offersData && offersData.length > 0 && (
-          <Carousel
-            loop
-            width={screenWidth}
-            height={containerHeight}
-            autoPlay
-            data={offersData}
-            scrollAnimationDuration={1000}
-            autoPlayInterval={5000}
-            renderItem={({ item, index }) => (
-              <OfferCard3 offerData={item} key={index} />
-            )}
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={["#f2663c"]}
+            tintColor="#f2663c"
           />
+        }
+      >
+        {/* Header with Back + Search */}
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Entypo name="chevron-left" size={22} color="#111" />
+          </TouchableOpacity>
+          <View style={styles.searchWrapper}>
+            <Search onPress={handleSearchPress} />
+          </View>
+        </View>
+
+        {/* Offers */}
+        {offersData.length > 0 && (
+          <View style={styles.offersContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.offersScrollContainer}
+            >
+              {offersData.map((data, index) => (
+                <OfferCard3 key={index} offerData={data} />
+              ))}
+            </ScrollView>
+          </View>
         )}
 
-        <View style={{ backgroundColor: "#fff" }}>
-          <View style={styles.subHeading}>
-            <Text style={styles.subHeadingText}>Explore by Categories</Text>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "../(tabs)/home/categories",
-                  params: { category: "Grocery" },
-                })
-              }
-            >
-              <Text style={{ color: "#FF9130", fontSize: 14, fontWeight: "500" }}>
-                See all {" "}
-                <Entypo name="chevron-small-right" size={14} color="#FF9130" />
-              </Text>
-            </TouchableOpacity>
+        {/* SubCategories */}
+        <View>
+          <View style={styles.sectionHeading}>
+            <View style={styles.line} />
+            <Text style={styles.sectionHeadingText}>Explore by Categories</Text>
+            <View style={styles.line} />
           </View>
-
-          <View style={styles.subCategories}>{renderSubCategories()}</View>
-
-          <View style={styles.subHeading}>
-            <Text style={styles.subHeadingText}>
-              {storesData?.length > 0
-                ? `Explore ${filteredStores?.length} Stores Near me`
-                : "No Nearby Stores Found"}
-            </Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            style={{ flexDirection: "row", marginHorizontal: 10, marginTop: 10 }}
+          <TouchableOpacity
+            style={styles.viewMoreButton}
+            onPress={handleViewMore}
           >
-            {filters.map((filter, index) => {
-              const isActive =
-                (filter.name === "Category" && filterSelected.category.length > 0) ||
-                (filter.name === "Offers" && filterSelected.offers > 0) ||
-                (filter.name === "Delivery" && filterSelected.delivery < 100);
+            <Text style={styles.viewMoreButtonText}>View More</Text>
+            <Entypo 
+              name="chevron-right" 
+              size={18} 
+              color="red" 
+              style={{
+                alignItems: "center", 
+                marginLeft: 60, 
+                marginTop: -17
+              }}
+            />
+          </TouchableOpacity>
+          {renderSubCategories()}
+        </View>
 
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: isActive ? "black" : "#EEEEEE",
-                    backgroundColor: "white",
-                    borderRadius: 100,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginHorizontal: 5,
-                    flexDirection: "row",
-                  }}
-                  onPress={() => {
-                    handleOpenPress();
-                    setActiveFilter(filter?.name);
-                    setIsFilterVisible(true);
-                  }}
-                >
-                  <Text style={{ color: "black", fontWeight: "600" }}>
-                    {{
-                      Category:
-                        "Category " +
-                        (filterSelected.category.length > 0
-                          ? `(${filterSelected.category.length})`
-                          : ""),
-                      Offers:
-                        filterSelected.offers > 0
-                          ? `${filterSelected.offers}% and above`
-                          : "Offers",
-                      Delivery:
-                        filterSelected.delivery < 100
-                          ? `${filterSelected.delivery} or min`
-                          : "Delivery",
-                    }[filter?.name]}
-                  </Text>
-
-                  {isActive && (
-                    <TouchableOpacity
-                      style={{ marginLeft: 5 }}
-                      onPress={() => {
-                        setFilterSelected({
-                          category:
-                            filter.name === "Category"
-                              ? []
-                              : filterSelected.category,
-                          offers:
-                            filter.name === "Offers" ? 0 : filterSelected.offers,
-                          delivery:
-                            filter.name === "Delivery"
-                              ? 100
-                              : filterSelected.delivery,
-                        });
-                      }}
-                    >
-                      <Feather name="x" size={16} color="black" />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-
-            {(filterSelected.category.length > 0 ||
-              filterSelected.delivery !== 100 ||
-              filterSelected.offers !== 0) && (
-              <TouchableOpacity
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#F13A3A",
-                  backgroundColor: "white",
-                  borderRadius: 100,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginLeft: 10,
-                }}
-                onPress={() => {
-                  setFilterSelected({ category: [], offers: 0, delivery: 100 });
-                }}
-              >
-                <Text style={{ color: "#F13A3A" }}>Reset</Text>
+        {/* Stores Section */}
+        <View style={styles.storesSection}>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading stores...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
-            )}
-          </ScrollView>
-
-          <View style={styles.subHeading}>
-            <Text style={styles.subHeadingText}>Stores Near me</Text>
-          </View>
-
-          <View style={{ backgroundColor: "#f7f7f8" }}>
-            {filteredStores.map((storeData: any) => (
-              <StoreCard
-                categoryFiltered={filterSelected.category}
-                key={storeData?.id}
-                storeData={storeData}
+            </View>
+          ) : storesData.length > 0 ? (
+            <>
+              <View style={styles.sectionHeading}>
+                <View style={styles.line} />
+                <Text style={styles.sectionHeadingText}>
+                  Your Nearby Grocery Stores
+                </Text>
+                <View style={styles.line} />
+              </View>
+              <FlatList
+                data={storesData as any}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => item.slug || index.toString()}
+                contentContainerStyle={styles.storesContainer}
+                renderItem={renderNearbyItem}
               />
-            ))}
-          </View>
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionHeadingTextNearby}>
+                  Your Nearby Grocery Stores
+                </Text>
+              </View>
+              <Ionicons name="storefront-outline" size={40} color="#999" />
+              <Text style={styles.emptyText}>No stores found in your area</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
-
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={bottonSheetIndex}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-        backgroundStyle={{ backgroundColor: "#fff", borderRadius: 20 }}
-        backdropComponent={renderBackdrop}
-      >
-        {isFilterVisible && (
-          <FilterCard
-            options={filters}
-            activeOption={activeFilter}
-            selectOption={setFilterSelected}
-            categoryData={uniqueCategoryIds}
-            filterSelected={filterSelected}
-            offerData={offerData}
-            deliveryData={deliveryData}
-            setActiveOption={setActiveFilter}
-            closeFilter={handleClosePress}
-          />
-        )}
-      </BottomSheet>
     </View>
   );
 }
@@ -370,66 +232,142 @@ export default Grocery;
 
 const styles = StyleSheet.create({
   container: {
-    display: "flex",
-    flexDirection: "column",
     flex: 1,
+    backgroundColor: "#fff",
   },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
     backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   backButton: {
-    padding: 6,
-    marginTop: 11,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    marginRight: 12,
+    padding: 4,
+    marginTop: -9,
   },
   searchWrapper: {
     flex: 1,
+    marginTop: -20,
   },
-  subCategories: {
+  offersContainer: {
+    height: 200,
+    marginVertical: 15,
+    paddingHorizontal: 5,
+  },
+  offersScrollContainer: {
+    paddingHorizontal: 10,
+  },
+  sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    marginHorizontal: 2,
+    marginVertical: 10,
+    marginHorizontal: 16,
+  },
+  sectionHeadingTextNearby: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#df1010",
+    marginTop: -20,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#0a0909",
+  },
+  sectionHeadingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginHorizontal: 16,
+  },
+  subCategoriesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   subCategory: {
-    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 7,
-    marginVertical: 10,
-  },
-  subCategoryName: {
-    fontWeight: "400",
-    fontSize: 10,
-    maxWidth: 100,
+    marginRight: 20,
+    width: 80,
   },
   subCategoryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: "center",
-    justifyContent: "flex-end",
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    overflow: "hidden",
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  subHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 15,
-    marginHorizontal: 20,
+  subCategoryIcon: {
+    width: 60,
+    height: 60,
   },
-  subHeadingText: {
+  subCategoryText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#333",
+    textAlign: "center",
+  },
+  viewMoreButton: {
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignSelf: "flex-end",
+    marginRight: 10,
+  },
+  viewMoreButtonText: {
+    color: "#f73e3e",
     fontSize: 14,
     fontWeight: "600",
-    textTransform: "capitalize",
-    marginVertical: 10,
+  },
+  storesSection: {
+    marginBottom: 30,
+  },
+  storesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  errorContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#d32f2f",
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: "#FB3E44",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 8,
   },
 });

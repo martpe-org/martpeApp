@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
-import DynamicButton from "../ProductDetails/DynamicButton";
+import AddToCart from "../ProductDetails/AddToCart";
 
 interface Descriptor {
   name: string;
@@ -89,16 +89,6 @@ const ProductList: React.FC<ProductListProps> = ({
       slug = `product-${id}`,
     } = data;
 
-    // Find cart item by matching catalog_id with product id
-    const cartItem = cart?.cart_items?.find((item) => {
-      // Check multiple possible field names for catalog ID
-      const catalogId = item.catalog_id || item.catalogId || item.product_id;
-      return catalogId === id;
-    });
-
-    const itemCount = cartItem?.qty || 0;
-    const cartItemId = cartItem?._id;
-
     return (
       <TouchableOpacity
         key={id}
@@ -143,35 +133,14 @@ const ProductList: React.FC<ProductListProps> = ({
             <Text style={styles.priceText}>₹{price}</Text>
           </View>
 
-          {/* Cart Controls (using DynamicButton) */}
+          {/* Cart Controls using AddToCart */}
           <View style={styles.buttonGroup}>
-            <DynamicButton
-              isNewItem={itemCount === 0}
-              isUpdated={itemCount > 0}
+            <AddToCart
+              price={price}
               storeId={storeId}
               slug={slug}
               catalogId={id}
-              cartItemId={cartItemId}
-              qty={itemCount}
-              customizable={false}
-              customizations={[]}
-            >
-              {itemCount === 0 ? (
-                <View style={styles.addButton}>
-                  <Text style={styles.addButtonText}>ADD</Text>
-                </View>
-              ) : (
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity style={styles.quantityButton}>
-                    <Text style={styles.quantityButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{itemCount}</Text>
-                  <TouchableOpacity style={styles.quantityButton}>
-                    <Text style={styles.quantityButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </DynamicButton>
+            />
           </View>
         </View>
       </TouchableOpacity>
@@ -306,47 +275,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
     textAlign: "center",
-  },
-  addButton: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    minWidth: 50,
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  quantityControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#4CAF50",
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  quantityButton: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 4,
-  },
-  quantityButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  quantityText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600",
-    minWidth: 20,
-    textAlign: "center",
-    paddingHorizontal: 4,
   },
 });
 

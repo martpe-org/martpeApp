@@ -38,7 +38,6 @@ const StoreCard: React.FC<StoreCardProps> = ({
 
   const {
     descriptor = {},
-    domain,
     id,
     catalogs = [],
     address = {},

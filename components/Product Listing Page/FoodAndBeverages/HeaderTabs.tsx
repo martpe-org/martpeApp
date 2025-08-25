@@ -1,3 +1,4 @@
+// HeaderTabs.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -9,20 +10,23 @@ import {
 
 interface HeaderTabsProps {
   buttonTitles: string[];
+  onFilterChange: (filter: string) => void; // ✅ new prop
 }
 
-const HeaderTabs: React.FC<HeaderTabsProps> = ({ buttonTitles }) => {
+const HeaderTabs: React.FC<HeaderTabsProps> = ({ buttonTitles, onFilterChange }) => {
   const [activeButton, setActiveButton] = useState<string>("");
 
   function handleClick(title: string) {
-    setActiveButton(title);
+    const newActive = activeButton === title ? "" : title; // toggle off if pressed again
+    setActiveButton(newActive);
+    onFilterChange(newActive); // ✅ send filter to parent
   }
 
   return (
     <View style={styles.button_container}>
       {buttonTitles.map((button, idx) => (
         <FilterButton
-          key={`${button}-${idx}`} // unique key
+          key={`${button}-${idx}`}
           handleClick={handleClick}
           title={button}
           activeButton={activeButton}

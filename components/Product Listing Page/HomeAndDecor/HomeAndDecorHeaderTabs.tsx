@@ -27,7 +27,7 @@ const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
   // Define different images for each tab
   const data: TabData[] = [
     {
-      title: "Home & Decor",
+      title: "Decor",
       image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=150&fit=crop&crop=center"
     },
     {
@@ -35,23 +35,22 @@ const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
       image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop&crop=center"
     },
     {
-      title: "Home Furnishing",
+      title: "Furnishing",
       image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=150&h=150&fit=crop&crop=center"
     },
     {
-      title: "Cooking & Dining",
+      title: "Cooking",
       image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=center"
     },
     {
-      title: "Garden & Outdoors",
+      title: "Garden",
       image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=150&h=150&fit=crop&crop=center"
     }
   ];
 
   function handleActiveButton(title: string) {
-    // Toggle logic: if clicking the same tab, deselect it (show all)
     if (activeTab === title) {
-      onTabChange("All"); // Reset to show all items
+      onTabChange("All");
     } else {
       onTabChange(title);
     }

@@ -211,11 +211,7 @@ export const fashionHeaderData = [
     image:
       "https://prod.slppecomm.aws.porsche.cloud/platform-api/prod/v1/assets/6ac4f187-b37f-4f26-91eb-a4ef12286331.webp?width=1920",
   },
-  {
-    title: "Infants",
-    image:
-      "https://cms.cloudinary.vpsvc.com/image/upload/c_scale,dpr_auto,f_auto,q_auto:best,t_productPageHeroGalleryTransformation_v2,w_auto/India%20LOB/Clothing%20and%20Bags/Infant%20Wear/IN_Infant-Wear_Hero-image_01",
-  },
+
 ];
 
 export const ret10 = "65773cb3a726fcc87acafb3c";

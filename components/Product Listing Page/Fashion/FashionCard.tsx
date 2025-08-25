@@ -13,7 +13,7 @@ interface FashionCardProps {
   image: string;
   id: string;
   catalogId: string;
-  storeId?: string; // ✅ optional
+  storeId?: string;
   slug?: string;
 }
 
@@ -29,17 +29,39 @@ const FashionCard: FC<FashionCardProps> = ({
   storeId,
   slug,
 }) => {
-  // ✅ safe fallback like ProductDetails
-  const safeStoreId = storeId || "unknown-store";
+  // ✅ Fixed: Only use fallback if storeId is missing or invalid
+  const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
 
-  // ✅ log when fallback is used (debug only)
+  // ✅ Fixed: Only log warning when storeId is actually missing
   useEffect(() => {
-    if (safeStoreId === "unknown-store") {
+    if (!safeStoreId) {
       console.warn(
         `⚠️ FashionCard: Missing storeId for product ${id} (${itemName})`
       );
     }
   }, [safeStoreId, id, itemName]);
+
+  // ✅ Don't render AddToCart if we don't have a valid storeId
+  const renderAddToCart = () => {
+    if (!safeStoreId) {
+      return (
+        <View style={styles.addToCartContainer}>
+          <Text style={styles.errorText}>Store ID missing</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.addToCartContainer}>
+        <AddToCart
+          price={value}
+          storeId={safeStoreId}
+          slug={slug || id}
+          catalogId={catalogId}
+        />
+      </View>
+    );
+  };
 
   return (
     <View style={styles.fashionCard}>
@@ -93,14 +115,7 @@ const FashionCard: FC<FashionCardProps> = ({
       </TouchableOpacity>
 
       {/* Add to Cart Button */}
-      <View style={styles.addToCartContainer}>
-        <AddToCart
-          price={value}
-          storeId={safeStoreId}
-          slug={slug || id}
-          catalogId={catalogId}
-        />
-      </View>
+      {renderAddToCart()}
     </View>
   );
 };
@@ -161,6 +176,12 @@ const styles = StyleSheet.create({
   addToCartText: {
     fontSize: 11,
     fontWeight: "600",
+  },
+  errorText: {
+    fontSize: 10,
+    color: "#ff6b6b",
+    textAlign: "center",
+    fontWeight: "500",
   },
 });
 

@@ -11,9 +11,9 @@ import {
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 import { useToast } from "react-native-toast-notifications";
+import { resendOTP } from "../../components/OTP/resend-otp";
+import { verifyOTP } from "../../components/OTP/verify-otp";
 import useUserDetails from "../../hook/useUserDetails";
-import { resendOTP } from "../OTP/resend-otp";
-import { verifyOTP } from "../OTP/verify-otp";
 
 const textInputColor = "#C7C4C4";
 const resendOTPDuration = 30;

@@ -85,7 +85,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         distance={distance}
         delivery="Free Delivery"
         userAddress={userAddress}
-        vendorId={vendorId} // ✅ Correctly passing vendorId
+        vendorId={vendorId}
       />
     </View>
   );

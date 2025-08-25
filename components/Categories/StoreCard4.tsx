@@ -1,8 +1,8 @@
-import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import ProductList3 from "./ProductList3";
 import { LinearGradient } from "expo-linear-gradient";
-import MenuIcon, { FavIcon } from "../../constants/icons/commonIcons";
+import MenuIcon from "../../constants/icons/commonIcons";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import LikeButton from "../../components/common/likeButton";

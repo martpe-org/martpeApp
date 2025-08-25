@@ -25,7 +25,7 @@ interface PLPBannerCardProps {
   delivery: string;
   searchbox?: boolean;
   userAddress: string;
-  vendorId: string | string[]; // ✅ safer type
+  vendorId: string | string[];
 }
 
 const PLPBannerCard: React.FC<PLPBannerCardProps> = ({

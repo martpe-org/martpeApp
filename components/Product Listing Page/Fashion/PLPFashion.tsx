@@ -6,10 +6,10 @@ import PLPCardContainer from "./PLPCardContainer";
 interface PLPFashionProps {
   catalog: any[];
   headers: string[];
-  storeId: string;
+  storeId?: string; // Make optional since we're not using it anymore
 }
 
-const PLPFashion: FC<PLPFashionProps> = ({ catalog, headers, storeId }) => {
+const PLPFashion: FC<PLPFashionProps> = ({ catalog, headers }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const handleCategorySelect = (category: string) => {
@@ -26,7 +26,7 @@ const PLPFashion: FC<PLPFashionProps> = ({ catalog, headers, storeId }) => {
         domainColor="rgba(163, 251, 251, 1)"
         catalog={catalog}
         selectedCategory={selectedCategory}
-        storeId={storeId}
+        // Removed storeId prop - let PLPCardContainer resolve from catalog items
       />
     </View>
   );

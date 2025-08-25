@@ -1,11 +1,11 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import PLPCard from "./PLPCard";
-import { CatalogItem } from "../../../state/types";   // ✅ use shared type
+import { CatalogItem } from "../../../state/types";
 
 interface DropdownProps {
   isVisible: boolean;
-  data: CatalogItem[];     // ✅ use unified CatalogItem
+  data: CatalogItem[];
   providerId: string;
   searchString: string;
   handleOpenPress: () => void;

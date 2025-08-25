@@ -2,11 +2,12 @@ import { router } from "expo-router";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
 } from "react-native";
+import ImageComp from "../common/ImageComp";
+
 type OfferDataType = {
   id?: string;
   calculated_max_offer?: {
@@ -43,18 +44,25 @@ function OfferCard3({ offerData }: OfferCard3Props) {
         { height: containerHeight, width: screenWidth },
       ]}
     >
+      {/* Background Image */}
       {images.length > 0 && (
-        <Image
-          source={{ uri: images[0] }}
-          style={styles.imgBg}
+        <ImageComp
+          source={images[0]}
+          imageStyle={styles.imgBg}
           resizeMode="cover"
+          fallbackSource={{
+            uri: "https://via.placeholder.com/400x200?text=Offer",
+          }}
+          loaderColor="white"
         />
       )}
+
       <View style={styles.overlay}>
         <View style={styles.offerDescription}>
           <Text style={styles.discount}>Up to {Math.round(percent)}% Off</Text>
           <Text style={styles.discountDesc}>on products from {name}</Text>
         </View>
+
         <TouchableOpacity
           onPressIn={() => {
             if (id) {
@@ -65,9 +73,20 @@ function OfferCard3({ offerData }: OfferCard3Props) {
         >
           <Text style={styles.buttonText}>Order Now</Text>
         </TouchableOpacity>
+
+        {/* Logo/Symbol */}
         {symbol && (
           <View style={styles.logoContainer}>
-            <Image source={{ uri: symbol }} style={styles.logoImage} />
+            <ImageComp
+              source={symbol}
+              imageStyle={styles.logoImage}
+              resizeMode="contain"
+              fallbackSource={{
+                uri: "https://via.placeholder.com/120x40?text=Logo",
+              }}
+              loaderColor="white"
+              loaderSize="small"
+            />
           </View>
         )}
       </View>
@@ -78,14 +97,14 @@ function OfferCard3({ offerData }: OfferCard3Props) {
 export default OfferCard3;
 
 const styles = StyleSheet.create({
-  imgBg: {
-    flex: 1,
-    width: "100%",
-    // height: "100%",
-  },
   container: {
     overflow: "hidden",
     position: "relative",
+  },
+  imgBg: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -112,7 +131,10 @@ const styles = StyleSheet.create({
     width: 72,
     borderRadius: 50,
     borderColor: "#000000",
-    marginTop: 10,
+    marginTop: 20,
+    position: "relative",
+    bottom: 15,
+    left: 15,
   },
   buttonText: {
     color: "#000000",
@@ -122,14 +144,12 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: "absolute",
-    top: 0,
-    right: 0,
+    top: 10,
+    right: 10,
     width: 120,
     height: 40,
   },
   logoImage: {
-    flex: 1,
-    resizeMode: "contain",
     width: "100%",
     height: "100%",
   },

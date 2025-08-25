@@ -1,27 +1,27 @@
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Dimensions,
-  View,
-  ScrollView,
   ActivityIndicator,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors, Fonts } from "../../theme";
-import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "react-native-paper";
-import ImageComp from "../../components/common/ImageComp";
 import Svg, { Path } from "react-native-svg";
+import ImageComp from "../../components/common/ImageComp";
+import useDeliveryStore from "../../state/deliveryAddressStore";
+import { Colors, Fonts } from "../../theme";
 import {
   getAsyncStorageItem,
   setAsyncStorageItem,
 } from "../../utility/asyncStorage";
 import { fetchSearchSuggesstions } from "./fetch-suggest";
 import { SuggestionsType } from "./fetch-suggest-type";
-import useDeliveryStore from "../../state/deliveryAddressStore";
 
 const { width, height } = Dimensions.get("window");
 const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
@@ -45,7 +45,8 @@ const SearchScreen: React.FC = () => {
   const selectedDetails = useDeliveryStore(
     (state) => state.selectedDetails
   ) as SelectedDetails;
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
 
   // Rotate placeholder text
   useEffect(() => {
@@ -144,7 +145,9 @@ const SearchScreen: React.FC = () => {
   const saveSearchTerm = async (searchTerm: string): Promise<void> => {
     try {
       const currentSearches = await getAsyncStorageItem("recentSearches");
-      let searches: string[] = currentSearches ? JSON.parse(currentSearches) : [];
+      let searches: string[] = currentSearches
+        ? JSON.parse(currentSearches)
+        : [];
       searches = searches.filter((s) => s !== searchTerm);
       searches.unshift(searchTerm);
       searches = searches.slice(0, 10);
@@ -158,7 +161,9 @@ const SearchScreen: React.FC = () => {
   const removeSearchTerm = async (searchTerm: string): Promise<void> => {
     try {
       const currentSearches = await getAsyncStorageItem("recentSearches");
-      let searches: string[] = currentSearches ? JSON.parse(currentSearches) : [];
+      let searches: string[] = currentSearches
+        ? JSON.parse(currentSearches)
+        : [];
       searches = searches.filter((s) => s !== searchTerm);
       await setAsyncStorageItem("recentSearches", JSON.stringify(searches));
       setRecentSearches(searches);
@@ -229,14 +234,19 @@ const SearchScreen: React.FC = () => {
             value={inputValue}
             onChangeText={setInputValue}
             autoFocus
-            placeholder={placeHolder || `Search for '${searchTexts[searchTextIndex]}'`}
+            placeholder={
+              placeHolder || `Search for '${searchTexts[searchTextIndex]}'`
+            }
             style={styles.textInput}
             selectionColor="#8E8A8A"
             placeholderTextColor="#8E8A8A"
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
           />
-          <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchIcon}>
+          <TouchableOpacity
+            onPress={handleSearchSubmit}
+            style={styles.searchIcon}
+          >
             <Feather name="search" size={20} color="#8E8A8A" />
           </TouchableOpacity>
         </View>
@@ -245,7 +255,9 @@ const SearchScreen: React.FC = () => {
       {inputValue.length < 3 ? (
         <View style={styles.recentSearchContainer}>
           <Text style={styles.recentSearchHeader}>
-            {recentSearches.length > 0 ? "Recent Searches" : "Discover something new!"}
+            {recentSearches.length > 0
+              ? "Recent Searches"
+              : "Discover something new!"}
           </Text>
           <View style={styles.recentSearchItemsContainer}>
             {recentSearches.slice(0, 5).map((term, index) => (
@@ -259,7 +271,11 @@ const SearchScreen: React.FC = () => {
                   {term.length < 20 ? term : term.slice(0, 20) + "..."}
                 </Text>
                 <TouchableOpacity onPress={() => removeSearchTerm(term)}>
-                  <MaterialCommunityIcons name="close" size={14} color="#35374B" />
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={14}
+                    color="#35374B"
+                  />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -288,7 +304,9 @@ const SearchScreen: React.FC = () => {
                     />
                     <View style={styles.suggestionContent}>
                       <View>
-                        <Text style={styles.productName}>{suggestion.name}</Text>
+                        <Text style={styles.productName}>
+                          {suggestion.name}
+                        </Text>
                         <Text style={styles.productType}>
                           {getItemTypeLabel(suggestion.type, suggestion.domain)}
                         </Text>

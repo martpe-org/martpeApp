@@ -45,7 +45,6 @@ const StoreCard2 = ({ storeData, categoryFiltered }: StoreCard2Props) => {
   }
 const {
   descriptor = {},
-  domain,
   id,
   catalogs = [],
   address = {},

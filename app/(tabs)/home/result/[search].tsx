@@ -1,31 +1,31 @@
-import React, { FC, useState, useRef, useMemo, useCallback } from "react";
 import { Feather } from "@expo/vector-icons";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { router, useGlobalSearchParams } from "expo-router";
+import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Dimensions,
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  Dimensions,
-  TextInput,
-  ActivityIndicator,
 } from "react-native";
-import { useGlobalSearchParams, router } from "expo-router";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { useInfiniteQuery } from "@tanstack/react-query";
 
-import { Colors } from "../../../../theme";
 import ImageComp from "../../../../components/common/ImageComp";
 import Loader from "../../../../components/common/Loader";
 import AddToCart from "../../../../components/ProductDetails/AddToCart";
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import CustomizationGroup from "../../../../components/ProductDetails/CustomizationGroup";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
+import useDeliveryStore from "../../../../state/deliveryAddressStore";
+import { Colors } from "../../../../theme";
 
 // Import search functions and types
 import { searchProducts } from "../../../search/search-products";
-import { searchStores } from "../../../search/search-stores";
 import { ProductSearchResult } from "../../../search/search-products-type";
+import { searchStores } from "../../../search/search-stores";
 import { StoreSearchResult } from "../../../search/search-stores-type";
 
 const { width } = Dimensions.get("window");
@@ -98,14 +98,17 @@ const getDomainName = (domain: string): string => {
 };
 
 // Search API functions
-const fetchProducts = async ({ pageParam = 1, queryKey}): Promise<SearchResponse> => {
+const fetchProducts = async ({
+  pageParam = 1,
+  queryKey,
+}): Promise<SearchResponse> => {
   const [, searchInput] = queryKey;
   const response = await searchProducts({
     ...searchInput,
     page: pageParam,
     size: PAGE_SIZE,
   });
-  
+
   return {
     results: response?.results || [],
     totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
@@ -114,14 +117,17 @@ const fetchProducts = async ({ pageParam = 1, queryKey}): Promise<SearchResponse
   };
 };
 
-const fetchStores = async ({ pageParam = 1, queryKey  }): Promise<SearchResponse> => {
+const fetchStores = async ({
+  pageParam = 1,
+  queryKey,
+}): Promise<SearchResponse> => {
   const [, searchInput] = queryKey;
   const response = await searchStores({
     ...searchInput,
     page: pageParam,
     size: PAGE_SIZE,
   });
-  
+
   return {
     results: response?.results || [],
     totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
@@ -153,9 +159,9 @@ const Results: FC = () => {
     search: string;
     domainData: string;
   }>();
-  
+
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-  
+
   const [foodDetails, setFoodDetails] = useState<FoodDetailsState>({
     images: "",
     long_desc: "",
@@ -171,20 +177,27 @@ const Results: FC = () => {
     discount: 0,
   });
 
-  const [customizableGroup, setCustomizableGroup] = useState<CustomizableGroupState>({
-    customizable: false,
-    vendorId: "",
-    customGroup: [],
-    itemId: "",
-    maxLimit: 0,
-    price: 0,
-  });
+  const [customizableGroup, setCustomizableGroup] =
+    useState<CustomizableGroupState>({
+      customizable: false,
+      vendorId: "",
+      customGroup: [],
+      itemId: "",
+      maxLimit: 0,
+      price: 0,
+    });
 
   const snapPoints = useMemo(() => ["50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const handleClosePress = useCallback(() => bottomSheetRef.current?.close(), []);
-  const handleOpenPress = useCallback(() => bottomSheetRef.current?.expand(), []);
+  const handleClosePress = useCallback(
+    () => bottomSheetRef.current?.close(),
+    []
+  );
+  const handleOpenPress = useCallback(
+    () => bottomSheetRef.current?.expand(),
+    []
+  );
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -198,15 +211,18 @@ const Results: FC = () => {
   );
 
   // Search input for queries
-  const searchInput = useMemo<SearchInput>(() => ({
-    lat: selectedDetails?.lat || 0,
-    lon: selectedDetails?.lng || 0,
-    pincode: selectedDetails?.pincode || "110001",
-    query: search || "",
-    domain: domainData || "",
-    page: 1,
-    size: PAGE_SIZE,
-  }), [selectedDetails, search, domainData]);
+  const searchInput = useMemo<SearchInput>(
+    () => ({
+      lat: selectedDetails?.lat || 0,
+      lon: selectedDetails?.lng || 0,
+      pincode: selectedDetails?.pincode || "110001",
+      query: search || "",
+      domain: domainData || "",
+      page: 1,
+      size: PAGE_SIZE,
+    }),
+    [selectedDetails, search, domainData]
+  );
 
   // Products infinite query
   const {
@@ -218,10 +234,12 @@ const Results: FC = () => {
     error: productsError,
     refetch: refetchProducts,
   } = useInfiniteQuery({
-    queryKey: ['searchProducts', searchInput],
+    queryKey: ["searchProducts", searchInput],
     queryFn: fetchProducts,
-    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
-    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
+    enabled:
+      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -236,28 +254,42 @@ const Results: FC = () => {
     error: storesError,
     refetch: refetchStores,
   } = useInfiniteQuery({
-    queryKey: ['searchStores', searchInput],
+    queryKey: ["searchStores", searchInput],
     queryFn: fetchStores,
-    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
-    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
+    enabled:
+      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Flatten data
-  const allProducts = useMemo(() => 
-    productsData?.pages.flatMap(page => page.results as ProductSearchResult[]) || [],
+  const allProducts = useMemo(
+    () =>
+      productsData?.pages.flatMap(
+        (page) => page.results as ProductSearchResult[]
+      ) || [],
     [productsData]
   );
 
-  const allStores = useMemo(() =>
-    storesData?.pages.flatMap(page => page.results as StoreSearchResult[]) || [],
+  const allStores = useMemo(
+    () =>
+      storesData?.pages.flatMap(
+        (page) => page.results as StoreSearchResult[]
+      ) || [],
     [storesData]
   );
 
   // Group products by store
-  const productsByStore = useMemo(() => groupByStoreId(allProducts), [allProducts]);
-  const storeEntries = useMemo(() => Object.entries(productsByStore), [productsByStore]);
+  const productsByStore = useMemo(
+    () => groupByStoreId(allProducts),
+    [allProducts]
+  );
+  const storeEntries = useMemo(
+    () => Object.entries(productsByStore),
+    [productsByStore]
+  );
 
   // Handle load more
   const handleLoadMore = useCallback(() => {
@@ -270,7 +302,15 @@ const Results: FC = () => {
         fetchNextStores();
       }
     }
-  }, [isItem, hasNextProducts, isFetchingNextProducts, hasNextStores, isFetchingNextStores, fetchNextProducts, fetchNextStores]);
+  }, [
+    isItem,
+    hasNextProducts,
+    isFetchingNextProducts,
+    hasNextStores,
+    isFetchingNextStores,
+    fetchNextProducts,
+    fetchNextStores,
+  ]);
 
   // Handle tab change
   const handleTabChange = useCallback((itemTab: boolean) => {
@@ -278,36 +318,42 @@ const Results: FC = () => {
   }, []);
 
   // Handle food details
-  const handleFoodDetails = useCallback((product: ProductSearchResult) => {
-    setFoodDetails({
-      images: product.images?.[0] || "",
-      long_desc: product.short_desc || "",
-      name: product.name,
-      short_desc: product.short_desc || "",
-      symbol: product.symbol,
-      price: product.price.value.toString(),
-      storeId: product.store_id,
-      itemId: product.symbol,
-      discount: product.price.offerPercent || 0,
-      maxPrice: product.price.maximum_value || 0,
-      visible: true,
-      maxQuantity: product.quantity || 1,
-    });
-    handleOpenPress();
-  }, [handleOpenPress]);
+  const handleFoodDetails = useCallback(
+    (product: ProductSearchResult) => {
+      setFoodDetails({
+        images: product.images?.[0] || "",
+        long_desc: product.short_desc || "",
+        name: product.name,
+        short_desc: product.short_desc || "",
+        symbol: product.symbol,
+        price: product.price.value.toString(),
+        storeId: product.store_id,
+        itemId: product.symbol,
+        discount: product.price.offerPercent || 0,
+        maxPrice: product.price.maximum_value || 0,
+        visible: true,
+        maxQuantity: product.quantity || 1,
+      });
+      handleOpenPress();
+    },
+    [handleOpenPress]
+  );
 
   // Handle customizable group
-  const handleCustomizableGroup = useCallback((product: ProductSearchResult) => {
-    setCustomizableGroup({
-      customizable: true,
-      vendorId: product.store_id,
-      customGroup: product.directlyLinkedCustomGroupIds || [],
-      itemId: product.symbol,
-      maxLimit: product.quantity || 1,
-      price: product.price.value,
-    });
-    handleOpenPress();
-  }, [handleOpenPress]);
+  const handleCustomizableGroup = useCallback(
+    (product: ProductSearchResult) => {
+      setCustomizableGroup({
+        customizable: true,
+        vendorId: product.store_id,
+        customGroup: product.directlyLinkedCustomGroupIds || [],
+        itemId: product.symbol,
+        maxLimit: product.quantity || 1,
+        price: product.price.value,
+      });
+      handleOpenPress();
+    },
+    [handleOpenPress]
+  );
 
   // Product Card Component
   const ProductCard: FC<{
@@ -441,8 +487,7 @@ const Results: FC = () => {
       <View style={styles.storeCardInfo}>
         <Text style={styles.storeCardName}>{store.name}</Text>
         <Text style={styles.storeCardDetails}>
-          ★ {store.rating || "4.2"} •{" "}
-          {store.distance_in_km.toFixed(1)}km
+          ★ {store.rating || "4.2"} • {store.distance_in_km.toFixed(1)}km
         </Text>
         <Text style={styles.storeCardAddress} numberOfLines={1}>
           {store.address.city}
@@ -454,7 +499,9 @@ const Results: FC = () => {
   const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
   const currentError = isItem ? productsError : storesError;
   const currentData = isItem ? storeEntries : allStores;
-  const currentIsFetchingNext = isItem ? isFetchingNextProducts : isFetchingNextStores;
+  const currentIsFetchingNext = isItem
+    ? isFetchingNextProducts
+    : isFetchingNextStores;
 
   if (currentIsLoading) return <Loader />;
 
@@ -462,11 +509,11 @@ const Results: FC = () => {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>
-          {currentError.message || 'Failed to load search results'}
+          {currentError.message || "Failed to load search results"}
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => isItem ? refetchProducts() : refetchStores()}
+          onPress={() => (isItem ? refetchProducts() : refetchStores())}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -490,7 +537,10 @@ const Results: FC = () => {
 
         <TouchableOpacity
           onPress={() =>
-            router.push({ pathname: "/search", params: { domain: domainData } })
+            router.push({
+              pathname: "./search",
+              params: { domain: domainData },
+            })
           }
           style={styles.searchBar}
         >
@@ -517,7 +567,7 @@ const Results: FC = () => {
             onPress={() => handleTabChange(false)}
           >
             <Text style={[styles.tabText, !isItem && styles.activeTabText]}>
-              OUTLETS ({allStores.length})
+              Restaurents ({allStores.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -526,11 +576,12 @@ const Results: FC = () => {
       {/* Content */}
       <FlatList
         data={currentData}
-        keyExtractor={isItem 
-          ? (item) => (item as [string, ProductSearchResult[]])[0]
-          : (item) => (item as StoreSearchResult).slug
+        keyExtractor={
+          isItem
+            ? (item) => (item as [string, ProductSearchResult[]])[0]
+            : (item) => (item as StoreSearchResult).slug
         }
-        renderItem={({ item }) => 
+        renderItem={({ item }) =>
           isItem ? (
             <ProductCard item={item as [string, ProductSearchResult[]]} />
           ) : (
@@ -540,11 +591,13 @@ const Results: FC = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={() => (
-          <Text style={styles.resultsTitle}>Showing Results for "{search}"</Text>
+          <Text style={styles.resultsTitle}>
+            Showing Results for "{search}"
+          </Text>
         )}
         ListEmptyComponent={() => (
           <Text style={styles.noResultsText}>
-            No {isItem ? 'items' : 'stores'} found
+            No {isItem ? "items" : "stores"} found
           </Text>
         )}
         ListFooterComponent={() => (

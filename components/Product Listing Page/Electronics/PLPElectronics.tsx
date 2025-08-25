@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import React, { useState, useMemo } from "react";
+import { View } from "react-native";
 import HorizontalNavbar from "../Grocery/HorizontalNavbar";
 import GroceryCardContainer, { CatalogItem, NoItemsDisplay } from "../Grocery/GroceryCardContainer";
 
@@ -209,6 +209,31 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
   
   const filteredCatalog = getFilteredCatalog();
 
+  // Transform catalog items to ensure they have the image field that GroceryCard expects
+  const transformCatalogForDisplay = useMemo(() => {
+    const transformItems = (items: CatalogItem[]) => {
+      return items.map(item => ({
+        ...item,
+        // Ensure symbol field exists for GroceryCard
+        symbol: item.symbol || 
+                item.descriptor?.images?.[0] || 
+                item.descriptor?.symbol ||
+                "https://via.placeholder.com/150?text=Electronics"
+      }));
+    };
+    return transformItems;
+  }, []);
+
+  const transformedFilteredCatalog = useMemo(() => 
+    transformCatalogForDisplay(filteredCatalog), 
+    [filteredCatalog, transformCatalogForDisplay]
+  );
+
+  const transformedFullCatalog = useMemo(() => 
+    transformCatalogForDisplay(catalog), 
+    [catalog, transformCatalogForDisplay]
+  );
+
   const handleCategorySelect = (title: string) => {
     setActiveCategory(title);
     console.log("Selected Category:", title);
@@ -227,7 +252,7 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
         <GroceryCardContainer
           providerId={providerId}
           searchString={searchString}
-          catalog={filteredCatalog as CatalogItem[]}
+          catalog={transformedFilteredCatalog}
           selectedCategory={activeCategory}
           handleOpenModal={handleOpenModal}
         />
@@ -237,7 +262,7 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
         <GroceryCardContainer
           providerId={providerId}
           searchString={searchString}
-          catalog={catalog as CatalogItem[]}
+          catalog={transformedFullCatalog}
           selectedCategory={activeCategory}
           handleOpenModal={handleOpenModal}
         />

@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import { generateOTP } from "../OTP/gen-otp";
+import { generateOTP } from "../../components/OTP/gen-otp";
 import useUserDetails from "../../hook/useUserDetails";
 
 const PRIMARY_COLOR = "#FB3E44";
@@ -26,13 +26,19 @@ const BUTTON_WIDTH = widthPercentageToDP("90");
 const NewLogin: React.FC = () => {
   const router = useRouter();
   const { t } = useTranslation();
-  
+
   // Add authentication check
-  const { isAuthenticated, isLoading: authLoading, checkAuthentication } = useUserDetails();
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    checkAuthentication,
+  } = useUserDetails();
 
   const [mobileNumber, setMobileNumber] = useState<string>("");
-  const [textInputBorderColor, setTextInputBorderColor] = useState(TEXT_INPUT_COLOR);
-  const [isValidMobileNumber, setIsValidMobileNumber] = useState<boolean>(false);
+  const [textInputBorderColor, setTextInputBorderColor] =
+    useState(TEXT_INPUT_COLOR);
+  const [isValidMobileNumber, setIsValidMobileNumber] =
+    useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Check if user is already authenticated on component mount
@@ -43,7 +49,7 @@ const NewLogin: React.FC = () => {
         router.replace("./(tabs)/home"); // Replace with your home screen route
       }
     };
-    
+
     checkAuth();
   }, [isAuthenticated, authLoading, checkAuthentication, router]);
 
@@ -60,7 +66,12 @@ const NewLogin: React.FC = () => {
   const generateOtpForUser = async (mobileNumber: string) => {
     try {
       const response = await generateOTP(`${mobileNumber}`);
-      console.log(`OTP response for [${mobileNumber.slice(0, 3)}XXXX${mobileNumber.slice(7)}]:`, response);
+      console.log(
+        `OTP response for [${mobileNumber.slice(0, 3)}XXXX${mobileNumber.slice(
+          7
+        )}]:`,
+        response
+      );
 
       if (response.status === 200) {
         router.push({
@@ -71,14 +82,17 @@ const NewLogin: React.FC = () => {
           },
         });
       } else {
-        const errorMessage = response.data?.message || t("Failed to generate OTP");
+        const errorMessage =
+          response.data?.message || t("Failed to generate OTP");
         Alert.alert(t("Error"), errorMessage);
       }
     } catch (error) {
       console.error("Error generating OTP:", error);
       Alert.alert(
         t("Error"),
-        error instanceof Error ? error.message : t("An unexpected error occurred")
+        error instanceof Error
+          ? error.message
+          : t("An unexpected error occurred")
       );
     }
   };
@@ -86,7 +100,7 @@ const NewLogin: React.FC = () => {
   // Continue button handler
   const handleContinue = async () => {
     Keyboard.dismiss();
-    
+
     if (!isValidMobileNumber) {
       Alert.alert(
         t("Invalid number"),
@@ -126,18 +140,20 @@ const NewLogin: React.FC = () => {
         />
 
         {/* Welcome Text */}
-        <Text style={styles.welcomeText}>
-          {t("Welcome to MartPe")}
-        </Text>
+        <Text style={styles.welcomeText}>{t("Welcome to MartPe")}</Text>
         <Text style={styles.subtitleText}>
           {t("Your goto app for everything on ONDC!")}
         </Text>
 
         {/* Mobile Number Input */}
-        <View style={[
-          styles.inputContainer,
-          { borderColor: isValidMobileNumber ? "green" : textInputBorderColor }
-        ]}>
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              borderColor: isValidMobileNumber ? "green" : textInputBorderColor,
+            },
+          ]}
+        >
           <Text style={styles.countryCode}>+91</Text>
           <TextInput
             placeholder={t("Enter mobile number")}
@@ -161,9 +177,11 @@ const NewLogin: React.FC = () => {
           style={[
             styles.continueButton,
             {
-              backgroundColor: isValidMobileNumber ? PRIMARY_COLOR : DISABLED_COLOR,
+              backgroundColor: isValidMobileNumber
+                ? PRIMARY_COLOR
+                : DISABLED_COLOR,
               opacity: isLoading ? 0.7 : 1,
-            }
+            },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Continue button"
@@ -172,9 +190,7 @@ const NewLogin: React.FC = () => {
           {isLoading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.continueButtonText}>
-              {t("Continue")}
-            </Text>
+            <Text style={styles.continueButtonText}>{t("Continue")}</Text>
           )}
         </TouchableOpacity>
 
