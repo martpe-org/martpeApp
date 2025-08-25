@@ -23,14 +23,18 @@ export const useRenderFunctions = () => {
   const handleCategoryPress = (item: any) => {
     router.push(`../../(tabs)/home/categories/${item.link}`);
   };
-
-  const renderCategoryItem = ({ item }: { item: any }) => (
+  // Compact version for smaller screens or different layouts
+  const renderCategoryItemCompact = ({ item, index }: { item: any; index?: number }) => (
     <TouchableOpacity
-      style={styles.catCard}
+      style={[
+        styles.catCardCompact,
+        { marginLeft: index === 0 ? -10: 0 }
+      ]}
       onPress={() => handleCategoryPress(item)}
+      activeOpacity={0.8}
     >
-      <Image source={item.image} style={styles.iconImg} />
-      <Text style={styles.catLabel} numberOfLines={1}>
+      <Image source={item.image} style={styles.iconImgCompact} />
+      <Text style={styles.catLabelCompact} numberOfLines={1}>
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -259,7 +263,7 @@ export const useRenderFunctions = () => {
 
   return {
     handleCategoryPress,
-    renderCategoryItem,
+    renderCategoryItemCompact,
     renderRestaurantItem,
     renderNearbyItem,
     renderFoodCategories,
@@ -268,25 +272,6 @@ export const useRenderFunctions = () => {
 };
 
 const styles = StyleSheet.create({
-  catCard: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 18,
-    width: 46,
-    borderRadius: 8,
-    backgroundColor: "transparent",
-  },
-  iconImg: {
-    width: 45,
-    height: 40,
-    resizeMode: "contain",
-  },
-  catLabel: {
-    color: "white",
-    fontSize: 12,
-    textAlign: "center",
-    fontWeight: "600",
-  },
   restaurantCard: {
     backgroundColor: "white",
     borderRadius: 16,
@@ -506,5 +491,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     textAlign: "center",
+  },
+    catCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 18,
+    width: 46,
+    borderRadius: 8,
+    backgroundColor: "transparent",
+    paddingVertical: 8,
+  },
+  imageContainer: {
+    marginBottom: 6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+    borderRadius: 20,
+  },
+  iconImg: {
+    width: 45,
+    height: 40,
+    resizeMode: "contain",
+    borderRadius: 8,
+  },
+  catLabel: {
+    color: "white",
+    fontSize: 12,
+    textAlign: "center",
+    fontWeight: "600",
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  // Compact version styles
+  catCardCompact: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    width: 50,
+    borderRadius: 8,
+    backgroundColor: "transparent",
+    paddingVertical: 6,
+  },
+  iconImgCompact: {
+    width: 40,
+    height: 36,
+    resizeMode: "contain",
+    borderRadius: 6,
+    marginBottom: 2,
+  },
+  catLabelCompact: {
+    color: "white",
+    fontSize: 10,
+    textAlign: "center",
+    fontWeight: "bold",
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    marginBottom:-7
   },
 });

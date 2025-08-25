@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -20,6 +19,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PLPElectronics from "../../../../../components/Product Listing Page/Electronics/PLPElectronics";
 import PLPFashion from "../../../../../components/Product Listing Page/Fashion/PLPFashion";
 import PLPBanner from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
@@ -45,6 +45,17 @@ import useDeliveryStore from "../../../../../state/deliveryAddressStore";
 const ITEMS_PER_PAGE = 20;
 
 // ==============
+// Query Keys
+// ==============
+const queryKeys = {
+  storeDetails: (slug: string) => ['store-details', slug] as const,
+  storeItems: (slug: string, page: number, search: string) => 
+    ['store-items', slug, page, search] as const,
+  storeItemsInfinite: (slug: string, search: string) => 
+    ['store-items-infinite', slug, search] as const,
+};
+
+// ==============
 // Helper methods
 // ==============
 const safeNormalize = (val?: string) =>
@@ -53,7 +64,7 @@ const safeNormalize = (val?: string) =>
 const getFirst = (maybeArr: string | string[] | undefined): string =>
   Array.isArray(maybeArr) ? maybeArr[0] : maybeArr ?? "";
 
-// ✅ FIXED: Enhanced uniqueBy function with better key generation
+// ✅ Enhanced uniqueBy function with better key generation
 const uniqueBy = <T,>(arr: T[], keyFn: (x: T) => string) => {
   const seen = new Set<string>();
   const out: T[] = [];
@@ -63,7 +74,6 @@ const uniqueBy = <T,>(arr: T[], keyFn: (x: T) => string) => {
     const primaryKey = keyFn(item);
     let key = primaryKey;
 
-    // If key is empty or already seen, generate a more unique key
     if (!key || seen.has(key)) {
       key = `${primaryKey}_${counter}_${Math.random()
         .toString(36)
@@ -80,7 +90,7 @@ const uniqueBy = <T,>(arr: T[], keyFn: (x: T) => string) => {
 };
 
 // ===================
-// Optimized types
+// Types
 // ===================
 interface ComponentDescriptor {
   images: string[];
@@ -100,7 +110,7 @@ interface ComponentCatalogItem {
     short_desc: string;
     symbol: string;
   };
-  id: string; // using slug
+  id: string;
   location_id: string;
   non_veg: boolean | null;
   price: {
@@ -162,6 +172,111 @@ interface FoodDetails {
   discount: number;
 }
 
+interface PaginatedStoreItemsResponse {
+  items: ComponentCatalogItem[];
+  hasNextPage: boolean;
+  totalCount: number;
+}
+
+// ================================
+// API Functions for TanStack Query
+// ================================
+const fetchStoreDetailsQuery = async (slug: string): Promise<VendorData | null> => {
+  if (!slug) throw new Error('Store slug is required');
+  
+  const [storeDetails, storeItems] = await Promise.all([
+    fetchStoreDetails(slug),
+    fetchStoreItems(slug),
+  ]);
+
+  if (!storeDetails || !storeItems) {
+    throw new Error('Failed to fetch store data');
+  }
+
+  return convertToVendorData(storeDetails, storeItems);
+};
+
+const fetchStoreItemsPaginated = async ({
+  slug,
+  pageParam = 1,
+  searchString = ""
+}: {
+  slug: string;
+  pageParam: number;
+  searchString: string;
+}): Promise<PaginatedStoreItemsResponse> => {
+  if (!slug) throw new Error('Store slug is required');
+
+  // Fetch all items (you might need to modify your API to support pagination)
+  const storeItems = await fetchStoreItems(slug);
+  
+  if (!storeItems?.results) {
+    return { items: [], hasNextPage: false, totalCount: 0 };
+  }
+
+  // Convert to component format
+  const allItems: ComponentCatalogItem[] = storeItems.results.map(
+    (item: StoreItem) => ({
+      bpp_id: item.provider_id || "",
+      bpp_uri: "",
+      catalog_id: item.catalog_id || "",
+      category_id: item.category_id || "",
+      descriptor: {
+        images: item.images || [],
+        long_desc: item.short_desc || "",
+        name: item.name || "",
+        short_desc: item.short_desc || "",
+        symbol: item.symbol || "",
+      },
+      id: item.slug || item._id || "",
+      location_id: item.location_id || "",
+      non_veg: item.diet_type === "non_veg",
+      price: {
+        maximum_value: item.price?.maximum_value ?? item.price?.value ?? 0,
+        offer_percent: item.price?.offerPercent ?? null,
+        offer_value: null,
+        value: item.price?.value ?? 0,
+      },
+      quantity: {
+        available: { count: item.quantity ?? 0 },
+        maximum: { count: item.quantity ?? 0 },
+      },
+      provider_id: item.provider_id || "",
+      veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
+    })
+  );
+
+  // Apply search filter
+  let filteredItems = allItems;
+  if (searchString.trim()) {
+    const searchTerm = searchString.toLowerCase();
+    filteredItems = allItems.filter(item =>
+      item.descriptor.name.toLowerCase().includes(searchTerm) ||
+      item.descriptor.short_desc.toLowerCase().includes(searchTerm) ||
+      item.category_id.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Apply deduplication
+  const deduplicatedItems = uniqueBy(filteredItems, (x) => {
+    const id = x.id || x.catalog_id || "";
+    const name = x.descriptor?.name || "";
+    const categoryId = x.category_id || "";
+    return `${id}::${name}::${categoryId}`;
+  });
+
+  // Apply pagination
+  const startIndex = (pageParam - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedItems = deduplicatedItems.slice(startIndex, endIndex);
+
+  return {
+    items: paginatedItems,
+    hasNextPage: endIndex < deduplicatedItems.length,
+    totalCount: deduplicatedItems.length,
+  };
+};
+
 // ================================
 // Convert backend -> component data
 // ================================
@@ -191,7 +306,7 @@ const convertToVendorData = (
           short_desc: item.short_desc || "",
           symbol: item.symbol || "",
         },
-        id: item.slug || item._id || "", // ensure a stable id
+        id: item.slug || item._id || "",
         location_id: item.location_id || "",
         non_veg: item.diet_type === "non_veg",
         price: {
@@ -249,6 +364,7 @@ const PLP: React.FC = () => {
   const vendorSlug = getFirst(vendor.id);
   const animation = useRef<LottieView>(null);
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
+  const queryClient = useQueryClient();
 
   // State
   const [foodDetails, setFoodDetails] = useState<FoodDetails>({
@@ -266,20 +382,52 @@ const PLP: React.FC = () => {
     discount: 0,
   });
 
-  const [vendorData, setVendorData] = useState<VendorData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [serviceable, setServiceable] = useState(false);
   const [searchString, setSearchString] = useState<string>("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreItems, setHasMoreItems] = useState(true);
-  const [paginatedCatalog, setPaginatedCatalog] = useState<
-    ComponentCatalogItem[]
-  >([]);
+  // ✅ TanStack Query for store details
+  const {
+    data: vendorData,
+    isLoading: isLoadingVendor,
+    error: vendorError,
+    refetch: refetchVendor,
+  } = useQuery({
+    queryKey: queryKeys.storeDetails(vendorSlug),
+    queryFn: () => fetchStoreDetailsQuery(vendorSlug),
+    enabled: !!vendorSlug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+  });
+
+  // ✅ TanStack Infinite Query for paginated store items
+  const {
+    data: infiniteItemsData,
+    isLoading: isLoadingItems,
+    error: itemsError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch: refetchItems,
+    isRefetching,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.storeItemsInfinite(vendorSlug, searchString),
+    queryFn: ({ pageParam = 1 }) =>
+      fetchStoreItemsPaginated({
+        slug: vendorSlug,
+        pageParam,
+        searchString,
+      }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasNextPage ? allPages.length + 1 : undefined;
+    },
+    enabled: !!vendorSlug,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Flatten paginated data
+  const allItems = useMemo(() => {
+    return infiniteItemsData?.pages?.flatMap(page => page.items) || [];
+  }, [infiniteItemsData]);
 
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -299,135 +447,45 @@ const PLP: React.FC = () => {
     []
   );
 
+  // ✅ Search handler with query invalidation
   const onInputChanged = useCallback((text: string) => {
     setSearchString(text);
-    setCurrentPage(1);
-    setPaginatedCatalog([]);
-    setHasMoreItems(true);
-  }, []);
-
-  // ✅ FIXED: Enhanced deduplication with multiple fields
-  const uniqueCatalogs = useMemo(() => {
-    if (!vendorData?.catalogs) return [];
-
-    // More robust deduplication using multiple fields
-    return uniqueBy(vendorData.catalogs, (x) => {
-      const id = x.id || x.catalog_id || "";
-      const name = x.descriptor?.name || "";
-      const categoryId = x.category_id || "";
-      return `${id}::${name}::${categoryId}`;
+    // Invalidate and refetch with new search term
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.storeItemsInfinite(vendorSlug, text)
     });
-  }, [vendorData?.catalogs]);
+  }, [vendorSlug, queryClient]);
 
-  // Pagination logic
-  const loadMoreItems = useCallback(() => {
-    if (!uniqueCatalogs.length || isLoadingMore || !hasMoreItems) return;
-
-    setIsLoadingMore(true);
-
-    // Simulate a short async fetch for UX smoothness
-    setTimeout(() => {
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const newItems = uniqueCatalogs.slice(startIndex, endIndex);
-
-      if (!newItems.length) {
-        setHasMoreItems(false);
-      } else {
-        setPaginatedCatalog((prev) => [...prev, ...newItems]);
-        setCurrentPage((prev) => prev + 1);
-      }
-      setIsLoadingMore(false);
-    }, 250);
-  }, [uniqueCatalogs, currentPage, isLoadingMore, hasMoreItems]);
-
+  // ✅ Load more items handler
   const onEndReached = useCallback(() => {
-    loadMoreItems();
-  }, [loadMoreItems]);
-
-  // Serviceability check (defensively normalized)
-  const checkServiceable = useCallback(
-    (vd: VendorData) => {
-      try {
-        const panIndia = !!vd?.panIndia;
-        const selectedCity = safeNormalize(selectedDetails?.city);
-        const vendorCity = safeNormalize(vd?.address?.city);
-
-        setServiceable(
-          panIndia || (!!selectedCity && selectedCity === vendorCity)
-        );
-      } catch (err) {
-        console.error("Error checking serviceability:", err);
-        setServiceable(false);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [selectedDetails?.city]
-  );
-
-  // ✅ FIXED: Updated fetchVendorData with better deduplication
-  const fetchVendorData = useCallback(async () => {
-    if (!vendorSlug) {
-      setIsLoading(false);
-      setError("Invalid store id.");
-      return;
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    try {
-      setError(null);
-      const slug = vendorSlug;
-
-      const [storeDetails, storeItems] = await Promise.all([
-        fetchStoreDetails(slug),
-        fetchStoreItems(slug),
-      ]);
-
-      if (storeDetails && storeItems) {
-        const convertedData = convertToVendorData(storeDetails, storeItems);
-        if (convertedData) {
-          setVendorData(convertedData);
-
-          // Initialize pagination with better deduplication
-          const deduped = uniqueBy(convertedData.catalogs, (x) => {
-            const id = x.id || x.catalog_id || "";
-            const name = x.descriptor?.name || "";
-            const categoryId = x.category_id || "";
-            return `${id}::${name}::${categoryId}`;
-          });
-
-          const firstBatch = deduped.slice(0, ITEMS_PER_PAGE);
-          setPaginatedCatalog(firstBatch);
-          setHasMoreItems(deduped.length > ITEMS_PER_PAGE);
-
-          checkServiceable(convertedData);
-        } else {
-          setError("Failed to process store data.");
-          setIsLoading(false);
-        }
-      } else {
-        setError("Store not found.");
-        setIsLoading(false);
-      }
-    } catch (err) {
-      console.error("Error fetching vendor data:", err);
-      setError("Failed to load store data.");
-      setIsLoading(false);
-    }
-  }, [vendorSlug, checkServiceable]);
-
+  // ✅ Refresh handler
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setCurrentPage(1);
-    setPaginatedCatalog([]);
-    setHasMoreItems(true);
-    await fetchVendorData();
-    setRefreshing(false);
-  }, [fetchVendorData]);
+    await Promise.all([
+      refetchVendor(),
+      refetchItems(),
+    ]);
+  }, [refetchVendor, refetchItems]);
 
-  useEffect(() => {
-    fetchVendorData();
-  }, [fetchVendorData]);
+  // Serviceability check
+  const serviceable = useMemo(() => {
+    if (!vendorData) return false;
+    
+    try {
+      const panIndia = !!vendorData?.panIndia;
+      const selectedCity = safeNormalize(selectedDetails?.city);
+      const vendorCity = safeNormalize(vendorData?.address?.city);
+
+      return panIndia || (!!selectedCity && selectedCity === vendorCity);
+    } catch (err) {
+      console.error("Error checking serviceability:", err);
+      return false;
+    }
+  }, [vendorData, selectedDetails?.city]);
 
   // Computed vendor info
   const { vendorAddress, storeCategories, dropdownHeaders } = useMemo(() => {
@@ -451,27 +509,32 @@ const PLP: React.FC = () => {
             .replace(/_/g, " ")
             .replace(/\s+/g, " ")
             .trim()
-            // Title-case the section without relying on toLowerCase on undefined
             .toLowerCase()
             .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
         )
         .join(", ") || "";
 
     const dropdownHeaders = Array.from(
-      new Set((vendorData.catalogs || []).map((item) => item.category_id || ""))
+      new Set(allItems.map((item) => item.category_id || ""))
     );
 
     return { vendorAddress, storeCategories, dropdownHeaders };
-  }, [vendorData]);
+  }, [vendorData, allItems]);
+
+  // Loading states
+  const isLoading = isLoadingVendor || isLoadingItems;
+  const error = vendorError || itemsError;
 
   // Loading / error / empty
-  if (isLoading) return <Loader />;
+  if (isLoading && !infiniteItemsData) return <Loader />;
 
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={fetchVendorData} style={styles.retryButton}>
+        <Text style={styles.errorText}>
+          {error instanceof Error ? error.message : 'An error occurred'}
+        </Text>
+        <TouchableOpacity onPress={() => onRefresh()} style={styles.retryButton}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -494,7 +557,6 @@ const PLP: React.FC = () => {
             autoPlay
             ref={animation}
             style={styles.lottieAnimation}
-            // ensure the path exists
             source={require("../../../../../assets/lottiefiles/no_store.json")}
           />
         </View>
@@ -532,7 +594,7 @@ const PLP: React.FC = () => {
         return (
           <PLPGrocery
             providerId={vendorSlug}
-            catalog={paginatedCatalog}
+            catalog={allItems}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}
           />
@@ -544,7 +606,7 @@ const PLP: React.FC = () => {
             buttonTitles={[]}
             descriptor={vendorData.descriptor}
             vendorAddress={vendorAddress}
-            catalog={paginatedCatalog}
+            catalog={allItems}
             dropdownHeaders={dropdownHeaders}
             street={vendorData.address?.street || ""}
             fssaiLiscenseNo={vendorData.fssai_license_no || ""}
@@ -559,7 +621,7 @@ const PLP: React.FC = () => {
         return (
           <PLPFashion
             headers={dropdownHeaders}
-            catalog={paginatedCatalog}
+            catalog={allItems}
             providerId={vendorSlug}
           />
         );
@@ -568,7 +630,7 @@ const PLP: React.FC = () => {
         return (
           <PLPPersonalCare
             providerId={vendorSlug}
-            catalog={paginatedCatalog}
+            catalog={allItems}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}
           />
@@ -578,14 +640,14 @@ const PLP: React.FC = () => {
         return (
           <PLPElectronics
             providerId={vendorSlug}
-            catalog={paginatedCatalog}
+            catalog={allItems}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}
           />
         );
 
       case "ONDC:RET16":
-        return <PLPHomeAndDecor catalog={paginatedCatalog} />;
+        return <PLPHomeAndDecor catalog={allItems} />;
 
       default:
         return (
@@ -595,7 +657,7 @@ const PLP: React.FC = () => {
   };
 
   const renderFooter = () => {
-    if (!isLoadingMore) return null;
+    if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" />
@@ -622,7 +684,7 @@ const PLP: React.FC = () => {
               geoLocation={vendorData.geoLocation}
               userLocation={selectedDetails}
               userAddress={selectedDetails?.fullAddress ?? ""}
-              vendorId={vendorSlug} // vendor slug/id for store favorites
+              vendorId={vendorSlug}
             />
 
             {renderProductListingPage()}
@@ -630,11 +692,16 @@ const PLP: React.FC = () => {
           </View>
         )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={isRefetching} 
+            onRefresh={onRefresh}
+            colors={['#030303']}
+            tintColor="#030303"
+          />
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.1}
-        keyExtractor={() => "plp-content"} // safe: single element
+        keyExtractor={() => "plp-content"}
         showsVerticalScrollIndicator={false}
         style={styles.scrollContainer}
       />
@@ -714,7 +781,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lottieAnimation: {
-    width: widthPercentageToDP("100%"), // ✅ needs a percent
+    width: widthPercentageToDP("100%"),
     backgroundColor: "#fff",
   },
   messageContainer: {

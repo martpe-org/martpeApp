@@ -14,7 +14,7 @@ export const categoryData = [
   },
   {
     id: 3,
-    name: "Personal Care",
+    name: "Beauty",
     link: "PersonalCare",
      image: require("../assets/tabs/beauty.webp"),
   },
@@ -32,7 +32,7 @@ export const categoryData = [
   },
   {
     id: 6,
-    name: "Home & Decor",
+    name: "Interior",
     link: "HomeAndDecor",
     image: require("../assets/images/interior.webp"),
   },

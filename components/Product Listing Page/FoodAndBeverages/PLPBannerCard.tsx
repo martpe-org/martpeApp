@@ -49,8 +49,8 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
     <View
       style={{
         ...styles.PLPBannerCardContainer,
-        marginTop: searchbox ? 50 : 125,
-        height: searchbox ? 80 : undefined, // ✅ no `false`
+        marginTop: searchbox ? 10 : 140,
+        height: searchbox ? 100 : undefined,
       }}
     >
       <Text style={styles.PLPBannerCardTitle}>{title}</Text>
@@ -136,10 +136,10 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 
 const styles = StyleSheet.create({
   PLPBannerCardContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f5f1f1",
     borderRadius: 10,
     marginHorizontal: 15,
-    overflow: "hidden",
+   // overflow: "hidden",
     padding: 20,
     elevation: 3,
   },

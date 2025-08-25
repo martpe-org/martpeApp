@@ -207,7 +207,7 @@ export const showOrderSuccessDialog = (orderId: string) => {
     button: "View Order",
     onPressButton: () => {
       router.push({
-        pathname: "/(tabs)/orders/[order]",
+        pathname: "./(tabs)/orders/[order]",
         params: { id: orderId },
       });
     },

@@ -1,17 +1,18 @@
-import React, { FC, useEffect, useState, useRef } from "react";
+import React, { FC, useState, useRef, useMemo, useCallback } from "react";
 import { Feather } from "@expo/vector-icons";
 import {
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   Dimensions,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useGlobalSearchParams, router } from "expo-router";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { Colors } from "../../../../theme";
 import ImageComp from "../../../../components/common/ImageComp";
@@ -30,9 +31,21 @@ import { StoreSearchResult } from "../../../search/search-stores-type";
 const { width } = Dimensions.get("window");
 
 // Types
-interface SearchResult {
-  catalogs: ProductSearchResult[];
-  stores: StoreSearchResult[];
+interface SearchInput {
+  lat: number;
+  lon: number;
+  pincode: string;
+  query: string;
+  domain: string;
+  page: number;
+  size: number;
+}
+
+interface SearchResponse {
+  results: ProductSearchResult[] | StoreSearchResult[];
+  totalPages: number;
+  currentPage: number;
+  hasMore: boolean;
 }
 
 interface FoodDetailsState {
@@ -59,6 +72,9 @@ interface CustomizableGroupState {
   price: number;
 }
 
+// Constants
+const PAGE_SIZE = 20;
+
 // Helper functions
 const groupByStoreId = (catalogs: ProductSearchResult[]) => {
   return catalogs?.reduce((acc, product) => {
@@ -81,12 +97,55 @@ const getDomainName = (domain: string): string => {
   return domainMap[domain] || domain;
 };
 
+// Search API functions
+const fetchProducts = async ({ pageParam = 1, queryKey}): Promise<SearchResponse> => {
+  const [, searchInput] = queryKey;
+  const response = await searchProducts({
+    ...searchInput,
+    page: pageParam,
+    size: PAGE_SIZE,
+  });
+  
+  return {
+    results: response?.results || [],
+    totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
+    currentPage: pageParam,
+    hasMore: pageParam < Math.ceil((response?.total || 0) / PAGE_SIZE),
+  };
+};
+
+const fetchStores = async ({ pageParam = 1, queryKey  }): Promise<SearchResponse> => {
+  const [, searchInput] = queryKey;
+  const response = await searchStores({
+    ...searchInput,
+    page: pageParam,
+    size: PAGE_SIZE,
+  });
+  
+  return {
+    results: response?.results || [],
+    totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
+    currentPage: pageParam,
+    hasMore: pageParam < Math.ceil((response?.total || 0) / PAGE_SIZE),
+  };
+};
+
 // Simple components
-const VegIndicator = () => (
+const VegIndicator: FC = () => (
   <View style={styles.vegIndicator}>
     <Text style={[styles.vegDot, { color: "#4CAF50" }]}>●</Text>
   </View>
 );
+
+const LoadingFooter: FC<{ isLoading: boolean }> = ({ isLoading }) => {
+  if (!isLoading) return null;
+  return (
+    <View style={styles.loadingFooter}>
+      <ActivityIndicator size="small" color="#FB3E44" />
+      <Text style={styles.loadingText}>Loading more...</Text>
+    </View>
+  );
+};
 
 const Results: FC = () => {
   const [isItem, setIsItem] = useState(true);
@@ -94,14 +153,9 @@ const Results: FC = () => {
     search: string;
     domainData: string;
   }>();
-  const [searchResults, setSearchResults] = useState<SearchResult>({
-    catalogs: [],
-    stores: [],
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-
+  
   const [foodDetails, setFoodDetails] = useState<FoodDetailsState>({
     images: "",
     long_desc: "",
@@ -117,23 +171,22 @@ const Results: FC = () => {
     discount: 0,
   });
 
-  const [customizableGroup, setCustomizableGroup] =
-    useState<CustomizableGroupState>({
-      customizable: false,
-      vendorId: "",
-      customGroup: [],
-      itemId: "",
-      maxLimit: 0,
-      price: 0,
-    });
+  const [customizableGroup, setCustomizableGroup] = useState<CustomizableGroupState>({
+    customizable: false,
+    vendorId: "",
+    customGroup: [],
+    itemId: "",
+    maxLimit: 0,
+    price: 0,
+  });
 
   const snapPoints = useMemo(() => ["50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
+  const handleClosePress = useCallback(() => bottomSheetRef.current?.close(), []);
+  const handleOpenPress = useCallback(() => bottomSheetRef.current?.expand(), []);
 
-  const renderBackdrop = React.useCallback(
+  const renderBackdrop = useCallback(
     (props: any) => (
       <BottomSheetBackdrop
         appearsOnIndex={0}
@@ -144,55 +197,122 @@ const Results: FC = () => {
     []
   );
 
-  const fetchSearchResults = async () => {
-    if (!search || !selectedDetails?.lat || !selectedDetails?.lng) return;
+  // Search input for queries
+  const searchInput = useMemo<SearchInput>(() => ({
+    lat: selectedDetails?.lat || 0,
+    lon: selectedDetails?.lng || 0,
+    pincode: selectedDetails?.pincode || "110001",
+    query: search || "",
+    domain: domainData || "",
+    page: 1,
+    size: PAGE_SIZE,
+  }), [selectedDetails, search, domainData]);
 
-    setIsLoading(true);
-    setError(null);
+  // Products infinite query
+  const {
+    data: productsData,
+    fetchNextPage: fetchNextProducts,
+    hasNextPage: hasNextProducts,
+    isFetchingNextPage: isFetchingNextProducts,
+    isLoading: isLoadingProducts,
+    error: productsError,
+    refetch: refetchProducts,
+  } = useInfiniteQuery({
+    queryKey: ['searchProducts', searchInput],
+    queryFn: fetchProducts,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-    try {
-      const searchInput = {
-        lat: selectedDetails.lat,
-        lon: selectedDetails.lng,
-        pincode: selectedDetails.pincode || "110001",
-        query: search,
-        domain: domainData,
-        page: 1,
-        size: 50,
-      };
+  // Stores infinite query
+  const {
+    data: storesData,
+    fetchNextPage: fetchNextStores,
+    hasNextPage: hasNextStores,
+    isFetchingNextPage: isFetchingNextStores,
+    isLoading: isLoadingStores,
+    error: storesError,
+    refetch: refetchStores,
+  } = useInfiniteQuery({
+    queryKey: ['searchStores', searchInput],
+    queryFn: fetchStores,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-      const [productsResponse, storesResponse] = await Promise.all([
-        searchProducts(searchInput),
-        searchStores(searchInput),
-      ]);
+  // Flatten data
+  const allProducts = useMemo(() => 
+    productsData?.pages.flatMap(page => page.results as ProductSearchResult[]) || [],
+    [productsData]
+  );
 
-      setSearchResults({
-        catalogs: productsResponse?.results || [],
-        stores: storesResponse?.results || [],
-      });
+  const allStores = useMemo(() =>
+    storesData?.pages.flatMap(page => page.results as StoreSearchResult[]) || [],
+    [storesData]
+  );
 
-      if (
-        (productsResponse?.results || []).length === 0 &&
-        (storesResponse?.results || []).length > 0
-      ) {
-        setIsItem(false);
+  // Group products by store
+  const productsByStore = useMemo(() => groupByStoreId(allProducts), [allProducts]);
+  const storeEntries = useMemo(() => Object.entries(productsByStore), [productsByStore]);
+
+  // Handle load more
+  const handleLoadMore = useCallback(() => {
+    if (isItem) {
+      if (hasNextProducts && !isFetchingNextProducts) {
+        fetchNextProducts();
       }
-    } catch (err) {
-      console.error("Search error:", err);
-      setError("Failed to load search results");
-    } finally {
-      setIsLoading(false);
+    } else {
+      if (hasNextStores && !isFetchingNextStores) {
+        fetchNextStores();
+      }
     }
-  };
+  }, [isItem, hasNextProducts, isFetchingNextProducts, hasNextStores, isFetchingNextStores, fetchNextProducts, fetchNextStores]);
 
-  useEffect(() => {
-    fetchSearchResults();
-  }, [search, domainData, selectedDetails]);
+  // Handle tab change
+  const handleTabChange = useCallback((itemTab: boolean) => {
+    setIsItem(itemTab);
+  }, []);
 
+  // Handle food details
+  const handleFoodDetails = useCallback((product: ProductSearchResult) => {
+    setFoodDetails({
+      images: product.images?.[0] || "",
+      long_desc: product.short_desc || "",
+      name: product.name,
+      short_desc: product.short_desc || "",
+      symbol: product.symbol,
+      price: product.price.value.toString(),
+      storeId: product.store_id,
+      itemId: product.symbol,
+      discount: product.price.offerPercent || 0,
+      maxPrice: product.price.maximum_value || 0,
+      visible: true,
+      maxQuantity: product.quantity || 1,
+    });
+    handleOpenPress();
+  }, [handleOpenPress]);
+
+  // Handle customizable group
+  const handleCustomizableGroup = useCallback((product: ProductSearchResult) => {
+    setCustomizableGroup({
+      customizable: true,
+      vendorId: product.store_id,
+      customGroup: product.directlyLinkedCustomGroupIds || [],
+      itemId: product.symbol,
+      maxLimit: product.quantity || 1,
+      price: product.price.value,
+    });
+    handleOpenPress();
+  }, [handleOpenPress]);
+
+  // Product Card Component
   const ProductCard: FC<{
-    storeName: string;
-    products: ProductSearchResult[];
-  }> = ({ storeName, products }) => {
+    item: [string, ProductSearchResult[]];
+  }> = ({ item: [storeId, products] }) => {
     const firstProduct = products[0];
     if (!firstProduct?.store) return null;
 
@@ -231,14 +351,14 @@ const Results: FC = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
+        <FlatList
+          data={products}
           horizontal
           showsHorizontalScrollIndicator={false}
+          keyExtractor={(product, index) => `${product.slug}-${index}`}
           contentContainerStyle={styles.productsContainer}
-        >
-          {products.map((product, index) => (
+          renderItem={({ item: product }) => (
             <TouchableOpacity
-              key={index}
               style={styles.productCard}
               onPress={() =>
                 router.push(
@@ -272,18 +392,7 @@ const Results: FC = () => {
                 <View style={styles.actionRow}>
                   {product.customizable ? (
                     <TouchableOpacity
-                      onPress={() => {
-                        setCustomizableGroup({
-                          customizable: true,
-                          vendorId: product.store_id,
-                          customGroup:
-                            product.directlyLinkedCustomGroupIds || [],
-                          itemId: product.symbol,
-                          maxLimit: product.quantity || 1,
-                          price: product.price.value,
-                        });
-                        handleOpenPress();
-                      }}
+                      onPress={() => handleCustomizableGroup(product)}
                       style={styles.addButton}
                     >
                       <Text style={styles.addButtonText}>ADD</Text>
@@ -299,23 +408,7 @@ const Results: FC = () => {
 
                   {domainName === "F&B" && (
                     <TouchableOpacity
-                      onPress={() => {
-                        setFoodDetails({
-                          images: product.images?.[0] || "",
-                          long_desc: product.short_desc || "",
-                          name: product.name,
-                          short_desc: product.short_desc || "",
-                          symbol: product.symbol,
-                          price: product.price.value.toString(),
-                          storeId: product.store_id,
-                          itemId: product.symbol,
-                          discount: product.price.offerPercent || 0,
-                          maxPrice: product.price.maximum_value || 0,
-                          visible: true,
-                          maxQuantity: product.quantity || 1,
-                        });
-                        handleOpenPress();
-                      }}
+                      onPress={() => handleFoodDetails(product)}
                       style={styles.infoButton}
                     >
                       <Text style={styles.infoButtonText}>Info</Text>
@@ -324,20 +417,59 @@ const Results: FC = () => {
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          )}
+        />
       </View>
     );
   };
 
-  const productsByStore = groupByStoreId(searchResults.catalogs);
+  // Store Card Component
+  const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => (
+    <TouchableOpacity
+      onPress={() =>
+        router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+      }
+      style={styles.storeCard}
+    >
+      <ImageComp
+        source={{
+          uri: store.symbol || "https://via.placeholder.com/60",
+        }}
+        imageStyle={styles.storeCardImage}
+        resizeMode="cover"
+      />
+      <View style={styles.storeCardInfo}>
+        <Text style={styles.storeCardName}>{store.name}</Text>
+        <Text style={styles.storeCardDetails}>
+          ★ {store.rating || "4.2"} •{" "}
+          {store.distance_in_km.toFixed(1)}km
+        </Text>
+        <Text style={styles.storeCardAddress} numberOfLines={1}>
+          {store.address.city}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
-  if (isLoading) return <Loader />;
+  const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
+  const currentError = isItem ? productsError : storesError;
+  const currentData = isItem ? storeEntries : allStores;
+  const currentIsFetchingNext = isItem ? isFetchingNextProducts : isFetchingNextStores;
 
-  if (error) {
+  if (currentIsLoading) return <Loader />;
+
+  if (currentError) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorText}>
+          {currentError.message || 'Failed to load search results'}
+        </Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => isItem ? refetchProducts() : refetchStores()}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -374,79 +506,52 @@ const Results: FC = () => {
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, isItem && styles.activeTab]}
-            onPress={() => setIsItem(true)}
+            onPress={() => handleTabChange(true)}
           >
             <Text style={[styles.tabText, isItem && styles.activeTabText]}>
-              ITEMS
+              ITEMS ({allProducts.length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, !isItem && styles.activeTab]}
-            onPress={() => setIsItem(false)}
+            onPress={() => handleTabChange(false)}
           >
             <Text style={[styles.tabText, !isItem && styles.activeTabText]}>
-              OUTLETS
+              OUTLETS ({allStores.length})
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content}>
-        <Text style={styles.resultsTitle}>Showing Results for {search}</Text>
-
-        {isItem ? (
-          <>
-            {searchResults.catalogs.length === 0 ? (
-              <Text style={styles.noResultsText}>No items found</Text>
-            ) : (
-              Object.entries(productsByStore).map(([storeId, products]) => (
-                <ProductCard
-                  key={storeId}
-                  storeName={products[0]?.store?.name || "Unknown Store"}
-                  products={products}
-                />
-              ))
-            )}
-          </>
-        ) : (
-          <>
-            {searchResults.stores.length === 0 ? (
-              <Text style={styles.noResultsText}>No stores found</Text>
-            ) : (
-              searchResults.stores.map((store, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() =>
-                    router.push(
-                      `/(tabs)/home/result/productListing/${store.slug}`
-                    )
-                  }
-                  style={styles.storeCard}
-                >
-                  <ImageComp
-                    source={{
-                      uri: store.symbol || "https://via.placeholder.com/60",
-                    }}
-                    imageStyle={styles.storeCardImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.storeCardInfo}>
-                    <Text style={styles.storeCardName}>{store.name}</Text>
-                    <Text style={styles.storeCardDetails}>
-                      ★ {store.rating || "4.2"} •{" "}
-                      {store.distance_in_km.toFixed(1)}km
-                    </Text>
-                    <Text style={styles.storeCardAddress} numberOfLines={1}>
-                      {store.address.city}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </>
+      <FlatList
+        data={currentData}
+        keyExtractor={isItem 
+          ? (item) => (item as [string, ProductSearchResult[]])[0]
+          : (item) => (item as StoreSearchResult).slug
+        }
+        renderItem={({ item }) => 
+          isItem ? (
+            <ProductCard item={item as [string, ProductSearchResult[]]} />
+          ) : (
+            <StoreCard item={item as StoreSearchResult} />
+          )
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={() => (
+          <Text style={styles.resultsTitle}>Showing Results for "{search}"</Text>
         )}
-      </ScrollView>
+        ListEmptyComponent={() => (
+          <Text style={styles.noResultsText}>
+            No {isItem ? 'items' : 'stores'} found
+          </Text>
+        )}
+        ListFooterComponent={() => (
+          <LoadingFooter isLoading={currentIsFetchingNext} />
+        )}
+        contentContainerStyle={styles.contentContainer}
+      />
 
       <BottomSheet
         ref={bottomSheetRef}
@@ -546,8 +651,8 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: "#ecdedf",
   },
-  content: {
-    flex: 1,
+  contentContainer: {
+    flexGrow: 1,
   },
   resultsTitle: {
     fontSize: 14,
@@ -566,6 +671,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     margin: 20,
     fontSize: 16,
+  },
+  retryButton: {
+    backgroundColor: "#FB3E44",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: "center",
+    marginTop: 10,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  loadingFooter: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  loadingText: {
+    marginLeft: 8,
+    color: "#666",
+    fontSize: 14,
   },
   card: {
     backgroundColor: "#fff",
@@ -597,6 +725,7 @@ const styles = StyleSheet.create({
   },
   storeDetails: {
     flex: 1,
+    marginLeft: 12,
   },
   storeName: {
     fontSize: 16,

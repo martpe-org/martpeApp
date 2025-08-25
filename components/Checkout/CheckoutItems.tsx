@@ -17,16 +17,20 @@ import ImageComp from "../common/ImageComp";
 interface CheckoutItemsProps {
   storeId: string;
   items: any[];
+  authToken: string;
 }
 
-const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
-  const { removeCart, updateQty } = useCartStore();
+const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items, authToken }) => {
+  const { removeCart, updateQty, removeCartItems } = useCartStore();
 
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     try {
-      await updateQty(storeId, itemId, newQuantity);
+      const success = await updateQty(itemId, newQuantity, authToken);
+      if (!success) {
+        console.error("Failed to update quantity");
+      }
     } catch (error) {
-      console.error("Error updating the item quantity", error.message);
+      console.error("Error updating the item quantity", error);
     }
   };
 
@@ -41,39 +45,53 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
           text: "Remove",
           onPress: async () => {
             try {
-              await removeCart(storeId, itemId);
-              router.back(); // Navigate back if cart is empty
+              const success = await removeCart(storeId, authToken);
+              if (success) {
+                router.back(); // Navigate back if cart is empty
+              } else {
+                console.error("Failed to remove cart");
+              }
             } catch (error) {
-              console.error("Error deleting cart item:", error.message);
+              console.error("Error deleting cart:", error);
             }
           },
         },
       ]);
     } else {
       try {
-        await removeItem(storeId, itemId);
+        const success = await removeCartItems([itemId], authToken);
+        if (!success) {
+          console.error("Failed to remove item");
+        }
       } catch (error) {
-        console.error("Error deleting cart item:", error.message);
+        console.error("Error deleting cart item:", error);
       }
     }
   };
 
-  const renderItem = ({ item }) => {
-    const { itemId, details, quantity, available, log, maxQuantity } = item;
-    const {
-      descriptor: { name, symbol },
-      price: { value },
-    } = details;
+  const renderItem = ({ item}) => {
+    // Handle different possible item structures
+    const itemData = {
+      itemId: item._id || item.itemId,
+      name: item.product?.name || item.details?.descriptor?.name || item.name || "Unknown Product",
+      symbol: item.product?.symbol || item.details?.descriptor?.symbol || item.image || "",
+      price: item.unit_price || item.details?.price?.value || 0,
+      quantity: item.qty || item.quantity || 1,
+      maxQuantity: item.max_qty || item.maxQuantity || item.product?.quantity || 999,
+      available: item.product?.instock !== false && item.available !== false,
+      totalPrice: item.total_price || (item.unit_price || 0) * (item.qty || 1),
+      log: item.log || []
+    };
 
     return (
       <View
-        style={[styles.itemContainer, !available && styles.unavailableItem]}
-        key={itemId}
+        style={[styles.itemContainer, !itemData.available && styles.unavailableItem]}
+        key={itemData.itemId}
       >
         <View style={styles.itemDescContainer}>
           <View style={styles.itemImgContainer}>
             <ImageComp
-              source={{ uri: symbol }}
+              source={{ uri: itemData.symbol }}
               imageStyle={styles.productImage}
               resizeMode="contain"
             />
@@ -81,21 +99,21 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
           
           <View style={styles.itemDetails}>
             <Text style={styles.name} numberOfLines={2}>
-              {name}
+              {itemData.name}
             </Text>
             
             <View style={styles.itemPriceInfoContainer}>
               <Text style={styles.itemPriceText}>
-                ₹{Number(value).toFixed(2).replace(/\.?0+$/, "")}
+                ₹{Number(itemData.price).toFixed(2).replace(/\.?0+$/, "")}
               </Text>
-              <Text style={styles.itemPriceText}>x {quantity}</Text>
+              <Text style={styles.itemPriceText}>x {itemData.quantity}</Text>
               <Text style={styles.itemTotalCostText}>
-                ₹{Number(value * quantity).toFixed(2).replace(/\.?0+$/, "")}
+                ₹{Number(itemData.totalPrice).toFixed(2).replace(/\.?0+$/, "")}
               </Text>
             </View>
             
-            {log && log.length > 0 &&
-              log.map((logItem, index) => (
+            {itemData.log && itemData.log.length > 0 &&
+              itemData.log.map((logItem, index) => (
                 <Text style={styles.log} key={index}>
                   {logItem}
                 </Text>
@@ -105,29 +123,29 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
         </View>
 
         {/* Quantity Controls */}
-        {available ? (
+        {itemData.available ? (
           <View style={styles.cartItemQuantityContainer}>
             <TouchableOpacity
               onPress={() => {
-                quantity > 1
-                  ? handleQuantityChange(itemId, quantity - 1)
-                  : handleDeleteItem(itemId);
+                itemData.quantity > 1
+                  ? handleQuantityChange(itemData.itemId, itemData.quantity - 1)
+                  : handleDeleteItem(itemData.itemId);
               }}
-              disabled={!available}
+              disabled={!itemData.available}
             >
               <DecrementIcon />
             </TouchableOpacity>
             
-            <Text style={styles.quantity}>{quantity}</Text>
+            <Text style={styles.quantity}>{itemData.quantity}</Text>
 
             <TouchableOpacity
               onPress={() =>
-                quantity < maxQuantity &&
-                handleQuantityChange(itemId, quantity + 1)
+                itemData.quantity < itemData.maxQuantity &&
+                handleQuantityChange(itemData.itemId, itemData.quantity + 1)
               }
-              disabled={quantity >= maxQuantity}
+              disabled={itemData.quantity >= itemData.maxQuantity}
             >
-              {quantity < maxQuantity ? (
+              {itemData.quantity < itemData.maxQuantity ? (
                 <IncrementIcon />
               ) : (
                 <IncrementIcon disabled={true} />
@@ -137,7 +155,7 @@ const CheckoutItems: React.FC<CheckoutItemsProps> = ({ storeId, items }) => {
         ) : (
           <TouchableOpacity
             style={styles.closeIcon}
-            onPress={() => handleDeleteItem(itemId)}
+            onPress={() => handleDeleteItem(itemData.itemId)}
           >
             <FontAwesome
               name="trash-o"

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -6,72 +12,82 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Dimensions,
+  Pressable,
 } from "react-native";
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
-import StoreCard2 from "../../../../components/Categories/StoreCard2";
+import StoreCard4 from "../../../../components/Categories/StoreCard4";
 import Search from "../../../../components/common/Search";
-import { fashionCategoryData } from "../../../../constants/categories";
+import { foodCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
+import { useHideTabBarStore } from "../../../../state/hideTabBar";
+import {
+  filters,
+  offerData,
+  deliveryData,
+} from "../../../../constants/filters";
+import { Entypo, Feather } from "@expo/vector-icons";
 import FilterCard from "../../../../components/search/filterCard";
-import { filters, offerData, deliveryData } from "../../../../constants/filters";
-import { Entypo } from "@expo/vector-icons";
 
-const domain = "ONDC:RET12";
+const domain = "ONDC:RET11";
+const screenWidth = Dimensions.get("window").width;
 
-function Fashion() {
-  const [isFilterVisible] = useState(false);
-  const [filterSelected, setFilterSelected] = useState<any>({
-    category: [],
+function Food() {
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [filterSelected, setFilterSelected] = useState({
+    category: [] as string[],
     offers: 0,
     delivery: 100,
   });
-  const [activeFilter, setActiveFilter] = useState("");
   const [storesData, setStoresData] = useState<any[]>([]);
   const [offersData, setOffersData] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const selectedAddress = useDeliveryStore((state: any) => state.selectedDetails);
+  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const renderBackdrop = React.useCallback(
+
+  const handleClosePress = () => {
+    bottomSheetRef.current?.close();
+    setIsFilterVisible(false);
+  };
+
+  const renderBackdrop = useCallback(
     (props: any) => (
       <BottomSheetBackdrop
+        {...props}
         appearsOnIndex={0}
         disappearsOnIndex={-1}
-        {...props}
       />
     ),
     []
   );
 
-  const handleSearchPress = () => {
-    router.push("/search");
-  };
-
+  // Fetch domain data
   useEffect(() => {
     async function fetchData() {
       if (!selectedAddress?.lat || !selectedAddress?.lng) {
         setIsLoading(false);
         return;
       }
-
       try {
-        const response: any = await fetchHomeByDomain(
+        const response = await fetchHomeByDomain(
           selectedAddress.lat,
           selectedAddress.lng,
           selectedAddress.pincode || "110001",
-          domain
+          domain,
+          1,
+          20
         );
-
-        setStoresData(Array.isArray(response?.stores) ? response.stores : []);
+        setStoresData(
+          Array.isArray(response?.stores?.items) ? response.stores.items : []
+        );
         setOffersData(Array.isArray(response?.offers) ? response.offers : []);
       } catch (error) {
         console.error("Error fetching domain data:", error);
@@ -79,78 +95,68 @@ function Fashion() {
         setIsLoading(false);
       }
     }
-
     fetchData();
   }, [selectedAddress]);
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
+  // Collect unique categories
   const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store: any) => store?.catalogs || [])
+    ? storesData.flatMap((store) => store.catalogs || [])
     : [];
-
   const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((c: any) => c?.category_id))
-  ).map((category: any, index: number) => ({
+    new Set(allCatalogs.map((c) => c?.category_id))
+  ).map((category, index) => ({
     id: index + 1,
     label: category,
     value: category,
   }));
 
-  const filteredStores = storesData.filter((store: any) => {
-    const meetsCategoryCriteria =
+  // Filter stores
+  const filteredStores = storesData.filter((store) => {
+    const meetsCategory =
       filterSelected.category.length === 0 ||
-      store?.catalogs?.some((catalog: any) =>
-        filterSelected.category.includes(catalog?.category_id)
+      store.catalogs?.some((c: any) =>
+        filterSelected.category.includes(c.category_id)
       );
-
-    const meetsOfferCriteria =
+    const meetsOffer =
       filterSelected.offers === 0 ||
-      (store?.calculated_max_offer?.percent ?? 0) >= filterSelected.offers;
-
-    const meetsDeliveryCriteria =
+      store.calculated_max_offer?.percent >= filterSelected.offers;
+    const meetsDelivery =
       filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg ?? Infinity) <=
-        filterSelected.delivery;
-
-    return (
-      meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria
-    );
+      store?.time_to_ship_in_hours?.avg <= filterSelected.delivery;
+    return meetsCategory && meetsOffer && meetsDelivery;
   });
 
-  const renderSubCategories = () => (
-    <View style={styles.subCategories}>
-      {fashionCategoryData.slice(0, 4).map((subCategory: any) => (
-        <TouchableOpacity
-          key={subCategory.id}
-          onPress={() =>
-            router.push({
-              pathname: "/(tabs)/home/result/[search]",
-              params: { search: subCategory.name, domainData: domain },
-            })
-          }
-          style={styles.subCategory}
-        >
+  const renderSubCategories = () =>
+    foodCategoryData.slice(0, 8).map((subCategory) => (
+      <TouchableOpacity
+        key={subCategory.id}
+        style={styles.subCategory}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/[search]",
+            params: { search: subCategory.name, domainData: domain },
+          })
+        }
+      >
+        <View style={styles.subCategoryImage}>
           <Image
             source={{ uri: subCategory.image }}
-            style={styles.subCategoryImage}
+            resizeMode="contain"
+            style={{ width: 80, height: 60 }}
           />
-          <LinearGradient
-            colors={["black", "rgba(0,0,0,0.1)"]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.subCategoryTextContainer}
-          >
-            <Text style={styles.subCategoryText}>{subCategory.name}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+        </View>
+        <Text style={styles.subCategoryName}>{subCategory.name}</Text>
+      </TouchableOpacity>
+    ));
 
   if (isLoading) return <Loader />;
 
-  return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
+  if (!storesData.length && !offersData.length) {
+    return (
+      <View style={styles.container}>
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -162,45 +168,172 @@ function Fashion() {
             <Search onPress={handleSearchPress} />
           </View>
         </View>
+        <Text style={{ color: "black", textAlign: "center", justifyContent:"center",alignItems:"center" }}>
+          No restaurants available in your area
+        </Text>
+      </View>
+    );
+  }
 
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.headerContainer}>
+        {/* {/* <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Entypo name="chevron-left" size={22} color="#111" />
+        </TouchableOpacity>
+        <View style={styles.searchWrapper}>
+          <Search onPress={handleSearchPress} />
+        </View> */}
+      </View> 
+
+      <ScrollView style={styles.container}>
+        {/* Offers */}
         {offersData.length > 0 && (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          >
-            {offersData.map((data: any, index: number) => (
-              <OfferCard3 offerData={data} key={index} />
-            ))}
-          </ScrollView>
+          <View style={{ height: 200 }}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+            >
+              {offersData.map((data, index) => (
+                <View key={index} style={{ width: screenWidth }}>
+                  <OfferCard3 offerData={data} />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
-        <View style={styles.subHeadingWrapper}>
-          <Text style={styles.subHeadingText}>Explore by Category</Text>
+        {/* Categories */}
+        <View style={styles.subHeading}>
+          <Text style={styles.subHeadingText}>What’s on your mind?</Text>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/home/allCategories",
+                params: { category: "food" },
+              })
+            }
+          >
+            <Text style={{ color: "#FF9130", fontSize: 14, fontWeight: "500" }}>
+              See all{" "}
+              <Entypo name="chevron-small-right" size={14} color="#FF9130" />
+            </Text>
+          </TouchableOpacity>
         </View>
-        {renderSubCategories()}
+        <View style={styles.subCategories}>{renderSubCategories()}</View>
 
-        <View style={styles.subHeadingWrapper}>
-          <Text style={styles.subHeadingText}>Outlets Near me</Text>
+        {/* Filters */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ margin: 10 }}
+        >
+          {filters.map((filter, index) => {
+            const isActive =
+              (filter.name === "Category" &&
+                filterSelected.category.length > 0) ||
+              (filter.name === "Offers" && filterSelected.offers > 0) ||
+              (filter.name === "Delivery" && filterSelected.delivery < 100);
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.filterChip,
+                  { borderColor: isActive ? "black" : "#eee" },
+                ]}
+                onPress={() => {
+                  setActiveFilter(filter.name);
+                  setIsFilterVisible(true);
+                  bottomSheetRef.current?.expand();
+                }}
+              >
+                <Text style={{ color: "black", fontWeight: "600" }}>
+                  {filter.name === "Category"
+                    ? `Category ${
+                        filterSelected.category.length > 0
+                          ? `(${filterSelected.category.length})`
+                          : ""
+                      }`
+                    : filter.name === "Offers"
+                    ? filterSelected.offers > 0
+                      ? `${filterSelected.offers}% and above`
+                      : "Offers"
+                    : filter.name === "Delivery"
+                    ? filterSelected.delivery < 100
+                      ? `min ${filterSelected.delivery} hrs`
+                      : "Delivery"
+                    : filter.name}
+                </Text>
+
+                {isActive && (
+                  <Pressable
+                    onPress={() =>
+                      setFilterSelected({
+                        category:
+                          filter.name === "Category"
+                            ? []
+                            : filterSelected.category,
+                        offers:
+                          filter.name === "Offers" ? 0 : filterSelected.offers,
+                        delivery:
+                          filter.name === "Delivery"
+                            ? 100
+                            : filterSelected.delivery,
+                      })
+                    }
+                    style={{ marginLeft: 5 }}
+                  >
+                    <Feather name="x" size={16} color="black" />
+                  </Pressable>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {(filterSelected.category.length > 0 ||
+            filterSelected.offers > 0 ||
+            filterSelected.delivery < 100) && (
+            <TouchableOpacity
+              style={[styles.filterChip, { borderColor: "#F13A3A" }]}
+              onPress={() =>
+                setFilterSelected({ category: [], offers: 0, delivery: 100 })
+              }
+            >
+              <Text style={{ color: "#F13A3A" }}>Reset</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+
+        {/* Stores */}
+        <View style={styles.subHeading}>
+          <Text style={styles.subHeadingText}>
+            Explore {filteredStores.length} Restaurants nearby
+          </Text>
         </View>
-
-        {filteredStores.map((storeData: any) => (
-          <StoreCard2
-            key={storeData.id}
-            storeData={storeData}
+        {filteredStores.map((store, index) => (
+          <StoreCard4
+            key={store?.id || index}
+            storeData={store}
             categoryFiltered={filterSelected.category}
+            index={index}
           />
         ))}
       </ScrollView>
 
+      {/* BottomSheet */}
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-        backgroundStyle={{ backgroundColor: "#fff", borderRadius: 20 }}
         backdropComponent={renderBackdrop}
+        onClose={() => setIsFilterVisible(false)}
+        backgroundStyle={{ backgroundColor: "#fff" }}
       >
         {isFilterVisible && (
           <FilterCard
@@ -220,14 +353,10 @@ function Fashion() {
   );
 }
 
-export default Fashion;
+export default Food;
 
 const styles = StyleSheet.create({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -237,6 +366,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
+
   backButton: {
     padding: 6,
     marginTop: 11,
@@ -244,49 +374,37 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
   },
+
   searchWrapper: {
     flex: 1,
   },
   subCategories: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-evenly",
     flexWrap: "wrap",
-    marginHorizontal: 2,
+    marginVertical: 5,
+    rowGap: 5,
   },
-  subCategory: {
-    position: "relative",
-    margin: 5,
-    height: 160,
-    width: 90,
-    borderRadius: 10,
-    overflow: "hidden",
-    elevation: 3,
-  },
-  subCategoryImage: {
-    width: "100%",
-    height: "100%",
-  },
-  subCategoryTextContainer: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    paddingVertical: 5,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  subCategory: { flexDirection: "column", alignItems: "center", margin: 3 },
+  subCategoryImage: {},
+  subCategoryName: { fontWeight: "400", fontSize: 12 },
+  subHeading: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 15,
+    marginHorizontal: 20,
   },
-  subCategoryText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "white",
-    textAlign: "center",
-  },
-  subHeadingWrapper: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  subHeadingText: {
-    fontSize: 16,
-    fontWeight: "600",
+  subHeadingText: { fontSize: 14, fontWeight: "600", marginVertical: 10 },
+  filterChip: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: "center",
+    marginHorizontal: 5,
+    backgroundColor: "white",
   },
 });

@@ -28,7 +28,7 @@ interface PLPBannerProps {
   userLocation: any;
   searchbox?: boolean;
   userAddress: string;
-  vendorId: string | string[]; // ✅ Updated to match PLPBannerCard
+  vendorId: string | string[];
 }
 
 const PLPBanner: React.FC<PLPBannerProps> = ({
@@ -55,7 +55,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
   );
 
   // Calculating delivery time
-  const speed = 25; // Assuming speed in kmph
+  const speed = 25;
   const deliveryTime =
     distance / speed < 1
       ? ((distance / speed) * 60).toFixed(0) + " min"
@@ -94,15 +94,15 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
 const styles = StyleSheet.create({
   bannerContainer: {
     position: "relative",
-    paddingVertical: 30,
+    paddingVertical: 40,
   },
   backgroundImage: {
     position: "absolute",
-    top: 0,
+    top: -20,
     left: 0,
     right: 0,
     bottom: 0,
-    resizeMode: "cover",
+    resizeMode: "contain",
     height: 200,
   },
   backButton: {

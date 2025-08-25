@@ -41,8 +41,8 @@ export default function HomeScreen() {
 
   // Import render functions
   const {
-    renderCategoryItem,
-    renderRestaurantItem,
+    renderCategoryItemCompact,
+        renderRestaurantItem,
     renderNearbyItem,
     renderFoodCategories,
     renderGroceryCategories,
@@ -54,75 +54,75 @@ export default function HomeScreen() {
 
   //main component
 
-  // const {
-  //   data: homeData,
-  //   isLoading,
-  //   error,
-  //   refetch,
-  //   isRefetching, // ✅ react-query provides this
-  // } = useQuery({
-  //   queryKey: [
-  //     "homeData",
-  //     selectedDetails?.lat,
-  //     selectedDetails?.lng,
-  //     selectedDetails?.pincode,
-  //   ],
-  //   queryFn: async () => {
-  //     let lat = selectedDetails?.lat;
-  //     let lng = selectedDetails?.lng;
-  //     let pin = selectedDetails?.pincode;
-
-  //     if (!lat || !lng || !pin) {
-  //       const { status } = await Location.requestForegroundPermissionsAsync();
-  //       if (status !== "granted") {
-  //         throw new Error("Location permission denied");
-  //       }
-  //       const location = await Location.getCurrentPositionAsync({});
-  //       lat = location.coords.latitude;
-  //       lng = location.coords.longitude;
-
-  //       const [address] = await Location.reverseGeocodeAsync({
-  //         latitude: lat,
-  //         longitude: lng,
-  //       });
-  //       pin = address.postalCode || "";
-  //     }
-
-  //     return fetchHome(lat, lng, pin);
-  //   },
-  //   staleTime: 1000 * 60 * 5,
-  //   enabled: true,
-  //   retry: 1,
-  // });
-
-
-
-  // Fetch home data using react-query with hardcoded values
-  
   const {
     data: homeData,
     isLoading,
     error,
     refetch,
-    isRefetching,
+    isRefetching, // ✅ react-query provides this
   } = useQuery({
     queryKey: [
       "homeData",
-      selectedDetails?.lat ?? 12.9716,
-      selectedDetails?.lng ?? 77.5946,
-      selectedDetails?.pincode ?? "560001",
+      selectedDetails?.lat,
+      selectedDetails?.lng,
+      selectedDetails?.pincode,
     ],
     queryFn: async () => {
-      const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
-      const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
-      const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
-      
+      let lat = selectedDetails?.lat;
+      let lng = selectedDetails?.lng;
+      let pin = selectedDetails?.pincode;
+
+      if (!lat || !lng || !pin) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          throw new Error("Location permission denied");
+        }
+        const location = await Location.getCurrentPositionAsync({});
+        lat = location.coords.latitude;
+        lng = location.coords.longitude;
+
+        const [address] = await Location.reverseGeocodeAsync({
+          latitude: lat,
+          longitude: lng,
+        });
+        pin = address.postalCode || "";
+      }
+
       return fetchHome(lat, lng, pin);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     enabled: true,
     retry: 1,
   });
+
+
+
+  // Fetch home data using react-query with hardcoded values
+  
+  // const {
+  //   data: homeData,
+  //   isLoading,
+  //   error,
+  //   refetch,
+  //   isRefetching,
+  // } = useQuery({
+  //   queryKey: [
+  //     "homeData",
+  //     selectedDetails?.lat ?? 12.9716,
+  //     selectedDetails?.lng ?? 77.5946,
+  //     selectedDetails?.pincode ?? "560001",
+  //   ],
+  //   queryFn: async () => {
+  //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
+  //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
+  //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+      
+  //     return fetchHome(lat, lng, pin);
+  //   },
+  //   staleTime: 1000 * 60 * 5, // 5 minutes
+  //   enabled: true,
+  //   retry: 1,
+  // });
 
   // Animation value for "No Data" messages
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -176,14 +176,13 @@ export default function HomeScreen() {
           />
 
           <Search onPress={handleSearchPress} />
-          
           <FlatList
             data={categoryData}
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.catList}
-            renderItem={renderCategoryItem}
+            renderItem={({ item, index }) => renderCategoryItemCompact({ item, index })}
           />
         </View>
 

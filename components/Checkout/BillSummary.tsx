@@ -55,7 +55,7 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
       <CheckoutItems 
         storeId={storeId} 
         items={updatedItems} 
-        authToken={authToken}
+      //  authToken={authToken}
       />
       <View>
         {/* <View style={styles.titleContainer}>
