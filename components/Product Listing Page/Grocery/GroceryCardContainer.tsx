@@ -71,76 +71,39 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
     return <NoItemsDisplay category={selectedCategory} />;
   }
 
-const resolveImage = (item: CatalogItem) => {
-  let resolvedImage = "";
-
-  // Priority 1: descriptor.images[0]
-  if (Array.isArray(item.descriptor?.images) && item.descriptor.images.length > 0) {
-    const firstImage = item.descriptor.images[0];
-    if (firstImage && typeof firstImage === "string" && firstImage.trim() !== "") {
-      resolvedImage = firstImage.startsWith("//") ? `https:${firstImage}` : firstImage;
-    }
-  }
-
-  // Priority 2: descriptor.symbol
-  if (!resolvedImage && item.descriptor?.symbol) {
-    const symbol = item.descriptor.symbol;
-    if (typeof symbol === "string" && symbol.trim() !== "" && (symbol.startsWith("http") || symbol.startsWith("//"))) {
-      resolvedImage = symbol.startsWith("//") ? `https:${symbol}` : symbol;
-    }
-  }
-
-  // Priority 3: direct symbol
-  if (!resolvedImage && item.symbol) {
-    const direct = item.symbol;
-    if (typeof direct === "string" && direct.trim() !== "" && (direct.startsWith("http") || direct.startsWith("//"))) {
-      resolvedImage = direct.startsWith("//") ? `https:${direct}` : direct;
-    }
-  }
-
-  // ✅ Final fallback
-  if (!resolvedImage) {
-    resolvedImage = "https://via.placeholder.com/150?text=Grocery";
-  }
-
-  return resolvedImage;
-};
-
-
   return (
     <View style={containerStyles.container}>
       {displayedCatalog.map((item, index) => {
-        // 🔍 Log the first few items to see the data structure
-        if (index < 2) {
-          console.log(`🔍 Item ${index + 1} full structure:`, item);
-          console.log(`🔍 Item ${index + 1} all properties:`, Object.keys(item));
-          if (item.descriptor) {
-            console.log(`🔍 Item ${index + 1} descriptor properties:`, Object.keys(item.descriptor));
-          }
+        // Debug logging for first few items
+        if (index < 3) {
+          console.log(`🔍 Item ${index + 1}:`, {
+            name: item.descriptor?.name,
+            images: item.descriptor?.images,
+            symbol: item.descriptor?.symbol,
+            directSymbol: item.symbol,
+          });
         }
-
-        const resolvedImage = resolveImage(item);
 
         return (
           <View
-            key={item.catalog_id}
+            key={item.catalog_id || item.id}
             style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
           >
             <GroceryCard
               id={item.id}
               itemName={item.descriptor?.name || "Unnamed Product"}
               cost={item.price.value}
-              maxLimit={item.quantity.maximum.count}
+              maxLimit={item.quantity?.maximum?.count}
               providerId={item.store_id}
               slug={item.slug || item.id}
               catalogId={item.catalog_id}
-              symbol={item.symbol}
-              image={resolvedImage} // ✅ Pass the properly resolved image
+              symbol={item.descriptor?.symbol}
+              image={item.descriptor?.symbol || item.descriptor?.images?.[0]} // ✅ FIXED: real image url
               weight={item.weight}
               unit={item.unit}
               originalPrice={item.price.maximum_value}
               discount={item.price.offerPercent}
-              item={item} // ✅ Also pass the full item for additional fallback options
+              item={item} // ✅ keep the full object for fallback storeId
             />
           </View>
         );
@@ -183,7 +146,8 @@ const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
       <Text style={noItemsStyles.emoji}>🛒</Text>
       <Text style={noItemsStyles.title}>No Products Found</Text>
       <Text style={noItemsStyles.subtitle}>
-        No items available in <Text style={{ fontWeight: "bold" }}>{category}</Text>
+        No items available in{" "}
+        <Text style={{ fontWeight: "bold" }}>{category}</Text>
       </Text>
     </Animated.View>
   );

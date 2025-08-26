@@ -23,7 +23,6 @@ import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-quer
 import PLPElectronics from "../../../../../components/Product Listing Page/Electronics/PLPElectronics";
 import PLPFashion from "../../../../../components/Product Listing Page/Fashion/PLPFashion";
 import PLPBanner from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
-import PLPFnB from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPFnB";
 import Searchbox from "../../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";
 import PLPGrocery from "../../../../../components/Product Listing Page/Grocery/PLPGrocery";
 import PLPHomeAndDecor from "../../../../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
@@ -600,22 +599,6 @@ const PLP: React.FC = () => {
           />
         );
 
-      case "ONDC:RET11":
-        return (
-          <PLPFnB
-            buttonTitles={[]}
-            descriptor={vendorData.descriptor}
-            vendorAddress={vendorAddress}
-            catalog={allItems}
-            dropdownHeaders={dropdownHeaders}
-            street={vendorData.address?.street || ""}
-            fssaiLiscenseNo={vendorData.fssai_license_no || ""}
-            providerId={vendorSlug}
-            handleOpenPress={handleOpenPress}
-            foodDetails={setFoodDetails}
-            searchString={searchString}
-          />
-        );
 
       case "ONDC:RET12":
         return (

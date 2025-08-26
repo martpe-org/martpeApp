@@ -12,12 +12,18 @@ import { router } from "expo-router";
 import { widthPercentageToDP } from "react-native-responsive-screen";
 
 const { width: screenWidth } = Dimensions.get("window");
+const CARD_WIDTH = screenWidth * 0.85;
+const CARD_MARGIN = screenWidth * 0.075; // to center
+const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2; // snap width
 
-const OfferCard = ({ items }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const scrollViewRef = useRef(null);
+const OfferCard = ({ items }: { items: {
+  id: string;
+  calculated_max_offer?: { percent?: number };
+  descriptor?: { name?: string; symbol?: string };
+}[] }) => {  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  // Auto-scroll functionality
+  // Auto-scroll
   useEffect(() => {
     if (!items || items.length <= 1) return;
 
@@ -25,10 +31,9 @@ const OfferCard = ({ items }) => {
       const nextIndex = activeIndex === items.length - 1 ? 0 : activeIndex + 1;
       setActiveIndex(nextIndex);
 
-      // Auto scroll to next item
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
-          x: nextIndex * screenWidth * 0.85,
+          x: nextIndex * SNAP_INTERVAL,
           animated: true,
         });
       }
@@ -37,42 +42,21 @@ const OfferCard = ({ items }) => {
     return () => clearInterval(interval);
   }, [activeIndex, items?.length]);
 
-  const getOfferBackground = (num: any) => {
-    switch (num) {
-      case 0:
-        return "#FF5151";
-      case 1:
-        return "#FFA02F";
-      case 2:
-        return "#1296B3";
-      case 3:
-        return "#EB0DA0";
-      case 4:
-        return "#D45793";
-      case 5:
-        return "#CD9800";
-      case 6:
-        return "#8E92FB";
-      case 7:
-        return "#8D77B3";
-      case 8:
-        return "#96D2DB";
-      case 9:
-        return "#3EBB3C";
-      default:
-        return "#466466";
-    }
+  const getOfferBackground = (num: number) => {
+    const colors = [
+      "#FF5151", "#FFA02F", "#1296B3", "#EB0DA0", "#D45793",
+      "#CD9800", "#8E92FB", "#8D77B3", "#96D2DB", "#3EBB3C",
+    ];
+    return colors[num % colors.length];
   };
 
   const handleScroll = (event: any) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollPosition / (screenWidth * 0.85));
+    const scrollX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollX / SNAP_INTERVAL);
     setActiveIndex(index);
   };
 
-  if (!items || items.length === 0) {
-    return null;
-  }
+  if (!items || items.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -83,71 +67,64 @@ const OfferCard = ({ items }) => {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={styles.scrollContainer}
-        snapToInterval={screenWidth * 0.85}
+        snapToInterval={SNAP_INTERVAL}
         decelerationRate="fast"
+        contentContainerStyle={styles.scrollContainer}
       >
         {items.map((item, index) => (
           <TouchableOpacity
-            key={index}
-            onPress={() => {
-              router.push(`../(tabs)/home/productListing/${item?.id}`);
-            }}
+            key={item?.id || index}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/productListing/${item?.id}`)
+            }
             style={[
               styles.cardOffer,
               {
                 backgroundColor: getOfferBackground(index),
-                borderRadius: 10,
-                width: screenWidth * 0.85,
-                marginHorizontal: screenWidth * 0.075, // Center the cards
+                width: CARD_WIDTH,
+                marginHorizontal: CARD_MARGIN,
               },
             ]}
           >
-            {/* offer text */}
+            {/* Text Section */}
             <View style={styles.textContainer}>
-              {/* offer header text */}
               <Text style={styles.offerHeaderText}>
                 Upto {Math.ceil(item?.calculated_max_offer?.percent ?? 0)}% Off
               </Text>
-
-              {/* offer sub-header text */}
               <Text style={styles.offerSubHeaderText}>
                 on {item?.descriptor?.name}
               </Text>
 
-              {/* shop now button */}
               <TouchableOpacity style={styles.shopNowButton}>
                 <Text
                   style={[
                     styles.shopNowText,
-                    {
-                      color: getOfferBackground(index),
-                    },
+                    { color: getOfferBackground(index) },
                   ]}
                 >
                   Order Now
                 </Text>
               </TouchableOpacity>
 
-              {/* T&C apply text */}
               <Text style={styles.tcText}>*T&C apply</Text>
             </View>
 
-            {/* offer image */}
+            {/* Image Section */}
             <View style={styles.offerImageContainer}>
-              <Image
-                source={{
-                  uri: item.descriptor?.symbol,
-                }}
-                style={styles.offerImage}
-                resizeMode="contain"
-              />
+              {item?.descriptor?.symbol ? (
+                <Image
+                  source={{ uri: item.descriptor.symbol }}
+                  style={styles.offerImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={[styles.offerImage, { backgroundColor: "#fff3" }]} />
+              )}
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Pagination indicator */}
       {items.length > 1 && (
         <View style={styles.paginationContainer}>
           <Text style={styles.paginationText}>
@@ -160,33 +137,23 @@ const OfferCard = ({ items }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: 10,
-  },
-  scrollContainer: {
-    alignItems: "center",
-  },
+  container: { marginVertical: 10 },
+  scrollContainer: { alignItems: "center" },
   cardOffer: {
-    backgroundColor: "red",
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 15,
     paddingLeft: 20,
     paddingRight: 15,
     alignItems: "center",
-    marginHorizontal: 10,
+    borderRadius: 10,
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  textContainer: {
-    flex: 1,
-  },
+  textContainer: { flex: 1 },
   offerHeaderText: {
     fontSize: 20,
     color: "#FFFFFF",
@@ -195,7 +162,6 @@ const styles = StyleSheet.create({
   offerSubHeaderText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "normal",
     marginTop: 2,
   },
   shopNowButton: {
@@ -205,40 +171,17 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignSelf: "flex-start",
     marginVertical: 15,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     elevation: 2,
   },
-  shopNowText: {
-    fontWeight: "bold",
-    textAlign: "center",
-    fontSize: 12,
-  },
-  tcText: {
-    marginTop: 5,
-    fontSize: 8,
-    color: "white",
-  },
-  offerImageContainer: {
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-  },
+  shopNowText: { fontWeight: "bold", fontSize: 12, textAlign: "center" },
+  tcText: { marginTop: 5, fontSize: 8, color: "white" },
+  offerImageContainer: { marginLeft: 10, alignItems: "center", justifyContent: "center" },
   offerImage: {
     height: widthPercentageToDP(20),
     width: widthPercentageToDP(20),
     borderRadius: 5,
   },
-  paginationContainer: {
-    alignItems: "center",
-    marginTop: 10,
-  },
+  paginationContainer: { alignItems: "center", marginTop: 10 },
   paginationText: {
     backgroundColor: "#656565",
     color: "#FFFFFF",

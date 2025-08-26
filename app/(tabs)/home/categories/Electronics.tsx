@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { router } from "expo-router";
-import OfferCard3 from "../../../../components/Categories/OfferCard3";
+import OfferCard from "../../../../components/Categories/OfferCard"; // ✅ using fixed OfferCard
 import Search from "../../../../components/common/Search";
 import { electronicsCategoryData } from "../../../../constants/categories";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
@@ -90,7 +90,6 @@ function Electronics() {
           </View>
           <Text style={styles.subCategoryText}>{item.name}</Text>
         </TouchableOpacity>
-
       )}
     />
   );
@@ -136,16 +135,8 @@ function Electronics() {
 
         {/* Offers */}
         {offersData.length > 0 && (
-          <View style={{ height: 200 }}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-            >
-              {offersData.map((data, index) => (
-                <OfferCard3 key={index} offerData={data} />
-              ))}
-            </ScrollView>
+          <View style={{ height: 240 }}>
+            <OfferCard items={offersData} /> 
           </View>
         )}
 
@@ -156,16 +147,18 @@ function Electronics() {
             <Text style={styles.sectionHeadingText}>Explore New Gadgets</Text>
             <View style={styles.line} />
           </View>
-                 <TouchableOpacity
-            style={styles.viewMoreButton}
-            onPress={handleViewMore}
-          >
+
+          <TouchableOpacity style={styles.viewMoreButton} onPress={handleViewMore}>
             <Text style={styles.viewMoreButtonText}>View More</Text>
-                        <Entypo name="chevron-right" size={18} color="red" style={{alignItems:"center" , marginLeft:60,marginTop:-17}}/>
-
+            <Entypo
+              name="chevron-right"
+              size={18}
+              color="red"
+              style={{ alignItems: "center", marginLeft: 60, marginTop: -17 }}
+            />
           </TouchableOpacity>
-          {renderSubCategories()}
 
+          {renderSubCategories()}
         </View>
 
         {/* Stores Section */}
@@ -267,13 +260,11 @@ const styles = StyleSheet.create({
   subCategoriesContainer: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-
   },
   subCategory: {
     alignItems: "center",
     marginRight: 20,
     width: 80,
-
   },
   subCategoryImage: {
     width: 80,
@@ -303,7 +294,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     alignSelf: "flex-end",
-marginRight:10
+    marginRight: 10,
   },
   viewMoreButtonText: {
     color: "#f73e3e",

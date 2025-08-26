@@ -2,7 +2,6 @@ import { FC, useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
 import HeaderTabs from "./HeaderTabs";
 import DropdownHeader from "./DropdownHeader";
-import FnBCardContainer from "./FnBCardContainer"; // ✅ New card container
 import PLPFooter from "./PLPFooter";
 import HorizontalNavbar from "../Grocery/HorizontalNavbar";
 
@@ -113,19 +112,6 @@ const PLPFnB: FC<PLPFnBProps> = ({
               hasProducts={hasProducts}
             />
           )}
-
-          {/* Card container */}
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <FnBCardContainer
-              catalog={filteredCatalog}
-              providerId={providerId}
-              selectedCategory={selectedCategory}
-              searchString={searchString}
-              handleOpenPress={handleOpenPress}
-              foodDetails={foodDetails}
-              filter={filter}
-            />
-          </ScrollView>
         </>
       ) : (
         <>

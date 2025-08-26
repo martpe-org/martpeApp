@@ -22,17 +22,7 @@ interface GroceryCardProps {
   symbol?: string;
   image?: string;
   onPress?: () => void;
-  item?: {
-    id: string;
-    catalog_id: string;
-    provider?: { store_id: string };
-    provider_id?: string;
-    store_id?: string;
-    descriptor?: {
-      images?: string[];
-      symbol?: string;
-    };
-  };
+  item?: any;
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
@@ -72,92 +62,8 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
     return catalogId || id || "default-store";
   };
 
-  // Add logging to see what props are received
-  console.log("🔍 GROCERYCARD - Props received:", {
-    id,
-    itemName,
-    image,
-    symbol,
-    item: !!item,
-    itemType: typeof item,
-    itemKeys: item ? Object.keys(item) : "item is null/undefined"
-  });
-
-  // ✅ Enhanced image source logic with better fallbacks
-  const getImageSource = () => {
-    // Priority 1: Direct image prop (already resolved from container)
-    if (image && typeof image === 'string' && image.trim() !== "") {
-      const isValidUrl = image.startsWith("http") || image.startsWith("//") || 
-                        image.includes("placeholder") || image.includes("unsplash");
-      if (isValidUrl) {
-        const finalUrl = image.startsWith("//") ? `https:${image}` : image;
-        console.log("✅ GroceryCard Using image prop:", finalUrl);
-        return finalUrl;
-      }
-    }
-
-    // Priority 2: If item exists, check its properties
-    if (item && typeof item === 'object') {
-      console.log("🔍 GroceryCard item exists, checking properties:", Object.keys(item));
-      
-      // Check descriptor images
-      if (item.descriptor?.images && Array.isArray(item.descriptor.images) && item.descriptor.images.length > 0) {
-        const firstImage = item.descriptor.images[0];
-        if (firstImage && firstImage.startsWith("http")) {
-          console.log("✅ GroceryCard Using descriptor.images[0]:", firstImage);
-          return firstImage;
-        }
-      }
-
-      // Check descriptor symbol
-      if (item.descriptor?.symbol && item.descriptor.symbol.startsWith("http")) {
-        console.log("✅ GroceryCard Using descriptor.symbol:", item.descriptor.symbol);
-        return item.descriptor.symbol;
-      }
-    }
-
-    // Priority 3: Direct symbol prop
-    if (symbol && typeof symbol === 'string' && symbol.startsWith("http")) {
-      console.log("✅ GroceryCard Using symbol prop:", symbol);
-      return symbol;
-    }
-
-    // Priority 4: Smart category-based images
-    const productName = itemName.toLowerCase();
-    let categoryImage = "";
-    
-    if (productName.includes("millet") || productName.includes("flour") || productName.includes("grain")) {
-      categoryImage = "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("masala") || productName.includes("powder") || productName.includes("spice")) {
-      categoryImage = "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("snack") || productName.includes("namkeen")) {
-      categoryImage = "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("noodle")) {
-      categoryImage = "https://images.unsplash.com/photo-1555126634-323283e090fa?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("cookie") || productName.includes("biscuit")) {
-      categoryImage = "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("salt")) {
-      categoryImage = "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=150&h=150&fit=crop&auto=format";
-    } else if (productName.includes("seasoning") || productName.includes("pepper")) {
-      categoryImage = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop&auto=format";
-    }
-
-    if (categoryImage) {
-      console.log("🎯 GroceryCard Using category-based image:", { itemName, categoryImage });
-      return categoryImage;
-    }
-
-    // Final fallback
-    console.log("🔄 GroceryCard using final fallback for:", { id, itemName });
-    return "https://via.placeholder.com/150?text=Grocery";
-  };
-
   const storeId = resolveStoreId();
-  
-  // ✅ Ensure slug is always available (like in your mapping example)
   const resolvedSlug = slug || id;
-
-  const imageSource = getImageSource();
 
   return (
     <TouchableOpacity
@@ -166,7 +72,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
       activeOpacity={0.8}
     >
       <ImageComp
-        source={imageSource}
+        source={image} // Use the image URL passed from container
         imageStyle={cardStyles.image}
         resizeMode="cover"
         fallbackSource={{
@@ -197,7 +103,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
       <View style={cardStyles.cartWrapper}>
         <AddToCart
           storeId={storeId}
-          slug={resolvedSlug} // ✅ Use resolved slug
+          slug={resolvedSlug}
           catalogId={catalogId}
           price={cost}
         />
@@ -223,7 +129,7 @@ const cardStyles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 140, // ✅ match PersonalCare/FashionCard size
+    height: 140,
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
