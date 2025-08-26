@@ -11,8 +11,8 @@ interface GroceryCardProps {
   id: string;
   itemName: string;
   cost: number;
-  maxLimit: number;
-  providerId?: string; // ✅ Make optional since it might be undefined
+  maxLimit?: number;
+  providerId?: string;
   slug?: string;
   catalogId: string;
   weight?: string;
@@ -20,13 +20,22 @@ interface GroceryCardProps {
   originalPrice?: number;
   discount?: number;
   symbol?: string;
+  image?: string; // ✅ add proper image support
   onPress?: () => void;
+  item?: {
+    id: string;
+    catalog_id: string;
+    provider?: { store_id: string };
+    provider_id?: string;
+    store_id?: string;
+  };
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
   id,
   itemName,
   cost,
+  maxLimit,
   providerId,
   slug,
   catalogId,
@@ -35,28 +44,47 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   originalPrice,
   discount,
   symbol,
+  image,
   onPress,
+  item,
 }) => {
-  // ✅ Fixed syntax error in onPress assignment
-  const handlePress = onPress || (() => router.push(`/(tabs)/home/result/productDetails/${id}`));
+// Inside GroceryCard
 
-  // ✅ Validate providerId before rendering AddToCart
-  const renderAddToCart = () => {
-    if (!providerId || providerId === "unknown-store") {
-      return (
-        <Text style={cardStyles.errorText}>Store ID missing</Text>
-      );
-    }
+const handlePress = onPress || (() => {
+  router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+});
 
-    return (
-      <AddToCart
-        storeId={providerId}
-        slug={slug || id}
-        catalogId={catalogId}
-        price={cost}
-      />
-    );
+  // ✅ Unified Image Resolution (FashionCard style)
+  const getImageSource = () => {
+    if (symbol && symbol.trim() !== "") return { uri: symbol };
+    if (image && image.trim() !== "") return { uri: image };
+    return { uri: "https://via.placeholder.com/150?text=Grocery" };
   };
+
+  // ✅ Enhanced store ID resolution
+  const resolveStoreId = (): string => {
+    if (providerId && providerId !== "unknown-store") return providerId;
+    if (item) {
+      if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+        return item.provider.store_id;
+      }
+      if (item.store_id && item.store_id !== "unknown-store") {
+        return item.store_id;
+      }
+      if (item.provider_id && item.provider_id !== "unknown-store") {
+        return item.provider_id;
+      }
+    }
+    return catalogId || id || "default-store";
+  };
+
+  const storeId = resolveStoreId();
+
+  React.useEffect(() => {
+    if (!storeId || storeId === "default-store") {
+      console.warn(`⚠️ GroceryCard: Could not resolve store ID for product ${id} (${itemName})`);
+    }
+  }, [storeId, id, itemName]);
 
   return (
     <TouchableOpacity
@@ -64,19 +92,18 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      {/* Product Image */}
+      {/* ✅ FashionCard-style ImageComp */}
       <ImageComp
-        source={symbol || "https://via.placeholder.com/150?text=No+Image"}
+        source={getImageSource()}
         imageStyle={cardStyles.image}
         resizeMode="cover"
         fallbackSource={{
-          uri: "https://via.placeholder.com/150?text=No+Image",
+          uri: "https://via.placeholder.com/150?text=Grocery",
         }}
         loaderColor="#f14343"
         loaderSize="small"
       />
 
-      {/* Info Section */}
       <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>
           {itemName}
@@ -88,18 +115,21 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         <View style={cardStyles.priceRow}>
           <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
           {discount && originalPrice && (
-            <Text style={cardStyles.originalPrice}>
-              ₹{originalPrice.toFixed(2)}
-            </Text>
+            <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed(2)}</Text>
           )}
         </View>
 
         {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </View>
 
-      {/* ✅ AddToCart with validation */}
+      {/* AddToCart with resolved storeId */}
       <View style={cardStyles.cartWrapper}>
-        {renderAddToCart()}
+        <AddToCart
+          storeId={storeId}
+          slug={slug || id}
+          catalogId={catalogId}
+          price={cost}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -122,7 +152,7 @@ const cardStyles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 120,
+    height: 140, // ✅ match PersonalCare/FashionCard size
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
@@ -163,11 +193,5 @@ const cardStyles = StyleSheet.create({
   },
   cartWrapper: {
     marginTop: 8,
-  },
-  errorText: {
-    fontSize: 10,
-    color: "#ff6b6b",
-    textAlign: "center",
-    fontWeight: "500",
   },
 });

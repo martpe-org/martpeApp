@@ -6,10 +6,12 @@ export interface CatalogItem {
   id: string;
   catalog_id: string;
   category_id: string;
-  descriptor: {
+  provider?: { store_id: string }; // ✅ Made optional to handle missing provider
+  descriptor?: {
     name?: string;
     long_desc?: string;
     images?: string[];
+    symbol?: string;
   };
   price: {
     value: number;
@@ -24,16 +26,16 @@ export interface CatalogItem {
   symbol?: string;
   weight?: string;
   unit?: string;
-  provider_id?: string; // ✅ Add provider_id
-  provider?: { store_id: string }; // ✅ Add provider field
+  provider_id?: string; // ✅ Keep as optional fallback
+  store_id?: string; // ✅ Keep as optional fallback
 }
 
 interface GroceryCardContainerProps {
   catalog: CatalogItem[];
-  providerId: string;
   selectedCategory?: string;
   searchString: string;
   handleOpenModal?: (item: CatalogItem) => void;
+  // ✅ Removed providerId prop - let component resolve from items
 }
 
 // ✅ Export NoItemsDisplay so it can be used elsewhere
@@ -84,17 +86,20 @@ const CARD_SPACING = Dimensions.get("window").width * 0.03;
 
 const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   catalog,
-  providerId,
   selectedCategory,
   searchString,
   handleOpenModal,
 }) => {
+  // ✅ Filter out undefined/null items first
+  const safeCatalog = catalog?.filter((item) => item != null) || [];
+
   const filteredCatalog =
     !selectedCategory || selectedCategory === "All"
-      ? catalog
-      : catalog.filter((item) => item.category_id === selectedCategory);
+      ? safeCatalog
+      : safeCatalog.filter((item) => item?.category_id === selectedCategory);
 
   const displayedCatalog = filteredCatalog.filter((item) => {
+    if (!item) return false; // ✅ Additional safety check
     const itemName = item?.descriptor?.name || "";
     return searchString
       ? itemName.toLowerCase().includes(searchString.toLowerCase())
@@ -104,49 +109,32 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   return (
     <View style={containerStyles.container}>
       {displayedCatalog.map((item, index) => {
-        // ✅ Resolve storeId with proper fallback logic
-        const resolveStoreId = (): string | undefined => {
-          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
-            return item.provider.store_id;
-          }
-          if (item.provider_id && item.provider_id !== "unknown-store") {
-            return item.provider_id;
-          }
-          if (providerId && providerId !== "unknown-store") {
-            return providerId;
-          }
-          return undefined;
-        };
-
-        const storeId = resolveStoreId();
-
-        // ✅ Log warning if no valid storeId found
-        if (!storeId) {
-          console.warn(
-            `⚠️ GroceryCardContainer: Missing storeId for product ${item.id} (${item.descriptor?.name})`
-          );
-        }
+        // ✅ Skip undefined/null items
+        if (!item) return null;
 
         return (
           <View
             key={`${item.id || item.catalog_id}-${index}-${item.descriptor?.name?.slice(0,10) || 'item'}`}
             style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
           >
-            <GroceryCard
-              id={item.id}
-              itemName={item.descriptor?.name || "Unnamed Product"}
-              cost={item.price.value}
-              maxLimit={item.quantity?.maximum?.count ?? 0} 
-              providerId={storeId} // ✅ Use resolved storeId
-              slug={item.slug || item.id}
-              catalogId={item.catalog_id}
-              symbol={item.symbol}
-              weight={item.weight}
-              unit={item.unit}
-              originalPrice={item.price.maximum_value}
-              discount={item.price.offerPercent}
-              onPress={() => handleOpenModal?.(item)}
-            />
+ <GroceryCard
+  id={item.id}
+  itemName={item.descriptor?.name || "Unnamed Product"}
+  cost={item.price.value}
+  maxLimit={item.quantity?.maximum?.count ?? 0}
+  providerId={item.store_id}
+  slug={item.slug || item.id}
+  catalogId={item.catalog_id}
+  symbol={item.symbol || item.descriptor?.symbol}
+  image={item.descriptor?.images?.[0]}
+  weight={item.weight || "1kg"}
+  unit={item.unit || "piece"}
+  originalPrice={item.price.maximum_value}
+  discount={item.price.offerPercent}
+  item={item}
+/>
+
+
           </View>
         );
       })}

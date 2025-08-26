@@ -111,52 +111,59 @@ const CartScreen = () => {
 
   const { totalCarts, totalItems } = calculateTotals(carts);
 
-  return (
-    <ScrollView
-      style={styles.container}
+return (
+  <View style={styles.container}>
+    <View style={styles.title}>
+      <BackArrow onPress={() => router.back()} />
+
+      {/* Center Title */}
+      <Text style={styles.titleText}>
+        {carts.length > 1 ? "My Carts" : "My Cart"}
+      </Text>
+
+      {/* Heart icon aligned extreme right */}
+      <TouchableOpacity
+        style={{ marginLeft: "auto", flexDirection: "column" }}
+        onPress={() => router.push({ pathname: "/(tabs)/account/wishlist" })}
+      >
+        <MaterialCommunityIcons
+          name="heart"
+          size={24}
+          color="#f14343"
+          style={{ marginLeft: 10 }}
+        />
+        <Text style={{ color: "#f14343" }}>Wishlist</Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.header}>
+      <MaterialCommunityIcons name="cart" size={16} color="black" />
+      <View style={styles.headerDetails}>
+        <Text style={styles.totalHeaderText}>{totalItems} Items</Text>
+        <Text style={styles.dot}>{" \u25CF"}</Text>
+        <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
+      </View>
+    </View>
+
+    <FlashList
+      data={[...carts].reverse()}
+      renderItem={({ item }) => (
+        <CartCard
+          id={item._id}
+          store={item.store}
+          items={item.cart_items}
+          onCartChange={loadCarts}
+        />
+      )}
+      estimatedItemSize={83}
+      contentContainerStyle={styles.listWrapper}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
-    >
-      <View style={styles.title}>
-        <BackArrow onPress={() => router.back()} />
+    />
+  </View>
+);
 
-        {/* Center Title */}
-        <Text style={styles.titleText}>
-          {carts.length > 1 ? "My Carts" : "My Cart"}
-        </Text>
-
-        {/* Heart icon aligned extreme right */}
-        <TouchableOpacity style={{ marginLeft: "auto" ,flexDirection:"column"}} onPress={() => router.push({ pathname: "/(tabs)/account/wishlist" }  )}>
-          <MaterialCommunityIcons name="heart" size={24} color="#f14343"  marginLeft="10" />
-          <Text style={{color:"#f14343"}}>Wishlist</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="cart" size={16} color="black" />
-        <View style={styles.headerDetails}>
-          <Text style={styles.totalHeaderText}>{totalItems} Items</Text>
-          <Text style={styles.dot}>{" \u25CF"}</Text>
-          <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
-        </View>
-      </View>
-      <View style={styles.listWrapper}>
-        <FlashList
-          data={[...carts].reverse()}
-          renderItem={({ item }) => (
-            <CartCard
-              id={item._id}
-              store={item.store}
-              items={item.cart_items}
-              onCartChange={loadCarts}
-            />
-          )}
-          estimatedItemSize={83}
-        />
-      </View>
-    </ScrollView>
-  );
 };
 
 const styles = StyleSheet.create({

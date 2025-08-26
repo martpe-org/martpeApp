@@ -118,7 +118,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.header}>
         Items ({localItems.length}, {totalItems} total)
       </Text>
@@ -127,6 +127,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         renderItem={renderCartItem}
         keyExtractor={(i) => i._id}
         estimatedItemSize={80}
+        contentContainerStyle={{ paddingBottom: 80 }} // gives space above footer
       />
       <View style={styles.footer}>
         <Text style={styles.subtotal}>
@@ -134,17 +135,17 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         </Text>
         <TouchableOpacity
           style={styles.checkout}
-            onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/cart/[checkout]",
-                  params: { checkout: cartId },
-                })
-              }
-          >
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/cart/[checkout]",
+              params: { checkout: cartId },
+            })
+          }
+        >
           <Text style={styles.checkoutText}>Checkout</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 

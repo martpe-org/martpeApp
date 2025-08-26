@@ -43,12 +43,12 @@ const PLPCard: React.FC<PLPCardProps> = ({
   const { allCarts, addItem, updateQty } = useCartStore();
   const { authToken } = useUserDetails();
 
-  // ✅ Safe storeId handling
+  // Safe storeId handling
   const safeStoreId = providerId && providerId !== "unknown-store" ? providerId : null;
 
   useEffect(() => {
     if (!safeStoreId) {
-      console.warn(`⚠️ PLPCard: Missing storeId for product ${id} (${itemName})`);
+      console.warn(`PLPCard: Missing storeId for product ${id} (${itemName})`);
     }
   }, [safeStoreId, id, itemName]);
 
@@ -59,9 +59,9 @@ const PLPCard: React.FC<PLPCardProps> = ({
   const item = cart?.cart_items.find((i) => i._id === id);
   const itemCount = item?.qty ?? 0;
 
-  const discountPercentage = Math.floor(
-    ((originalPrice - offerPrice) / originalPrice) * 100
-  );
+  const discountPercentage = originalPrice > offerPrice 
+    ? Math.floor(((originalPrice - offerPrice) / originalPrice) * 100)
+    : 0;
 
   const handleAdd = () => {
     if (!authToken || !safeStoreId) return;
@@ -76,6 +76,14 @@ const PLPCard: React.FC<PLPCardProps> = ({
   const handleDecrease = () => {
     if (!authToken || !item) return;
     updateQty(item._id, item.qty - 1, authToken);
+  };
+
+  // Enhanced image source resolution for ImageComp
+  const getImageSource = () => {
+    if (itemImg && typeof itemImg === 'string' && itemImg.trim() !== "") {
+      return { uri: itemImg };
+    }
+    return { uri: "https://via.placeholder.com/100?text=Food" };
   };
 
   return (
@@ -103,7 +111,7 @@ const PLPCard: React.FC<PLPCardProps> = ({
             <FontAwesome name="rupee" size={10} color="#030303" /> {offerPrice}
             {discountPercentage >= 1 && (
               <>
-                <Text style={styles.strikedOffText}>₹ {originalPrice}</Text>
+                <Text style={styles.strikedOffText}> ₹{originalPrice}</Text>
                 <Text style={{ color: "#1DA578" }}> {discountPercentage}% off</Text>
               </>
             )}
@@ -137,7 +145,7 @@ const PLPCard: React.FC<PLPCardProps> = ({
       {/* Right side: image & Add-to-Cart */}
       <View style={{ alignItems: "center", width: "35%" }}>
         <ImageComp
-          source={itemImg}
+          source={getImageSource()} // Use helper function for consistent image handling
           imageStyle={styles.cardImg}
           resizeMode="cover"
           fallbackSource={{

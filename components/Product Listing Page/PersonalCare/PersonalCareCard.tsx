@@ -22,7 +22,7 @@ interface PersonalCareCardProps {
   symbol?: string;
   maxValue: number;
   id: string;
-  providerId?: string; // ✅ Make it simple string like FashionCard's storeId
+  providerId?: string;
   catalogId?: string;
 }
 
@@ -32,7 +32,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   price,
   discount,
   image,
-  symbol, // ✅ Add symbol parameter
+  symbol,
   maxValue,
   id,
   providerId,
@@ -42,22 +42,26 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
     router.push(`/(tabs)/home/result/productDetails/${id}`);
   };
 
-  // ✅ Fixed: Exact pattern from working FashionCard
-  const safeStoreId = providerId && providerId !== "unknown-store" ? providerId : null;
+  // ✅ Enhanced validation - handle null, undefined, empty string, and "unknown-store"
+  const safeStoreId = providerId && 
+    providerId.trim() !== "" && 
+    providerId !== "unknown-store" && 
+    providerId !== "null" && 
+    providerId !== "undefined" ? providerId : null;
 
-  // ✅ Fixed: Only log warning when storeId is actually missing (like FashionCard)
+  // ✅ Only log warning when storeId is actually missing
   useEffect(() => {
     if (!safeStoreId) {
       console.warn(
-        `⚠️ PersonalCareCard: Missing storeId for product ${id} (${title})`
+        `⚠️ PersonalCareCard: Missing valid storeId for product ${id} (${title}) - received: ${providerId}`
       );
     }
-  }, [safeStoreId, id, title]);
+  }, [safeStoreId, id, title, providerId]);
 
   const slug = title?.toLowerCase().replace(/\s+/g, "-") || "";
   const safeCatalogId = catalogId || id;
 
-  // ✅ Enhanced image resolution - prioritize symbol over image (like FashionCard)
+  // ✅ Enhanced image resolution - prioritize symbol over image
   const getImageSource = () => {
     if (symbol && symbol.trim() !== "") {
       return { uri: symbol };
@@ -68,12 +72,12 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
     return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
   };
 
-  // ✅ Don't render AddToCart if we don't have a valid storeId (exact FashionCard pattern)
+  // ✅ Enhanced AddToCart rendering with better error handling
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
         <View style={styles.cartWrapper}>
-          <Text style={styles.errorText}>Store ID missing</Text>
+          <Text style={styles.errorText}>Store unavailable</Text>
         </View>
       );
     }
@@ -128,7 +132,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           )}
         </View>
 
-        {/* ✅ AddToCart with exact FashionCard pattern */}
+        {/* ✅ Enhanced AddToCart rendering */}
         {renderAddToCart()}
       </View>
     </TouchableOpacity>

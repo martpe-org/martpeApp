@@ -10,7 +10,7 @@ interface CatalogItem {
     long_desc: string;
     name: string;
     short_desc: string;
-    symbol?: string; // ✅ Add symbol field like PLPCardContainer
+    symbol?: string;
   };
   id: string;
   price: {
@@ -18,8 +18,8 @@ interface CatalogItem {
     value: number;
   };
   provider_id: string;
-  provider?: { store_id: string }; // ✅ Add provider field for better storeId resolution
-  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // ✅ Add store field like PLPCardContainer
+  provider?: { store_id: string };
+  store?: { _id: string; name?: string; slug?: string; symbol?: string };
 }
 
 interface PersonalCareCardContainerProps {
@@ -32,13 +32,17 @@ interface PersonalCareCardContainerProps {
 const PersonalCareCardContainer: React.FC<
   PersonalCareCardContainerProps
 > = ({ catalog, providerId, searchString, selectedCategory }) => {
+  
+  // ✅ Filter out null/undefined items first
+  const safeCatalog = catalog?.filter((item) => item != null) || [];
+
   const getFilteredCatalog = () => {
-    let filtered = catalog;
+    let filtered = safeCatalog;
 
     // ✅ Filter by category
     if (selectedCategory && selectedCategory !== "All") {
       filtered = filtered.filter(
-        (item) => item.category_id === selectedCategory
+        (item) => item?.category_id === selectedCategory
       );
     }
 
@@ -59,6 +63,9 @@ const PersonalCareCardContainer: React.FC<
   return (
     <View style={styles.cardsContainer}>
       {filteredCatalog.map((item, index) => {
+        // ✅ Skip null/undefined items
+        if (!item) return null;
+
         const {
           id,
           catalog_id,
@@ -75,23 +82,35 @@ const PersonalCareCardContainer: React.FC<
 
         const image = images?.[0];
 
-        // ✅ Enhanced storeId resolution (matches PLPCardContainer pattern exactly)
+        // ✅ Enhanced storeId resolution with better validation
         const resolveStoreId = (): string | undefined => {
+          // Helper function to validate store ID
+          const isValidStoreId = (storeId: any): storeId is string => {
+            return storeId && 
+              typeof storeId === 'string' && 
+              storeId.trim() !== "" && 
+              storeId !== "unknown-store" && 
+              storeId !== "null" && 
+              storeId !== "undefined";
+          };
+
           // Priority order: item.provider.store_id > item.store?._id > providerId prop > provider_id
-          if (provider?.store_id && provider.store_id !== "unknown-store") {
+          if (isValidStoreId(provider?.store_id)) {
             return provider.store_id;
           }
-          if (store?._id && store._id !== "unknown-store") {
+          if (isValidStoreId(store?._id)) {
             return store._id;
           }
-          if (providerId && providerId !== "unknown-store") {
+          if (providerId) {
             if (Array.isArray(providerId)) {
-              const validId = providerId.find(id => id && id !== "unknown-store" && id.trim() !== "");
+              const validId = providerId.find(id => isValidStoreId(id));
               return validId;
             }
-            return providerId;
+            if (isValidStoreId(providerId)) {
+              return providerId;
+            }
           }
-          if (provider_id && provider_id !== "unknown-store") {
+          if (isValidStoreId(provider_id)) {
             return provider_id;
           }
           return undefined; // No valid storeId found
@@ -99,10 +118,16 @@ const PersonalCareCardContainer: React.FC<
 
         const resolvedStoreId = resolveStoreId();
 
-        // ✅ Log warning for debugging (like PLPCardContainer)
+        // ✅ Enhanced logging for debugging
         if (!resolvedStoreId) {
           console.warn(
-            `⚠️ PersonalCareCardContainer: Missing storeId for product ${id} (${name})`
+            `⚠️ PersonalCareCardContainer: No valid storeId for product ${id} (${name})`,
+            {
+              provider_store_id: provider?.store_id,
+              store_id: store?._id,
+              providerId_prop: providerId,
+              provider_id: provider_id
+            }
           );
         }
 
@@ -117,7 +142,7 @@ const PersonalCareCardContainer: React.FC<
             image={image}
             symbol={symbol}
             id={id}
-            providerId={resolvedStoreId} // ✅ Pass simple resolved storeId string (not array)
+            providerId={resolvedStoreId} // ✅ Pass validated storeId
             catalogId={catalog_id}
           />
         );

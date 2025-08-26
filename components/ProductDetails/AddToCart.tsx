@@ -26,7 +26,7 @@ const AddToCart: FC<AddToCartProps> = ({
       ?.cart_items.find((it) => it.slug === slug)
   );
 
-  const cartItemId = cartItem?._id; // ✅ real backend ID
+  const cartItemId = cartItem?._id;
 
   useEffect(() => {
     setShowAddButton(!cartItem);
@@ -57,8 +57,15 @@ const AddToCart: FC<AddToCartProps> = ({
       slug={slug}
       catalogId={catalogId}
       onAddSuccess={() => {
+        console.log("🛒 AddToCart attempt:", {
+          slug,
+          catalogId,
+          storeId,
+          price,
+        });
+
         if (!storeId || storeId === "unknown-store" || storeId === "default-provider") {
-          console.log("⚠️ AddToCart attempted without a valid storeId:", {
+          console.error("❌ AddToCart failed: invalid storeId", {
             slug,
             catalogId,
             storeId,
