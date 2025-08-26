@@ -20,7 +20,7 @@ interface GroceryCardProps {
   originalPrice?: number;
   discount?: number;
   symbol?: string;
-  image?: string; // ✅ add proper image support
+  image?: string;
   onPress?: () => void;
   item?: {
     id: string;
@@ -28,6 +28,10 @@ interface GroceryCardProps {
     provider?: { store_id: string };
     provider_id?: string;
     store_id?: string;
+    descriptor?: {
+      images?: string[];
+      symbol?: string;
+    };
   };
 }
 
@@ -48,24 +52,10 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   onPress,
   item,
 }) => {
-// Inside GroceryCard
+  const handlePress = onPress || (() => {
+    router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+  });
 
-const handlePress = onPress || (() => {
-  router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
-});
-
-  // ✅ Unified Image Resolution (FashionCard style)
- const getImageSource = () => {
-    if (symbol && symbol.trim() !== "") {
-      return { uri: symbol };
-    }
-    if (image && image.trim() !== "") {
-      return { uri: image };
-    }
-    return { uri: "https://via.placeholder.com/150?text=Grocery" };
-  };
-
-  // ✅ Enhanced store ID resolution
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
     if (item) {
@@ -82,13 +72,92 @@ const handlePress = onPress || (() => {
     return catalogId || id || "default-store";
   };
 
-  const storeId = resolveStoreId();
+  // Add logging to see what props are received
+  console.log("🔍 GROCERYCARD - Props received:", {
+    id,
+    itemName,
+    image,
+    symbol,
+    item: !!item,
+    itemType: typeof item,
+    itemKeys: item ? Object.keys(item) : "item is null/undefined"
+  });
 
-  React.useEffect(() => {
-    if (!storeId || storeId === "default-store") {
-      console.warn(`⚠️ GroceryCard: Could not resolve store ID for product ${id} (${itemName})`);
+  // ✅ Enhanced image source logic with better fallbacks
+  const getImageSource = () => {
+    // Priority 1: Direct image prop (already resolved from container)
+    if (image && typeof image === 'string' && image.trim() !== "") {
+      const isValidUrl = image.startsWith("http") || image.startsWith("//") || 
+                        image.includes("placeholder") || image.includes("unsplash");
+      if (isValidUrl) {
+        const finalUrl = image.startsWith("//") ? `https:${image}` : image;
+        console.log("✅ GroceryCard Using image prop:", finalUrl);
+        return finalUrl;
+      }
     }
-  }, [storeId, id, itemName]);
+
+    // Priority 2: If item exists, check its properties
+    if (item && typeof item === 'object') {
+      console.log("🔍 GroceryCard item exists, checking properties:", Object.keys(item));
+      
+      // Check descriptor images
+      if (item.descriptor?.images && Array.isArray(item.descriptor.images) && item.descriptor.images.length > 0) {
+        const firstImage = item.descriptor.images[0];
+        if (firstImage && firstImage.startsWith("http")) {
+          console.log("✅ GroceryCard Using descriptor.images[0]:", firstImage);
+          return firstImage;
+        }
+      }
+
+      // Check descriptor symbol
+      if (item.descriptor?.symbol && item.descriptor.symbol.startsWith("http")) {
+        console.log("✅ GroceryCard Using descriptor.symbol:", item.descriptor.symbol);
+        return item.descriptor.symbol;
+      }
+    }
+
+    // Priority 3: Direct symbol prop
+    if (symbol && typeof symbol === 'string' && symbol.startsWith("http")) {
+      console.log("✅ GroceryCard Using symbol prop:", symbol);
+      return symbol;
+    }
+
+    // Priority 4: Smart category-based images
+    const productName = itemName.toLowerCase();
+    let categoryImage = "";
+    
+    if (productName.includes("millet") || productName.includes("flour") || productName.includes("grain")) {
+      categoryImage = "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("masala") || productName.includes("powder") || productName.includes("spice")) {
+      categoryImage = "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("snack") || productName.includes("namkeen")) {
+      categoryImage = "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("noodle")) {
+      categoryImage = "https://images.unsplash.com/photo-1555126634-323283e090fa?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("cookie") || productName.includes("biscuit")) {
+      categoryImage = "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("salt")) {
+      categoryImage = "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=150&h=150&fit=crop&auto=format";
+    } else if (productName.includes("seasoning") || productName.includes("pepper")) {
+      categoryImage = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop&auto=format";
+    }
+
+    if (categoryImage) {
+      console.log("🎯 GroceryCard Using category-based image:", { itemName, categoryImage });
+      return categoryImage;
+    }
+
+    // Final fallback
+    console.log("🔄 GroceryCard using final fallback for:", { id, itemName });
+    return "https://via.placeholder.com/150?text=Grocery";
+  };
+
+  const storeId = resolveStoreId();
+  
+  // ✅ Ensure slug is always available (like in your mapping example)
+  const resolvedSlug = slug || id;
+
+  const imageSource = getImageSource();
 
   return (
     <TouchableOpacity
@@ -96,15 +165,14 @@ const handlePress = onPress || (() => {
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      {/* ✅ FashionCard-style ImageComp */}
       <ImageComp
-        source={getImageSource()}
+        source={imageSource}
         imageStyle={cardStyles.image}
         resizeMode="cover"
         fallbackSource={{
           uri: "https://via.placeholder.com/150?text=Grocery",
         }}
-        loaderColor="#f14343"
+        loaderColor="#666"
         loaderSize="small"
       />
 
@@ -126,11 +194,10 @@ const handlePress = onPress || (() => {
         {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </View>
 
-      {/* AddToCart with resolved storeId */}
       <View style={cardStyles.cartWrapper}>
         <AddToCart
           storeId={storeId}
-          slug={slug || id}
+          slug={resolvedSlug} // ✅ Use resolved slug
           catalogId={catalogId}
           price={cost}
         />
