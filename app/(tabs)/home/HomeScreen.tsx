@@ -42,7 +42,7 @@ export default function HomeScreen() {
   // Import render functions
   const {
     renderCategoryItemCompact,
-        renderRestaurantItem,
+    renderRestaurantItem,
     renderNearbyItem,
     renderFoodCategories,
     renderGroceryCategories,
@@ -95,10 +95,8 @@ export default function HomeScreen() {
     retry: 1,
   });
 
-
-
   // Fetch home data using react-query with hardcoded values
-  
+
   // const {
   //   data: homeData,
   //   isLoading,
@@ -116,7 +114,7 @@ export default function HomeScreen() {
   //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
   //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
   //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
-      
+
   //     return fetchHome(lat, lng, pin);
   //   },
   //   staleTime: 1000 * 60 * 5, // 5 minutes
@@ -164,15 +162,15 @@ export default function HomeScreen() {
             refreshing={isRefetching || isLoading}
             onRefresh={onRefresh}
             colors={["#f2663c"]} // Android spinner color
-            tintColor="#f2663c"   // iOS spinner color
+            tintColor="#f2663c" // iOS spinner color
           />
         }
       >
         {/* Red header */}
         <View style={styles.redSection}>
-          <LocationBar 
-            selectedDetails={selectedDetails} 
-            onPress={handleLocationPress} 
+          <LocationBar
+            selectedDetails={selectedDetails}
+            onPress={handleLocationPress}
           />
 
           <Search onPress={handleSearchPress} />
@@ -182,7 +180,9 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.catList}
-            renderItem={({ item, index }) => renderCategoryItemCompact({ item, index })}
+            renderItem={({ item, index }) =>
+              renderCategoryItemCompact({ item, index })
+            }
           />
         </View>
 
@@ -331,9 +331,14 @@ export default function HomeScreen() {
                       ? styles.gridCardLeft
                       : styles.gridCardRight,
                   ]}
-                  onPress={() =>
-                    router.push(`/(tabs)/home/result/${item.name}`)
-                  }
+                  onPress={() => {
+                    router.push({
+                      pathname: "/(tabs)/home/result/[search]",
+                      params: {
+                        search: item.name,
+                      },
+                    });
+                  }}
                 >
                   <Image
                     source={{ uri: item.image }}
@@ -364,7 +369,6 @@ export default function HomeScreen() {
                         pathname: "/(tabs)/home/result/[search]",
                         params: {
                           search: item.name,
-                          domainData: "ONDC:RET10",
                         },
                       });
                     }}
@@ -398,9 +402,14 @@ export default function HomeScreen() {
                       ? styles.gridCardLeft
                       : styles.gridCardRight,
                   ]}
-                  onPress={() =>
-                    router.push(`/(tabs)/home/result/${item.name}`)
-                  }
+                  onPress={() => {
+                    router.push({
+                      pathname: "/(tabs)/home/result/[search]",
+                      params: {
+                        search: item.name,
+                      },
+                    });
+                  }}
                 >
                   <Image
                     source={{ uri: item.image }}
@@ -431,7 +440,6 @@ export default function HomeScreen() {
                         pathname: "/(tabs)/home/result/[search]",
                         params: {
                           search: item.name,
-                          domainData: "ONDC:RET10",
                         },
                       });
                     }}
@@ -465,7 +473,7 @@ export default function HomeScreen() {
             {/* Main Image */}
             <View style={styles.imageContainer}>
               <Image
-                source={require("../../../assets/tabs/footer.webp")} // Replace with your local image path
+                source={require("../../../assets/tabs/footer.webp")}
                 style={styles.mainImage}
                 resizeMode="cover"
               />

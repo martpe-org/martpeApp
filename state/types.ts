@@ -64,6 +64,8 @@ export interface CatalogItem {
   bpp_uri: string;
   catalog_id: string;
   category_id: string;
+  slug:string;
+  customizable:boolean;
   // use the shared Descriptor above which now may include images/long/short desc
   descriptor: Descriptor;
   id: string;

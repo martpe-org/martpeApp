@@ -55,9 +55,13 @@ const handlePress = onPress || (() => {
 });
 
   // ✅ Unified Image Resolution (FashionCard style)
-  const getImageSource = () => {
-    if (symbol && symbol.trim() !== "") return { uri: symbol };
-    if (image && image.trim() !== "") return { uri: image };
+ const getImageSource = () => {
+    if (symbol && symbol.trim() !== "") {
+      return { uri: symbol };
+    }
+    if (image && image.trim() !== "") {
+      return { uri: image };
+    }
     return { uri: "https://via.placeholder.com/150?text=Grocery" };
   };
 

@@ -21,6 +21,7 @@ interface CatalogItem {
   provider_id: string;
   provider?: { store_id: string };
   store?: { _id: string; name?: string; slug?: string; symbol?: string }; // ✅ Add store field
+  slug?: string; // ✅ Add slug field like FashionCard
 }
 
 interface PLPPersonalCareProps {

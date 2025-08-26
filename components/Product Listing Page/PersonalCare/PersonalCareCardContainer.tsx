@@ -20,11 +20,14 @@ interface CatalogItem {
   provider_id: string;
   provider?: { store_id: string };
   store?: { _id: string; name?: string; slug?: string; symbol?: string };
+  slug?: string;
+  store_id?: string;
+  bpp_id?: string;
 }
 
 interface PersonalCareCardContainerProps {
   catalog: CatalogItem[];
-  providerId: string | string[];
+  providerId?: string | string[];
   searchString: string;
   selectedCategory?: string;
 }
@@ -32,21 +35,17 @@ interface PersonalCareCardContainerProps {
 const PersonalCareCardContainer: React.FC<
   PersonalCareCardContainerProps
 > = ({ catalog, providerId, searchString, selectedCategory }) => {
-  
-  // ✅ Filter out null/undefined items first
   const safeCatalog = catalog?.filter((item) => item != null) || [];
 
   const getFilteredCatalog = () => {
     let filtered = safeCatalog;
 
-    // ✅ Filter by category
     if (selectedCategory && selectedCategory !== "All") {
       filtered = filtered.filter(
         (item) => item?.category_id === selectedCategory
       );
     }
 
-    // ✅ Filter by search string
     if (searchString && searchString.trim() !== "") {
       filtered = filtered.filter((item) =>
         item?.descriptor?.name
@@ -63,9 +62,6 @@ const PersonalCareCardContainer: React.FC<
   return (
     <View style={styles.cardsContainer}>
       {filteredCatalog.map((item, index) => {
-        // ✅ Skip null/undefined items
-        if (!item) return null;
-
         const {
           id,
           catalog_id,
@@ -74,62 +70,50 @@ const PersonalCareCardContainer: React.FC<
           provider_id,
           provider,
           store,
+          slug,
+          store_id,
         } = item;
 
-        const discount = maxValue && maxValue > price
-          ? Math.round(((maxValue - price) / maxValue) * 100)
-          : 0;
+        const discount =
+          maxValue && maxValue > price
+            ? Math.round(((maxValue - price) / maxValue) * 100)
+            : 0;
 
         const image = images?.[0];
 
-        // ✅ Enhanced storeId resolution with better validation
+        // ✅ use same logic as PLPCardContainer
         const resolveStoreId = (): string | undefined => {
-          // Helper function to validate store ID
-          const isValidStoreId = (storeId: any): storeId is string => {
-            return storeId && 
-              typeof storeId === 'string' && 
-              storeId.trim() !== "" && 
-              storeId !== "unknown-store" && 
-              storeId !== "null" && 
-              storeId !== "undefined";
-          };
-
-          // Priority order: item.provider.store_id > item.store?._id > providerId prop > provider_id
-          if (isValidStoreId(provider?.store_id)) {
+          if (provider?.store_id && provider.store_id !== "unknown-store") {
             return provider.store_id;
           }
-          if (isValidStoreId(store?._id)) {
+          if (store?._id && store._id !== "unknown-store") {
             return store._id;
           }
-          if (providerId) {
-            if (Array.isArray(providerId)) {
-              const validId = providerId.find(id => isValidStoreId(id));
-              return validId;
-            }
-            if (isValidStoreId(providerId)) {
-              return providerId;
-            }
+          if (store_id && store_id !== "unknown-store") {
+            return store_id;
           }
-          if (isValidStoreId(provider_id)) {
+          if (providerId && typeof providerId === "string" && providerId !== "unknown-store") {
+            return providerId;
+          }
+          if (provider_id && provider_id !== "unknown-store") {
             return provider_id;
           }
-          return undefined; // No valid storeId found
+          if (item.bpp_id && item.bpp_id !== "unknown-store") {
+            return item.bpp_id;
+          }
+          return undefined;
         };
 
         const resolvedStoreId = resolveStoreId();
 
-        // ✅ Enhanced logging for debugging
-        if (!resolvedStoreId) {
-          console.warn(
-            `⚠️ PersonalCareCardContainer: No valid storeId for product ${id} (${name})`,
-            {
-              provider_store_id: provider?.store_id,
-              store_id: store?._id,
-              providerId_prop: providerId,
-              provider_id: provider_id
-            }
-          );
-        }
+        const itemData = {
+          id,
+          catalog_id,
+          provider,
+          provider_id,
+          store_id: resolvedStoreId,
+          store,
+        };
 
         return (
           <PersonalCareCard
@@ -142,8 +126,10 @@ const PersonalCareCardContainer: React.FC<
             image={image}
             symbol={symbol}
             id={id}
-            providerId={resolvedStoreId} // ✅ Pass validated storeId
+            providerId={resolvedStoreId}
             catalogId={catalog_id}
+            slug={slug || id} // ✅ use backend slug if available
+            item={itemData}
           />
         );
       })}

@@ -43,12 +43,12 @@ const PLPCard: React.FC<PLPCardProps> = ({
   const { allCarts, addItem, updateQty } = useCartStore();
   const { authToken } = useUserDetails();
 
-  // Safe storeId handling
+  // ✅ Safe storeId handling
   const safeStoreId = providerId && providerId !== "unknown-store" ? providerId : null;
 
   useEffect(() => {
     if (!safeStoreId) {
-      console.warn(`PLPCard: Missing storeId for product ${id} (${itemName})`);
+      console.warn(`⚠️ PLPCard: Missing storeId for product ${id} (${itemName})`);
     }
   }, [safeStoreId, id, itemName]);
 
@@ -59,7 +59,7 @@ const PLPCard: React.FC<PLPCardProps> = ({
   const item = cart?.cart_items.find((i) => i._id === id);
   const itemCount = item?.qty ?? 0;
 
-  const discountPercentage = originalPrice > offerPrice 
+  const discountPercentage = originalPrice > offerPrice
     ? Math.floor(((originalPrice - offerPrice) / originalPrice) * 100)
     : 0;
 
@@ -78,12 +78,18 @@ const PLPCard: React.FC<PLPCardProps> = ({
     updateQty(item._id, item.qty - 1, authToken);
   };
 
-  // Enhanced image source resolution for ImageComp
+  // ✅ Enhanced image source resolution
   const getImageSource = () => {
-    if (itemImg && typeof itemImg === 'string' && itemImg.trim() !== "") {
+    if (itemImg && itemImg.trim() !== "") {
+      // Check if it's a valid URL
+      if (itemImg.startsWith('http') || itemImg.startsWith('https')) {
+        return { uri: itemImg };
+      }
+      // If it's a relative path, assume it needs to be converted to URI
       return { uri: itemImg };
     }
-    return { uri: "https://via.placeholder.com/100?text=Food" };
+    // Return fallback
+    return { uri: "https://via.placeholder.com/150x150/1DA578/FFFFFF?text=Food" };
   };
 
   return (
@@ -92,7 +98,7 @@ const PLPCard: React.FC<PLPCardProps> = ({
       <View style={styles.plpCard_content}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <MaterialCommunityIcons
-            name="circle-box-outline"
+            name={veg ? "circle-box-outline" : "triangle-outline"}
             size={20}
             color={veg ? "green" : "red"}
           />
@@ -107,15 +113,17 @@ const PLPCard: React.FC<PLPCardProps> = ({
           <Text style={{ color: "#848080", fontSize: 8, marginHorizontal: 2 }}>
             {" \u25CF"}
           </Text>
-          <Text style={styles.price}>
-            <FontAwesome name="rupee" size={10} color="#030303" /> {offerPrice}
-            {discountPercentage >= 1 && (
-              <>
-                <Text style={styles.strikedOffText}> ₹{originalPrice}</Text>
-                <Text style={{ color: "#1DA578" }}> {discountPercentage}% off</Text>
-              </>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>
+              ₹{offerPrice}
+            </Text>
+            {discountPercentage > 0 && (
+              <View style={styles.discountContainer}>
+                <Text style={styles.strikedOffText}>₹{originalPrice}</Text>
+                <Text style={styles.discountText}>{discountPercentage}% off</Text>
+              </View>
             )}
-          </Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -145,13 +153,13 @@ const PLPCard: React.FC<PLPCardProps> = ({
       {/* Right side: image & Add-to-Cart */}
       <View style={{ alignItems: "center", width: "35%" }}>
         <ImageComp
-          source={getImageSource()} // Use helper function for consistent image handling
+          source={getImageSource()}
           imageStyle={styles.cardImg}
           resizeMode="cover"
           fallbackSource={{
-            uri: "https://via.placeholder.com/100?text=Food",
+            uri: "https://via.placeholder.com/150x150/1DA578/FFFFFF?text=Food",
           }}
-          loaderColor="#666"
+          loaderColor="#1DA578"
           loaderSize="small"
         />
 
@@ -166,7 +174,7 @@ const PLPCard: React.FC<PLPCardProps> = ({
               <TouchableOpacity onPress={handleDecrease}>
                 <MaterialCommunityIcons name="minus" size={20} color="red" />
               </TouchableOpacity>
-              <Text>{itemCount}</Text>
+              <Text style={styles.quantityText}>{itemCount}</Text>
               <TouchableOpacity
                 onPress={handleIncrease}
                 disabled={itemCount >= maxLimit}
@@ -196,64 +204,98 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 10,
-    borderWidth: 0.5,
-    borderRadius: 10,
-    borderColor: "#9B9B9B",
-    marginBottom: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderColor: "#e0e0e0",
+    marginBottom: 8,
     marginHorizontal: 10,
     backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   plpCard_content: {
     flex: 1,
+    paddingRight: 10,
   },
   itemName: {
-    marginLeft: 5,
-    fontWeight: "900",
-    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: "700",
+    fontSize: 15,
     maxWidth: 180,
+    color: "#333",
+  },
+  priceContainer: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    marginLeft: 5,
   },
   price: {
-    fontWeight: "900",
-    marginLeft: 5,
-    color: "#030303",
-    fontSize: 14,
+    fontWeight: "700",
+    color: "#1DA578",
+    fontSize: 15,
+  },
+  discountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
   },
   strikedOffText: {
     textDecorationLine: "line-through",
-    marginLeft: 8,
+    marginRight: 6,
     color: "#808080",
     fontWeight: "normal",
-    fontSize: 12,
+    fontSize: 11,
+  },
+  discountText: {
+    color: "#1DA578",
+    fontSize: 11,
+    fontWeight: "600",
   },
   moreDetailsButton: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: "#ABA9A9",
-    borderRadius: 50,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    width: 90,
-    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    width: 100,
+    marginTop: 12,
+    backgroundColor: "#f9f9f9",
   },
   cardImg: {
     width: "100%",
     height: 100,
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: "#f5f5f5",
   },
   buttonGroup: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 8,
     position: "absolute",
-    right: 10,
-    bottom: 10,
+    right: 8,
+    bottom: 8,
     backgroundColor: "white",
-    paddingVertical: 2,
-    paddingHorizontal: 5,
-    borderRadius: 5,
-    elevation: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    minWidth: 20,
+    textAlign: "center",
   },
 });

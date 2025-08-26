@@ -24,6 +24,15 @@ interface PersonalCareCardProps {
   id: string;
   providerId?: string;
   catalogId?: string;
+  slug?: string;
+  item?: {
+    id: string;
+    catalog_id: string;
+    provider?: { store_id: string };
+    provider_id?: string;
+    store_id?: string;
+    store?: { _id: string };
+  };
 }
 
 const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
@@ -37,31 +46,37 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   id,
   providerId,
   catalogId,
+  slug,
+  item,
 }) => {
   const handlePress = () => {
-    router.push(`/(tabs)/home/result/productDetails/${id}`);
+    router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
   };
+const isMongoId = (id?: string): boolean =>
+  !!id && /^[0-9a-fA-F]{24}$/.test(id);
 
-  // ✅ Enhanced validation - handle null, undefined, empty string, and "unknown-store"
-  const safeStoreId = providerId && 
-    providerId.trim() !== "" && 
-    providerId !== "unknown-store" && 
-    providerId !== "null" && 
-    providerId !== "undefined" ? providerId : null;
+const resolveStoreId = (): string | undefined => {
+  if (isMongoId(item?.store?._id)) return item!.store!._id;
+  if (isMongoId(item?.provider?.store_id)) return item!.provider!.store_id;
+  if (isMongoId(item?.store_id)) return item!.store_id;
+  if (isMongoId(item?.provider_id)) return item!.provider_id;
+  if (isMongoId(typeof providerId === "string" ? providerId : undefined))
+    return providerId as string;
+  return undefined;
+};
 
-  // ✅ Only log warning when storeId is actually missing
+
+
+  const storeId = resolveStoreId();
+
   useEffect(() => {
-    if (!safeStoreId) {
+    if (!storeId) {
       console.warn(
-        `⚠️ PersonalCareCard: Missing valid storeId for product ${id} (${title}) - received: ${providerId}`
+        `⚠️ PersonalCareCard: Missing storeId for product ${id} (${title})`
       );
     }
-  }, [safeStoreId, id, title, providerId]);
+  }, [storeId, id, title]);
 
-  const slug = title?.toLowerCase().replace(/\s+/g, "-") || "";
-  const safeCatalogId = catalogId || id;
-
-  // ✅ Enhanced image resolution - prioritize symbol over image
   const getImageSource = () => {
     if (symbol && symbol.trim() !== "") {
       return { uri: symbol };
@@ -72,12 +87,11 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
     return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
   };
 
-  // ✅ Enhanced AddToCart rendering with better error handling
   const renderAddToCart = () => {
-    if (!safeStoreId) {
+    if (!storeId) {
       return (
         <View style={styles.cartWrapper}>
-          <Text style={styles.errorText}>Store unavailable</Text>
+          <Text style={styles.errorText}>Store ID missing</Text>
         </View>
       );
     }
@@ -85,10 +99,10 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
     return (
       <View style={styles.cartWrapper}>
         <AddToCart
+          storeId={storeId}
+          slug={slug || id} // ✅ no item?.slug needed
+          catalogId={catalogId || item?.catalog_id || ""}
           price={price}
-          storeId={safeStoreId}
-          slug={slug || id}
-          catalogId={safeCatalogId}
         />
       </View>
     );
@@ -121,9 +135,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           {description || "No description available"}
         </Text>
 
-        {discount > 1 && (
-          <Text style={styles.strikedOff}>₹{maxValue}</Text>
-        )}
+        {discount > 1 && <Text style={styles.strikedOff}>₹{maxValue}</Text>}
 
         <View style={styles.priceRow}>
           <Text style={styles.price}>₹{price}</Text>
@@ -131,10 +143,9 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
             <Text style={styles.discount}>{discount}% Off</Text>
           )}
         </View>
-
-        {/* ✅ Enhanced AddToCart rendering */}
-        {renderAddToCart()}
       </View>
+
+      {renderAddToCart()}
     </TouchableOpacity>
   );
 };
@@ -205,14 +216,13 @@ const styles = StyleSheet.create({
   },
   cartWrapper: {
     marginTop: 4,
+    paddingHorizontal: 8,
+    paddingBottom: 6,
   },
   errorText: {
     fontSize: 10,
     color: "#ff6b6b",
     textAlign: "center",
     fontWeight: "500",
-    padding: 4,
-    backgroundColor: "#ffe6e6",
-    borderRadius: 4,
   },
 });

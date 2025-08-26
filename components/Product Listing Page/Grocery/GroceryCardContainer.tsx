@@ -34,8 +34,6 @@ interface GroceryCardContainerProps {
   catalog: CatalogItem[];
   selectedCategory?: string;
   searchString: string;
-  handleOpenModal?: (item: CatalogItem) => void;
-  // ✅ Removed providerId prop - let component resolve from items
 }
 
 // ✅ Export NoItemsDisplay so it can be used elsewhere
@@ -88,7 +86,6 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   catalog,
   selectedCategory,
   searchString,
-  handleOpenModal,
 }) => {
   // ✅ Filter out undefined/null items first
   const safeCatalog = catalog?.filter((item) => item != null) || [];
