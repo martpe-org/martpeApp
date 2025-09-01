@@ -100,7 +100,7 @@ const CartScreen = () => {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "./(tabs)/home" })}
+          onPress={() => router.push({ pathname: "/(tabs)/home/HomeScreen" })}
           style={styles.startShoppingButton}
         >
           <Text style={styles.startShoppingText}>Start Shopping</Text>

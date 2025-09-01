@@ -592,9 +592,7 @@ const PLP: React.FC = () => {
       case "ONDC:RET10":
         return (
           <PLPGrocery
-            providerId={vendorSlug}
             catalog={allItems}
-            sidebarTitles={dropdownHeaders}
             searchString={searchString}
           />
         );
@@ -605,7 +603,6 @@ const PLP: React.FC = () => {
           <PLPFashion
             headers={dropdownHeaders}
             catalog={allItems}
-            providerId={vendorSlug}
           />
         );
 
@@ -622,7 +619,6 @@ const PLP: React.FC = () => {
       case "ONDC:RET14":
         return (
           <PLPElectronics
-            providerId={vendorSlug}
             catalog={allItems}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}

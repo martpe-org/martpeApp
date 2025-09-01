@@ -3,23 +3,18 @@ import { View } from "react-native";
 import HorizontalNavbar from "../Grocery/HorizontalNavbar";
 import GroceryCardContainer, {
   CatalogItem,
-  NoItemsDisplay,
 } from "../Grocery/GroceryCardContainer";
 
 interface PLPElectronicsProps {
   catalog: CatalogItem[];
   sidebarTitles?: string[];
-  providerId: string;
   searchString: string;
-  handleOpenModal?: (item: CatalogItem) => void;
 }
 
 const PLPElectronics: React.FC<PLPElectronicsProps> = ({
   catalog,
   sidebarTitles,
-  providerId,
   searchString,
-  handleOpenModal = () => {},
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
@@ -126,7 +121,6 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
     });
   }, [catalog, activeCategory]);
 
-  // ✅ Transform items for GroceryCard (keep image & symbol separate)
   const transformItems = (items: CatalogItem[]) =>
     items.map((item) => ({
       ...item,
@@ -159,21 +153,15 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
 
       {filteredCatalog.length > 0 ? (
         <GroceryCardContainer
-          providerId={providerId}
           searchString={searchString}
           catalog={transformedFilteredCatalog}
           selectedCategory={activeCategory}
-          handleOpenModal={handleOpenModal}
         />
-      ) : activeCategory !== "All" ? (
-        <NoItemsDisplay category={activeCategory} />
       ) : (
         <GroceryCardContainer
-          providerId={providerId}
           searchString={searchString}
           catalog={transformedFullCatalog}
           selectedCategory={activeCategory}
-          handleOpenModal={handleOpenModal}
         />
       )}
     </View>

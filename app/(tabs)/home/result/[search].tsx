@@ -592,7 +592,7 @@ const Results: FC = () => {
         onEndReachedThreshold={0.5}
         ListHeaderComponent={() => (
           <Text style={styles.resultsTitle}>
-            Showing Results for "{search}"
+            Showing Results for {search}
           </Text>
         )}
         ListEmptyComponent={() => (

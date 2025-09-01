@@ -144,7 +144,7 @@ function Electronics() {
         <View>
           <View style={styles.sectionHeading}>
             <View style={styles.line} />
-            <Text style={styles.sectionHeadingText}>Explore New Gadgets</Text>
+            <Text style={styles.sectionHeadingText}>Shop By Categories</Text>
             <View style={styles.line} />
           </View>
 

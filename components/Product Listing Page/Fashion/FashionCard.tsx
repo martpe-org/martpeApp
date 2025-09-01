@@ -15,6 +15,8 @@ interface FashionCardProps {
   catalogId: string;
   storeId?: string;
   slug?: string;
+  customizable?: boolean;          // ✅ add
+  customizations?: any[];          // ✅ add
 }
 
 const FashionCard: FC<FashionCardProps> = ({
@@ -28,11 +30,11 @@ const FashionCard: FC<FashionCardProps> = ({
   catalogId,
   storeId,
   slug,
+  customizable = false,           // ✅ default
+  customizations = [],            // ✅ default
 }) => {
-  // ✅ Fixed: Only use fallback if storeId is missing or invalid
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
 
-  // ✅ Fixed: Only log warning when storeId is actually missing
   useEffect(() => {
     if (!safeStoreId) {
       console.warn(
@@ -41,7 +43,6 @@ const FashionCard: FC<FashionCardProps> = ({
     }
   }, [safeStoreId, id, itemName]);
 
-  // ✅ Don't render AddToCart if we don't have a valid storeId
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
@@ -54,10 +55,12 @@ const FashionCard: FC<FashionCardProps> = ({
     return (
       <View style={styles.addToCartContainer}>
         <AddToCart
-          price={value}
+          price={value || 0}
           storeId={safeStoreId}
           slug={slug || id}
           catalogId={catalogId}
+          customizable={customizable}         // ✅ pass down
+          customizations={customizations}     // ✅ pass down
         />
       </View>
     );
@@ -168,14 +171,6 @@ const styles = StyleSheet.create({
   addToCartContainer: {
     paddingHorizontal: 10,
     paddingBottom: 10,
-  },
-  addToCartButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  addToCartText: {
-    fontSize: 11,
-    fontWeight: "600",
   },
   errorText: {
     fontSize: 10,

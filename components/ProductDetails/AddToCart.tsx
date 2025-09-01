@@ -41,6 +41,8 @@ const AddToCart: FC<AddToCartProps> = ({
           max={5}
           instock={cartItem.product?.instock}
           productName={cartItem.product?.name}
+          storeId={storeId} // ✅ Pass storeId
+          catalogId={catalogId} // ✅ Pass catalogId
           onQtyChange={(newQty: any) => {
             if (newQty === 0) {
               setShowAddButton(true);

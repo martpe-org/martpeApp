@@ -1,7 +1,17 @@
 export type FetchCartsType = FetchCartType[];
 
+export interface CartItem {
+  _id: string;
+  qty: number;
+  unit_price: number;
+  total_price: number;
+  store_id: string;
+  product: Product;
+}
 export interface FetchCartType {
   _id: string;
+    store_id: string;
+  items: CartItem[];
   cart_items: CartItemType[];
   cartItemsCount: number;
   cartTotalPrice: number;
@@ -38,12 +48,13 @@ interface Product {
   price: Price;
   quantity: number;
   instock: boolean;
-  customizable: boolean;
   diet_type?: string;
   domain: string;
   category_id: string;
   cod: boolean;
   cancellable: boolean;
+    customizable?: boolean;        // ✅ add
+  customizations?: any[];  
   returnable: boolean;
   directlyLinkedCustomGroupIds?: string[];
 }

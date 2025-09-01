@@ -107,15 +107,17 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           {weight} / {unit}
         </Text>
 
-        <View style={cardStyles.priceRow}>
-          <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
-          {discount && originalPrice && (
-            <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed(2)}</Text>
-          )}
-        </View>
-
-        {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
-      </View>
+<View style={cardStyles.priceRow}>
+  <Text style={cardStyles.price}>
+    ₹{(cost ?? 0).toFixed(2)}
+  </Text>
+  {discount && originalPrice !== undefined && (
+    <Text style={cardStyles.originalPrice}>
+      ₹{(originalPrice ?? 0).toFixed(2)}
+    </Text>
+  )}
+</View>
+</View>
 
       <View style={cardStyles.cartWrapper}>
         <AddToCart

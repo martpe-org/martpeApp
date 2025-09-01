@@ -14,7 +14,7 @@ import CustomizationGroup from "./CustomizationGroup";
 interface DynamicButtonProps {
   storeId: string;
   slug: string;
-  onAddSuccess:() => void;
+  onAddSuccess: () => void;
   catalogId: string;
   customizable?: boolean;
   customizations?: {
@@ -30,6 +30,7 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
   catalogId,
   customizable = false,
   customizations = [],
+  onAddSuccess, // ✅ Make sure this is properly destructured
 }) => {
   const { addItem } = useCartStore();
   const { userDetails } = useUserDetails();
@@ -70,6 +71,8 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
 
       if (success) {
         toast.show("🎉 Congrats! Item added to cart", { type: "success" });
+        // ✅ Call onAddSuccess after successful addition
+        onAddSuccess();
       } else {
         toast.show("Failed to add to cart", { type: "danger" });
       }

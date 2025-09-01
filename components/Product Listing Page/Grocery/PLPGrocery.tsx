@@ -83,6 +83,7 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
             providerId={item.store_id}
             slug={item.slug || item.id}
             catalogId={item.catalog_id}
+            image={item.descriptor?.images?.[0]}
             symbol={item.symbol}
             weight={item.weight}
             unit={item.unit}

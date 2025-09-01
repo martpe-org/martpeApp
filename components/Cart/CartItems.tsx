@@ -1,16 +1,16 @@
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useToast } from "react-native-toast-notifications";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "../../hook/useUserDetails";
 import ChangeQtyButton from "./ChangeQtyButton";
@@ -22,17 +22,53 @@ interface CartItemsProps {
   items: CartItemType[];
 }
 
+// Mock API function - replace with your actual API call
+const fetchCartItems = async (cartId: string): Promise<CartItemType[]> => {
+  // Replace this with your actual API endpoint
+  const response = await fetch(`/api/carts/${cartId}/items`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch cart items');
+  }
+  return response.json();
+};
+
 const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
-  const { userDetails, isLoading } = useUserDetails();
-  const authToken = userDetails?.accessToken;
+  const { isLoading: userLoading } = useUserDetails();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  const [localItems, setLocalItems] = useState<CartItemType[]>(items);
-
-  useEffect(() => setLocalItems(items), [items]);
+  // Use TanStack Query to manage cart items
+  const {
+    data: cartItems,
+    isLoading: cartLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['cartItems', cartId],
+    queryFn: () => fetchCartItems(cartId),
+    initialData: items, // Use passed items as initial data
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
   const formatCurrency = (amt: number) =>
     `₹${amt.toFixed(2).replace(/\.?0+$/, "")}`;
+
+  const handleQtyChange = (itemId: string, newQty: number, unitPrice: number) => {
+    // Optimistically update the cache
+    queryClient.setQueryData(['cartItems', cartId], (oldData: CartItemType[] | undefined) => {
+      if (!oldData) return oldData;
+      
+      return oldData.map((item) =>
+        item._id === itemId
+          ? {
+              ...item,
+              qty: newQty,
+              total_price: unitPrice * newQty,
+            }
+          : item
+      );
+    });
+  };
 
   const renderCartItem = ({ item }: { item: CartItemType }) => {
     if (!item) return null;
@@ -60,7 +96,6 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
           </Text>
         </View>
 
-        {/* ✅ Replaced inline + / - with reusable ChangeQtyButton */}
         <ChangeQtyButton
           cartItemId={item._id}
           qty={item.qty}
@@ -71,18 +106,8 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
           storeId={item.store_id}
           customGroupIds={item.product?.directlyLinkedCustomGroupIds ?? []}
           productPrice={item.unit_price}
-          onQtyChange={(newQty: any) => {
-            setLocalItems((prev) =>
-              prev.map((i) =>
-                i._id === item._id
-                  ? {
-                      ...i,
-                      qty: newQty,
-                      total_price: (i.unit_price || 0) * newQty,
-                    }
-                  : i
-              )
-            );
+          onQtyChange={(newQty: number) => {
+            handleQtyChange(item._id, newQty, item.unit_price);
           }}
         />
       </TouchableOpacity>
@@ -90,17 +115,19 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
   };
 
   const { totalCost, totalItems } = useMemo(() => {
-    return localItems.reduce(
-      (acc, i) => {
-        acc.totalCost += i.total_price || i.unit_price * i.qty;
-        acc.totalItems += i.qty;
+    if (!cartItems) return { totalCost: 0, totalItems: 0 };
+    
+    return cartItems.reduce(
+      (acc, item) => {
+        acc.totalCost += item.total_price || item.unit_price * item.qty;
+        acc.totalItems += item.qty;
         return acc;
       },
       { totalCost: 0, totalItems: 0 }
     );
-  }, [localItems]);
+  }, [cartItems]);
 
-  if (isLoading)
+  if (userLoading || cartLoading) {
     return (
       <ActivityIndicator
         style={{ marginTop: 50 }}
@@ -108,8 +135,20 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         color="#2f9740"
       />
     );
+  }
 
-  if (!localItems.length) {
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text>Error loading cart items</Text>
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={{ color: "#2f9740", marginTop: 8 }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!cartItems?.length) {
     return (
       <View style={styles.center}>
         <Text>Your cart is empty</Text>
@@ -120,14 +159,13 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>
-        Items ({localItems.length}, {totalItems} total)
+        Items ({cartItems.length}, {totalItems} total)
       </Text>
       <FlashList
-        data={localItems}
+        data={cartItems}
         renderItem={renderCartItem}
-        keyExtractor={(i) => i._id}
+        keyExtractor={(item) => item._id}
         estimatedItemSize={80}
-        contentContainerStyle={{ paddingBottom: 80 }} // gives space above footer
       />
       <View style={styles.footer}>
         <Text style={styles.subtotal}>

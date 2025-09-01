@@ -24,7 +24,7 @@ interface Props {
   customizable?: boolean;
   customGroupIds?: string[];
   productPrice?: number;
-  onQtyChange?: (newQty: number) => void;
+  onQtyChange?: (qty: number) => void;
 }
 
 const ChangeQtyButton: React.FC<Props> = ({
@@ -39,7 +39,7 @@ const ChangeQtyButton: React.FC<Props> = ({
   productPrice,
   onQtyChange,
 }) => {
-  const { updateQty, removeCart } = useCartStore();
+  const { updateQty } = useCartStore();
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const toast = useToast();
@@ -53,41 +53,40 @@ const ChangeQtyButton: React.FC<Props> = ({
     setCount(qty);
   }, [qty]);
 
-const handleUpdate = async (newQty: number) => {
-  if (!authToken) {
-    toast.show("Please login to continue", { type: "danger" });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    if (newQty === 0) {
-      const success = await removeCartItems([cartItemId], authToken);
-      if (success) {
-        setCount(0);
-        onQtyChange?.(0);
-      } else {
-        toast.show("Failed to remove item", { type: "danger" });
-      }
-    } else {
-      const success = await updateQty(cartItemId, newQty, authToken);
-      if (success) {
-        setCount(newQty);
-        onQtyChange?.(newQty);
-      } else {
-        toast.show("Failed to update quantity", { type: "danger" });
-        setCount(qty);
-      }
+  const handleUpdate = async (newQty: number) => {
+    if (!authToken) {
+      toast.show("Please login to continue", { type: "danger" });
+      return;
     }
-  } catch (err) {
-    console.error("Error updating qty:", err);
-    toast.show("Error updating cart", { type: "danger" });
-    setCount(qty);
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setLoading(true);
+    try {
+      if (newQty === 0) {
+        const success = await removeCartItems([cartItemId], authToken);
+        if (success) {
+          setCount(0);
+          onQtyChange?.(0);
+        } else {
+          toast.show("Failed to remove item", { type: "danger" });
+        }
+      } else {
+        const success = await updateQty(cartItemId, newQty, authToken);
+        if (success) {
+          setCount(newQty);
+          onQtyChange?.(newQty);
+        } else {
+          toast.show("Failed to update quantity", { type: "danger" });
+          setCount(qty);
+        }
+      }
+    } catch (err) {
+      console.error("Error updating qty:", err);
+      toast.show("Error updating cart", { type: "danger" });
+      setCount(qty);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const increment = () => {
     if (max && count >= max) {
@@ -103,7 +102,17 @@ const handleUpdate = async (newQty: number) => {
 
   const decrement = () => {
     if (count > 1) handleUpdate(count - 1);
-    else handleUpdate(0); // ✅ removes cart directly
+    else handleUpdate(0);
+  };
+
+  const handleRepeatCustomization = () => {
+    setRepeatDialog(false);
+    handleUpdate(count + 1);
+  };
+
+  const handleNewCustomization = () => {
+    setRepeatDialog(false);
+    setCustomizationModal(true);
   };
 
   if (loading) {
@@ -126,7 +135,35 @@ const handleUpdate = async (newQty: number) => {
         </TouchableOpacity>
       </View>
 
-      {/* Customization modal */}
+      {/* Repeat Customization Dialog */}
+      <Modal
+        visible={repeatDialog}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRepeatDialog(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.dialogContainer}>
+            <Text style={styles.dialogTitle}>Repeat previous customization?</Text>
+            <View style={styles.dialogButtons}>
+              <TouchableOpacity
+                style={[styles.dialogButton, styles.outlineButton]}
+                onPress={handleNewCustomization}
+              >
+                <Text style={styles.outlineButtonText}>Ill choose</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogButton, styles.primaryButton]}
+                onPress={handleRepeatCustomization}
+              >
+                <Text style={styles.primaryButtonText}>Repeat</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Customization Modal */}
       <Modal
         visible={customizationModal}
         animationType="slide"
@@ -170,5 +207,49 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
     color: "#f14343",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dialogContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    minWidth: 280,
+  },
+  dialogTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  dialogButtons: {
+    gap: 12,
+  },
+  dialogButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  outlineButton: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#F8383F",
+  },
+  primaryButton: {
+    backgroundColor: "#F8383F",
+  },
+  outlineButtonText: {
+    color: "#F8383F",
+    fontWeight: "600",
+  },
+  primaryButtonText: {
+    color: "white",
+    fontWeight: "600",
   },
 });
