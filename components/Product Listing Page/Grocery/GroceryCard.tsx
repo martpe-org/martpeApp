@@ -64,6 +64,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
   const storeId = resolveStoreId();
   const resolvedSlug = slug || id;
+  
 
   return (
     <TouchableOpacity
@@ -71,16 +72,16 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      <ImageComp
-        source={image} // Use the image URL passed from container
-        imageStyle={cardStyles.image}
-        resizeMode="cover"
-        fallbackSource={{
-          uri: "https://via.placeholder.com/150?text=Grocery",
-        }}
-        loaderColor="#666"
-        loaderSize="small"
-      />
+<ImageComp
+  source={image}
+  imageStyle={cardStyles.image}
+  resizeMode="cover"
+  fallbackSource={{ uri: "https://picsum.photos/200/300" }}
+  loaderColor="#666"
+  loaderSize="small"
+/>
+
+
 
       <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>
