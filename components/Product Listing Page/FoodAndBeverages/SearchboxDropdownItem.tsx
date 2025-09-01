@@ -12,6 +12,7 @@ interface SearchboxDropdownItemProps {
   item: {
     image: string;
     name: string;
+    symbol:string;
     id: string;
     slug?: string;
   };
@@ -22,7 +23,6 @@ interface SearchboxDropdownItemProps {
 const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
   item,
   search,
-  onPress,
 }) => {
   const handlePress = () => {
     try {
@@ -42,7 +42,7 @@ const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
       style={styles.dropdownItemContainer}
     >
       <View style={styles.dropdownItem}>
-        <Image source={{ uri: item.image }} style={styles.itemImg} />
+        <Image source={{ uri: item.symbol }} style={styles.itemImg} />
         <Text style={styles.itemName}>{item.name}</Text>
       </View>
     </TouchableOpacity>

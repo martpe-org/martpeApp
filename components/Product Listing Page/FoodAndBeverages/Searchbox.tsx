@@ -6,7 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 interface CatalogItem {
   descriptor: {
     name: string;
-    images: string[];
+symbol:string
   };
   id: string;
   slug?: string;
@@ -48,7 +48,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
       addedNames[name] = true;
       catalogItems.push({
         name,
-        image: item.descriptor.images?.[0] || "",
+        image: item.descriptor.symbol || "",
         id: item.id,
         slug: item.slug || item.id,
       });
@@ -140,7 +140,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
         <TextInput
           onChangeText={handleInputChange}
           onFocus={handleFocus}
-          onSubmitEditing={handleSubmitEditing} // 👈 only here
+          onSubmitEditing={handleSubmitEditing}
           value={searchInput}
           style={styles.searchBox}
           placeholder={`Search in ${placeHolder}`}

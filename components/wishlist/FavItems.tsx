@@ -5,12 +5,16 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
 import { Toast } from "react-native-toast-notifications";
+import AddToCart from "../ProductDetails/AddToCart";
+
+const { width: screenWidth } = Dimensions.get("screen");
 
 interface FavItemsProps {
   favorites: any[];
@@ -21,11 +25,13 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
   const { removeFavorite } = useFavoriteStore();
   const router = useRouter();
 
-  if (!favorites || favorites.length === 0) {
+  if (!favorites.length) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, color: "#888" }}>
-          No favorite items yet ❤️
+      <View style={styles.center}>
+        <FontAwesome name="heart-o" size={48} color="#CBD5E0" />
+        <Text style={styles.emptyText}>No favorite items yet</Text>
+        <Text style={styles.emptySubText}>
+          Start shopping and add items to favorites!
         </Text>
       </View>
     );
@@ -33,7 +39,8 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
     >
       {[...favorites].reverse().map((item: any, index: number) => {
         const productName =
@@ -44,136 +51,240 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
           item?.descriptor?.images?.[0] || item?.images?.[0] || null;
 
         return (
-          <TouchableOpacity
+          <View
             key={item.id || item.slug || `fav-${index}`}
-            style={{
-              flexDirection: "row",
-              borderRadius: 12,
-              backgroundColor: "#fff",
-              marginTop: Dimensions.get("screen").width * 0.05,
-              padding: Dimensions.get("screen").width * 0.05,
-              shadowColor: "#831f1f",
-              shadowOpacity: 0.05,
-              shadowRadius: 6,
-              elevation: 20,
-            }}
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/home/result/productDetails/[productDetails]",
-                params: { productDetails: item.slug },
-              })
-            }
+            style={styles.itemCard}
           >
-            <ImageComp
-              source={imageUrl}
-              imageStyle={{
-                minHeight: Dimensions.get("screen").width * 0.25,
-                width: Dimensions.get("screen").width * 0.45,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "#eee",
-                marginRight: 10,
-              }}
-              resizeMode="cover"
-            />
-
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600" }}>
-                {productName.split(" ").slice(0, 7).join(" ")}
-              </Text>
-                            <View
-                style={{
-                  flexDirection: "row-reverse",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: -19,
-                }}
-              >
-                {/* Heart / Remove */}
-                <TouchableOpacity
-                >
-                  <FontAwesome
-              name="heart"
-              size={18}
-              color="red"
-            />
-                </TouchableOpacity>
+            {/* Header */}
+            <View style={styles.cardHeader}>
+              <View style={styles.favoriteIndicator}>
+                <FontAwesome name="heart" size={16} color="#E53E3E" />
               </View>
-              <Text
-                style={{ fontSize: 13, color: "#607274", marginVertical: 2 }}
-              >
-                {providerName}
-              </Text>
-
-              {/* Price Row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginVertical: 4,
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  if (authToken) {
+                    removeFavorite(item.slug, authToken);
+                  } else {
+                    Toast.show("Authentication required", { type: "error" });
+                  }
                 }}
               >
-                {item.price?.maximum_value > item.price?.value && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "500",
-                      color: "#607274",
-                      marginRight: 5,
-                      textDecorationLine: "line-through",
-                    }}
-                  >
-                    ₹ {item.price?.maximum_value}
-                  </Text>
-                )}
-                <Text
-                  style={{ fontSize: 14, fontWeight: "600", color: "#000" }}
-                >
-                  ₹ {item.price?.value}
+                <FontAwesome name="trash-o" size={18} color="#718096" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <View style={styles.cardContent}>
+              {/* Product Image + AddToCart */}
+              <View style={styles.imageContainer}>
+                <ImageComp
+                  source={imageUrl}
+                  imageStyle={styles.productImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              {/* Product Info */}
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName} numberOfLines={2}>
+                  {productName}
                 </Text>
-                {item.price?.offer_percent && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "500",
-                      color: "green",
-                      marginLeft: 6,
-                    }}
-                  >
-                    {Math.ceil(item.price.offer_percent)}% off
-                  </Text>
-                )}
-              </View>
+                <Text style={styles.providerName} numberOfLines={1}>
+                  {providerName}
+                </Text>
 
-              {/* Action Row */}
-                  <View
-                style={{
-                  flexDirection: "row-reverse",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: -5,
-                }}
-              >
-                {/* Heart / Remove */}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (authToken) removeFavorite(item.slug, authToken);
-                    Toast.show("Item removed from favorites");
-                  }}
-                >
-                  <FontAwesome
-              name="trash-o"
-              size={18}
-              color="#000"
-            />
-                </TouchableOpacity>
+                {/* Price Row */}
+                <View style={styles.priceRow}>
+                  {item.price?.maximum_value > item.price?.value && (
+                    <Text style={styles.oldPrice}>
+                      ₹ {item.price?.maximum_value}
+                    </Text>
+                  )}
+                  <Text style={styles.newPrice}>₹ {item.price?.value}</Text>
+                  {item.price?.offer_percent && (
+                    <Text style={styles.discount}>
+                      {Math.ceil(item.price.offer_percent)}% off
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={{ justifyContent:"flex-end" ,}}>
+                <AddToCart
+                  price={item.price?.value}
+                  storeId={item.store_id}
+                  slug={item.slug}
+                  catalogId={item.catalog_id}
+                />
               </View>
             </View>
-          </TouchableOpacity>
+
+            {/* Footer */}
+            <TouchableOpacity
+              style={styles.cardFooter}
+              onPress={() =>
+                router.push({
+                  pathname:
+                    "/(tabs)/home/result/productDetails/[productDetails]",
+                  params: { productDetails: item.slug },
+                })
+              }
+              activeOpacity={0.8}
+            >
+              <Text style={styles.viewDetailsText}>Tap to view details</Text>
+              <FontAwesome name="chevron-right" size={12} color="#A0AEC0" />
+            </TouchableOpacity>
+          </View>
         );
       })}
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F7FAFC",
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: "#2D3748",
+    fontWeight: "600",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: "#718096",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  scrollContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 30,
+  },
+  itemCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  favoriteIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FED7D7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#e8ecf0",
+  },
+  cardContent: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  imageContainer: {
+    marginRight: 12,
+  },
+  productImage: {
+    width: screenWidth * 0.25,
+    height: screenWidth * 0.25,
+    borderRadius: 12,
+    backgroundColor: "#F7FAFC",
+  },
+  itemInfo: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A202C",
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  providerName: {
+    fontSize: 13,
+    color: "#607274",
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  oldPrice: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#607274",
+    marginRight: 6,
+    textDecorationLine: "line-through",
+  },
+  newPrice: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+  },
+  discount: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "green",
+    marginLeft: 6,
+  },
+  itemBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDF2F7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  badgeText: {
+    fontSize: 12,
+    color: "#4A5568",
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    backgroundColor: "#FAFAFA",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  viewDetailsText: {
+    fontSize: 13,
+    color: "#718096",
+    fontWeight: "500",
+  },
+});
 
 export default FavItems;

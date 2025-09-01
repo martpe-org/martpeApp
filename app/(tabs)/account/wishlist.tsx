@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     padding: 20,
-    minHeight: 300, // Ensure minimum height for better UX
+    minHeight: 200, // Ensure minimum height for better UX
   },
   loadingText: {
     marginTop: 12,

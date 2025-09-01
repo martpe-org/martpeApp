@@ -15,7 +15,7 @@ interface FavoriteState {
   fetchFavs: (authToken: string) => Promise<void>;
   addFavorite: (productId: string, authToken: string) => Promise<void>;
   removeFavorite: (productId: string, authToken: string) => Promise<void>;
-  addStoreFavorite: (storeId: string, authToken: string) => Promise<void>;
+  addStoreFavorite: (store: Store, authToken: string) => Promise<void>; // Changed to accept full store object
   removeStoreFavorite: (storeId: string, authToken: string) => Promise<void>;
 }
 
@@ -53,30 +53,32 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
     set({ allFavorites: storedFavorites });
   },
 
- fetchFavs: async (authToken) => {
-  if (!authToken) {
-    set({ error: "Authentication required" });
-    return;
-  }
-  set({ isLoading: true, error: null });
-  try {
-    const favorites = await fetchFavs(authToken);
-    const normalizedFavorites = normalizeFavorites(favorites);
-      
-    // Save to AsyncStorage and update state
-    await saveFavoritesToStorage(normalizedFavorites);
-    set({
-      allFavorites: normalizedFavorites,
-      isLoading: false,
-    });
-  } catch (error) {
-    set({
-      error: error instanceof Error ? error.message : "Failed to fetch favorites",
-      isLoading: false,
-    });
-  }
-},
+  fetchFavs: async (authToken) => {
+    if (!authToken) {
+      set({ error: "Authentication required" });
+      return;
+    }
+    set({ isLoading: true, error: null });
+    try {
+      const favorites = await fetchFavs(authToken);
+      console.log("📦 Raw favorites from API:", favorites);
 
+      const normalizedFavorites = normalizeFavorites(favorites);
+      console.log("✨ Normalized favorites:", normalizedFavorites);
+
+      // Save to AsyncStorage and update state
+      await saveFavoritesToStorage(normalizedFavorites);
+      set({
+        allFavorites: normalizedFavorites,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch favorites",
+        isLoading: false,
+      });
+    }
+  },
 
   addFavorite: async (productId, authToken) => {
     if (!authToken) return;
@@ -139,24 +141,30 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
     }
   },
 
-  addStoreFavorite: async (storeId, authToken) => {
-    if (!authToken) return;
+  addStoreFavorite: async (store, authToken) => {
+    console.log("🏪 Adding store favorite:", { store, authToken: authToken ? "✅" : "❌" });
+    
+    if (!authToken) {
+      console.error("❌ No auth token provided");
+      return;
+    }
+    
     set({ isUpdating: true, error: null });
 
     const current = get().allFavorites;
 
-    if (!current.stores.some((s) => s.id === storeId)) {
-      const updated = { ...current, stores: [...current.stores, { id: storeId } as Store] };
+    if (!current.stores.some((s) => s.id === store.id)) {
+      const updated = { ...current, stores: [...current.stores, store] };
       await saveFavoritesToStorage(updated);
       set({ allFavorites: updated });
     }
 
     try {
-      await updateFavAction(authToken, { action: "add", entity: "store", slug: storeId });
+      await updateFavAction(authToken, { action: "add", entity: "store", slug: store.id });
       await get().fetchFavs(authToken);
     } catch (error) {
       console.error("Failed to add store favorite:", error);
-      const reverted = { ...current, stores: current.stores.filter((s) => s.id !== storeId) };
+      const reverted = { ...current, stores: current.stores.filter((s) => s.id !== store.id) };
       await saveFavoritesToStorage(reverted);
       set({ allFavorites: reverted, error: "Failed to add store favorite", isUpdating: false });
     } finally {

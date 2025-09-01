@@ -1,70 +1,103 @@
-import React, { useRef } from "react";
-import { View, StyleSheet, ScrollView, Dimensions, TextInput } from "react-native";
-import SearchboxDropdownItem from "./SearchboxDropdownItem";
+import { router } from "expo-router";
+import React from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { height } = Dimensions.get("window");
-const MAX_DROPDOWN_HEIGHT = height * 0.4;
-
-interface SuggestionItem {
-  image: string;
-  name: string;
-  id: string;
-  slug?: string;
-}
-
-interface SearchboxDropdownProps {
-  suggestions: SuggestionItem[];
+interface SearchboxDropdownItemProps {
+  item: {
+    image?: string;
+    name: string;
+    symbol?: string;
+    id: string;
+    slug?: string;
+  };
   search: (text: string) => void;
-  isVisible: boolean;
-  onItemPress?: (suggestion: SuggestionItem) => void;
-  inputRef?: React.RefObject<TextInput>; // 👈 accept ref from parent
+  onPress?: (item: any) => void;
+  inputRef?: React.RefObject<any>;
 }
 
-const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
-  suggestions,
+const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
+  item,
   search,
-  onItemPress,
+  onPress,
   inputRef,
-}) => (
-  <View style={styles.dropdownContainer}>
-    <ScrollView
-      style={styles.scrollView}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled" // 👈 important for single tap
-      nestedScrollEnabled={true}
+}) => {
+  const handlePress = () => {
+    try {
+      inputRef?.current?.blur(); // 👈 blur input before nav
+
+      if (onPress) {
+        onPress(item);
+      } else {
+        const identifier = item.slug || item.id;
+        router.push(`/(tabs)/home/result/productDetails/${identifier}`);
+        search(item.name);
+      }
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
+  };
+
+  // ✅ Choose proper image source
+  const getImageSource = () => {
+    if (item.image && item.image.trim() !== "") {
+      return { uri: item.image };
+    }
+    if (item.symbol && item.symbol.trim() !== "") {
+      return { uri: item.symbol };
+    }
+    return { uri: "https://via.placeholder.com/40?text=?" }; // fallback
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      style={styles.dropdownItemContainer}
+      activeOpacity={0.8}
     >
-      {suggestions.slice(0, 8).map((item, index) => (
-        <SearchboxDropdownItem
-          search={search}
-          key={`${item.id}-${index}`}
-          item={item}
-          onPress={() => {
-            inputRef?.current?.blur(); // 👈 blur input immediately
-            onItemPress?.(item);
-          }}
-        />
-      ))}
-    </ScrollView>
-  </View>
-);
+      <View style={styles.dropdownItem}>
+        <Image source={getImageSource()} style={styles.itemImg} />
+        <Text style={styles.itemName} numberOfLines={1}>
+          {item.name}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
-  dropdownContainer: {
-    borderWidth: 1,
-    borderRadius: 12,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    shadowOpacity: 0.15,
-    elevation: 8,
-    zIndex: 1000,
-    maxHeight: MAX_DROPDOWN_HEIGHT,
+  dropdownItemContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#ccc",
   },
-  scrollView: {
-    maxHeight: MAX_DROPDOWN_HEIGHT,
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+    flex: 1,
+  },
+  itemImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 10,
+    flex: 1,
+    color: "#333",
   },
 });
 
-export default SearchboxDropdown;
+export default SearchboxDropdownItem;
