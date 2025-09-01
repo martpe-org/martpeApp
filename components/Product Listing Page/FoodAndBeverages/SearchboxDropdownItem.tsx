@@ -10,9 +10,9 @@ import {
 
 interface SearchboxDropdownItemProps {
   item: {
-    image: string;
+    image?: string;
     name: string;
-    symbol:string;
+    symbol?: string;
     id: string;
     slug?: string;
   };
@@ -28,22 +28,29 @@ const SearchboxDropdownItem: React.FC<SearchboxDropdownItemProps> = ({
     try {
       const identifier = item.slug || item.id;
       router.push(`/(tabs)/home/result/productDetails/${identifier}`);
-      
-      // Update search after navigation starts
       search(item.name);
     } catch (error) {
       console.error("Navigation error:", error);
     }
   };
 
+  const getImageSource = () => {
+    if (item.image && item.image.trim() !== "") {
+      return { uri: item.image };
+    }
+    if (item.symbol && item.symbol.trim() !== "") {
+      return { uri: item.symbol };
+    }
+    return { uri: "https://via.placeholder.com/40?text=?" };
+  };
+
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      style={styles.dropdownItemContainer}
-    >
+    <TouchableOpacity onPress={handlePress} style={styles.dropdownItemContainer}>
       <View style={styles.dropdownItem}>
-        <Image source={{ uri: item.symbol }} style={styles.itemImg} />
-        <Text style={styles.itemName}>{item.name}</Text>
+        <Image source={getImageSource()} style={styles.itemImg} />
+        <Text style={styles.itemName} numberOfLines={1}>
+          {item.name}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -68,6 +75,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#f0f0f0",
   },
   itemName: {
     fontSize: 16,

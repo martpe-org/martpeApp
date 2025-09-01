@@ -60,7 +60,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
           store?.description ||
           store?.descriptor?.description ||
           null;
-        const imageUrl = store?.symbol || store?.images?.[0] || null;
+        const imageUrl = store?.symbol ;
 
         return (
           <View
