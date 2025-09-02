@@ -43,11 +43,31 @@ const CartScreen = () => {
       setLoading(false);
       return;
     }
+
     try {
       setLoading(true);
       const fetchedCarts = await fetchCarts(authToken);
-      setCarts(fetchedCarts || []);
+
+      if (!fetchedCarts) {
+        setCarts([]);
+        return;
+      }
+
+      // Ensure every cart has a store object
+      const cartsWithStores = fetchedCarts.map((cart) => ({
+        ...cart,
+        store:
+          cart.store ??
+          {
+            _id: cart.store_id,
+            name: "Unknown Store",
+            slug: "",
+          },
+      }));
+
+      setCarts(cartsWithStores);
     } catch (error) {
+      console.error("Failed to fetch carts:", error);
       setCarts([]);
     } finally {
       setLoading(false);
@@ -127,16 +147,13 @@ const CartScreen = () => {
         <Text style={styles.titleText}>
           {carts.length > 1 ? "My Carts" : "My Cart"}
         </Text>
-        {/* Heart icon aligned extreme right */}
         <TouchableOpacity
           style={styles.wishlistButton}
-          onPress={() => router.push({ pathname: "/(tabs)/account/wishlist" })}
+          onPress={() =>
+            router.push({ pathname: "/(tabs)/account/wishlist" })
+          }
         >
-          <MaterialCommunityIcons
-            name="heart"
-            size={24}
-            color="#f14343"
-          />
+          <MaterialCommunityIcons name="heart" size={24} color="#f14343" />
           <Text style={styles.wishlistText}>Wishlist</Text>
         </TouchableOpacity>
       </View>
@@ -151,47 +168,30 @@ const CartScreen = () => {
         </View>
       </View>
 
-<FlashList
-  data={[...carts].slice().reverse()} // reverse safely once
-  keyExtractor={(item) => item._id || item.store?._id || `cart-${Math.random()}`}
-  estimatedItemSize={200} // improve perf for FlashList
-  extraData={carts.length} // ensures re-render on change
-  contentContainerStyle={styles.listWrapper}
-  refreshControl={
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-  }
-  renderItem={({ item }) => {
-    if (!item || (!item._id && !item.store?._id)) {
-      console.warn("Invalid cart item:", item);
-      return null;
-    }
-
-    return (
-      <CartCard
-        id={item._id}
-        store={item.store}
-        items={item.cart_items || []}
-        onCartChange={loadCarts}
-        authToken={authToken}
+      <FlashList
+        data={[...carts].slice().reverse()}
+        keyExtractor={(item) => item._id || item.store._id || `cart-${Math.random()}`}
+        estimatedItemSize={200}
+        extraData={carts.length}
+        contentContainerStyle={styles.listWrapper}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        renderItem={({ item }) => (
+          <CartCard
+            id={item._id}
+            store={item.store}
+            items={item.cart_items || []}
+          />
+        )}
       />
-    );
-  }}
-/>
-
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#e9ecef",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#e9ecef" },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   title: {
     backgroundColor: "white",
     paddingHorizontal: 20,
@@ -200,21 +200,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
-  titleText: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginLeft: 10,
-    flex: 1,
-  },
-  wishlistButton: {
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  wishlistText: {
-    color: "#f14343",
-    fontSize: 12,
-    fontWeight: "500",
-  },
+  titleText: { fontSize: 20, fontWeight: "700", marginLeft: 10, flex: 1 },
+  wishlistButton: { flexDirection: "column", alignItems: "center" },
+  wishlistText: { color: "#f14343", fontSize: 12, fontWeight: "500" },
   header: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -224,22 +212,10 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     elevation: 2,
   },
-  headerDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  totalHeaderText: {
-    fontSize: 14,
-  },
-  dot: {
-    color: "#848080",
-    fontSize: 12,
-  },
-  listWrapper: {
-    minHeight: 2,
-    paddingVertical: 10,
-  },
+  headerDetails: { flexDirection: "row", alignItems: "center", gap: 6 },
+  totalHeaderText: { fontSize: 14 },
+  dot: { color: "#848080", fontSize: 12 },
+  listWrapper: { minHeight: 2, paddingVertical: 10 },
   emptyContainer: {
     flexGrow: 1,
     justifyContent: "center",
@@ -255,33 +231,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#eee",
   },
-  emptyHeaderText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  animationContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-  emptyTextContainer: {
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyTitle: {
-    color: "#292935",
-    fontWeight: "600",
-    fontSize: 20,
-  },
-  emptySubtitle: {
-    color: "#707077",
-    fontWeight: "600",
-    fontSize: 13,
-    marginTop: 10,
-  },
+  emptyHeaderText: { fontSize: 30, fontWeight: "bold", color: "#000" },
+  animationContainer: { backgroundColor: "#fff", alignItems: "center", justifyContent: "center", flex: 1 },
+  emptyTextContainer: { height: 100, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { color: "#292935", fontWeight: "600", fontSize: 20 },
+  emptySubtitle: { color: "#707077", fontWeight: "600", fontSize: 13, marginTop: 10 },
   startShoppingButton: {
     backgroundColor: "#f14343",
     width: widthPercentageToDP("90"),
@@ -291,11 +245,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  startShoppingText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 20,
-  },
+  startShoppingText: { color: "#fff", fontWeight: "600", fontSize: 20 },
 });
 
 export default CartScreen;

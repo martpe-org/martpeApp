@@ -17,7 +17,6 @@ interface CartCardProps {
 }
 
 const CartCard: React.FC<CartCardProps> = ({ store, items,id }) => {
-  const { removeCart } = useCartStore();
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
 
@@ -25,36 +24,44 @@ const CartCard: React.FC<CartCardProps> = ({ store, items,id }) => {
 
   if (!items || items.length === 0) return null;
 
-  // ✅ Handle delete with confirm
-  const handleRemoveCart = () => {
-    if (!authToken || !store?._id) {
-      Alert.alert("Login Required", "Please login to remove cart.");
-      return;
-    }
+// ✅ Handle delete with confirm
+const handleRemoveCart = () => {
+  if (!authToken || !store?._id) {
+    Alert.alert("Login Required", "Please login to remove cart.");
+    return;
+  }
 
-    Alert.alert(
-      "Remove Cart",
-      `Are you sure you want to remove the cart from "${store.name || "this store"}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            setIsRemoving(true);
-            try {
-              await removeCart(store._id, authToken);
-            } catch (err) {
-              console.error("CartCard: removeCart failed", err);
-              Alert.alert("Error", "Failed to remove cart. Please try again.");
-            } finally {
-              setIsRemoving(false);
+  Alert.alert(
+    "Remove Cart",
+    `Are you sure you want to remove the cart from "${store.name || "this store"}"?`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          setIsRemoving(true);
+          try {
+            // Use the removeCart method from your Zustand store instead of the imported function
+            const success = await useCartStore.getState().removeCart(store._id, authToken);
+            
+            if (!success) {
+              throw new Error("Failed to remove cart");
             }
-          },
+            
+            // Optionally sync with API after successful removal
+            await useCartStore.getState().syncCartFromApi(authToken);
+          } catch (err) {
+            console.error("CartCard: removeCart failed", err);
+            Alert.alert("Error", "Failed to remove cart. Please try again.");
+          } finally {
+            setIsRemoving(false);
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   return (
     <View style={styles.card}>
