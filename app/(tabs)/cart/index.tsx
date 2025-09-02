@@ -82,23 +82,31 @@ const CartScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Header */}
+        <View style={styles.emptyHeader}>
+          <Text style={styles.emptyHeaderText}>Cart</Text>
+        </View>
+
+        {/* Empty animation */}
         <View style={styles.animationContainer}>
           <LottieView
             autoPlay
+            loop
             ref={animation}
-            style={{
-              width: widthPercentageToDP("60"),
-              backgroundColor: "#fff",
-            }}
+            style={{ width: widthPercentageToDP("60") }}
             source={require("../../../assets/lottiefiles/empty_cart_2.json")}
           />
         </View>
+
+        {/* Empty text */}
         <View style={styles.emptyTextContainer}>
           <Text style={styles.emptyTitle}>Your Cart is Empty!</Text>
           <Text style={styles.emptySubtitle}>
             Looks like you have not added anything to your cart yet.
           </Text>
         </View>
+
+        {/* Button */}
         <TouchableOpacity
           onPress={() => router.push({ pathname: "/(tabs)/home/HomeScreen" })}
           style={styles.startShoppingButton}
@@ -111,59 +119,67 @@ const CartScreen = () => {
 
   const { totalCarts, totalItems } = calculateTotals(carts);
 
-return (
-  <View style={styles.container}>
-    <View style={styles.title}>
-      <BackArrow onPress={() => router.back()} />
-
-      {/* Center Title */}
-      <Text style={styles.titleText}>
-        {carts.length > 1 ? "My Carts" : "My Cart"}
-      </Text>
-
-      {/* Heart icon aligned extreme right */}
-      <TouchableOpacity
-        style={{ marginLeft: "auto", flexDirection: "column" }}
-        onPress={() => router.push({ pathname: "/(tabs)/account/wishlist" })}
-      >
-        <MaterialCommunityIcons
-          name="heart"
-          size={24}
-          color="#f14343"
-          style={{ marginLeft: 10 }}
-        />
-        <Text style={{ color: "#f14343" }}>Wishlist</Text>
-      </TouchableOpacity>
-    </View>
-
-    <View style={styles.header}>
-      <MaterialCommunityIcons name="cart" size={16} color="black" />
-      <View style={styles.headerDetails}>
-        <Text style={styles.totalHeaderText}>{totalItems} Items</Text>
-        <Text style={styles.dot}>{" \u25CF"}</Text>
-        <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.title}>
+        <BackArrow onPress={() => router.back()} />
+        <Text style={styles.titleText}>
+          {carts.length > 1 ? "My Carts" : "My Cart"}
+        </Text>
+        {/* Heart icon aligned extreme right */}
+        <TouchableOpacity
+          style={styles.wishlistButton}
+          onPress={() => router.push({ pathname: "/(tabs)/account/wishlist" })}
+        >
+          <MaterialCommunityIcons
+            name="heart"
+            size={24}
+            color="#f14343"
+          />
+          <Text style={styles.wishlistText}>Wishlist</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Sub-header */}
+      <View style={styles.header}>
+        <MaterialCommunityIcons name="cart" size={16} color="black" />
+        <View style={styles.headerDetails}>
+          <Text style={styles.totalHeaderText}>{totalItems} Items</Text>
+          <Text style={styles.dot}>{" \u25CF"}</Text>
+          <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
+        </View>
+      </View>
+
+<FlashList
+  data={[...carts].slice().reverse()} // reverse safely once
+  keyExtractor={(item) => item._id || item.store?._id || `cart-${Math.random()}`}
+  estimatedItemSize={200} // improve perf for FlashList
+  extraData={carts.length} // ensures re-render on change
+  contentContainerStyle={styles.listWrapper}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+  renderItem={({ item }) => {
+    if (!item || (!item._id && !item.store?._id)) {
+      console.warn("Invalid cart item:", item);
+      return null;
+    }
+
+    return (
+      <CartCard
+        id={item._id}
+        store={item.store}
+        items={item.cart_items || []}
+        onCartChange={loadCarts}
+        authToken={authToken}
+      />
+    );
+  }}
+/>
+
     </View>
-
-    <FlashList
-      data={[...carts].reverse()}
-      renderItem={({ item }) => (
-        <CartCard
-          id={item._id}
-          store={item.store}
-          items={item.cart_items}
-          onCartChange={loadCarts}
-        />
-      )}
-      estimatedItemSize={83}
-      contentContainerStyle={styles.listWrapper}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    />
-  </View>
-);
-
+  );
 };
 
 const styles = StyleSheet.create({
@@ -188,6 +204,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     marginLeft: 10,
+    flex: 1,
+  },
+  wishlistButton: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  wishlistText: {
+    color: "#f14343",
+    fontSize: 12,
+    fontWeight: "500",
   },
   header: {
     flexDirection: "row",
@@ -214,18 +240,31 @@ const styles = StyleSheet.create({
     minHeight: 2,
     paddingVertical: 10,
   },
-  animationContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
   emptyContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
     paddingBottom: 30,
+  },
+  emptyHeader: {
+    backgroundColor: "#fff",
+    width: widthPercentageToDP(100),
+    alignItems: "center",
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
+  emptyHeaderText: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  animationContainer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
   },
   emptyTextContainer: {
     height: 100,

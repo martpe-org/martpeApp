@@ -59,8 +59,6 @@ const FashionCard: FC<FashionCardProps> = ({
           storeId={safeStoreId}
           slug={slug || id}
           catalogId={catalogId}
-          customizable={customizable}         // ✅ pass down
-          customizations={customizations}     // ✅ pass down
         />
       </View>
     );

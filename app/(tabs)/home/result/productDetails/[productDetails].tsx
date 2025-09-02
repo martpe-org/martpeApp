@@ -335,7 +335,6 @@ const ProductDetails: FC = () => {
       slug={productData.slug}
       catalogId={productData.catalog_id}
       price={productData.price?.value || 0}
-
     />
   )}
 </View>

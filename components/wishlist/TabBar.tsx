@@ -11,7 +11,7 @@ const { width } = Dimensions.get("window");
 
 const tabOptions = [
   { id: 1, title: "Items" },
-  { id: 2, title: "Outlets" },
+  { id: 2, title: "Stores" },
 ];
 
 export type WishlistTab = "Items" | "Outlets";

@@ -126,7 +126,16 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 
       {/* like + share */}
       <View style={{ flexDirection: "row", width: "100%", justifyContent: "flex-end" }}>
-        <LikeButton vendorId={vendorIdString} color="#E11D48" />
+<LikeButton
+  vendorId={vendorIdString}
+  storeData={{
+    id: vendorIdString,
+    name: title,
+    descriptor: { short_desc: description },
+    symbol: "https://via.placeholder.com/150", // replace with actual logo if available
+  }}
+  color="#E11D48"
+/>
         <View style={{ marginHorizontal: 5 }} />
         <ShareButton storeName={title} type="outlet" />
       </View>

@@ -3,27 +3,27 @@ import {
   Dimensions,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
   StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
-import { Toast } from "react-native-toast-notifications";
 import { ActivityIndicator } from "react-native-paper";
+import LikeButton from "../common/likeButton";
 
 const { width: screenWidth } = Dimensions.get("screen");
 
 interface FavOutletsProps {
+  itemsData: any[];
   authToken: string;
 }
 
-const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
-  const { allFavorites, isLoading, removeStoreFavorite } = useFavoriteStore();
+const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
+  const { isLoading } = useFavoriteStore();
   const router = useRouter();
-  const stores = allFavorites?.stores || [];
 
   if (isLoading) {
     return (
@@ -34,7 +34,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
     );
   }
 
-  if (!stores.length) {
+  if (!itemsData.length) {
     return (
       <View style={styles.center}>
         <FontAwesome name="heart-o" size={48} color="#CBD5E0" />
@@ -51,7 +51,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
       contentContainerStyle={styles.scrollContainer}
       showsVerticalScrollIndicator={false}
     >
-      {[...stores].reverse().map((store: any, index: number) => {
+      {[...itemsData].reverse().map((store: any, index: number) => {
         const storeName =
           store?.descriptor?.name || store?.name || "Unnamed Store";
         const storeDescription =
@@ -60,37 +60,39 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
           store?.description ||
           store?.descriptor?.description ||
           null;
-        const imageUrl = store?.symbol ;
+        const imageUrl = store?.symbol;
 
         return (
           <View
             key={store.id || store.slug || `store-${index}`}
             style={styles.storeCard}
           >
-            {/* Header with Heart and Delete */}
+            {/* Header */}
             <View style={styles.cardHeader}>
               <View style={styles.favoriteIndicator}>
                 <FontAwesome name="heart" size={16} color="#E53E3E" />
+                <Text
+                  style={{
+                    marginLeft: 6,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: "#E53E3E",
+                  }}
+                >
+                  Favorite
+                </Text>
               </View>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  console.log("🗑️ Attempting to remove store:");
-                  if (authToken) {
-                    removeStoreFavorite(store.id || store.slug, authToken);
-                  } else {
-                    Toast.show("Authentication required", { type: "error" });
-                  }
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <FontAwesome name="trash-o" size={18} color="#718096" />
-              </TouchableOpacity>
+
+              {/* 🔄 LikeButton syncs removal */}
+              <LikeButton
+                vendorId={store.id}
+                storeData={store}
+                color="#E11D48"
+              />
             </View>
 
-            {/* Main Content */}
+            {/* Content */}
             <View style={styles.cardContent}>
-              {/* Store Image */}
               <View style={styles.imageContainer}>
                 <ImageComp
                   source={imageUrl}
@@ -98,8 +100,6 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
                   resizeMode="contain"
                 />
               </View>
-
-              {/* Store Info */}
               <View style={styles.storeInfo}>
                 <Text style={styles.storeName} numberOfLines={2}>
                   {storeName}
@@ -113,8 +113,6 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
                     No description available
                   </Text>
                 )}
-
-                {/* Store Badge */}
                 <View style={styles.storeBadge}>
                   <MaterialIcons name="store" size={12} color="#4A5568" />
                   <Text style={styles.badgeText}>Favorite Store</Text>
@@ -128,7 +126,6 @@ const FavOutlets: FC<FavOutletsProps> = ({ authToken }) => {
               onPress={() =>
                 router.push(`/(tabs)/home/result/productListing/${store.slug}`)
               }
-              activeOpacity={0.8}
             >
               <Text style={styles.viewStoreText}>Tap to view store</Text>
               <FontAwesome name="chevron-right" size={12} color="#A0AEC0" />
@@ -177,10 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
@@ -202,11 +196,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#e8ecf0",
   },
   cardContent: {
     flexDirection: "row",

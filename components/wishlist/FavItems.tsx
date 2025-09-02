@@ -7,7 +7,7 @@ import {
   View,
   StyleSheet,
 } from "react-native";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";

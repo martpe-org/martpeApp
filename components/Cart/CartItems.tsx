@@ -1,6 +1,6 @@
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -25,29 +25,17 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
   const { isLoading: userLoading } = useUserDetails();
   const toast = useToast();
 
+  const [localItems, setLocalItems] = useState<CartItemType[]>([]);
+
+  // Keep local state in sync when parent items change
+  useEffect(() => {
+    if (items?.length) {
+      setLocalItems(items);
+    }
+  }, [items]);
+
   const formatCurrency = (amt: number) =>
     `₹${amt.toFixed(2).replace(/\.?0+$/, "")}`;
-
-  // Filter and validate items - similar to how FavOutlets handles stores
-  const validItems = useMemo(() => {
-    const filtered = items?.filter((item) => {
-      if (!item || !item._id) {
-        console.warn('CartItems: Invalid item found:', item);
-        return false;
-      }
-      return true;
-    }) || [];
-    
-    console.log('CartItems Debug:', {
-      cartId,
-      totalItemsPassed: items?.length || 0,
-      validItemsCount: filtered.length,
-      validItemIds: filtered.map(item => item._id),
-      validItemNames: filtered.map(item => item.product?.name || 'Unknown')
-    });
-    
-    return filtered;
-  }, [items, cartId]);
 
   const renderCartItem = ({ item }: { item: CartItemType }) => {
     if (!item || !item._id) return null;
@@ -55,7 +43,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
     const productName = item.product?.name || "Unknown Product";
     const productImage = item.product?.symbol;
     const unitPrice = item.unit_price || 0;
-    const totalPrice = item.total_price || (unitPrice * (item.qty || 1));
+    const totalPrice = unitPrice * (item.qty || 1);
 
     return (
       <TouchableOpacity
@@ -74,11 +62,15 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         {/* Product Image */}
         <View style={styles.imageContainer}>
           {productImage ? (
-            <Image 
-              source={{ uri: productImage }} 
+            <Image
+              source={{ uri: productImage }}
               style={styles.image}
-              defaultSource={{ uri: 'https://via.placeholder.com/50?text=IMG' }}
-              onError={() => console.warn('Failed to load image:', productImage)}
+              defaultSource={{
+                uri: "https://via.placeholder.com/50?text=IMG",
+              }}
+              onError={() =>
+                console.warn("Failed to load image:", productImage)
+              }
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage]}>
@@ -92,15 +84,11 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
           <Text style={styles.name} numberOfLines={2}>
             {productName}
           </Text>
-          <Text style={styles.price}>
-            Unit: {formatCurrency(unitPrice)}
-          </Text>
+          <Text style={styles.price}>Unit: {formatCurrency(unitPrice)}</Text>
           <Text style={styles.total}>
             Total: {formatCurrency(totalPrice)}
           </Text>
-          <Text style={styles.quantity}>
-            Qty: {item.qty || 1}
-          </Text>
+          <Text style={styles.quantity}>Qty: {item.qty || 1}</Text>
         </View>
 
         {/* Quantity Controls */}
@@ -116,8 +104,18 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
             customGroupIds={item.product?.directlyLinkedCustomGroupIds ?? []}
             productPrice={unitPrice}
             onQtyChange={(newQty: number) => {
-              console.log('Quantity changed:', { itemId: item._id, newQty, unitPrice });
-              // The parent will handle the actual state update
+              console.log("Quantity changed:", {
+                itemId: item._id,
+                newQty,
+                unitPrice,
+              });
+
+              // ✅ Optimistic local state update
+              setLocalItems((prev) =>
+                prev.map((p) =>
+                  p._id === item._id ? { ...p, qty: newQty } : p
+                )
+              );
             }}
           />
         </View>
@@ -125,33 +123,21 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
     );
   };
 
-  // Calculate totals - similar to FavOutlets pattern
+  // Calculate totals from local state
   const { totalCost, totalItems } = useMemo(() => {
-    if (!validItems?.length) return { totalCost: 0, totalItems: 0 };
-    
-    const totals = validItems.reduce(
+    if (!localItems?.length) return { totalCost: 0, totalItems: 0 };
+
+    return localItems.reduce(
       (acc, item) => {
-        if (!item || !item._id) return acc;
-        
-        const itemTotal = item.total_price || (item.unit_price * (item.qty || 1)) || 0;
-        const itemQty = item.qty || 1;
-        
+        const qty = item.qty || 1;
+        const itemTotal = (item.unit_price || 0) * qty;
         acc.totalCost += itemTotal;
-        acc.totalItems += itemQty;
+        acc.totalItems += qty;
         return acc;
       },
       { totalCost: 0, totalItems: 0 }
     );
-
-    console.log('CartItems Totals:', {
-      cartId,
-      itemsCount: validItems.length,
-      totalCost: totals.totalCost,
-      totalItems: totals.totalItems
-    });
-
-    return totals;
-  }, [validItems, cartId]);
+  }, [localItems]);
 
   if (userLoading) {
     return (
@@ -162,7 +148,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
     );
   }
 
-  if (!validItems?.length) {
+  if (!localItems?.length) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyText}>Your cart is empty</Text>
@@ -173,14 +159,14 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header - similar to FavOutlets */}
+      {/* Header */}
       <Text style={styles.header}>
-        Items ({validItems.length}, {totalItems} total)
+        Items ({localItems.length}, {totalItems} total)
       </Text>
 
       {/* Items List */}
       <FlashList
-        data={validItems}
+        data={localItems}
         renderItem={renderCartItem}
         keyExtractor={(item) => item._id || `item-${Math.random()}`}
         estimatedItemSize={100}
@@ -188,7 +174,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         contentContainerStyle={styles.listContainer}
       />
 
-      {/* Footer - similar to FavOutlets */}
+      {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.subtotal}>
           Subtotal: {formatCurrency(totalCost)}
@@ -196,7 +182,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         <TouchableOpacity
           style={styles.checkout}
           onPress={() => {
-            console.log('Checkout pressed for cart:', cartId);
+            console.log("Checkout pressed for cart:", cartId);
             router.push({
               pathname: "/(tabs)/cart/[checkout]",
               params: { checkout: cartId },
@@ -212,9 +198,9 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#f8f9fa" 
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
   },
   center: {
     flex: 1,
@@ -242,11 +228,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-  header: { 
-    fontSize: 16, 
-    fontWeight: "bold", 
+  header: {
+    fontSize: 16,
+    fontWeight: "bold",
     margin: 16,
-    color: "#1A202C"
+    color: "#1A202C",
   },
   listContainer: {
     paddingHorizontal: 8,
@@ -289,19 +275,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 8,
   },
-  name: { 
+  name: {
     fontWeight: "700",
     fontSize: 14,
     color: "#1A202C",
     marginBottom: 4,
   },
-  price: { 
-    color: "#4A5568", 
+  price: {
+    color: "#4A5568",
     fontSize: 12,
     marginBottom: 2,
   },
-  total: { 
-    fontWeight: "600", 
+  total: {
+    fontWeight: "600",
     fontSize: 13,
     color: "#2F855A",
     marginBottom: 2,
@@ -321,8 +307,8 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
   },
-  subtotal: { 
-    fontWeight: "bold", 
+  subtotal: {
+    fontWeight: "bold",
     marginBottom: 12,
     fontSize: 16,
     color: "#1A202C",
@@ -338,8 +324,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  checkoutText: { 
-    color: "#fff", 
+  checkoutText: {
+    color: "#fff",
     fontWeight: "700",
     fontSize: 16,
   },
