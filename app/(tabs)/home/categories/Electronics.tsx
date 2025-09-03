@@ -20,6 +20,7 @@ import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import { Entypo } from "@expo/vector-icons";
+import { FlatList } from "react-native-gesture-handler";
 
 const screenWidth = Dimensions.get("window").width;
 const domain = "ONDC:RET14";
@@ -133,7 +134,7 @@ function Electronics() {
             style={{ width: 80, height: 80 }}
           />
         </View>
-        <Text style={styles.subHeadingText} numberOfLines={2}>
+        <Text style={styles.subHeadingTextUp} numberOfLines={1}>
           {subCategory.name}
         </Text>
       </TouchableOpacity>
@@ -147,7 +148,6 @@ function Electronics() {
       </SafeAreaView>
     );
   }
-
 
   if (!storesData.length && !offersData.length) {
     return (
@@ -198,9 +198,6 @@ function Electronics() {
             <Text style={styles.subHeadingText}>Explore New Gadgets</Text>
             <View style={styles.line} />
           </View>
-
-          <View style={styles.subCategories}>{renderSubCategories()}</View>
-
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -216,29 +213,40 @@ function Electronics() {
               style={{ marginLeft: 5 }}
             />
           </TouchableOpacity>
+          <View style={styles.subCategories}>{renderSubCategories()}</View>
         </View>
 
         {/* Stores Section */}
         <View style={styles.section}>
           <View style={styles.subHeading}>
-            <View style={styles.line} />
             <Text style={styles.subHeadingText}>
+              <View style={styles.line} />
               Electronics Stores Near You
+              <View style={styles.line} />
             </Text>
-            <View style={styles.line} />
           </View>
 
-          {storesData.map((storeData, index) => (
-            <StoreCard3
-              key={`store-${storeData.id}-${index}`}
-              storeData={storeData}
-              categoryFiltered={[]}
-                    userLocation={{
-        lat: selectedAddress?.lat || 0,
-        lng: selectedAddress?.lng || 0,
-      }}
-            />
-          ))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          >
+            {storesData.map((storeData, index) => (
+              <View
+                key={`store-${storeData.id}-${index}`}
+                style={{ width: 300, height: 350, marginRight: 12 }} // ✅ control card width + spacing
+              >
+                <StoreCard3
+                  storeData={storeData}
+                  categoryFiltered={[]}
+                  userLocation={{
+                    lat: selectedAddress?.lat || 0,
+                    lng: selectedAddress?.lng || 0,
+                  }}
+                />
+              </View>
+            ))}
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -258,11 +266,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: "#fff",
   },
-  section: { marginVertical: 10 },
+  section: { marginHorizontal: 10 },
   subCategories: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-evenly",
     flexWrap: "wrap",
     marginVertical: 15,
     paddingHorizontal: 10,
@@ -283,7 +291,7 @@ const styles = StyleSheet.create({
     width: (screenWidth - 80) / 4,
   },
   subCategoryImage: {
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#fff",
     marginBottom: 8,
     borderRadius: 12,
     elevation: 2,
@@ -297,19 +305,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 15,
-    marginHorizontal: 20,
+    marginVertical: 25,
+  },
+  subHeadingTextUp: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#b61616",
     marginHorizontal: 10,
   },
   subHeadingText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: "red",
     textAlign: "center",
   },
   viewMoreButton: {
@@ -319,10 +331,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    alignSelf: "center",
+    alignSelf: "flex-end",
     borderWidth: 1,
     borderColor: "#ddd",
-    marginTop: 10,
+    marginTop: -17,
+    marginBottom: -15,
   },
   viewMoreButtonText: { color: "#F13A3A", fontSize: 12, fontWeight: "500" },
   errorContainer: {

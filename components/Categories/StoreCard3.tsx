@@ -58,7 +58,18 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
     <View style={styles.cardWrapper}>
       {/* Banner */}
       <View style={styles.bannerContainer}>
-        <Image source={{ uri: bgImg }} style={styles.backgroundImage} resizeMode="contain" />
+        <TouchableOpacity 
+          onPress={() => {
+              if (storeData.slug) {
+                router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
+              } else {
+                console.warn("Store slug missing");
+              }
+            }}
+        >
+                  <Image source={{ uri: bgImg }} style={styles.backgroundImage} resizeMode="contain" />
+
+        </TouchableOpacity>
 
         {/* Floating actions */}
         <View style={styles.topActions}>
@@ -104,29 +115,16 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
           </View>
 
           {/* Address */}
-          <TouchableOpacity
+          <View
             style={styles.addressContainer}
-            onPress={() => router.push("/address/SavedAddresses")}
           >
             <MaterialIcons name="location-pin" size={14} color="black" />
-            <Text style={styles.addressText} numberOfLines={1}>
-              {street}, {city}
+            <Text style={styles.addressText} numberOfLines={2}>
+               {city}
             </Text>
-          </TouchableOpacity>
+          </View>
 
-          {/* Browse Store */}
-          <TouchableOpacity
-            style={styles.browseButton}
-            onPress={() => {
-              if (storeData.slug) {
-                router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
-              } else {
-                console.warn("Store slug missing");
-              }
-            }}
-          >
-            <Text style={styles.browseButtonText}>Browse Store</Text>
-          </TouchableOpacity>
+
         </View>
       </View>
 
@@ -140,19 +138,19 @@ export default StoreCard3;
 const styles = StyleSheet.create({
   cardWrapper: {
     marginBottom: 30,
-    marginHorizontal: 15,
-    borderRadius: 16,
+    marginHorizontal: 10,
+    borderRadius: 26,
     overflow: "hidden",
     backgroundColor: "#fffaf5",
-    elevation: 5,
+    elevation: 15,
     shadowColor: "#000",
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.8,
     shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 3, height: 3 },
   },
   bannerContainer: {
     position: "relative",
-    backgroundColor: "#fff",
+    backgroundColor:"#fff",
   },
   backgroundImage: {
     width: "100%",
@@ -168,9 +166,6 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: "#fff",
     borderRadius: 20,
-    borderWidth:1,
-    borderColor:"#000",
-    elevation:2,
     padding: 5,
   },
   bannerContent: {
@@ -222,18 +217,4 @@ const styles = StyleSheet.create({
     color: "#666",
     flex: 1,
   },
-  browseButton: {
-    backgroundColor: "#F13A3A",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: "flex-end",
-    marginTop: 5,
-  },
-  browseButtonText: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
 });
