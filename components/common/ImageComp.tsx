@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
 import {
+  ActivityIndicator,
+  Image,
   ImageResizeMode,
   ImageStyle,
   StyleSheet,
   View,
 } from "react-native";
-import { Image } from 'expo-image';
 
 const styles = StyleSheet.create({
   container: {
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
 });
 
 type ImageInterface = {
-  source: { uri: string};
+  source?: { uri?: string } | { url?: string } | string | number | null;
   imageStyle?: ImageStyle;
   resizeMode?: ImageResizeMode;
   fallbackSource?: { uri: string } | number;
@@ -53,60 +54,60 @@ const ImageComp = (props: ImageInterface & typeof defaultProps) => {
     loaderSize,
   } = props;
 
-  // // Normalize all possible source types into a valid RN Image source
-  // const normalizedSource = useMemo(() => {
-  //   if (!source) return fallbackSource;
+  // Normalize all possible source types into a valid RN Image source
+  const normalizedSource = useMemo(() => {
+    if (!source) return fallbackSource;
 
-  //   if (typeof source === "string") {
-  //     return source.trim() !== "" ? { uri: source } : fallbackSource;
-  //   }
+    if (typeof source === "string") {
+      return source.trim() !== "" ? { uri: source } : fallbackSource;
+    }
 
-  //   if (typeof source === "number") {
-  //     return source;
-  //   }
+    if (typeof source === "number") {
+      return source;
+    }
 
-  //   if ("uri" in source && source.uri) {
-  //     return { uri: source.uri };
-  //   }
+    if ("uri" in source && source.uri) {
+      return { uri: source.uri };
+    }
 
-  //   if ("url" in source && source.url) {
-  //     return { uri: source.url };
-  //   }
+    if ("url" in source && source.url) {
+      return { uri: source.url };
+    }
 
-  //   return fallbackSource;
-  // }, [source, fallbackSource]);
+    return fallbackSource;
+  }, [source, fallbackSource]);
 
-  // const [isLoading, setIsLoading] = useState(
-  //   typeof normalizedSource === "object" &&
-  //     normalizedSource !== null &&
-  //     "uri" in normalizedSource &&
-  //     !!normalizedSource.uri
-  // );
-  // const [finalSource, setFinalSource] = useState(normalizedSource);
-  // const [hasErrored, setHasErrored] = useState(false);
+  const [isLoading, setIsLoading] = useState(
+    typeof normalizedSource === "object" &&
+      normalizedSource !== null &&
+      "uri" in normalizedSource &&
+      !!normalizedSource.uri
+  );
+  const [finalSource, setFinalSource] = useState(normalizedSource);
+  const [hasErrored, setHasErrored] = useState(false);
 
-  // const handleError = () => {
-  //   if (!hasErrored) {
-  //     setHasErrored(true);
-  //     setFinalSource(fallbackSource);
-  //   }
-  //   setIsLoading(false);
-  // };
+  const handleError = () => {
+    if (!hasErrored) {
+      setHasErrored(true);
+      setFinalSource(fallbackSource);
+    }
+    setIsLoading(false);
+  };
 
   return (
     <View style={styles.container}>
       <Image
-        source={source.uri}
+        source={finalSource}
         style={[styles.imageStyle, imageStyle]}
-       // resizeMode={resizeMode}
-        // onError={handleError}
-        // onLoadEnd={() => setIsLoading(false)}
+        resizeMode={resizeMode}
+        onError={handleError}
+        onLoadEnd={() => setIsLoading(false)}
       />
-      {/* {isLoading && (
+      {isLoading && (
         <View style={styles.loader}>
           <ActivityIndicator size={loaderSize} color={loaderColor} />
         </View>
-      )} */}
+      )}
     </View>
   );
 };

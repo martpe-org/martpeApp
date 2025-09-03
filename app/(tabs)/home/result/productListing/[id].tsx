@@ -1,19 +1,12 @@
 import GroceryCardContainer from "@/components/Product-Listing-Page/Grocery/GroceryCardContainer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import {
-  useInfiniteQuery,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
   RefreshControl,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,76 +19,14 @@ import PLPBanner from "../../../../../components/Product-Listing-Page/FoodAndBev
 import Searchbox from "../../../../../components/Product-Listing-Page/FoodAndBeverages/Searchbox";
 import PLPHomeAndDecor from "../../../../../components/Product-Listing-Page/HomeAndDecor/PLPHomeAndDecor";
 import PLPPersonalCare from "../../../../../components/Product-Listing-Page/PersonalCare/PLPPersonalCare";
-import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../../components/common/Loader";
 import { fetchStoreDetails } from "../../../../../components/store/fetch-store-details";
 import { FetchStoreDetailsResponseType } from "../../../../../components/store/fetch-store-details-type";
 import { fetchStoreItems } from "../../../../../components/store/fetch-store-items";
-import {
-  FetchStoreItemsResponseType,
-  StoreItem,
-} from "../../../../../components/store/fetch-store-items-type";
+import { FetchStoreItemsResponseType, StoreItem } from "../../../../../components/store/fetch-store-items-type";
 import useDeliveryStore from "../../../../../state/deliveryAddressStore";
 
-// ===================
-// Pagination constants
-// ===================
-const ITEMS_PER_PAGE = 20;
-
-// ==============
-// Query Keys
-// ==============
-const queryKeys = {
-  storeDetails: (slug: string) => ["store-details", slug] as const,
-  storeItems: (slug: string, page: number, search: string) =>
-    ["store-items", slug, page, search] as const,
-  storeItemsInfinite: (slug: string, search: string) =>
-    ["store-items-infinite", slug, search] as const,
-};
-
-// ==============
-// Helper methods
-// ==============
-const safeNormalize = (val?: string) =>
-  typeof val === "string" ? val.toLowerCase().trim() : "";
-
-const getFirst = (maybeArr: string | string[] | undefined): string =>
-  Array.isArray(maybeArr) ? maybeArr[0] : maybeArr ?? "";
-
-// ✅ Enhanced uniqueBy function with better key generation
-const uniqueBy = <T,>(arr: T[], keyFn: (x: T) => string) => {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  let counter = 0;
-
-  for (const item of arr) {
-    const primaryKey = keyFn(item);
-    let key = primaryKey;
-
-    if (!key || seen.has(key)) {
-      key = `${primaryKey}_${counter}_${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
-      counter++;
-    }
-
-    if (!seen.has(key)) {
-      seen.add(key);
-      out.push(item);
-    }
-  }
-  return out;
-};
-
-// ===================
 // Types
-// ===================
-interface ComponentDescriptor {
-  images: string[];
-  name: string;
-  symbol: string;
-}
-
 interface ComponentCatalogItem {
   bpp_id: string;
   bpp_uri: string;
@@ -126,6 +57,7 @@ interface ComponentCatalogItem {
 }
 
 interface VendorData {
+  _id: string;
   address?: {
     area_code?: string;
     city?: string;
@@ -134,153 +66,34 @@ interface VendorData {
     street?: string;
   };
   catalogs: ComponentCatalogItem[];
-  descriptor: ComponentDescriptor;
-  fssai_license_no?: string;
+  descriptor: {
+    images: string[];
+    name: string;
+    symbol: string;
+  };
+  domain: string;
   geoLocation: {
     lat: number;
     lng: number;
-    point: {
-      coordinates: number[];
-      type: string;
-    };
   };
   storeSections: string[];
-  domain: string;
-  time_to_ship_in_hours: {
-    avg: number;
-    max: number;
-    min: number;
-  };
   panIndia: boolean;
   hyperLocal: boolean;
 }
 
-interface FoodDetails {
-  images: string;
-  long_desc: string;
-  name: string;
-  short_desc: string;
-  symbol: string;
-  price: string;
-  storeId: string;
-  maxQuantity: number;
-  itemId: string;
-  visible: boolean;
-  maxPrice: number;
-  discount: number;
+interface ErrorState {
+  message: string;
+  retry?: boolean;
 }
 
-interface PaginatedStoreItemsResponse {
-  items: ComponentCatalogItem[];
-  hasNextPage: boolean;
-  totalCount: number;
-}
+// Helper functions
+const getFirst = (maybeArr: string | string[] | undefined): string =>
+  Array.isArray(maybeArr) ? maybeArr[0] : maybeArr ?? "";
 
-// ================================
-// API Functions for TanStack Query
-// ================================
-const fetchStoreDetailsQuery = async (
-  slug: string
-): Promise<VendorData | null> => {
-  if (!slug) throw new Error("Store slug is required");
+const safeNormalize = (val?: string) =>
+  typeof val === "string" ? val.toLowerCase().trim() : "";
 
-  const [storeDetails, storeItems] = await Promise.all([
-    fetchStoreDetails(slug),
-    fetchStoreItems(slug),
-  ]);
-
-  if (!storeDetails || !storeItems) {
-    throw new Error("Failed to fetch store data");
-  }
-
-  return convertToVendorData(storeDetails, storeItems);
-};
-
-const fetchStoreItemsPaginated = async ({
-  slug,
-  pageParam = 1,
-  searchString = "",
-}: {
-  slug: string;
-  pageParam: number;
-  searchString: string;
-}): Promise<PaginatedStoreItemsResponse> => {
-  if (!slug) throw new Error("Store slug is required");
-
-  // Fetch all items (you might need to modify your API to support pagination)
-  const storeItems = await fetchStoreItems(slug);
-
-  if (!storeItems?.results) {
-    return { items: [], hasNextPage: false, totalCount: 0 };
-  }
-
-  // Convert to component format
-  const allItems: ComponentCatalogItem[] = storeItems.results.map(
-    (item: StoreItem) => ({
-      bpp_id: item.provider_id || "",
-      bpp_uri: "",
-      catalog_id: item.catalog_id || "",
-      category_id: item.category_id || "",
-      descriptor: {
-        images: item.images || [],
-        long_desc: item.short_desc || "",
-        name: item.name || "",
-        short_desc: item.short_desc || "",
-        symbol: item.symbol || "",
-      },
-      id: item.slug || item._id || "",
-      location_id: item.location_id || "",
-      non_veg: item.diet_type === "non_veg",
-      price: {
-        maximum_value: item.price?.maximum_value ?? item.price?.value ?? 0,
-        offer_percent: item.price?.offerPercent ?? null,
-        offer_value: null,
-        value: item.price?.value ?? 0,
-      },
-      quantity: {
-        available: { count: item.quantity ?? 0 },
-        maximum: { count: item.quantity ?? 0 },
-      },
-      provider_id: item.provider_id || "",
-      veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
-    })
-  );
-
-  // Apply search filter
-  let filteredItems = allItems;
-  if (searchString.trim()) {
-    const searchTerm = searchString.toLowerCase();
-    filteredItems = allItems.filter(
-      (item) =>
-        item.descriptor.name.toLowerCase().includes(searchTerm) ||
-        item.descriptor.short_desc.toLowerCase().includes(searchTerm) ||
-        item.category_id.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  // Apply deduplication
-  const deduplicatedItems = uniqueBy(filteredItems, (x) => {
-    const id = x.id || x.catalog_id || "";
-    const name = x.descriptor?.name || "";
-    const categoryId = x.category_id || "";
-    return `${id}::${name}::${categoryId}`;
-  });
-
-  // Apply pagination
-  const startIndex = (pageParam - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedItems = deduplicatedItems.slice(startIndex, endIndex);
-
-  return {
-    items: paginatedItems,
-    hasNextPage: endIndex < deduplicatedItems.length,
-    totalCount: deduplicatedItems.length,
-  };
-};
-
-// ================================
-// Convert backend -> component data
-// ================================
+// Convert backend data to component format
 const convertToVendorData = (
   storeDetails: FetchStoreDetailsResponseType,
   storeItems: FetchStoreItemsResponseType
@@ -288,15 +101,9 @@ const convertToVendorData = (
   try {
     if (!storeDetails || !storeItems?.results) return null;
 
-    const descriptor: ComponentDescriptor = {
-      images: storeDetails.images || [],
-      name: storeDetails.name || "",
-      symbol: storeDetails.symbol || "",
-    };
-
-    const catalogItems: ComponentCatalogItem[] = (storeItems.results || []).map(
+    const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
       (item: StoreItem) => ({
-        bpp_id: item.provider_id || "",
+        bpp_id: storeDetails._id,
         bpp_uri: "",
         catalog_id: item.catalog_id || "",
         category_id: item.category_id || "",
@@ -320,12 +127,13 @@ const convertToVendorData = (
           available: { count: item.quantity ?? 0 },
           maximum: { count: item.quantity ?? 0 },
         },
-        provider_id: item.provider_id || "",
+        provider_id: storeDetails._id, // Use actual store ID
         veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
       })
     );
 
     return {
+      _id: storeDetails._id,
       address: {
         area_code: storeDetails.address?.area_code || "",
         city: storeDetails.address?.city || "",
@@ -334,23 +142,17 @@ const convertToVendorData = (
         street: storeDetails.address?.street || "",
       },
       catalogs: catalogItems,
-      descriptor,
-      fssai_license_no: storeDetails.fssai_license_no || "",
+      descriptor: {
+        images: storeDetails.images || [],
+        name: storeDetails.name || "",
+        symbol: storeDetails.symbol || "",
+      },
+      domain: storeDetails.domain || "",
       geoLocation: {
         lat: storeDetails.gps?.lat || 0,
         lng: storeDetails.gps?.lon || 0,
-        point: {
-          coordinates: [storeDetails.gps?.lon || 0, storeDetails.gps?.lat || 0],
-          type: "Point",
-        },
       },
       storeSections: storeDetails.store_categories || [],
-      domain: storeDetails.domain || "",
-      time_to_ship_in_hours: {
-        avg: storeDetails.avg_tts_in_h || 0,
-        max: storeDetails.max_tts_in_h || storeDetails.avg_tts_in_h || 0,
-        min: storeDetails.avg_tts_in_h || 0,
-      },
       panIndia: !!storeDetails.isPanindia,
       hyperLocal: !!storeDetails.isHyperLocalOnly,
     };
@@ -365,112 +167,76 @@ const PLP: React.FC = () => {
   const vendorSlug = getFirst(vendor.id);
   const animation = useRef<LottieView>(null);
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-  const queryClient = useQueryClient();
 
   // State
-  const [foodDetails, setFoodDetails] = useState<FoodDetails>({
-    images: "",
-    long_desc: "",
-    name: "",
-    short_desc: "",
-    symbol: "",
-    price: "",
-    storeId: "",
-    maxQuantity: 0,
-    itemId: "",
-    visible: true,
-    maxPrice: 0,
-    discount: 0,
-  });
-
+  const [vendorData, setVendorData] = useState<VendorData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<ErrorState | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchString, setSearchString] = useState<string>("");
 
-  // ✅ TanStack Query for store details
-  const {
-    data: vendorData,
-    isLoading: isLoadingVendor,
-    error: vendorError,
-    refetch: refetchVendor,
-  } = useQuery({
-    queryKey: queryKeys.storeDetails(vendorSlug),
-    queryFn: () => fetchStoreDetailsQuery(vendorSlug),
-    enabled: !!vendorSlug,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-  });
+  // Data fetching function
+  const fetchData = useCallback(
+    async (showLoader = true) => {
+      if (!vendorSlug) {
+        setError({ message: "Store ID is required", retry: false });
+        setIsLoading(false);
+        return;
+      }
 
-  // ✅ TanStack Infinite Query for paginated store items
-  const {
-    data: infiniteItemsData,
-    isLoading: isLoadingItems,
-    error: itemsError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch: refetchItems,
-    isRefetching,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.storeItemsInfinite(vendorSlug, searchString),
-    queryFn: ({ pageParam = 1 }) =>
-      fetchStoreItemsPaginated({
-        slug: vendorSlug,
-        pageParam,
-        searchString,
-      }),
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.hasNextPage ? allPages.length + 1 : undefined;
+      try {
+        if (showLoader) setIsLoading(true);
+        setError(null);
+
+        const [storeDetails, storeItems] = await Promise.all([
+          fetchStoreDetails(vendorSlug),
+          fetchStoreItems(vendorSlug),
+        ]);
+
+        if (storeDetails && storeItems) {
+          const convertedData = convertToVendorData(storeDetails, storeItems);
+          setVendorData(convertedData);
+          console.log("Store details loaded successfully:", storeDetails.name);
+        } else {
+          setError({
+            message: "Store not found or unavailable",
+            retry: true,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching store details:", err);
+        setError({
+          message: "Failed to load store details. Please check your connection.",
+          retry: true,
+        });
+      } finally {
+        setIsLoading(false);
+        setRefreshing(false);
+      }
     },
-    enabled: !!vendorSlug,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Flatten paginated data
-  const allItems = useMemo(() => {
-    return infiniteItemsData?.pages?.flatMap((page) => page.items) || [];
-  }, [infiniteItemsData]);
-
-  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        {...props}
-      />
-    ),
-    []
+    [vendorSlug]
   );
 
-  // ✅ Search handler with query invalidation
-  const onInputChanged = useCallback(
-    (text: string) => {
-      setSearchString(text);
-      // Invalidate and refetch with new search term
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.storeItemsInfinite(vendorSlug, text),
-      });
-    },
-    [vendorSlug, queryClient]
-  );
+  // Effect hooks
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // ✅ Load more items handler
-  const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  // Event handlers
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(false);
+  }, [fetchData]);
 
-  // ✅ Refresh handler
-  const onRefresh = useCallback(async () => {
-    await Promise.all([refetchVendor(), refetchItems()]);
-  }, [refetchVendor, refetchItems]);
+  const handleRetry = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // Serviceability check
+  const onInputChanged = useCallback((text: string) => {
+    setSearchString(text);
+  }, []);
+
+  // Computed values
   const serviceable = useMemo(() => {
     if (!vendorData) return false;
 
@@ -486,7 +252,6 @@ const PLP: React.FC = () => {
     }
   }, [vendorData, selectedDetails?.city]);
 
-  // Computed vendor info
   const { vendorAddress, storeCategories, dropdownHeaders } = useMemo(() => {
     if (!vendorData)
       return {
@@ -495,119 +260,110 @@ const PLP: React.FC = () => {
         dropdownHeaders: [] as string[],
       };
 
-    const { locality, street, city, state, area_code } =
-      vendorData.address || {};
+    const { locality, street, city, state, area_code } = vendorData.address || {};
     const vendorAddress = [locality, street, city, state, area_code]
       .filter(Boolean)
       .join(", ");
 
-    const storeCategories =
-      vendorData.storeSections
-        ?.map((section) =>
-          section
-            .replace(/_/g, " ")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase()
-            .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
-        )
-        .join(", ") || "";
+    const storeCategories = vendorData.storeSections
+      ?.map((section) =>
+        section
+          .replace(/_/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase()
+          .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+      )
+      .join(", ") || "";
 
     const dropdownHeaders = Array.from(
-      new Set(allItems.map((item) => item.category_id || ""))
+      new Set(vendorData.catalogs.map((item) => item.category_id || ""))
     );
 
     return { vendorAddress, storeCategories, dropdownHeaders };
-  }, [vendorData, allItems]);
+  }, [vendorData]);
 
-  // Loading states
-  const isLoading = isLoadingVendor || isLoadingItems;
-  const error = vendorError || itemsError;
-
-  // Loading / error / empty
-  if (isLoading && !infiniteItemsData) return <Loader />;
-
-  if (error) {
-    return (
+  // Render error component
+  const renderError = () => (
+    <SafeAreaView style={styles.container}>
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          {error instanceof Error ? error.message : "An error occurred"}
+        <Text style={styles.errorText}>{error?.message}</Text>
+        {error?.retry && (
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Tap to retry</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+
+  // Render unserviceable component
+  const renderUnserviceable = () => (
+    <SafeAreaView style={styles.unserviceableContainer}>
+      <View style={styles.animationContainer}>
+        <LottieView
+          autoPlay
+          ref={animation}
+          style={styles.lottieAnimation}
+          source={require("../../../../../assets/lottiefiles/no_store.json")}
+        />
+      </View>
+
+      <View style={styles.messageContainer}>
+        <Text style={styles.unserviceableText}>
+          The store is currently not serviceable in your area
         </Text>
-        <TouchableOpacity
-          onPress={() => onRefresh()}
-          style={styles.retryButton}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
       </View>
-    );
-  }
 
-  if (!vendorData) {
-    return (
-      <View style={styles.contentContainer}>
-        <Text style={styles.noDataText}>No data available</Text>
-      </View>
-    );
-  }
+      <TouchableOpacity
+        onPress={() => router.push("/address/SavedAddresses")}
+        style={styles.primaryButton}
+      >
+        <MaterialCommunityIcons size={20} name="map-marker" />
+        <Text style={styles.primaryButtonText}>Change Location</Text>
+      </TouchableOpacity>
 
-  if (!serviceable) {
-    return (
-      <View style={styles.unserviceableContainer}>
-        <View style={styles.animationContainer}>
-          <LottieView
-            autoPlay
-            ref={animation}
-            style={styles.lottieAnimation}
-            source={require("../../../../../assets/lottiefiles/no_store.json")}
-          />
-        </View>
+      <TouchableOpacity
+        onPress={() => router.push("./(tabs)/home")}
+        style={styles.secondaryButton}
+      >
+        <Text style={styles.secondaryButtonText}>View other stores</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 
-        <View style={styles.messageContainer}>
-          <Text style={styles.unserviceableText}>
-            The store is currently not serviceable in your area
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => router.push("/address/SavedAddresses")}
-          style={styles.primaryButton}
-        >
-          <MaterialCommunityIcons size={20} name="map-marker" />
-          <Text style={styles.primaryButtonText}>Change Location</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("./(tabs)/home")}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>View other stores</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Choose PLP by domain
+  // Choose PLP component by domain
   const renderProductListingPage = () => {
-    const domain = vendorData.domain;
+    if (!vendorData) return null;
+
+    const { domain, catalogs, _id: storeId, descriptor } = vendorData;
 
     switch (domain) {
       case "ONDC:RET10":
         return (
           <GroceryCardContainer
-            catalog={allItems}
+            catalog={catalogs}
             searchString={searchString}
+            storeId={storeId}
+            storeName={descriptor.name}
           />
         );
 
       case "ONDC:RET12":
-        return <PLPFashion headers={dropdownHeaders} catalog={allItems} />;
+        return (
+          <PLPFashion
+            headers={dropdownHeaders}
+            catalog={catalogs}
+            storeId={storeId}
+            storeName={descriptor.name}
+          />
+        );
 
       case "ONDC:RET13":
         return (
           <PLPPersonalCare
-            providerId={vendorSlug}
-            catalog={allItems}
+            providerId={storeId}
+            catalog={catalogs}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}
           />
@@ -616,14 +372,15 @@ const PLP: React.FC = () => {
       case "ONDC:RET14":
         return (
           <PLPElectronics
-            catalog={allItems}
+            catalog={catalogs}
             sidebarTitles={dropdownHeaders}
             searchString={searchString}
+            storeId={storeId}
           />
         );
 
       case "ONDC:RET16":
-        return <PLPHomeAndDecor catalog={allItems} />;
+        return <PLPHomeAndDecor catalog={catalogs} storeId={storeId} />;
 
       default:
         return (
@@ -632,116 +389,111 @@ const PLP: React.FC = () => {
     }
   };
 
-  const renderFooter = () => {
-    if (!isFetchingNextPage) return null;
+  // Loading state
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  // Error state
+  if (error) {
+    return renderError();
+  }
+
+  // No data state
+  if (!vendorData) {
     return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" />
-        <Text style={styles.loadingText}>Loading more items...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Store information unavailable</Text>
+        </View>
+      </SafeAreaView>
     );
-  };
+  }
 
+  // Unserviceable state
+  if (!serviceable) {
+    return renderUnserviceable();
+  }
+
+  // Main render
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={[1]} // single container
-        renderItem={() => (
-          <View>
-            <Searchbox
-              search={onInputChanged}
-              placeHolder={vendorData.descriptor?.name || "Store"}
-              catalog={vendorData.catalogs || []}
-            />
-            <PLPBanner
-              address={vendorAddress}
-              descriptor={vendorData.descriptor}
-              storeSections={storeCategories}
-              geoLocation={vendorData.geoLocation}
-              userLocation={selectedDetails}
-              userAddress={selectedDetails?.fullAddress ?? ""}
-              vendorId={vendorSlug}
-            />
-
-            {renderProductListingPage()}
-            {renderFooter()}
-          </View>
-        )}
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={onRefresh}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
             colors={["#030303"]}
             tintColor="#030303"
           />
         }
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.1}
-        keyExtractor={() => "plp-content"}
         showsVerticalScrollIndicator={false}
-        style={styles.scrollContainer}
-      />
-
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        handleIndicatorStyle={styles.bottomSheetIndicator}
-        backgroundStyle={styles.bottomSheetBackground}
-        backdropComponent={renderBackdrop}
       >
-        {foodDetails?.visible && (
-          <FoodDetailsComponent foodDetails={foodDetails} />
-        )}
-      </BottomSheet>
-    </View>
+        <Searchbox
+          search={onInputChanged}
+          placeHolder={vendorData.descriptor?.name || "Store"}
+          catalog={vendorData.catalogs || []}
+        />
+
+        <PLPBanner
+          address={vendorAddress}
+          descriptor={vendorData.descriptor}
+          storeSections={storeCategories}
+          geoLocation={vendorData.geoLocation}
+          userLocation={selectedDetails}
+          userAddress={selectedDetails?.fullAddress ?? ""}
+          vendorId={vendorSlug}
+        />
+
+        {renderProductListingPage()}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
-export default React.memo(PLP);
-
-const { width } = Dimensions.get("screen");
+export default PLP;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
   },
-  scrollContainer: {
+  scrollView: {
     flex: 1,
   },
-  contentContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+  scrollContent: {
+    flexGrow: 1,
   },
   errorContainer: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   errorText: {
-    color: "#ff4444",
+    color: "#DC2626",
     fontSize: 16,
+    lineHeight: 24,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 24,
+    fontWeight: "500",
   },
   retryButton: {
-    backgroundColor: "#030303",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: "center",
   },
   retryButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  noDataText: {
-    color: "#333",
+    color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
   unserviceableContainer: {
     flex: 1,
@@ -763,7 +515,7 @@ const styles = StyleSheet.create({
   messageContainer: {
     height: 50,
     alignItems: "center",
-    paddingHorizontal: width * 0.1,
+    paddingHorizontal: 40,
   },
   unserviceableText: {
     color: "#909095",
@@ -807,22 +559,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     padding: 20,
-  },
-  footerLoader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 20,
-    gap: 10,
-  },
-  loadingText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  bottomSheetIndicator: {
-    backgroundColor: "#fff",
-  },
-  bottomSheetBackground: {
-    backgroundColor: "#FFFFFF",
   },
 });
