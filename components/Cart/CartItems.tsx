@@ -17,11 +17,12 @@ import ChangeQtyButton from "./ChangeQtyButton";
 interface CartItemsProps {
   cartId: string;
   storeSlug: string;
-  storeId?: string;
+  storeId: string;
   items: CartItemType[];
+  onCartChange?: () => void;   // ✅ Add this
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
+const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items, onCartChange }) => {
   const { isLoading: userLoading } = useUserDetails();
   const toast = useToast();
 
@@ -116,12 +117,16 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
                   p._id === item._id ? { ...p, qty: newQty } : p
                 )
               );
+
+              // ✅ Trigger refresh so parent refetches from backend
+              onCartChange?.();
             }}
           />
         </View>
       </TouchableOpacity>
     );
   };
+
 
   // Calculate totals from local state
   const { totalCost, totalItems } = useMemo(() => {
@@ -157,7 +162,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
     );
   }
 
-  return (
+return (
     <View style={styles.container}>
       {/* Header */}
       <Text style={styles.header}>
@@ -179,24 +184,25 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, items }) => {
         <Text style={styles.subtotal}>
           Subtotal: {formatCurrency(totalCost)}
         </Text>
-        <TouchableOpacity
-          style={styles.checkout}
-          onPress={() => {
-            console.log("Checkout pressed for cart:", cartId);
-            router.push({
-              pathname: "/(tabs)/cart/[checkout]",
-              params: { checkout: cartId },
-            });
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.checkoutText}>Checkout</Text>
-        </TouchableOpacity>
+<TouchableOpacity
+  style={styles.checkout}
+  onPress={() => {
+    console.log("Checkout pressed for cart:", cartId);
+    router.push({
+      pathname: "/(tabs)/cart/[checkout]",
+      params: { checkout: cartId, storeId },   // ✅ both params available
+    });
+  }}
+  activeOpacity={0.8}
+>
+  <Text style={styles.checkoutText}>Checkout</Text>
+</TouchableOpacity>
+
+
       </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

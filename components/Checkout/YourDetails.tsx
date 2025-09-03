@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TextInput } from "react-native";
 import useUserDetails from "../../hook/useUserDetails";
 import useDeliveryStore from "../../state/deliveryAddressStore";
-//import { DotIndicator } from "react-native-indicators"; import loader here
+import Loader from "../common/Loader";
 
 interface YourDetailsProps {
   onDeliveryInstructionsChange?: (instructions: string) => void;
@@ -24,7 +24,7 @@ export const YourDetails: React.FC<YourDetailsProps> = ({
   if (isLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <DotIndicator color="#666" size={6} count={3} />
+        <Loader color="#666"  />
       </View>
     );
   }

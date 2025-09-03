@@ -210,12 +210,20 @@ const CartCard: React.FC<CartCardProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Cart Items */}
-      {store.slug ? (
-        <CartItems cartId={id} storeSlug={store.slug} items={validItems} />
-      ) : (
-        <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
-      )}
+{/* Cart Items */}
+{store.slug ? (
+  <CartItems
+    cartId={id}
+    storeId={store._id}            // ✅ now storeId is passed
+    storeSlug={store.slug}
+    items={validItems}
+    onCartChange={onCartChange}    // already passing this
+  />
+) : (
+  <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
+)}
+
+
     </TouchableOpacity>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef } from "react";
 import {
   View,
   ScrollView,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import CartCard from "../../../components/Cart/CartCard";
 import { FlashList } from "@shopify/flash-list";
 import { BackArrow } from "../../../constants/icons/commonIcons";
 import { useRouter } from "expo-router";
@@ -17,6 +16,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { fetchCarts } from "./fetch-carts";
 import { FetchCartType } from "./fetch-carts-type";
 import useUserDetails from "../../../hook/useUserDetails";
+import CartCard from "../../../components/Cart/CartCard";
+
+// ✅ Import TanStack Query
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 function calculateTotals(cartData: FetchCartType[]) {
   const totalCarts = cartData.length;
@@ -30,63 +33,38 @@ function calculateTotals(cartData: FetchCartType[]) {
 const CartScreen = () => {
   const router = useRouter();
   const animation = useRef(null);
-  const [carts, setCarts] = useState<FetchCartType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
+  const queryClient = useQueryClient();
 
-  const loadCarts = async () => {
-    if (!authToken) {
-      setCarts([]);
-      setLoading(false);
-      return;
-    }
+const {
+  data: carts = [],
+  isLoading,
+  isFetching,
+  refetch,
+} = useQuery<FetchCartType[], Error>({
+  queryKey: ["carts", authToken],
+  queryFn: () => fetchCarts(authToken!),
+  enabled: !!authToken,
+  select: (fetchedCarts) =>
+    fetchedCarts.map((cart) => ({
+      ...cart,
+      store: cart.store ?? {
+        _id: cart.store_id,
+        name: "Unknown Store",
+        slug: "",
+      },
+    })),
+});
 
-    try {
-      setLoading(true);
-      const fetchedCarts = await fetchCarts(authToken);
 
-      if (!fetchedCarts) {
-        setCarts([]);
-        return;
-      }
-
-      // Ensure every cart has a store object
-      const cartsWithStores = fetchedCarts.map((cart) => ({
-        ...cart,
-        store:
-          cart.store ??
-          {
-            _id: cart.store_id,
-            name: "Unknown Store",
-            slug: "",
-          },
-      }));
-
-      setCarts(cartsWithStores);
-    } catch (error) {
-      console.error("Failed to fetch carts:", error);
-      setCarts([]);
-    } finally {
-      setLoading(false);
-    }
+  // ✅ Whenever add/delete happens in CartCard
+  // Call this from inside CartCard after mutation
+  const refreshCarts = () => {
+    queryClient.invalidateQueries({ queryKey: ["carts", authToken] });
   };
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadCarts();
-    setRefreshing(false);
-  }, [authToken]);
-
-  useEffect(() => {
-    if (!isUserLoading) {
-      loadCarts();
-    }
-  }, [authToken, isUserLoading]);
-
-  if (isUserLoading || loading) {
+  if (isUserLoading || isLoading) {
     return (
       <View style={styles.centered}>
         <Text>Loading...</Text>
@@ -99,7 +77,7 @@ const CartScreen = () => {
       <ScrollView
         contentContainerStyle={styles.emptyContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isFetching} onRefresh={refetch} />
         }
       >
         {/* Header */}
@@ -170,18 +148,21 @@ const CartScreen = () => {
 
       <FlashList
         data={[...carts].slice().reverse()}
-        keyExtractor={(item) => item._id || item.store._id || `cart-${Math.random()}`}
+        keyExtractor={(item) =>
+          item._id || item.store._id || `cart-${Math.random()}`
+        }
         estimatedItemSize={200}
         extraData={carts.length}
         contentContainerStyle={styles.listWrapper}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isFetching} onRefresh={refetch} />
         }
         renderItem={({ item }) => (
           <CartCard
             id={item._id}
             store={item.store}
             items={item.cart_items || []}
+            onCartChange={refreshCarts} // ✅ pass this down
           />
         )}
       />
@@ -232,10 +213,24 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
   },
   emptyHeaderText: { fontSize: 30, fontWeight: "bold", color: "#000" },
-  animationContainer: { backgroundColor: "#fff", alignItems: "center", justifyContent: "center", flex: 1 },
-  emptyTextContainer: { height: 100, alignItems: "center", justifyContent: "center" },
+  animationContainer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  emptyTextContainer: {
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   emptyTitle: { color: "#292935", fontWeight: "600", fontSize: 20 },
-  emptySubtitle: { color: "#707077", fontWeight: "600", fontSize: 13, marginTop: 10 },
+  emptySubtitle: {
+    color: "#707077",
+    fontWeight: "600",
+    fontSize: 13,
+    marginTop: 10,
+  },
   startShoppingButton: {
     backgroundColor: "#f14343",
     width: widthPercentageToDP("90"),

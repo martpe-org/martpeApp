@@ -3,11 +3,12 @@ import { useLocalSearchParams } from "expo-router";
 import Checkout from "@/components/Checkout/Checkout";
 
 export default function CheckoutScreen() {
-  const { checkout: storeId } = useLocalSearchParams<{ checkout: string }>();
+  const { checkout: cartId, storeId } = useLocalSearchParams<{
+    checkout: string;
+    storeId?: string;
+  }>();
 
-  if (!storeId) {
-    return null;
-  }
+  if (!cartId) return null;
 
-  return <Checkout storeId={storeId} />;
+  return <Checkout cartId={cartId} storeId={storeId || ""} />;
 }
