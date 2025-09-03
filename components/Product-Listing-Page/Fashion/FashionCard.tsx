@@ -1,8 +1,8 @@
+import ImageComp from "@/components/common/ImageComp";
 import { router } from "expo-router";
 import { FC, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import ImageComp from "@/components/common/ImageComp";
-import AddToCart from "../../../components/ProductDetails/AddToCart";
+import AddToCart from "../../ProductDetails/AddToCart";
 
 interface FashionCardProps {
   itemName: string;
@@ -15,8 +15,8 @@ interface FashionCardProps {
   catalogId: string;
   storeId?: string;
   slug?: string;
-  customizable?: boolean;          // ✅ add
-  customizations?: any[];          // ✅ add
+  customizable?: boolean; // ✅ add
+  customizations?: any[]; // ✅ add
 }
 
 const FashionCard: FC<FashionCardProps> = ({
@@ -30,8 +30,8 @@ const FashionCard: FC<FashionCardProps> = ({
   catalogId,
   storeId,
   slug,
-  customizable = false,           // ✅ default
-  customizations = [],            // ✅ default
+  customizable = false, // ✅ default
+  customizations = [], // ✅ default
 }) => {
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
 

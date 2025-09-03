@@ -1,13 +1,13 @@
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  View,
   Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import ImageComp from "../../../components/common/ImageComp";
+import ImageComp from "../../common/ImageComp";
 
 interface NavbarButton {
   title: string;
@@ -114,22 +114,40 @@ const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
       <Text style={noItemsStyles.emoji}>🛒</Text>
       <Text style={noItemsStyles.title}>No Products Found</Text>
       <Text style={noItemsStyles.subtitle}>
-        Nothing available in <Text style={{ fontWeight: "bold" }}>{category}</Text>
+        Nothing available in{" "}
+        <Text style={{ fontWeight: "bold" }}>{category}</Text>
       </Text>
     </Animated.View>
   );
 };
 
 // --- helper functions moved outside ---
-const normalizeButtons = (titles: NavbarButton[] | string[]): NavbarButton[] => {
+const normalizeButtons = (
+  titles: NavbarButton[] | string[]
+): NavbarButton[] => {
   if (titles.length === 0) {
     return [
-      { title: "Fruits & Vegetables", image: require("../../../assets/headerImage1.png") },
-      { title: "Masala & Seasoning", image: require("../../../assets/headerImage2.png") },
-      { title: "Oil & Ghee", image: require("../../../assets/headerImage3.png") },
+      {
+        title: "Fruits & Vegetables",
+        image: require("../../../assets/headerImage1.png"),
+      },
+      {
+        title: "Masala & Seasoning",
+        image: require("../../../assets/headerImage2.png"),
+      },
+      {
+        title: "Oil & Ghee",
+        image: require("../../../assets/headerImage3.png"),
+      },
       { title: "Edibles", image: require("../../../assets/headerImage4.png") },
-      { title: "Food Grains", image: require("../../../assets/headerImage5.png") },
-      { title: "Eggs & Meat", image: require("../../../assets/headerImage6.png") },
+      {
+        title: "Food Grains",
+        image: require("../../../assets/headerImage5.png"),
+      },
+      {
+        title: "Eggs & Meat",
+        image: require("../../../assets/headerImage6.png"),
+      },
     ];
   }
   if (typeof titles[0] === "string") {
@@ -138,7 +156,11 @@ const normalizeButtons = (titles: NavbarButton[] | string[]): NavbarButton[] => 
   return titles as NavbarButton[];
 };
 
-const renderButtonImage = (button: NavbarButton, isActive: boolean, domainColor: string) => {
+const renderButtonImage = (
+  button: NavbarButton,
+  isActive: boolean,
+  domainColor: string
+) => {
   if (button.image) {
     return (
       <View
@@ -216,7 +238,7 @@ const navbarStyles = StyleSheet.create({
     borderRadius: 30,
     overflow: "hidden",
     marginBottom: 5,
-    backgroundColor:"#f1f1e6"
+    backgroundColor: "#f1f1e6",
   },
   buttonImage: {
     width: 55,

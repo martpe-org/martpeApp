@@ -44,11 +44,9 @@ const handleRemoveCart = () => {
           try {
             // Use the removeCart method from your Zustand store instead of the imported function
             const success = await useCartStore.getState().removeCart(store._id, authToken);
-            
             if (!success) {
               throw new Error("Failed to remove cart");
             }
-            
             // Optionally sync with API after successful removal
             await useCartStore.getState().syncCartFromApi(authToken);
           } catch (err) {

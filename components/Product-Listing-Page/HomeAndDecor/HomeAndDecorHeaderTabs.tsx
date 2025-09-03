@@ -1,7 +1,7 @@
-import ImageComp from "../../../components/common/ImageComp";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import ImageComp from "../../common/ImageComp";
 
 interface HeaderTabButtonProps {
   onClick: (title: string) => void;
@@ -22,30 +22,35 @@ interface HomeAndDecorHeaderTabsProps {
 
 const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
   activeTab,
-  onTabChange
+  onTabChange,
 }) => {
   // Define different images for each tab
   const data: TabData[] = [
     {
       title: "Decor",
-      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=150&fit=crop&crop=center"
+      image:
+        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=150&fit=crop&crop=center",
     },
     {
-      title: "Furniture", 
-      image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop&crop=center"
+      title: "Furniture",
+      image:
+        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop&crop=center",
     },
     {
       title: "Furnishing",
-      image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=150&h=150&fit=crop&crop=center"
+      image:
+        "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=150&h=150&fit=crop&crop=center",
     },
     {
       title: "Cooking",
-      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=center"
+      image:
+        "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=center",
     },
     {
       title: "Garden",
-      image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=150&h=150&fit=crop&crop=center"
-    }
+      image:
+        "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=150&h=150&fit=crop&crop=center",
+    },
   ];
 
   function handleActiveButton(title: string) {
@@ -55,7 +60,7 @@ const HomeAndDecorHeaderTabs: React.FC<HomeAndDecorHeaderTabsProps> = ({
       onTabChange(title);
     }
   }
-    
+
   return (
     <LinearGradient
       colors={[
@@ -103,13 +108,15 @@ const HeaderTabButton: React.FC<HeaderTabButtonProps> = ({
         styles.headerTabButtonImage,
         {
           borderColor: title === activeButton ? "#FDD059" : "transparent",
-        }
+        },
       ]}
       resizeMode="cover"
       loaderColor="#FDD059"
       loaderSize="small"
       fallbackSource={{
-        uri: "https://via.placeholder.com/60x60/FDD059/FFFFFF?text=" + encodeURIComponent(title.charAt(0))
+        uri:
+          "https://via.placeholder.com/60x60/FDD059/FFFFFF?text=" +
+          encodeURIComponent(title.charAt(0)),
       }}
     />
     <Text
@@ -117,7 +124,7 @@ const HeaderTabButton: React.FC<HeaderTabButtonProps> = ({
         styles.headerButtonText,
         {
           fontWeight: title === activeButton ? "bold" : "normal",
-        }
+        },
       ]}
     >
       {title.length > 7 ? title.slice(0, 7) + "..." : title}

@@ -1,37 +1,36 @@
+import GroceryCardContainer from "@/components/Product-Listing-Page/Grocery/GroceryCardContainer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
-import React, {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  RefreshControl,
-  ActivityIndicator,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import PLPElectronics from "../../../../../components/Product Listing Page/Electronics/PLPElectronics";
-import PLPFashion from "../../../../../components/Product Listing Page/Fashion/PLPFashion";
-import PLPBanner from "../../../../../components/Product Listing Page/FoodAndBeverages/PLPBanner";
-import Searchbox from "../../../../../components/Product Listing Page/FoodAndBeverages/Searchbox";
-import PLPGrocery from "../../../../../components/Product Listing Page/Grocery/PLPGrocery";
-import PLPHomeAndDecor from "../../../../../components/Product Listing Page/HomeAndDecor/PLPHomeAndDecor";
-import PLPPersonalCare from "../../../../../components/Product Listing Page/PersonalCare/PLPPersonalCare";
+import PLPElectronics from "../../../../../components/Product-Listing-Page/Electronics/PLPElectronics";
+import PLPFashion from "../../../../../components/Product-Listing-Page/Fashion/PLPFashion";
+import PLPBanner from "../../../../../components/Product-Listing-Page/FoodAndBeverages/PLPBanner";
+import Searchbox from "../../../../../components/Product-Listing-Page/FoodAndBeverages/Searchbox";
+import PLPHomeAndDecor from "../../../../../components/Product-Listing-Page/HomeAndDecor/PLPHomeAndDecor";
+import PLPPersonalCare from "../../../../../components/Product-Listing-Page/PersonalCare/PLPPersonalCare";
 import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../../components/common/Loader";
 import { fetchStoreDetails } from "../../../../../components/store/fetch-store-details";
-import { fetchStoreItems } from "../../../../../components/store/fetch-store-items";
 import { FetchStoreDetailsResponseType } from "../../../../../components/store/fetch-store-details-type";
+import { fetchStoreItems } from "../../../../../components/store/fetch-store-items";
 import {
   FetchStoreItemsResponseType,
   StoreItem,
@@ -47,11 +46,11 @@ const ITEMS_PER_PAGE = 20;
 // Query Keys
 // ==============
 const queryKeys = {
-  storeDetails: (slug: string) => ['store-details', slug] as const,
-  storeItems: (slug: string, page: number, search: string) => 
-    ['store-items', slug, page, search] as const,
-  storeItemsInfinite: (slug: string, search: string) => 
-    ['store-items-infinite', slug, search] as const,
+  storeDetails: (slug: string) => ["store-details", slug] as const,
+  storeItems: (slug: string, page: number, search: string) =>
+    ["store-items", slug, page, search] as const,
+  storeItemsInfinite: (slug: string, search: string) =>
+    ["store-items-infinite", slug, search] as const,
 };
 
 // ==============
@@ -180,16 +179,18 @@ interface PaginatedStoreItemsResponse {
 // ================================
 // API Functions for TanStack Query
 // ================================
-const fetchStoreDetailsQuery = async (slug: string): Promise<VendorData | null> => {
-  if (!slug) throw new Error('Store slug is required');
-  
+const fetchStoreDetailsQuery = async (
+  slug: string
+): Promise<VendorData | null> => {
+  if (!slug) throw new Error("Store slug is required");
+
   const [storeDetails, storeItems] = await Promise.all([
     fetchStoreDetails(slug),
     fetchStoreItems(slug),
   ]);
 
   if (!storeDetails || !storeItems) {
-    throw new Error('Failed to fetch store data');
+    throw new Error("Failed to fetch store data");
   }
 
   return convertToVendorData(storeDetails, storeItems);
@@ -198,17 +199,17 @@ const fetchStoreDetailsQuery = async (slug: string): Promise<VendorData | null> 
 const fetchStoreItemsPaginated = async ({
   slug,
   pageParam = 1,
-  searchString = ""
+  searchString = "",
 }: {
   slug: string;
   pageParam: number;
   searchString: string;
 }): Promise<PaginatedStoreItemsResponse> => {
-  if (!slug) throw new Error('Store slug is required');
+  if (!slug) throw new Error("Store slug is required");
 
   // Fetch all items (you might need to modify your API to support pagination)
   const storeItems = await fetchStoreItems(slug);
-  
+
   if (!storeItems?.results) {
     return { items: [], hasNextPage: false, totalCount: 0 };
   }
@@ -249,10 +250,11 @@ const fetchStoreItemsPaginated = async ({
   let filteredItems = allItems;
   if (searchString.trim()) {
     const searchTerm = searchString.toLowerCase();
-    filteredItems = allItems.filter(item =>
-      item.descriptor.name.toLowerCase().includes(searchTerm) ||
-      item.descriptor.short_desc.toLowerCase().includes(searchTerm) ||
-      item.category_id.toLowerCase().includes(searchTerm)
+    filteredItems = allItems.filter(
+      (item) =>
+        item.descriptor.name.toLowerCase().includes(searchTerm) ||
+        item.descriptor.short_desc.toLowerCase().includes(searchTerm) ||
+        item.category_id.toLowerCase().includes(searchTerm)
     );
   }
 
@@ -425,15 +427,13 @@ const PLP: React.FC = () => {
 
   // Flatten paginated data
   const allItems = useMemo(() => {
-    return infiniteItemsData?.pages?.flatMap(page => page.items) || [];
+    return infiniteItemsData?.pages?.flatMap((page) => page.items) || [];
   }, [infiniteItemsData]);
 
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const handleOpenPress = useCallback(() => {
-    bottomSheetRef.current?.expand();
-  }, []);
+
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -447,13 +447,16 @@ const PLP: React.FC = () => {
   );
 
   // ✅ Search handler with query invalidation
-  const onInputChanged = useCallback((text: string) => {
-    setSearchString(text);
-    // Invalidate and refetch with new search term
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.storeItemsInfinite(vendorSlug, text)
-    });
-  }, [vendorSlug, queryClient]);
+  const onInputChanged = useCallback(
+    (text: string) => {
+      setSearchString(text);
+      // Invalidate and refetch with new search term
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.storeItemsInfinite(vendorSlug, text),
+      });
+    },
+    [vendorSlug, queryClient]
+  );
 
   // ✅ Load more items handler
   const onEndReached = useCallback(() => {
@@ -464,16 +467,13 @@ const PLP: React.FC = () => {
 
   // ✅ Refresh handler
   const onRefresh = useCallback(async () => {
-    await Promise.all([
-      refetchVendor(),
-      refetchItems(),
-    ]);
+    await Promise.all([refetchVendor(), refetchItems()]);
   }, [refetchVendor, refetchItems]);
 
   // Serviceability check
   const serviceable = useMemo(() => {
     if (!vendorData) return false;
-    
+
     try {
       const panIndia = !!vendorData?.panIndia;
       const selectedCity = safeNormalize(selectedDetails?.city);
@@ -531,9 +531,12 @@ const PLP: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>
-          {error instanceof Error ? error.message : 'An error occurred'}
+          {error instanceof Error ? error.message : "An error occurred"}
         </Text>
-        <TouchableOpacity onPress={() => onRefresh()} style={styles.retryButton}>
+        <TouchableOpacity
+          onPress={() => onRefresh()}
+          style={styles.retryButton}
+        >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -591,20 +594,14 @@ const PLP: React.FC = () => {
     switch (domain) {
       case "ONDC:RET10":
         return (
-          <PLPGrocery
+          <GroceryCardContainer
             catalog={allItems}
             searchString={searchString}
           />
         );
 
-
       case "ONDC:RET12":
-        return (
-          <PLPFashion
-            headers={dropdownHeaders}
-            catalog={allItems}
-          />
-        );
+        return <PLPFashion headers={dropdownHeaders} catalog={allItems} />;
 
       case "ONDC:RET13":
         return (
@@ -671,10 +668,10 @@ const PLP: React.FC = () => {
           </View>
         )}
         refreshControl={
-          <RefreshControl 
-            refreshing={isRefetching} 
+          <RefreshControl
+            refreshing={isRefetching}
             onRefresh={onRefresh}
-            colors={['#030303']}
+            colors={["#030303"]}
             tintColor="#030303"
           />
         }
