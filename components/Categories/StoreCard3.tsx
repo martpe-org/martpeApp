@@ -1,160 +1,239 @@
 import React from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
-import ProductList2 from "./ProductList2";
 import { router } from "expo-router";
+import {
+  FontAwesome,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
 import LikeButton from "../../components/common/likeButton";
-
-const backgroundColors = {
-  red: "#FFF6F6",
-  yellow: "#FFFBEF",
-} as const;
-
-type AllowedColor = keyof typeof backgroundColors;
+import ShareButton from "../../components/common/Share";
+import { getDistance } from "geolib";
 
 interface StoreCard3Props {
   storeData: any;
-  color: AllowedColor;
-  categoryFiltered: any;
+  categoryFiltered: any[];
+  userLocation: { lat: number; lng: number };
 }
 
 const StoreCard3: React.FC<StoreCard3Props> = ({
   storeData,
-  color,
   categoryFiltered,
+  userLocation,
 }) => {
   if (!storeData) return null;
 
   const {
     descriptor = {},
     id,
-    catalogs = [],
     address = {},
-    geoLocation = {},
     calculated_max_offer = {},
+    geoLocation = {},
   } = storeData;
 
-  const { name = "", symbol = "" } = descriptor;
-  const { street = "Unknown Street" } = address;
+  const { name = "", symbol = "", images = [] } = descriptor;
+  const { street = "Unknown Street", city = "" } = address;
+  const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
+
+  // ✅ Dynamic distance
+  const distance = geoLocation?.lat
+    ? Number(
+        (
+          getDistance(
+            { latitude: geoLocation.lat, longitude: geoLocation.lng },
+            { latitude: userLocation?.lat || 0, longitude: userLocation?.lng || 0 }
+          ) / 1000
+        ).toFixed(1)
+      )
+    : 0;
+
+  // ✅ Dynamic delivery time
+  const speed = 25; // km/h
+  const deliveryTime =
+    distance / speed < 1
+      ? ((distance / speed) * 60).toFixed(0) + " min"
+      : (distance / speed).toFixed(0) + " hr";
 
   return (
-    <View style={{ height: 300, marginTop: 50 }}>
-      <View style={styles.containerWrapper}>
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: backgroundColors[color] },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(tabs)/home/result/productListing/${id}`)
-            }
-            style={styles.header}
-          >
-            <Image
-              source={
-                symbol ? { uri: symbol } : require("../../assets/patanjali.png")
-              }
-              style={styles.logoImage}
-            />
+    <View style={styles.cardWrapper}>
+      {/* Banner */}
+      <View style={styles.bannerContainer}>
+        <Image source={{ uri: bgImg }} style={styles.backgroundImage} resizeMode="contain" />
 
-            <View style={styles.details}>
-              <View style={styles.subDetails}>
-                <Text style={styles.brandText}>{name}</Text>
-                <View style={styles.subText}>
-                  <Text style={styles.locationText}>
-                    {street} | <Text style={{ fontSize: 10 }}>4.2</Text>
-                    <Image source={require("../../assets/star.png")} /> | 0.5 Km
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.subDetails}>
-                <View style={styles.logoIcons}>
-                  <LikeButton color="gray" productId={id} />
-                  <Image source={require("../../assets/more-vertical2.png")} />
-                </View>
-              </View>
-            </View>
+        {/* Floating actions */}
+        <View style={styles.topActions}>
+          <LikeButton
+            vendorId={id}
+            storeData={{
+              id,
+              name,
+              descriptor: { short_desc: "Electronics store" },
+              symbol,
+            }}
+            color="#E11D48"
+          />
+          <ShareButton storeName={name} type="outlet" />
+        </View>
+
+        {/* Banner Info */}
+        <View style={styles.bannerContent}>
+          <Text style={styles.title} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={styles.description} numberOfLines={1}>
+            {calculated_max_offer?.percent > 0
+              ? `Up to ${Math.round(calculated_max_offer.percent)}% off`
+              : "Great deals on electronics"}
+          </Text>
+
+          {/* ✅ Dynamic Info Row */}
+          <View style={[styles.infoContainer, styles.horizontalBar]}>
+            <FontAwesome name="star" size={12} color="#fbbf24" />
+            <Text style={styles.infoText}>4.5</Text>
+            <Text style={styles.separator}> • </Text>
+
+            <MaterialCommunityIcons name="clock-time-four" size={12} color="black" />
+            <Text style={styles.infoText}>{deliveryTime}</Text>
+            <Text style={styles.separator}> • </Text>
+
+            <MaterialIcons name="delivery-dining" size={14} color="black" />
+            <Text style={styles.infoText}>{distance} km</Text>
+            <Text style={styles.separator}> • </Text>
+
+            <Text style={styles.infoText}>Free Delivery</Text>
+          </View>
+
+          {/* Address */}
+          <TouchableOpacity
+            style={styles.addressContainer}
+            onPress={() => router.push("/address/SavedAddresses")}
+          >
+            <MaterialIcons name="location-pin" size={14} color="black" />
+            <Text style={styles.addressText} numberOfLines={1}>
+              {street}, {city}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Browse Store */}
+          <TouchableOpacity
+            style={styles.browseButton}
+            onPress={() => {
+              if (storeData.slug) {
+                router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
+              } else {
+                console.warn("Store slug missing");
+              }
+            }}
+          >
+            <Text style={styles.browseButtonText}>Browse Store</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.productContainer}>
-        <ProductList2
-          categoryFiltered={categoryFiltered}
-          storeId={id}
-          catalogs={catalogs}
-        />
-      </View>
+
+
     </View>
   );
 };
 
+export default StoreCard3;
+
 const styles = StyleSheet.create({
-  containerWrapper: {
-    zIndex: 1,
+  cardWrapper: {
+    marginBottom: 30,
+    marginHorizontal: 15,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#fffaf5",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
-  container: {
-    marginHorizontal: 16,
-    backgroundColor: "#FFF6F6",
-    height: 295,
+  bannerContainer: {
+    position: "relative",
+    backgroundColor: "#fff",
   },
-  header: {
+  backgroundImage: {
+    width: "100%",
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  topActions: {
+    position: "absolute",
+    top: 10,
+    right: 10,
     flexDirection: "row",
-  },
-  details: {
-    flex: 1,
-    flexDirection: "row",
-    paddingHorizontal: 5,
-    justifyContent: "space-between",
-  },
-  subDetails: {
-    flexDirection: "column",
+    gap: 10,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    borderWidth:1,
+    borderColor:"#000",
+    elevation:2,
     padding: 5,
   },
-  brandText: {
+  bannerContent: {
+    backgroundColor: "#fff",
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 12,
+  },
+  infoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  horizontalBar: {
+    paddingBottom: 8,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  infoText: {
     fontSize: 12,
-    fontWeight: "bold",
-    color: "black",
+    fontWeight: "500",
+    color: "#333",
+    marginHorizontal: 3,
   },
-  subText: {
+  separator: {
+    color: "#999",
+    fontSize: 12,
+  },
+  addressContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
-  locationText: {
-    fontSize: 10,
-  },
-  rating: {
-    flexDirection: "row",
-    gap: 3,
-  },
-  logoContainer: {
-    width: 110,
-    height: 70,
-    top: -25,
-    borderRadius: 10,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 5,
-    backgroundColor: "white",
-    zIndex: 2,
-    marginLeft: 8,
-    overflow: "hidden",
-  },
-  logoImage: {
+  addressText: {
+    fontSize: 12,
+    marginLeft: 5,
+    color: "#666",
     flex: 1,
-    resizeMode: "contain",
-    width: "100%",
-    height: "100%",
   },
-  logoIcons: {
-    flex: 1,
-    flexDirection: "row",
+  browseButton: {
+    backgroundColor: "#F13A3A",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: "flex-end",
+    marginTop: 5,
   },
-  productContainer: {
-    top: -230,
-    zIndex: 2,
+  browseButtonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "600",
   },
-});
 
-export default StoreCard3;
+});

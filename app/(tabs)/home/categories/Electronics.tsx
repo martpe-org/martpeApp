@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,121 +6,166 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
-  RefreshControl,
+  SafeAreaView,
+  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
-import OfferCard from "../../../../components/Categories/OfferCard"; // ✅ using fixed OfferCard
+import { useQuery } from "@tanstack/react-query";
+import OfferCard3 from "../../../../components/Categories/OfferCard3";
 import Search from "../../../../components/common/Search";
 import { electronicsCategoryData } from "../../../../constants/categories";
-import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import Loader from "../../../../components/common/Loader";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { Entypo, Ionicons } from "@expo/vector-icons";
-import { useRenderFunctions } from "../../../../components/Landing Page/render";
-import { StoreSearchResult } from "@/app/search/search-stores-type";
+import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
+import StoreCard3 from "../../../../components/Categories/StoreCard3";
+import { Entypo } from "@expo/vector-icons";
 
+const screenWidth = Dimensions.get("window").width;
 const domain = "ONDC:RET14";
 
+// Transform API response to match component expectations
+const transformOfferData = (offers: HomeOfferType[]) => {
+  return offers.map((offer) => ({
+    id: offer.store_id,
+    calculated_max_offer: {
+      percent: offer.store.maxStoreItemOfferPercent || 0,
+    },
+    descriptor: {
+      name: offer.store.name,
+      images: offer.images || [],
+      symbol: offer.store.symbol,
+    },
+  }));
+};
+const slugify = (name: string, fallback: string) =>
+  name
+    ? name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "")
+    : fallback;
+
+const transformStoreData = (stores: Store2[]) => {
+  return stores.map((store, index) => ({
+    id: store.provider_id || `store-${index}`,
+    slug:
+      store.slug || slugify(store.name, store.provider_id || `store-${index}`), // ✅ always generate a slug
+    descriptor: {
+      name: store.name,
+      symbol: store.symbol,
+      images: store.images,
+    },
+    address: {
+      city: store.address?.city || "",
+      state: store.address?.state || "",
+    },
+    geoLocation: {
+      lat: store.gps.lat,
+      lng: store.gps.lon,
+    },
+    catalogs: store.catalogs || [],
+    calculated_max_offer: {
+      percent: store.maxStoreItemOfferPercent || 0,
+    },
+  }));
+};
+
+// Custom hook for fetching domain data
+const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
+  return useQuery({
+    queryKey: ["domainData", domain, lat, lng, pincode],
+    queryFn: async () => {
+      if (!lat || !lng || !pincode) {
+        throw new Error("Location data is required");
+      }
+      const response = await fetchHomeByDomain(
+        lat,
+        lng,
+        pincode,
+        domain,
+        1,
+        20
+      );
+      if (!response) throw new Error("Failed to fetch domain data");
+
+      return {
+        stores: transformStoreData(response.stores.items),
+        offers: transformOfferData(response.offers || []),
+      };
+    },
+    enabled: !!lat && !!lng && !!pincode,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 3,
+  });
+};
+
 function Electronics() {
-  const [offersData, setOffersData] = useState<any[]>([]);
-  const [storesData, setStoresData] = useState<StoreSearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const { renderNearbyItem } = useRenderFunctions();
+  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
 
+  const { data: domainData, isLoading } = useDomainData(
+    selectedAddress?.lat,
+    selectedAddress?.lng,
+    pincode
+  );
+
+  const storesData = domainData?.stores || [];
+  const offersData = domainData?.offers || [];
+
+  const renderSubCategories = () => {
+    return electronicsCategoryData.slice(0, 8).map((subCategory) => (
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/[search]",
+            params: { search: subCategory.name, domainData: "ONDC:RET14" },
+          })
+        }
+        style={styles.subCategory}
+        key={subCategory.id}
+      >
+        <View style={styles.subCategoryImage}>
+          <Image
+            source={{ uri: subCategory.image }}
+            resizeMode="contain"
+            style={{ width: 80, height: 80 }}
+          />
+        </View>
+        <Text style={styles.subHeadingText} numberOfLines={2}>
+          {subCategory.name}
+        </Text>
+      </TouchableOpacity>
+    ));
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Loader />
+      </SafeAreaView>
+    );
+  }
+
+
+  if (!storesData.length && !offersData.length) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No data available</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
   const handleSearchPress = () => {
     router.push("/search");
   };
 
-  // Fetch data
-  const fetchData = async () => {
-    if (!selectedAddress?.lat || !selectedAddress?.lng) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetchHomeByDomain(
-        selectedAddress.lat,
-        selectedAddress.lng,
-        selectedAddress.pincode || "110001",
-        domain
-      );
-      setStoresData(Array.isArray(response?.stores) ? response.stores : []);
-      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-    } catch (err) {
-      console.error("Error fetching domain data:", err);
-      setError("Something went wrong while loading stores.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [selectedAddress]);
-
-  // Render subcategories in horizontal layout
-  const renderSubCategories = () => (
-    <FlatList
-      data={electronicsCategoryData.slice(0, 8)}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      keyExtractor={(item) => item.id.toString()}
-      contentContainerStyle={styles.subCategoriesContainer}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.subCategory}
-          onPress={() =>
-            router.push({
-              pathname: "/(tabs)/home/result/[search]",
-              params: { search: item.name, domainData: domain },
-            })
-          }
-        >
-          <View style={styles.subCategoryImage}>
-            <Image
-              source={{ uri: item.image }}
-              resizeMode="contain"
-              style={styles.subCategoryIcon}
-            />
-          </View>
-          <Text style={styles.subCategoryText}>{item.name}</Text>
-        </TouchableOpacity>
-      )}
-    />
-  );
-
-  // Handle View More button press
-  const handleViewMore = () => {
-    if (storesData.length > 0) {
-      const firstStore = storesData[0];
-      router.push(`/(tabs)/home/result/productListing/${firstStore.slug}`);
-    } else {
-      router.push({
-        pathname: "/(tabs)/home/result/[search]",
-        params: { search: "electronics", domainData: domain },
-      });
-    }
-  };
-
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView
-        style={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchData}
-            colors={["#f2663c"]}
-            tintColor="#f2663c"
-          />
-        }
-      >
-        {/* Header with Back + Search */}
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Search Header */}
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -133,90 +178,78 @@ function Electronics() {
           </View>
         </View>
 
-        {/* Offers */}
+        {/* Offers Section */}
         {offersData.length > 0 && (
-          <View style={{ height: 240 }}>
-            <OfferCard items={offersData} /> 
-          </View>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            {offersData.map((data, index) => (
+              <OfferCard3 offerData={data} key={`offer-${data.id}-${index}`} />
+            ))}
+          </ScrollView>
         )}
 
-        {/* SubCategories */}
-        <View>
-          <View style={styles.sectionHeading}>
+        {/* Explore Gadgets Section */}
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
             <View style={styles.line} />
-            <Text style={styles.sectionHeadingText}>Shop By Categories</Text>
+            <Text style={styles.subHeadingText}>Explore New Gadgets</Text>
             <View style={styles.line} />
           </View>
 
-          <TouchableOpacity style={styles.viewMoreButton} onPress={handleViewMore}>
+          <View style={styles.subCategories}>{renderSubCategories()}</View>
+
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/home/result/[search]",
+                params: { search: "electronics", domainData: domain },
+              })
+            }
+            style={styles.viewMoreButton}
+          >
             <Text style={styles.viewMoreButtonText}>View More</Text>
-            <Entypo
-              name="chevron-right"
-              size={18}
-              color="red"
-              style={{ alignItems: "center", marginLeft: 60, marginTop: -17 }}
+            <Image
+              source={require("../../../../assets/right_arrow.png")}
+              style={{ marginLeft: 5 }}
             />
           </TouchableOpacity>
-
-          {renderSubCategories()}
         </View>
 
         {/* Stores Section */}
-        <View style={styles.storesSection}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading stores...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : storesData.length > 0 ? (
-            <>
-              <View style={styles.sectionHeading}>
-                <View style={styles.line} />
-                <Text style={styles.sectionHeadingText}>
-                  Your Nearby Electronics Stores
-                </Text>
-                <View style={styles.line} />
-              </View>
-              <FlatList
-                data={storesData as any}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) => item.slug || index.toString()}
-                contentContainerStyle={styles.storesContainer}
-                renderItem={renderNearbyItem}
-              />
-            </>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.sectionHeading}>
-                <Text style={styles.sectionHeadingTextNearby}>
-                  Your Nearby Electronics Stores
-                </Text>
-              </View>
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
+            <View style={styles.line} />
+            <Text style={styles.subHeadingText}>
+              Electronics Stores Near You
+            </Text>
+            <View style={styles.line} />
+          </View>
 
-              <Ionicons name="storefront-outline" size={40} color="#999" />
-              <Text style={styles.emptyText}>No stores found in your area</Text>
-            </View>
-          )}
+          {storesData.map((storeData, index) => (
+            <StoreCard3
+              key={`store-${storeData.id}-${index}`}
+              storeData={storeData}
+              categoryFiltered={[]}
+                    userLocation={{
+        lat: selectedAddress?.lat || 0,
+        lng: selectedAddress?.lng || 0,
+      }}
+            />
+          ))}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 export default Electronics;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  safeArea: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff" },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -224,6 +257,15 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 16,
     backgroundColor: "#fff",
+  },
+  section: { marginVertical: 10 },
+  subCategories: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginVertical: 15,
+    paddingHorizontal: 10,
   },
   backButton: {
     marginRight: 12,
@@ -234,115 +276,73 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: -20,
   },
-  sectionHeading: {
+  subCategory: {
+    alignItems: "center",
+    justifyContent: "center",
+    margin: 8,
+    width: (screenWidth - 80) / 4,
+  },
+  subCategoryImage: {
+    backgroundColor: "#f8f9fa",
+    marginBottom: 8,
+    borderRadius: 12,
+    elevation: 2,
+    padding: 12,
+    width: 80,
+    height: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  subHeading: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
-    marginHorizontal: 16,
-  },
-  sectionHeadingTextNearby: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#df1010",
-    marginTop: -20,
+    justifyContent: "center",
+    marginVertical: 15,
+    marginHorizontal: 20,
   },
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: "#0a0909",
+    backgroundColor: "#e0e0e0",
+    marginHorizontal: 10,
   },
-  sectionHeadingText: {
+  subHeadingText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
-    marginHorizontal: 16,
-  },
-  subCategoriesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  subCategory: {
-    alignItems: "center",
-    marginRight: 20,
-    width: 80,
-  },
-  subCategoryImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  subCategoryIcon: {
-    width: 50,
-    height: 50,
-  },
-  subCategoryText: {
-    fontSize: 12,
-    fontWeight: "500",
     color: "#333",
     textAlign: "center",
   },
   viewMoreButton: {
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignSelf: "flex-end",
-    marginRight: 10,
-  },
-  viewMoreButtonText: {
-    color: "#f73e3e",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  storesSection: {
-    marginBottom: 30,
-  },
-  storesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  loadingContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "#555",
-  },
-  errorContainer: {
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#d32f2f",
-    marginBottom: 10,
-  },
-  retryButton: {
-    backgroundColor: "#FB3E44",
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 6,
+    borderRadius: 20,
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginTop: 10,
   },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  emptyContainer: {
+  viewMoreButtonText: { color: "#F13A3A", fontSize: 12, fontWeight: "500" },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    marginVertical: 20,
+    paddingHorizontal: 24,
   },
-  emptyText: {
+  errorText: {
+    color: "#DC2626",
     fontSize: 16,
-    color: "#555",
-    marginTop: 8,
+    textAlign: "center",
+    marginBottom: 16,
+    fontWeight: "500",
   },
+  retryButton: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

@@ -2,7 +2,7 @@ import GroceryCardContainer from "@/components/Product-Listing-Page/Grocery/Groc
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
+import { useQuery } from "@tanstack/react-query";
 import PLPElectronics from "../../../../../components/Product-Listing-Page/Electronics/PLPElectronics";
 import PLPFashion from "../../../../../components/Product-Listing-Page/Fashion/PLPFashion";
 import PLPBanner from "../../../../../components/Product-Listing-Page/FoodAndBeverages/PLPBanner";
@@ -81,11 +82,6 @@ interface VendorData {
   hyperLocal: boolean;
 }
 
-interface ErrorState {
-  message: string;
-  retry?: boolean;
-}
-
 // Helper functions
 const getFirst = (maybeArr: string | string[] | undefined): string =>
   Array.isArray(maybeArr) ? maybeArr[0] : maybeArr ?? "";
@@ -127,7 +123,7 @@ const convertToVendorData = (
           available: { count: item.quantity ?? 0 },
           maximum: { count: item.quantity ?? 0 },
         },
-        provider_id: storeDetails._id, // Use actual store ID
+        provider_id: storeDetails._id,
         veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
       })
     );
@@ -162,6 +158,47 @@ const convertToVendorData = (
   }
 };
 
+// Query Keys
+const QUERY_KEYS = {
+  storeDetails: (vendorSlug: string) => ["storeDetails", vendorSlug],
+  storeItems: (vendorSlug: string) => ["storeItems", vendorSlug],
+  vendorData: (vendorSlug: string) => ["vendorData", vendorSlug],
+} as const;
+
+// Custom hook for fetching vendor data
+const useVendorData = (vendorSlug: string) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.vendorData(vendorSlug),
+    queryFn: async (): Promise<VendorData | null> => {
+      if (!vendorSlug) {
+        throw new Error("Store ID is required");
+      }
+
+      const [storeDetails, storeItems] = await Promise.all([
+        fetchStoreDetails(vendorSlug),
+        fetchStoreItems(vendorSlug),
+      ]);
+
+      if (!storeDetails || !storeItems) {
+        throw new Error("Store not found or unavailable");
+      }
+
+      const convertedData = convertToVendorData(storeDetails, storeItems);
+      if (!convertedData) {
+        throw new Error("Failed to process store data");
+      }
+
+      console.log("Store details loaded successfully:", storeDetails.name);
+      return convertedData;
+    },
+    enabled: !!vendorSlug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
 const PLP: React.FC = () => {
   const vendor = useLocalSearchParams();
   const vendorSlug = getFirst(vendor.id);
@@ -169,68 +206,26 @@ const PLP: React.FC = () => {
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
   // State
-  const [vendorData, setVendorData] = useState<VendorData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<ErrorState | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchString, setSearchString] = useState<string>("");
 
-  // Data fetching function
-  const fetchData = useCallback(
-    async (showLoader = true) => {
-      if (!vendorSlug) {
-        setError({ message: "Store ID is required", retry: false });
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        if (showLoader) setIsLoading(true);
-        setError(null);
-
-        const [storeDetails, storeItems] = await Promise.all([
-          fetchStoreDetails(vendorSlug),
-          fetchStoreItems(vendorSlug),
-        ]);
-
-        if (storeDetails && storeItems) {
-          const convertedData = convertToVendorData(storeDetails, storeItems);
-          setVendorData(convertedData);
-          console.log("Store details loaded successfully:", storeDetails.name);
-        } else {
-          setError({
-            message: "Store not found or unavailable",
-            retry: true,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching store details:", err);
-        setError({
-          message: "Failed to load store details. Please check your connection.",
-          retry: true,
-        });
-      } finally {
-        setIsLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [vendorSlug]
-  );
-
-  // Effect hooks
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // TanStack Query
+  const {
+    data: vendorData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useVendorData(vendorSlug);
 
   // Event handlers
   const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchData(false);
-  }, [fetchData]);
+    refetch();
+  }, [refetch]);
 
   const handleRetry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+    refetch();
+  }, [refetch]);
 
   const onInputChanged = useCallback((text: string) => {
     setSearchString(text);
@@ -283,16 +278,33 @@ const PLP: React.FC = () => {
     return { vendorAddress, storeCategories, dropdownHeaders };
   }, [vendorData]);
 
+  // Error message helper
+  const getErrorMessage = (error: Error | null): string => {
+    if (!error) return "An unexpected error occurred";
+    
+    if (error.message.includes("Store ID is required")) {
+      return "Store ID is required";
+    }
+    if (error.message.includes("Store not found")) {
+      return "Store not found or unavailable";
+    }
+    if (error.message.includes("Failed to process")) {
+      return "Failed to process store data";
+    }
+    
+    return "Failed to load store details. Please check your connection.";
+  };
+
   // Render error component
   const renderError = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error?.message}</Text>
-        {error?.retry && (
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>Tap to retry</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={styles.errorText}>
+          {getErrorMessage(error as Error)}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          <Text style={styles.retryButtonText}>Tap to retry</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -324,7 +336,7 @@ const PLP: React.FC = () => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => router.push("./(tabs)/home")}
+        onPress={() => router.push("/(tabs)/home/HomeScreen")}
         style={styles.secondaryButton}
       >
         <Text style={styles.secondaryButtonText}>View other stores</Text>
@@ -395,7 +407,7 @@ const PLP: React.FC = () => {
   }
 
   // Error state
-  if (error) {
+  if (isError) {
     return renderError();
   }
 
@@ -423,7 +435,7 @@ const PLP: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={handleRefresh}
             colors={["#030303"]}
             tintColor="#030303"
