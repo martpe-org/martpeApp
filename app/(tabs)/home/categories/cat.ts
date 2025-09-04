@@ -31,23 +31,30 @@ export const styles = StyleSheet.create({
     margin: 8,
     width: (screenWidth - 80) / 4,
   },
-  subCategoryImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  subCategoryIcon: {
-    width: 60,
-    height: 60,
-  },
+subCategoryImage: {
+  width: 85,
+  height: 85,
+  borderRadius: 20,
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 8,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12,
+  shadowRadius: 6,
+  elevation: 5,
+
+  // ✅ Glassy border effect
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.6)",
+},
+
+subCategoryIcon: {
+  width: 55,
+  height: 55,
+  borderRadius: 12,
+},
+
   subHeading: {
     flexDirection: "row",
     alignItems: "center",
@@ -60,8 +67,18 @@ export const styles = StyleSheet.create({
     color: "#333",
     textAlign: "center",
   },
-  line: { flex: 1, height: 1, backgroundColor: "#b61616", marginHorizontal: 10 },
-  subHeadingText: { fontSize: 18, fontWeight: "600", color: "red", textAlign: "center" },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#b61616",
+    marginHorizontal: 10,
+  },
+  subHeadingText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "red",
+    textAlign: "center",
+  },
   viewMoreButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -91,25 +108,25 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
   },
-    subCategoryName: {
+  subCategoryName: {
     fontSize: 12,
     fontWeight: "400",
     color: "#333",
     textAlign: "center",
   },
-    offersContainer: {
+  offersContainer: {
     height: 200,
     marginVertical: 15,
     paddingHorizontal: 5,
   },
-    noRestaurantsContainer: {
+  noRestaurantsContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 40,
     paddingHorizontal: 20,
     minHeight: 120,
   },
-    errorContainer: {
+  errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -122,4 +139,5 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
     fontWeight: "500",
   },
+
 });

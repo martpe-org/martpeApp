@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
   Image,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   SafeAreaView,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -16,27 +18,15 @@ import { personalCareCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
-import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
+import { Store2 } from "../../../../hook/fetch-domain-type";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import { Entypo } from "@expo/vector-icons";
-import {styles} from "./cat"
+import { styles } from "./cat";
+
+const { width } = Dimensions.get("window");
 const domain = "ONDC:RET13";
 
-// Transform API response to match component expectations
-const transformOfferData = (offers: HomeOfferType[]) => {
-  return offers.map((offer) => ({
-    id: offer.store_id,
-    calculated_max_offer: {
-      percent: offer.store.maxStoreItemOfferPercent || 0,
-    },
-    descriptor: {
-      name: offer.store.name,
-      images: offer.images || [],
-      symbol: offer.store.symbol,
-    },
-  }));
-};
-
+// ✅ Slugify fallback
 const slugify = (name: string, fallback: string) =>
   name
     ? name
@@ -45,11 +35,11 @@ const slugify = (name: string, fallback: string) =>
         .replace(/(^-|-$)+/g, "")
     : fallback;
 
+// ✅ Store transform
 const transformStoreData = (stores: Store2[]) => {
   return stores.map((store, index) => ({
     id: store.provider_id || `store-${index}`,
-    slug:
-      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    slug: store.slug || slugify(store.name, store.provider_id || `store-${index}`),
     descriptor: {
       name: store.name,
       symbol: store.symbol,
@@ -60,8 +50,8 @@ const transformStoreData = (stores: Store2[]) => {
       state: store.address?.state || "",
     },
     geoLocation: {
-      lat: store.gps.lat,
-      lng: store.gps.lon,
+      lat: store.gps?.lat,
+      lng: store.gps?.lon,
     },
     calculated_max_offer: {
       percent: store.maxStoreItemOfferPercent || 0,
@@ -69,7 +59,7 @@ const transformStoreData = (stores: Store2[]) => {
   }));
 };
 
-// Custom hook for fetching domain data
+// ✅ Domain fetch hook
 const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
   return useQuery({
     queryKey: ["domainData", domain, lat, lng, pincode],
@@ -77,19 +67,11 @@ const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
       if (!lat || !lng || !pincode) {
         throw new Error("Location data is required");
       }
-      const response = await fetchHomeByDomain(
-        lat,
-        lng,
-        pincode,
-        domain,
-        1,
-        20
-      );
+      const response = await fetchHomeByDomain(lat, lng, pincode, domain, 1, 20);
       if (!response) throw new Error("Failed to fetch domain data");
 
       return {
-        stores: transformStoreData(response.stores.items),
-        offers: transformOfferData(response.offers || []),
+        stores: transformStoreData(response.stores.items || []),
       };
     },
     enabled: !!lat && !!lng && !!pincode,
@@ -110,7 +92,47 @@ function Beauty() {
   );
 
   const storesData = domainData?.stores || [];
-  const offersData = domainData?.offers || [];
+
+  // ✅ Carousel State
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  // ✅ Auto-scroll every 3s
+  useEffect(() => {
+    if (!storesData.length) return;
+    const timer = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % storesData.length;
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+      setActiveIndex(nextIndex);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [activeIndex, storesData.length]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Loader />
+      </SafeAreaView>
+    );
+  }
+
+  if (!storesData.length) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No data available</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
   const renderSubCategories = () => {
     return personalCareCategoryData.slice(0, 8).map((subCategory) => (
@@ -118,14 +140,14 @@ function Beauty() {
         onPress={() =>
           router.push({
             pathname: "/(tabs)/home/result/[search]",
-            params: { search: subCategory.name, domainData: "ONDC:RET13" },
+            params: { search: subCategory.name, domainData: domain },
           })
         }
         style={styles.subCategory}
         key={subCategory.id}
       >
         <LinearGradient
-          colors={["#FDBAE2", "rgba(255, 146, 211, 0)"]}
+          colors={["#faf7f9", "rgba(255, 146, 211, 0)"]}
           style={styles.subCategoryImage}
         >
           <Image
@@ -139,28 +161,6 @@ function Beauty() {
         </Text>
       </TouchableOpacity>
     ));
-  };
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <Loader />
-      </SafeAreaView>
-    );
-  }
-
-  if (!storesData.length && !offersData.length) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No data available</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const handleSearchPress = () => {
-    router.push("/search");
   };
 
   return (
@@ -179,17 +179,52 @@ function Beauty() {
           </View>
         </View>
 
-        {/* Offers Section */}
-        {offersData.length > 0 && (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          >
-            {offersData.map((data, index) => (
-              <OfferCard3 offerData={data} key={`offer-${data.id}-${index}`} />
-            ))}
-          </ScrollView>
+        {/* ✅ Offers Section with auto-scroll + dots */}
+        {storesData.length > 0 && (
+          <View>
+            <FlatList
+              ref={flatListRef}
+              data={storesData}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `offer-${item.id}-${index}`}
+              renderItem={({ item }) => (
+                <View style={{ width: width * 0.8, alignItems: "center" }}>
+                  <OfferCard3 storeData={item} />
+                </View>
+              )}
+              onMomentumScrollEnd={(ev) => {
+                const index = Math.round(
+                  ev.nativeEvent.contentOffset.x / (width * 0.8)
+                );
+                setActiveIndex(index);
+              }}
+            />
+
+            {/* Pagination Dots */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                marginTop: 10,
+              }}
+            >
+              {storesData.map((_, index) => (
+                <View
+                  key={index}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    marginHorizontal: 4,
+                    backgroundColor:
+                      activeIndex === index ? "#E11D48" : "#ccc",
+                  }}
+                />
+              ))}
+            </View>
+          </View>
         )}
 
         {/* Explore the World of Beauty Section */}
@@ -227,18 +262,16 @@ function Beauty() {
             </Text>
           </View>
 
-          <ScrollView
+          <FlatList
+            data={storesData}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 10 }}
-          >
-            {storesData.map((storeData, index) => (
-              <View
-                key={`store-${storeData.id}-${index}`}
-                style={{ width: 300, height: 350, marginRight: 12 }}
-              >
+            keyExtractor={(item, index) => `store-${item.id}-${index}`}
+            renderItem={({ item }) => (
+              <View style={{ width: 300, height: 350, marginBottom: -30 }}>
                 <StoreCard3
-                  storeData={storeData}
+                  storeData={item}
                   categoryFiltered={[]}
                   userLocation={{
                     lat: selectedAddress?.lat || 0,
@@ -246,8 +279,8 @@ function Beauty() {
                   }}
                 />
               </View>
-            ))}
-          </ScrollView>
+            )}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -255,4 +288,3 @@ function Beauty() {
 }
 
 export default Beauty;
-

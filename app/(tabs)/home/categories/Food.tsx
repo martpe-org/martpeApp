@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   RefreshControl,
   Animated,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -17,29 +19,16 @@ import { foodCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
-import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
+import { Store2 } from "../../../../hook/fetch-domain-type";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import { Entypo, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { styles } from "./cat";
 
+const { width } = Dimensions.get("window");
 const domain = "ONDC:RET11";
 
-// Transform API response to match component expectations
-const transformOfferData = (offers: HomeOfferType[]) => {
-  return offers.map((offer) => ({
-    id: offer.store_id,
-    calculated_max_offer: {
-      percent: offer.store.maxStoreItemOfferPercent || 0,
-    },
-    descriptor: {
-      name: offer.store.name,
-      images: offer.images || [],
-      symbol: offer.store.symbol,
-    },
-  }));
-};
-
+// ✅ Slugify fallback
 const slugify = (name: string, fallback: string) =>
   name
     ? name
@@ -48,11 +37,11 @@ const slugify = (name: string, fallback: string) =>
         .replace(/(^-|-$)+/g, "")
     : fallback;
 
+// ✅ Store transform
 const transformStoreData = (stores: Store2[]) => {
   return stores.map((store, index) => ({
     id: store.provider_id || `store-${index}`,
-    slug:
-      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    slug: store.slug || slugify(store.name, store.provider_id || `store-${index}`),
     descriptor: {
       name: store.name,
       symbol: store.symbol,
@@ -63,8 +52,8 @@ const transformStoreData = (stores: Store2[]) => {
       state: store.address?.state || "",
     },
     geoLocation: {
-      lat: store.gps.lat,
-      lng: store.gps.lon,
+      lat: store.gps?.lat,
+      lng: store.gps?.lon,
     },
     calculated_max_offer: {
       percent: store.maxStoreItemOfferPercent || 0,
@@ -73,7 +62,7 @@ const transformStoreData = (stores: Store2[]) => {
   }));
 };
 
-// Custom hook for fetching domain data
+// ✅ Domain fetch hook
 const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
   return useQuery({
     queryKey: ["domainData", domain, lat, lng, pincode],
@@ -81,19 +70,11 @@ const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
       if (!lat || !lng || !pincode) {
         throw new Error("Location data is required");
       }
-      const response = await fetchHomeByDomain(
-        lat,
-        lng,
-        pincode,
-        domain,
-        1,
-        20
-      );
+      const response = await fetchHomeByDomain(lat, lng, pincode, domain, 1, 20);
       if (!response) throw new Error("Failed to fetch domain data");
 
       return {
         stores: transformStoreData(response.stores.items || []),
-        offers: transformOfferData(response.offers || []),
       };
     },
     enabled: !!lat && !!lng && !!pincode,
@@ -107,7 +88,7 @@ function Food() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
   const pincode = selectedAddress?.pincode || selectedAddress || "110001";
 
-  // Animation for the no restaurants text
+  // Animation for no restaurants text
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
@@ -118,9 +99,27 @@ function Food() {
   } = useDomainData(selectedAddress?.lat, selectedAddress?.lng, pincode);
 
   const storesData = domainData?.stores || [];
-  const offersData = domainData?.offers || [];
 
-  // Animate the no restaurants message only when not loading and no stores
+  // ✅ Carousel state
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  // ✅ Auto-scroll every 3s
+  useEffect(() => {
+    if (!storesData.length) return;
+    const timer = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % storesData.length;
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+      setActiveIndex(nextIndex);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [activeIndex, storesData.length]);
+
+  // Animate no restaurants
   useEffect(() => {
     if (!isLoading && storesData.length === 0) {
       Animated.parallel([
@@ -137,7 +136,6 @@ function Food() {
         }),
       ]).start();
     } else if (storesData.length > 0) {
-      // Reset animation when stores are available
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
     }
@@ -146,12 +144,17 @@ function Food() {
   const renderSubCategories = () => {
     return foodCategoryData.slice(0, 8).map((subCategory) => (
       <TouchableOpacity
-        onPress={() => router.push(`/(tabs)/home/result/${subCategory.name}`)}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/[search]",
+            params: { search: subCategory.name, domainData: domain },
+          })
+        }
         style={styles.subCategory}
         key={subCategory.id}
       >
         <LinearGradient
-          colors={["#F9E7B0", "rgba(231, 223, 201, 0)"]}
+          colors={["#f5f3ee", "rgba(231, 223, 201, 0)"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.subCategoryImage}
@@ -167,13 +170,10 @@ function Food() {
     ));
   };
 
-
-
   const handleSearchPress = () => {
     router.push("/search");
   };
 
-  // Show loader only on initial load
   if (isLoading && !domainData) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -196,7 +196,7 @@ function Food() {
           />
         }
       >
-        {/* Search Header - Always Show */}
+        {/* Search Header */}
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -209,25 +209,55 @@ function Food() {
           </View>
         </View>
 
-        {/* Offers Section - Show if available */}
-        {offersData.length > 0 && (
-          <View style={styles.offersContainer}>
-            <ScrollView
+        {/* ✅ Offers Section with carousel */}
+        {storesData.length > 0 && (
+          <View>
+            <FlatList
+              ref={flatListRef}
+              data={storesData}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `offer-${item.id}-${index}`}
+              renderItem={({ item }) => (
+                <View style={{ width: width * 0.8, alignItems: "center" }}>
+                  <OfferCard3 storeData={item} />
+                </View>
+              )}
+              onMomentumScrollEnd={(ev) => {
+                const index = Math.round(
+                  ev.nativeEvent.contentOffset.x / (width * 0.8)
+                );
+                setActiveIndex(index);
+              }}
+            />
+
+            {/* Dots */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                marginTop: 10,
+              }}
             >
-              {offersData.map((data, index) => (
-                <OfferCard3
-                  offerData={data}
-                  key={`offer-${data.id}-${index}`}
+              {storesData.map((_, index) => (
+                <View
+                  key={index}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    marginHorizontal: 4,
+                    backgroundColor:
+                      activeIndex === index ? "#f2663c" : "#ccc",
+                  }}
                 />
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
 
-        {/* Categories Section - Always Show */}
+        {/* Categories Section */}
         <View style={styles.section}>
           <View style={styles.subHeading}>
             <View style={styles.line} />
@@ -252,7 +282,7 @@ function Food() {
           <View style={styles.subCategories}>{renderSubCategories()}</View>
         </View>
 
-        {/* Stores Section - Always Show Section Header */}
+        {/* Stores Section */}
         <View style={styles.section}>
           <View style={styles.subHeading}>
             <View style={styles.line} />
@@ -261,7 +291,6 @@ function Food() {
           </View>
 
           {storesData.length > 0 ? (
-            /* Show stores when available */
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -270,7 +299,7 @@ function Food() {
               {storesData.map((storeData, index) => (
                 <View
                   key={`store-${storeData.id}-${index}`}
-                  style={{ width: 300, height: 350, marginRight: 12 }}
+                  style={{ width: 300, height: 350, marginBottom:-30 }}
                 >
                   <StoreCard3
                     storeData={storeData}
@@ -284,7 +313,6 @@ function Food() {
               ))}
             </ScrollView>
           ) : (
-            /* Show animated message only when no stores available */
             <View style={styles.noRestaurantsContainer}>
               <Animated.View
                 style={[

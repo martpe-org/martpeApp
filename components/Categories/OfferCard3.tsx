@@ -1,156 +1,133 @@
+import React from "react";
+import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import ImageComp from "../common/ImageComp";
-
-type OfferDataType = {
-  id?: string;
-  calculated_max_offer?: {
-    percent?: number;
-  };
-  descriptor?: {
-    name?: string;
-    images?: string[];
-    symbol?: string;
-  };
-};
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface OfferCard3Props {
-  offerData: OfferDataType;
+  storeData: any;
 }
 
-function OfferCard3({ offerData }: OfferCard3Props) {
-  if (!offerData) return null;
+const OfferCard3: React.FC<OfferCard3Props> = ({ storeData }) => {
+  if (!storeData) return null;
 
-  const { calculated_max_offer, descriptor, id } = offerData;
+  const {
+    descriptor = {},
+    calculated_max_offer = {},
+    slug,
+  } = storeData;
 
-  const percent = calculated_max_offer?.percent ?? 0;
-  const name = descriptor?.name ?? "";
-  const images = descriptor?.images ?? [];
-  const symbol = descriptor?.symbol ?? "";
-
-  const containerHeight = 200;
-  const screenWidth = Dimensions.get("window").width;
+  const { name = "", symbol = "", images = [] } = descriptor;
+  const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
 
   return (
-    <View
-      style={[
-        styles.container,
-        { height: containerHeight, width: screenWidth },
-      ]}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={styles.cardWrapper}
+      onPress={() => {
+        if (slug) {
+          router.push(`/(tabs)/home/result/productListing/${slug}`);
+        }
+      }}
     >
       {/* Background Image */}
-      {images.length > 0 && (
-        <ImageComp
-          source={images[0]}
-          imageStyle={styles.imgBg}
-          resizeMode="cover"
-          fallbackSource={{
-            uri: "https://via.placeholder.com/400x200?text=Offer",
-          }}
-          loaderColor="white"
-        />
+      <Image source={{ uri: bgImg }} style={styles.backgroundImage} />
+
+      {/* Gradient Overlay for readability */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.7)"]}
+        style={styles.gradientOverlay}
+      />
+
+      {/* Discount Tag - BIG highlight */}
+      {calculated_max_offer?.percent > 0 && (
+        <View style={styles.discountTag}>
+          <Text style={styles.discountText}>
+            {Math.round(calculated_max_offer.percent)}% OFF
+          </Text>
+        </View>
       )}
 
-      <View style={styles.overlay}>
-        <View style={styles.offerDescription}>
-          <Text style={styles.discount}>Up to {Math.round(percent)}% Off</Text>
-          <Text style={styles.discountDesc}>on products from {name}</Text>
+      {/* Store Info Overlay */}
+      <View style={styles.infoContainer}>
+        <Text style={styles.storeName} numberOfLines={1}>
+          {name}
+        </Text>
+        <View style={styles.locationRow}>
+          <MaterialIcons name="local-offer" size={14} color="#fff" />
+          <Text style={styles.addressText} numberOfLines={1}>
+            Special Offer Store
+          </Text>
         </View>
-
-        <TouchableOpacity
-          onPressIn={() => {
-            if (id) {
-              router.push(`/(tabs)/home/result/productListing/${id}`);
-            }
-          }}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>Order Now</Text>
-        </TouchableOpacity>
-
-        {/* Logo/Symbol */}
-        {symbol && (
-          <View style={styles.logoContainer}>
-            <ImageComp
-              source={symbol}
-              imageStyle={styles.logoImage}
-              resizeMode="contain"
-              fallbackSource={{
-                uri: "https://via.placeholder.com/120x40?text=Logo",
-              }}
-              loaderColor="white"
-              loaderSize="small"
-            />
-          </View>
-        )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
-}
+};
 
 export default OfferCard3;
 
 const styles = StyleSheet.create({
-  container: {
+  cardWrapper: {
+    width: 260,
+    height: 160,
+    borderRadius: 18,
+    marginRight: 14,
+    backgroundColor: "#fff",
     overflow: "hidden",
-    position: "relative",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    marginBottom:10
   },
-  imgBg: {
-    flex: 1,
+  backgroundImage: {
     width: "100%",
     height: "100%",
+    position: "absolute",
   },
-  overlay: {
+  gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 18,
   },
-  offerDescription: {
+  discountTag: {
     position: "absolute",
-    bottom: 15,
-    left: 15,
+    top: 12,
+    left: 12,
+    backgroundColor: "#E11D48",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    elevation: 5,
   },
-  discount: {
-    color: "white",
+  discountText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  infoContainer: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    right: 12,
+  },
+  storeName: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 4,
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  discountDesc: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "400",
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  button: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 5,
-    width: 72,
-    borderRadius: 50,
-    borderColor: "#000000",
-    marginTop: 20,
-    position: "relative",
-    bottom: 15,
-    left: 15,
-  },
-  buttonText: {
-    color: "#000000",
-    fontSize: 10,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  logoContainer: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 120,
-    height: 40,
-  },
-  logoImage: {
-    width: "100%",
-    height: "100%",
+  addressText: {
+    fontSize: 13,
+    marginLeft: 5,
+    color: "#f9fafb",
   },
 });
