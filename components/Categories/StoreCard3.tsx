@@ -30,14 +30,15 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
     address = {},
     calculated_max_offer = {},
     geoLocation = {},
+    rating,
   } = storeData;
 
   const { name = "", symbol = "", images = [] } = descriptor;
   const { city = "" } = address;
   const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
 
-  // ✅ Distance & delivery time
-  const distance = geoLocation?.lat
+  /** ---------- Distance & delivery time (from your first file) ---------- **/
+  const distanceKm = geoLocation?.lat
     ? Number(
         (
           getDistance(
@@ -53,9 +54,9 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
 
   const speed = 25; // km/h
   const deliveryTime =
-    distance / speed < 1
-      ? ((distance / speed) * 60).toFixed(0) + " min"
-      : (distance / speed).toFixed(0) + " hr";
+    distanceKm / speed < 1
+      ? `${Math.round((distanceKm / speed) * 60)} min`
+      : `${Math.round(distanceKm / speed)} hr`;
 
   return (
     <View style={styles.cardWrapper}>
@@ -64,9 +65,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
         <TouchableOpacity
           onPress={() => {
             if (storeData.slug) {
-              router.push(
-                `/(tabs)/home/result/productListing/${storeData.slug}`
-              );
+              router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
             } else {
               console.warn("Store slug missing");
             }
@@ -115,16 +114,9 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
         <Text style={styles.title} numberOfLines={1}>
           {name}
         </Text>
-        <Text style={styles.description} numberOfLines={1}>
-          {calculated_max_offer?.percent > 0
-            ? `Up to ${Math.round(calculated_max_offer.percent)}% off`
-            : "Great deals near you"}
-        </Text>
 
-        {/* ✅ Info Row */}
+        {/* ✅ Info Row pulled from other file */}
         <View style={[styles.infoContainer, styles.horizontalBar]}>
-          <FontAwesome name="star" size={12} color="#fbbf24" />
-          <Text style={styles.infoText}>4.5</Text>
           <Text style={styles.separator}> • </Text>
 
           <MaterialCommunityIcons name="clock-time-four" size={12} color="#444" />
@@ -132,12 +124,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
           <Text style={styles.separator}> • </Text>
 
           <MaterialIcons name="delivery-dining" size={14} color="#444" />
-          <Text style={styles.infoText}>{distance} km</Text>
-          <Text style={styles.separator}> • </Text>
-
-          <Text style={[styles.infoText, { color: "#E11D48" }]}>
-            Free Delivery
-          </Text>
+          <Text style={styles.infoText}>{distanceKm} km</Text>
         </View>
 
         {/* Address */}
@@ -159,7 +146,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginHorizontal: 15,
     borderRadius: 20,
-  //  overflow: "hidden",
     backgroundColor: "#fff",
     elevation: 8,
     shadowColor: "#000",
@@ -216,15 +202,11 @@ const styles = StyleSheet.create({
     color: "#111",
     marginBottom: 4,
   },
-  description: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 12,
-  },
   infoContainer: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
+    marginTop:7
   },
   horizontalBar: {
     paddingBottom: 8,

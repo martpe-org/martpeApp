@@ -244,8 +244,8 @@ function Food() {
                 <View
                   key={index}
                   style={{
-                    width: 8,
-                    height: 8,
+                    width: 6,
+                    height:6,
                     borderRadius: 4,
                     marginHorizontal: 4,
                     backgroundColor:

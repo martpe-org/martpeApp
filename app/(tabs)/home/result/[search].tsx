@@ -1,10 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { router, useGlobalSearchParams } from "expo-router";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   StyleSheet,
@@ -37,15 +36,6 @@ interface SearchInput {
   pincode: string;
   query: string;
   domain: string;
-  page: number;
-  size: number;
-}
-
-interface SearchResponse {
-  results: ProductSearchResult[] | StoreSearchResult[];
-  totalPages: number;
-  currentPage: number;
-  hasMore: boolean;
 }
 
 interface FoodDetailsState {
@@ -72,9 +62,6 @@ interface CustomizableGroupState {
   price: number;
 }
 
-// Constants
-const PAGE_SIZE = 20;
-
 // Helper functions
 const groupByStoreId = (catalogs: ProductSearchResult[]) => {
   return catalogs?.reduce((acc, product) => {
@@ -97,61 +84,12 @@ const getDomainName = (domain: string): string => {
   return domainMap[domain] || domain;
 };
 
-// Search API functions
-const fetchProducts = async ({
-  pageParam = 1,
-  queryKey,
-}): Promise<SearchResponse> => {
-  const [, searchInput] = queryKey;
-  const response = await searchProducts({
-    ...searchInput,
-    page: pageParam,
-    size: PAGE_SIZE,
-  });
-
-  return {
-    results: response?.results || [],
-    totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
-    currentPage: pageParam,
-    hasMore: pageParam < Math.ceil((response?.total || 0) / PAGE_SIZE),
-  };
-};
-
-const fetchStores = async ({
-  pageParam = 1,
-  queryKey,
-}): Promise<SearchResponse> => {
-  const [, searchInput] = queryKey;
-  const response = await searchStores({
-    ...searchInput,
-    page: pageParam,
-    size: PAGE_SIZE,
-  });
-
-  return {
-    results: response?.results || [],
-    totalPages: Math.ceil((response?.total || 0) / PAGE_SIZE),
-    currentPage: pageParam,
-    hasMore: pageParam < Math.ceil((response?.total || 0) / PAGE_SIZE),
-  };
-};
-
 // Simple components
 const VegIndicator: FC = () => (
   <View style={styles.vegIndicator}>
     <Text style={[styles.vegDot, { color: "#4CAF50" }]}>●</Text>
   </View>
 );
-
-const LoadingFooter: FC<{ isLoading: boolean }> = ({ isLoading }) => {
-  if (!isLoading) return null;
-  return (
-    <View style={styles.loadingFooter}>
-      <ActivityIndicator size="small" color="#FB3E44" />
-      <Text style={styles.loadingText}>Loading more...</Text>
-    </View>
-  );
-};
 
 const Results: FC = () => {
   const [isItem, setIsItem] = useState(true);
@@ -218,68 +156,39 @@ const Results: FC = () => {
       pincode: selectedDetails?.pincode || "110001",
       query: search || "",
       domain: domainData || "",
-      page: 1,
-      size: PAGE_SIZE,
     }),
     [selectedDetails, search, domainData]
   );
 
-  // Products infinite query
+  // Products query
   const {
     data: productsData,
-    fetchNextPage: fetchNextProducts,
-    hasNextPage: hasNextProducts,
-    isFetchingNextPage: isFetchingNextProducts,
     isLoading: isLoadingProducts,
     error: productsError,
     refetch: refetchProducts,
-  } = useInfiniteQuery({
+  } = useQuery({
     queryKey: ["searchProducts", searchInput],
-    queryFn: fetchProducts,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
-    enabled:
-      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
+    queryFn: () => searchProducts(searchInput),
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Stores infinite query
+  // Stores query
   const {
     data: storesData,
-    fetchNextPage: fetchNextStores,
-    hasNextPage: hasNextStores,
-    isFetchingNextPage: isFetchingNextStores,
     isLoading: isLoadingStores,
     error: storesError,
     refetch: refetchStores,
-  } = useInfiniteQuery({
+  } = useQuery({
     queryKey: ["searchStores", searchInput],
-    queryFn: fetchStores,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.currentPage + 1 : undefined,
-    enabled:
-      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
+    queryFn: () => searchStores(searchInput),
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Flatten data
-  const allProducts = useMemo(
-    () =>
-      productsData?.pages.flatMap(
-        (page) => page.results as ProductSearchResult[]
-      ) || [],
-    [productsData]
-  );
-
-  const allStores = useMemo(
-    () =>
-      storesData?.pages.flatMap(
-        (page) => page.results as StoreSearchResult[]
-      ) || [],
-    [storesData]
-  );
+  // Process data
+  const allProducts = productsData?.results || [];
+  const allStores = storesData?.results || [];
 
   // Group products by store
   const productsByStore = useMemo(
@@ -290,27 +199,6 @@ const Results: FC = () => {
     () => Object.entries(productsByStore),
     [productsByStore]
   );
-
-  // Handle load more
-  const handleLoadMore = useCallback(() => {
-    if (isItem) {
-      if (hasNextProducts && !isFetchingNextProducts) {
-        fetchNextProducts();
-      }
-    } else {
-      if (hasNextStores && !isFetchingNextStores) {
-        fetchNextStores();
-      }
-    }
-  }, [
-    isItem,
-    hasNextProducts,
-    isFetchingNextProducts,
-    hasNextStores,
-    isFetchingNextStores,
-    fetchNextProducts,
-    fetchNextStores,
-  ]);
 
   // Handle tab change
   const handleTabChange = useCallback((itemTab: boolean) => {
@@ -384,9 +272,9 @@ const Results: FC = () => {
                 {store.name}
               </Text>
               <Text style={styles.storeMetrics}>
-                ★ {store.rating || "4.2"} •{" "}
-                {Math.round((firstProduct.tts_in_h || 1) * 60)}min •{" "}
-                {firstProduct.distance_in_km.toFixed(1)}km
+                <Text>★ {store.rating || "4.2"} • </Text>
+                <Text>{Math.round((firstProduct.tts_in_h || 1) * 60)}min • </Text>
+                <Text>{firstProduct.distance_in_km.toFixed(1)}km</Text>
               </Text>
               {(firstProduct.price.offerPercent || 0) > 0 && (
                 <Text style={styles.offerText}>
@@ -487,7 +375,8 @@ const Results: FC = () => {
       <View style={styles.storeCardInfo}>
         <Text style={styles.storeCardName}>{store.name}</Text>
         <Text style={styles.storeCardDetails}>
-          ★ {store.rating || "4.2"} • {store.distance_in_km.toFixed(1)}km
+          <Text>★ {store.rating || "4.2"} • </Text>
+          <Text>{store.distance_in_km.toFixed(1)}km</Text>
         </Text>
         <Text style={styles.storeCardAddress} numberOfLines={1}>
           {store.address.city}
@@ -499,9 +388,6 @@ const Results: FC = () => {
   const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
   const currentError = isItem ? productsError : storesError;
   const currentData = isItem ? storeEntries : allStores;
-  const currentIsFetchingNext = isItem
-    ? isFetchingNextProducts
-    : isFetchingNextStores;
 
   if (currentIsLoading) return <Loader />;
 
@@ -567,7 +453,7 @@ const Results: FC = () => {
             onPress={() => handleTabChange(false)}
           >
             <Text style={[styles.tabText, !isItem && styles.activeTabText]}>
-              Restaurents ({allStores.length})
+              Restaurants ({allStores.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -588,8 +474,6 @@ const Results: FC = () => {
             <StoreCard item={item as StoreSearchResult} />
           )
         }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
         ListHeaderComponent={() => (
           <Text style={styles.resultsTitle}>
             Showing Results for {search}
@@ -599,9 +483,6 @@ const Results: FC = () => {
           <Text style={styles.noResultsText}>
             No {isItem ? "items" : "stores"} found
           </Text>
-        )}
-        ListFooterComponent={() => (
-          <LoadingFooter isLoading={currentIsFetchingNext} />
         )}
         contentContainerStyle={styles.contentContainer}
       />
@@ -627,10 +508,6 @@ const Results: FC = () => {
             maxLimit={customizableGroup.maxLimit}
             price={customizableGroup.price}
             closeFilter={handleClosePress}
-            providerId=""
-            domain=""
-            cityCode=""
-            bppId=""
           />
         )}
       </BottomSheet>
@@ -677,10 +554,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 5,
+    paddingVertical: 12,
     fontSize: 14,
     color: "#333",
-    marginBottom: 12,
   },
   tabs: {
     flexDirection: "row",
@@ -736,17 +612,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#fff",
     fontWeight: "600",
-  },
-  loadingFooter: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  loadingText: {
-    marginLeft: 8,
-    color: "#666",
-    fontSize: 14,
   },
   card: {
     backgroundColor: "#fff",

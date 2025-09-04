@@ -39,7 +39,8 @@ const slugify = (name: string, fallback: string) =>
 const transformStoreData = (stores: Store2[]) => {
   return stores.map((store, index) => ({
     id: store.provider_id || `store-${index}`,
-    slug: store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    slug:
+      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
     descriptor: {
       name: store.name,
       symbol: store.symbol,
@@ -67,7 +68,14 @@ const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
       if (!lat || !lng || !pincode) {
         throw new Error("Location data is required");
       }
-      const response = await fetchHomeByDomain(lat, lng, pincode, domain, 1, 20);
+      const response = await fetchHomeByDomain(
+        lat,
+        lng,
+        pincode,
+        domain,
+        1,
+        20
+      );
       if (!response) throw new Error("Failed to fetch domain data");
 
       return {
@@ -136,18 +144,18 @@ function Grocery() {
         style={styles.subCategory}
         key={subCategory.id}
       >
-      <LinearGradient
-  colors={["#ffffff", "#f0fdf4", "#dcfce7"]}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 1 }}
-  style={styles.subCategoryImage}
->
-  <Image
-    source={{ uri: subCategory.image }}
-    resizeMode="contain"
-    style={styles.subCategoryIcon}
-  />
-</LinearGradient>
+        <LinearGradient
+          colors={["#ffffff", "#f0fdf4", "#dcfce7"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.subCategoryImage}
+        >
+          <Image
+            source={{ uri: subCategory.image }}
+            resizeMode="contain"
+            style={styles.subCategoryIcon}
+          />
+        </LinearGradient>
 
         <Text style={styles.subHeadingTextUp} numberOfLines={1}>
           {subCategory.name}
@@ -174,7 +182,7 @@ function Grocery() {
 
         {/* ✅ Offers Section with auto-scroll + dots */}
         {storesData.length > 0 && (
-          <View >
+          <View>
             <FlatList
               ref={flatListRef}
               data={storesData}
@@ -207,12 +215,11 @@ function Grocery() {
                 <View
                   key={index}
                   style={{
-                    width: 8,
-                    height: 8,
+                    width: 6,
+                    height: 6,
                     borderRadius: 4,
                     marginHorizontal: 4,
-                    backgroundColor:
-                      activeIndex === index ? "#E11D48" : "#ccc",
+                    backgroundColor: activeIndex === index ? "#E11D48" : "#ccc",
                   }}
                 />
               ))}
@@ -261,7 +268,7 @@ function Grocery() {
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item, index) => `store-${item.id}-${index}`}
             renderItem={({ item }) => (
-              <View style={{ width: 300, height: 350, marginBottom :-30 }}>
+              <View style={{ width: 300, height: 350, marginBottom: -30 }}>
                 <StoreCard3
                   storeData={item}
                   categoryFiltered={[]}

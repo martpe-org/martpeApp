@@ -39,7 +39,8 @@ const slugify = (name: string, fallback: string) =>
 const transformStoreData = (stores: Store2[]) => {
   return stores.map((store, index) => ({
     id: store.provider_id || `store-${index}`,
-    slug: store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    slug:
+      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
     descriptor: {
       name: store.name,
       symbol: store.symbol,
@@ -67,7 +68,14 @@ const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
       if (!lat || !lng || !pincode) {
         throw new Error("Location data is required");
       }
-      const response = await fetchHomeByDomain(lat, lng, pincode, domain, 1, 20);
+      const response = await fetchHomeByDomain(
+        lat,
+        lng,
+        pincode,
+        domain,
+        1,
+        20
+      );
       if (!response) throw new Error("Failed to fetch domain data");
 
       return {
@@ -216,12 +224,11 @@ function Interior() {
                 <View
                   key={index}
                   style={{
-                    width: 8,
-                    height: 8,
+                    width: 6,
+                    height: 6,
                     borderRadius: 4,
                     marginHorizontal: 4,
-                    backgroundColor:
-                      activeIndex === index ? "#E11D48" : "#ccc",
+                    backgroundColor: activeIndex === index ? "#E11D48" : "#ccc",
                   }}
                 />
               ))}
