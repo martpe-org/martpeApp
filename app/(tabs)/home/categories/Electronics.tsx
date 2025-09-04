@@ -3,11 +3,9 @@ import {
   View,
   Text,
   Image,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -20,9 +18,7 @@ import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import { Entypo } from "@expo/vector-icons";
-import { FlatList } from "react-native-gesture-handler";
-
-const screenWidth = Dimensions.get("window").width;
+import {styles} from "./cat"
 const domain = "ONDC:RET14";
 
 // Transform API response to match component expectations
@@ -65,7 +61,6 @@ const transformStoreData = (stores: Store2[]) => {
       lat: store.gps.lat,
       lng: store.gps.lon,
     },
-    catalogs: store.catalogs || [],
     calculated_max_offer: {
       percent: store.maxStoreItemOfferPercent || 0,
     },
@@ -149,15 +144,7 @@ function Electronics() {
     );
   }
 
-  if (!storesData.length && !offersData.length) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No data available</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+ 
   const handleSearchPress = () => {
     router.push("/search");
   };
@@ -255,107 +242,3 @@ function Electronics() {
 
 export default Electronics;
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, backgroundColor: "#fff" },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 16,
-    backgroundColor: "#fff",
-  },
-  section: { marginHorizontal: 10 },
-  subCategories: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    flexWrap: "wrap",
-    marginVertical: 15,
-    paddingHorizontal: 10,
-  },
-  backButton: {
-    marginRight: 12,
-    padding: 4,
-    marginTop: -9,
-  },
-  searchWrapper: {
-    flex: 1,
-    marginTop: -20,
-  },
-  subCategory: {
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 8,
-    width: (screenWidth - 80) / 4,
-  },
-  subCategoryImage: {
-    backgroundColor: "#fff",
-    marginBottom: 8,
-    borderRadius: 12,
-    elevation: 2,
-    padding: 12,
-    width: 80,
-    height: 80,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  subHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 25,
-  },
-  subHeadingTextUp: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#b61616",
-    marginHorizontal: 10,
-  },
-  subHeadingText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "red",
-    textAlign: "center",
-  },
-  viewMoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignSelf: "flex-end",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginTop: -17,
-    marginBottom: -15,
-  },
-  viewMoreButtonText: { color: "#F13A3A", fontSize: 12, fontWeight: "500" },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  errorText: {
-    color: "#DC2626",
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 16,
-    fontWeight: "500",
-  },
-  retryButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-});

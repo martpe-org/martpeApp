@@ -1,187 +1,202 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
   Image,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
-  FlatList,
+  SafeAreaView,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { router } from "expo-router";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { useQuery } from "@tanstack/react-query";
 import OfferCard3 from "../../../../components/Categories/OfferCard3";
-import StoreCard4 from "../../../../components/Categories/StoreCard4";
 import Search from "../../../../components/common/Search";
 import { foodCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
-import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { useHideTabBarStore } from "../../../../state/hideTabBar";
-import {
-  filters,
-  offerData,
-  deliveryData,
-} from "../../../../constants/filters";
-import { Entypo, Feather, Ionicons } from "@expo/vector-icons";
-import { useRenderFunctions } from "@/components/Landing Page/render";
-import { StoreSearchResult } from "@/app/search/search-stores-type";
+import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
+import StoreCard3 from "../../../../components/Categories/StoreCard3";
+import { Entypo, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { styles } from "./cat";
 
 const domain = "ONDC:RET11";
-const screenWidth = Dimensions.get("window").width;
 
-function Food() {
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const [filterSelected, setFilterSelected] = useState({
-    category: [] as string[],
-    offers: 0,
-    delivery: 100,
-  });
-  const [storesData, setStoresData] = useState<StoreSearchResult[]>([]);
-  const [offersData, setOffersData] = useState<any[]>([]);
-  const [activeFilter, setActiveFilter] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Transform API response to match component expectations
+const transformOfferData = (offers: HomeOfferType[]) => {
+  return offers.map((offer) => ({
+    id: offer.store_id,
+    calculated_max_offer: {
+      percent: offer.store.maxStoreItemOfferPercent || 0,
+    },
+    descriptor: {
+      name: offer.store.name,
+      images: offer.images || [],
+      symbol: offer.store.symbol,
+    },
+  }));
+};
 
-  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const { renderNearbyItem, renderRestaurantItem } = useRenderFunctions();
+const slugify = (name: string, fallback: string) =>
+  name
+    ? name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "")
+    : fallback;
 
+const transformStoreData = (stores: Store2[]) => {
+  return stores.map((store, index) => ({
+    id: store.provider_id || `store-${index}`,
+    slug:
+      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    descriptor: {
+      name: store.name,
+      symbol: store.symbol,
+      images: store.images,
+    },
+    address: {
+      city: store.address?.city || "",
+      state: store.address?.state || "",
+    },
+    geoLocation: {
+      lat: store.gps.lat,
+      lng: store.gps.lon,
+    },
+    calculated_max_offer: {
+      percent: store.maxStoreItemOfferPercent || 0,
+    },
+    time_to_ship_in_hours: store.time_to_ship_in_hours,
+  }));
+};
 
-
-  // Fetch domain data
-  const fetchData = async () => {
-    if (!selectedAddress?.lat || !selectedAddress?.lng) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
+// Custom hook for fetching domain data
+const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
+  return useQuery({
+    queryKey: ["domainData", domain, lat, lng, pincode],
+    queryFn: async () => {
+      if (!lat || !lng || !pincode) {
+        throw new Error("Location data is required");
+      }
       const response = await fetchHomeByDomain(
-        selectedAddress.lat,
-        selectedAddress.lng,
-        selectedAddress.pincode || "110001",
+        lat,
+        lng,
+        pincode,
         domain,
         1,
         20
       );
-      setStoresData(
-        Array.isArray(response?.stores?.items) ? response.stores.items : []
-      );
-      setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-    } catch (err) {
-      console.error("Error fetching domain data:", err);
-      setError("Something went wrong while loading restaurants.");
-    } finally {
-      setIsLoading(false);
+      if (!response) throw new Error("Failed to fetch domain data");
+
+      return {
+        stores: transformStoreData(response.stores.items || []),
+        offers: transformOfferData(response.offers || []),
+      };
+    },
+    enabled: !!lat && !!lng && !!pincode,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 3,
+  });
+};
+
+function Food() {
+  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
+  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
+
+  // Animation for the no restaurants text
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  const {
+    data: domainData,
+    isLoading,
+    refetch,
+  } = useDomainData(selectedAddress?.lat, selectedAddress?.lng, pincode);
+
+  const storesData = domainData?.stores || [];
+  const offersData = domainData?.offers || [];
+
+  // Animate the no restaurants message only when not loading and no stores
+  useEffect(() => {
+    if (!isLoading && storesData.length === 0) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (storesData.length > 0) {
+      // Reset animation when stores are available
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.8);
     }
+  }, [isLoading, storesData.length, fadeAnim, scaleAnim]);
+
+  const renderSubCategories = () => {
+    return foodCategoryData.slice(0, 8).map((subCategory) => (
+      <TouchableOpacity
+        onPress={() => router.push(`/(tabs)/home/result/${subCategory.name}`)}
+        style={styles.subCategory}
+        key={subCategory.id}
+      >
+        <LinearGradient
+          colors={["#F9E7B0", "rgba(231, 223, 201, 0)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.subCategoryImage}
+        >
+          <Image
+            source={{ uri: subCategory.image }}
+            resizeMode="contain"
+            style={styles.subCategoryIcon}
+          />
+        </LinearGradient>
+        <Text style={styles.subCategoryName}>{subCategory.name}</Text>
+      </TouchableOpacity>
+    ));
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedAddress]);
+
 
   const handleSearchPress = () => {
     router.push("/search");
   };
 
-  // Collect unique categories
-  const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store) => store.catalogs || [])
-    : [];
-  const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((c) => c?.category_id))
-  ).map((category, index) => ({
-    id: index + 1,
-    label: category,
-    value: category,
-  }));
-
-  // Filter stores
-  const filteredStores = storesData.filter((store) => {
-    const meetsCategory =
-      filterSelected.category.length === 0 ||
-      store.catalogs?.some((c: any) =>
-        filterSelected.category.includes(c.category_id)
-      );
-    const meetsOffer =
-      filterSelected.offers === 0 ||
-      store.calculated_max_offer?.percent >= filterSelected.offers;
-    const meetsDelivery =
-      filterSelected.delivery === 100 ||
-      store?.time_to_ship_in_hours?.avg <= filterSelected.delivery;
-    return meetsCategory && meetsOffer && meetsDelivery;
-  });
-
-  // Render subcategories in horizontal layout
-  const renderSubCategories = () => (
-    <FlatList
-      data={foodCategoryData.slice(0, 8)}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      keyExtractor={(item) => item.id.toString()}
-      contentContainerStyle={styles.subCategoriesContainer}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.subCategory}
-                 onPress={() => router.push(`/(tabs)/home/result/${item.name}`)}
-
-        >
-       <LinearGradient
-            colors={["#F9E7B0", "rgba(231, 223, 201, 0)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.subCategoryImage}
-          >
-            <Image
-              source={{ uri: item.image }}
-              resizeMode="contain"
-              style={styles.subCategoryIcon}
-            />
-          </LinearGradient>
-<Text style={styles.subCategoryName}>{item.name}</Text>
-        </TouchableOpacity>
-      )}
-    />
-  );
-
-  const handleViewMore = () => {
-    if (storesData.length > 0) {
-      const firstStore = storesData[0];
-      router.push(`/(tabs)/home/result/productListing/${firstStore.slug}`);
-    } else {
-      router.push({
-        pathname: "/(tabs)/home/result/[search]",
-        params: { search: "foodAndBeverages", domainData: domain },
-      });
-    }
+  // Show loader only on initial load
+  if (isLoading && !domainData) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Loader />
+      </SafeAreaView>
+    );
   }
 
-  if (isLoading) return <Loader />;
-
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView 
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
         style={styles.container}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
-            onRefresh={fetchData}
+            onRefresh={refetch}
             colors={["#f2663c"]}
             tintColor="#f2663c"
           />
         }
       >
-        {/* Header */}
+        {/* Search Header - Always Show */}
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -194,281 +209,103 @@ function Food() {
           </View>
         </View>
 
-        {/* Offers */}
-        <View style={styles.offersContainer}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.offersScrollContainer}
-          >
-            {offersData.map((data, index) => (
-              <OfferCard3 key={index} offerData={data} />
-            ))}
-          </ScrollView>
-        </View>
+        {/* Offers Section - Show if available */}
+        {offersData.length > 0 && (
+          <View style={styles.offersContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+            >
+              {offersData.map((data, index) => (
+                <OfferCard3
+                  offerData={data}
+                  key={`offer-${data.id}-${index}`}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-        {/* Categories */}
-        <View>
-          <View style={styles.sectionHeading}>
+        {/* Categories Section - Always Show */}
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
             <View style={styles.line} />
-            <Text style={styles.sectionHeadingText}>What's on your mind?</Text>
+            <Text style={styles.subHeadingText}>What's on your mind?</Text>
             <View style={styles.line} />
           </View>
           <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/home/result/[search]",
+                params: { search: "food", domainData: domain },
+              })
+            }
             style={styles.viewMoreButton}
-            onPress={handleViewMore}
           >
             <Text style={styles.viewMoreButtonText}>View More</Text>
-            <Entypo 
-              name="chevron-right" 
-              size={18} 
-              color="red" 
-              style={{
-                alignItems: "center", 
-                marginLeft: 60, 
-                marginTop: -17
-              }}
+            <Image
+              source={require("../../../../assets/right_arrow.png")}
+              style={{ marginLeft: 5 }}
             />
           </TouchableOpacity>
-          {renderSubCategories()}
+          <View style={styles.subCategories}>{renderSubCategories()}</View>
         </View>
 
-        {/* Stores Section */}
-        <View style={styles.storesSection}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading restaurants...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : storesData.length > 0 ? (
-            <>
-              <View style={styles.sectionHeading}>
-                <View style={styles.line} />
-                <Text style={styles.sectionHeadingText}>
-                  Your Nearby Restaurants
-                </Text>
-                <View style={styles.line} />
-              </View>
-              <FlatList
-                data={filteredStores as any}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
-                contentContainerStyle={styles.storesContainer}
-                renderItem={renderNearbyItem}
-              />
-            </>
+        {/* Stores Section - Always Show Section Header */}
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
+            <View style={styles.line} />
+            <Text style={styles.subHeadingText}>Your Nearby Restaurants</Text>
+            <View style={styles.line} />
+          </View>
+
+          {storesData.length > 0 ? (
+            /* Show stores when available */
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 10 }}
+            >
+              {storesData.map((storeData, index) => (
+                <View
+                  key={`store-${storeData.id}-${index}`}
+                  style={{ width: 300, height: 350, marginRight: 12 }}
+                >
+                  <StoreCard3
+                    storeData={storeData}
+                    categoryFiltered={[]}
+                    userLocation={{
+                      lat: selectedAddress?.lat || 0,
+                      lng: selectedAddress?.lng || 0,
+                    }}
+                  />
+                </View>
+              ))}
+            </ScrollView>
           ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.sectionHeading}>
-                <Text style={styles.sectionHeadingTextNearby}>
-                  Your Nearby Restaurants
+            /* Show animated message only when no stores available */
+            <View style={styles.noRestaurantsContainer}>
+              <Animated.View
+                style={[
+                  styles.animatedContent,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
+                <Ionicons name="restaurant-outline" size={40} color="#999" />
+                <Text style={styles.animatedText}>
+                  No restaurants available in your area
                 </Text>
-              </View>
-              <Ionicons name="restaurant-outline" size={40} color="#999" />
-              <Text style={styles.emptyText}>No restaurants available in your area</Text>
+              </Animated.View>
             </View>
           )}
         </View>
-
-        {/* Traditional Store Cards for filtered view */}
-        {storesData.length > 0 && (filterSelected.category.length > 0 ||
-          filterSelected.offers > 0 ||
-          filterSelected.delivery < 100) && (
-          <View style={styles.filteredStoresSection}>
-            <View style={styles.subHeading}>
-              <Text style={styles.subHeadingText}>
-                Explore {filteredStores.length} Restaurants nearby
-              </Text>
-            </View>
-            {filteredStores.map((store, index) => (
-              <StoreCard4
-                key={store?.id || index}
-                storeData={store}
-                categoryFiltered={filterSelected.category}
-                index={index}
-              />
-            ))}
-          </View>
-        )}
       </ScrollView>
-
-    </View>
+    </SafeAreaView>
   );
 }
 
 export default Food;
-
-const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#fff" 
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 16,
-  },
-  backButton: {
-    marginRight: 12,
-    padding: 4,
-    marginTop: -9,
-  },
-  searchWrapper: {
-    flex: 1,
-    marginTop: -20,
-  },
-  offersContainer: {
-    height: 200,
-    marginVertical: 15,
-    paddingHorizontal: 5,
-  },
-  offersScrollContainer: {
-    paddingHorizontal: 10,
-  },
-    storesSection: {
-    marginBottom: 30,
-  },
-  sectionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 10,
-    marginHorizontal: 16,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#0a0909",
-  },
-  sectionHeadingText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginHorizontal: 16,
-  },
-  subCategoriesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  subCategory: {
-    alignItems: "center",
-    marginRight: 20,
-    width: 80,
-  },
-  subCategoryImage: {
-    width: 80,
-    height: 60,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-    backgroundColor: "#f8f8f8",
-  },
-  subCategoryIcon: {
-    width: 60,
-    height: 45,
-  },
-  subCategoryName: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: "#333",
-    textAlign: "center",
-  },
-  viewMoreButton: {
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignSelf: "flex-end",
-    marginRight: 10,
-  },
-  viewMoreButtonText: {
-    color: "#f73e3e",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  viewMoreIcon: {
-    marginLeft: 2,
-  },
-  filtersContainer: {
-    margin: 10,
-  },
-  filterChip: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignItems: "center",
-    marginHorizontal: 5,
-    backgroundColor: "white",
-  },
-  subHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 15,
-    marginHorizontal: 20,
-  },
-  subHeadingText: { fontSize: 14, fontWeight: "600", marginVertical: 10 },
-  sectionHeadingTextNearby: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginTop: -20,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "#555",
-  },
-  storesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  filteredStoresSection: {
-    marginTop: 20,
-  },
-  errorContainer: {
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#d32f2f",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  retryButton: {
-    backgroundColor: "#FB3E44",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    marginVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#555",
-    marginTop: 8,
-    textAlign: "center",
-  },
-});

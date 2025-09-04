@@ -1,175 +1,185 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
   Image,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
 } from "react-native";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import StoreCard from "../../../../components/Categories/StoreCard";
-import OfferCard2 from "../../../../components/Categories/Offercard2";
+import OfferCard3 from "../../../../components/Categories/OfferCard3";
 import Search from "../../../../components/common/Search";
 import { personalCareCategoryData } from "../../../../constants/categories";
 import Loader from "../../../../components/common/Loader";
-import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
-import useUserDetails from "../../../../hook/useUserDetails";
 import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { filters, offerData, deliveryData } from "../../../../constants/filters";
+import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
+import { HomeOfferType, Store2 } from "../../../../hook/fetch-domain-type";
+import StoreCard3 from "../../../../components/Categories/StoreCard3";
 import { Entypo } from "@expo/vector-icons";
-
+import {styles} from "./cat"
 const domain = "ONDC:RET13";
-const domainColor = "#242929";
+
+// Transform API response to match component expectations
+const transformOfferData = (offers: HomeOfferType[]) => {
+  return offers.map((offer) => ({
+    id: offer.store_id,
+    calculated_max_offer: {
+      percent: offer.store.maxStoreItemOfferPercent || 0,
+    },
+    descriptor: {
+      name: offer.store.name,
+      images: offer.images || [],
+      symbol: offer.store.symbol,
+    },
+  }));
+};
+
+const slugify = (name: string, fallback: string) =>
+  name
+    ? name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "")
+    : fallback;
+
+const transformStoreData = (stores: Store2[]) => {
+  return stores.map((store, index) => ({
+    id: store.provider_id || `store-${index}`,
+    slug:
+      store.slug || slugify(store.name, store.provider_id || `store-${index}`),
+    descriptor: {
+      name: store.name,
+      symbol: store.symbol,
+      images: store.images,
+    },
+    address: {
+      city: store.address?.city || "",
+      state: store.address?.state || "",
+    },
+    geoLocation: {
+      lat: store.gps.lat,
+      lng: store.gps.lon,
+    },
+    calculated_max_offer: {
+      percent: store.maxStoreItemOfferPercent || 0,
+    },
+  }));
+};
+
+// Custom hook for fetching domain data
+const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
+  return useQuery({
+    queryKey: ["domainData", domain, lat, lng, pincode],
+    queryFn: async () => {
+      if (!lat || !lng || !pincode) {
+        throw new Error("Location data is required");
+      }
+      const response = await fetchHomeByDomain(
+        lat,
+        lng,
+        pincode,
+        domain,
+        1,
+        20
+      );
+      if (!response) throw new Error("Failed to fetch domain data");
+
+      return {
+        stores: transformStoreData(response.stores.items),
+        offers: transformOfferData(response.offers || []),
+      };
+    },
+    enabled: !!lat && !!lng && !!pincode,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 3,
+  });
+};
 
 function Beauty() {
-  const [isFilterVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("");
-  const [filterSelected, setFilterSelected] = useState({
-    category: [] as string[],
-    offers: 0,
-    delivery: 100,
-  });
-  const [storesData, setStoresData] = useState<any[]>([]);
-  const [offersData, setOffersData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
+  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
 
-  const { userDetails, getUserDetails } = useUserDetails();
-  const selectedAddress = useDeliveryStore((state: any) => state.selectedDetails);
-
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
-
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const renderBackdrop = React.useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        {...props}
-      />
-    ),
-    []
+  const { data: domainData, isLoading } = useDomainData(
+    selectedAddress?.lat,
+    selectedAddress?.lng,
+    pincode
   );
 
-  useEffect(() => {
-    getUserDetails();
-  }, []);
+  const storesData = domainData?.stores || [];
+  const offersData = domainData?.offers || [];
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!selectedAddress?.lat || !selectedAddress?.lng) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetchHomeByDomain(
-          selectedAddress.lat,
-          selectedAddress.lng,
-          selectedAddress.pincode || "110001",
-          domain
-        );
-
-        setStoresData(Array.isArray(response?.stores) ? response.stores : []);
-        setOffersData(Array.isArray(response?.offers) ? response.offers : []);
-      } catch (error) {
-        console.error("Error fetching domain data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [selectedAddress]);
-
-  const handleSearchPress = () => {
-    router.push("./search");
+  const renderSubCategories = () => {
+    return personalCareCategoryData.slice(0, 8).map((subCategory) => (
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/[search]",
+            params: { search: subCategory.name, domainData: "ONDC:RET13" },
+          })
+        }
+        style={styles.subCategory}
+        key={subCategory.id}
+      >
+        <LinearGradient
+          colors={["#FDBAE2", "rgba(255, 146, 211, 0)"]}
+          style={styles.subCategoryImage}
+        >
+          <Image
+            source={{ uri: subCategory.image }}
+            resizeMode="contain"
+            style={styles.subCategoryIcon}
+          />
+        </LinearGradient>
+        <Text style={styles.subHeadingTextUp} numberOfLines={1}>
+          {subCategory.name}
+        </Text>
+      </TouchableOpacity>
+    ));
   };
 
-  const allCatalogs = Array.isArray(storesData)
-    ? storesData.flatMap((store: any) => store?.catalogs || [])
-    : [];
-
-  const uniqueCategoryIds = Array.from(
-    new Set(allCatalogs.map((c: any) => c?.category_id))
-  ).map((category, index) => ({
-    id: index + 1,
-    label: category,
-    value: category,
-  }));
-
-  const filteredStores = storesData.filter((store: any) => {
-    const meetsCategoryCriteria =
-      filterSelected.category.length === 0 ||
-      store?.catalogs?.some((catalog: any) =>
-        filterSelected.category.includes(catalog?.category_id)
-      );
-
-    const meetsOfferCriteria =
-      filterSelected.offers === 0 ||
-      (store?.calculated_max_offer?.percent ?? 0) >= filterSelected.offers;
-
-    const meetsDeliveryCriteria =
-      filterSelected.delivery === 100 ||
-      (store?.time_to_ship_in_hours?.avg ?? Infinity) <=
-        filterSelected.delivery;
-
+  if (isLoading) {
     return (
-      meetsCategoryCriteria && meetsOfferCriteria && meetsDeliveryCriteria
+      <SafeAreaView style={styles.safeArea}>
+        <Loader />
+      </SafeAreaView>
     );
-  });
+  }
 
-  const renderSubCategories = () => (
-    <View style={styles.subCategories}>
-      {personalCareCategoryData.slice(0, 8).map((subCategory: any) => (
-        <TouchableOpacity
-          key={subCategory.id}
-          onPress={() =>
-            router.push({
-              pathname: "/(tabs)/home/result/[search]",
-              params: { search: subCategory.name, domainData: domain },
-            })
-          }
-          style={styles.subCategory}
-        >
-          <LinearGradient
-            colors={["#FDBAE2", "rgba(255, 146, 211, 0)"]}
-            style={styles.subCategoryImage}
-          >
-            <Image
-              source={{ uri: subCategory.image }}
-              resizeMode="contain"
-              style={{ width: 70, height: 70 }}
-            />
-          </LinearGradient>
-          <Text style={styles.subCategoryName}>{subCategory.name}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  if (!storesData.length && !offersData.length) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No data available</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-  if (isLoading) return <Loader />;
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Header with Back + Search */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Entypo name="chevron-left" size={22} color="#111" />
-        </TouchableOpacity>
-        <View style={styles.searchWrapper}>
-          <Search onPress={handleSearchPress} />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Search Header */}
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Entypo name="chevron-left" size={22} color="#111" />
+          </TouchableOpacity>
+          <View style={styles.searchWrapper}>
+            <Search onPress={handleSearchPress} />
+          </View>
         </View>
-      </View>
 
-      <ScrollView>
-        {/* Offers */}
+        {/* Offers Section */}
         {offersData.length > 0 && (
           <ScrollView
             horizontal
@@ -177,109 +187,72 @@ function Beauty() {
             showsHorizontalScrollIndicator={false}
           >
             {offersData.map((data, index) => (
-              <OfferCard2 offerData={data} key={index} />
+              <OfferCard3 offerData={data} key={`offer-${data.id}-${index}`} />
             ))}
           </ScrollView>
         )}
 
-        {/* Subheading */}
-        <Text style={styles.subHeadingText}>
-          {userDetails?.firstName ? `Hey ${userDetails.firstName}, ` : ""}
-          Explore the world of beauty
-        </Text>
-
-        {/* SubCategories */}
-        {renderSubCategories()}
-
-        {/* Stores */}
-        <View style={styles.subHeading}>
-          <Text style={styles.subHeadingText}>
-            {filteredStores.length > 0
-              ? `Explore ${filteredStores.length} Stores Near me`
-              : "No Nearby Stores Found"}
-          </Text>
+        {/* Explore the World of Beauty Section */}
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
+            <View style={styles.line} />
+            <Text style={styles.subHeadingText}>Explore the World of Beauty</Text>
+            <View style={styles.line} />
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/home/result/[search]",
+                params: { search: "beauty", domainData: domain },
+              })
+            }
+            style={styles.viewMoreButton}
+          >
+            <Text style={styles.viewMoreButtonText}>View More</Text>
+            <Image
+              source={require("../../../../assets/right_arrow.png")}
+              style={{ marginLeft: 5 }}
+            />
+          </TouchableOpacity>
+          <View style={styles.subCategories}>{renderSubCategories()}</View>
         </View>
 
-        {filteredStores.map((storeData: any) => (
-          <StoreCard
-            key={storeData?.id}
-            storeData={storeData}
-            categoryFiltered={filterSelected.category}
-          />
-        ))}
-      </ScrollView>
+        {/* Stores Section */}
+        <View style={styles.section}>
+          <View style={styles.subHeading}>
+            <Text style={styles.subHeadingText}>
+              <View style={styles.line} />
+              Your Nearby Beauty Stores
+              <View style={styles.line} />
+            </Text>
+          </View>
 
-      {/* BottomSheet Filter */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-        backgroundStyle={{ backgroundColor: "#fff", borderRadius: 20 }}
-        backdropComponent={renderBackdrop}
-      >
-        {isFilterVisible && (
-          <FilterCard
-            options={filters}
-            activeOption={activeFilter}
-            selectOption={setFilterSelected}
-            categoryData={uniqueCategoryIds}
-            filterSelected={filterSelected}
-            offerData={offerData}
-            deliveryData={deliveryData}
-            setActiveOption={setActiveFilter}
-            closeFilter={handleClosePress}
-          />
-        )}
-      </BottomSheet>
-    </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          >
+            {storesData.map((storeData, index) => (
+              <View
+                key={`store-${storeData.id}-${index}`}
+                style={{ width: 300, height: 350, marginRight: 12 }}
+              >
+                <StoreCard3
+                  storeData={storeData}
+                  categoryFiltered={[]}
+                  userLocation={{
+                    lat: selectedAddress?.lat || 0,
+                    lng: selectedAddress?.lng || 0,
+                  }}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 export default Beauty;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  backButton: {
-    padding: 6,
-    marginTop: 11,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  searchWrapper: { flex: 1 },
-  subCategories: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    flexWrap: "wrap",
-    marginVertical: 10,
-    marginHorizontal: 10,
-  },
-  subCategory: { alignItems: "center", margin: 6 },
-  subCategoryImage: {
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    paddingTop: 10,
-    marginBottom: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  subCategoryName: { textAlign: "center", fontSize: 10, fontWeight: "500" },
-  subHeading: { marginTop: 20, alignItems: "center" },
-  subHeadingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: domainColor,
-    marginBottom: 10,
-  },
-});

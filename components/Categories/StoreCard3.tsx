@@ -32,7 +32,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
   } = storeData;
 
   const { name = "", symbol = "", images = [] } = descriptor;
-  const { street = "Unknown Street", city = "" } = address;
+  const {  city = "" } = address;
   const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
 
   // ✅ Dynamic distance
@@ -138,7 +138,7 @@ export default StoreCard3;
 const styles = StyleSheet.create({
   cardWrapper: {
     marginBottom: 30,
-    marginHorizontal: 10,
+    marginHorizontal: 15,
     borderRadius: 26,
     overflow: "hidden",
     backgroundColor: "#fffaf5",
