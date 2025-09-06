@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Alert,
   Dimensions,
   ScrollView,
   Image,

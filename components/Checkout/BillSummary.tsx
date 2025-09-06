@@ -1,11 +1,16 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 interface BillBreakup {
   title?: string;
   custom_title?: string;
   price: number;
+  children?: Array<{
+    custom_title?: string;
+    title?: string;
+    price: number;
+  }>;
 }
 
 interface BillSummaryProps {
@@ -13,50 +18,98 @@ interface BillSummaryProps {
   breakups: BillBreakup[];
   totalSavings: number;
   grandTotal: number;
+  onBreakupPress?: (breakup: BillBreakup) => void;
 }
+
+const formatPrice = (price: number): string => {
+  if (typeof price !== 'number' || isNaN(price)) {
+    return '₹0';
+  }
+  return `₹${price.toFixed(2).replace(/\.?0+$/, '')}`;
+};
 
 export const BillSummary: React.FC<BillSummaryProps> = ({
   subTotal,
   breakups,
   totalSavings,
   grandTotal,
+  onBreakupPress,
 }) => {
+  // Validate props and provide defaults
+  const validSubTotal = typeof subTotal === 'number' && !isNaN(subTotal) ? subTotal : 0;
+  const validBreakups = Array.isArray(breakups) ? breakups : [];
+  const validTotalSavings = typeof totalSavings === 'number' && !isNaN(totalSavings) ? totalSavings : 0;
+  const validGrandTotal = typeof grandTotal === 'number' && !isNaN(grandTotal) ? grandTotal : 0;
+
+  const renderBreakupItem = (breakup: BillBreakup, index: number) => {
+    const hasChildren = breakup.children && breakup.children.length > 0;
+    const title = breakup.custom_title || breakup.title || `Item ${index + 1}`;
+    
+    return (
+      <TouchableOpacity
+        key={`breakup-${index}`}
+        style={[styles.row, hasChildren && styles.touchableRow]}
+        onPress={hasChildren && onBreakupPress ? () => onBreakupPress(breakup) : undefined}
+        disabled={!hasChildren || !onBreakupPress}
+        activeOpacity={hasChildren ? 0.7 : 1}
+      >
+        <View style={styles.leftContainer}>
+          <Text style={[styles.text, hasChildren && styles.linkText]}>
+            {title}
+          </Text>
+          {hasChildren && (
+            <MaterialIcons name="info-outline" size={16} color="#666" style={styles.infoIcon} />
+          )}
+        </View>
+        <Text style={styles.text}>{formatPrice(breakup.price)}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bill Summary</Text>
       
       <View style={styles.priceContainer}>
+        {/* Items Total */}
         <View style={styles.row}>
           <Text style={styles.text}>Items Total</Text>
-          <Text style={styles.text}>₹{subTotal}</Text>
+          <Text style={styles.text}>{formatPrice(validSubTotal)}</Text>
         </View>
         
-        {breakups.map((breakup, index) => (
-          <View key={index} style={styles.row}>
-            <Text style={styles.text}>
-              {breakup.custom_title || breakup.title}
-            </Text>
-            <Text style={styles.text}>₹{breakup.price}</Text>
-          </View>
-        ))}
+        {/* Breakups */}
+        {validBreakups.map((breakup, index) => renderBreakupItem(breakup, index))}
         
-        {totalSavings > 0 && (
+        {/* Total Savings */}
+        {validTotalSavings > 0 && (
           <View style={styles.row}>
-            <Text style={[styles.text, styles.savingsText]}>Total Savings</Text>
-            <Text style={[styles.text, styles.savingsText]}>-₹{totalSavings}</Text>
+            <View style={styles.savingsContainer}>
+              <MaterialIcons name="local-offer" size={16} color="#27ae60" />
+              <Text style={[styles.text, styles.savingsText]}>Total Savings</Text>
+            </View>
+            <Text style={[styles.text, styles.savingsText]}>
+              -{formatPrice(validTotalSavings)}
+            </Text>
           </View>
         )}
         
+        {/* Divider */}
+        <View style={styles.divider} />
+        
+        {/* Grand Total */}
         <View style={[styles.row, styles.totalRow]}>
           <Text style={[styles.text, styles.bold]}>Grand Total</Text>
-          <Text style={[styles.text, styles.bold]}>₹{grandTotal}</Text>
+          <Text style={[styles.text, styles.bold, styles.totalPrice]}>
+            {formatPrice(validGrandTotal)}
+          </Text>
         </View>
         
-        {totalSavings > 0 && (
+        {/* Savings Message */}
+        {validTotalSavings > 0 && (
           <View style={styles.savingsMessage}>
-            <MaterialIcons name="savings" size={16} color="#27ae60" />
+            <MaterialIcons name="savings" size={20} color="#27ae60" />
             <Text style={styles.savingsMessageText}>
-              You saved ₹{totalSavings.toFixed(2).replace(/\.?0+$/, "")} on this order!
+              You saved {formatPrice(validTotalSavings)} on this order!
             </Text>
           </View>
         )}
@@ -71,43 +124,80 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    marginVertical: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: "600",
     color: "#1a1a1a",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   priceContainer: {
-    gap: 8,
+    gap: 12,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
+    paddingVertical: 6,
+    minHeight: 32,
+  },
+  touchableRow: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    marginHorizontal: -8,
+  },
+  leftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 16,
   },
   text: {
     fontSize: 14,
-    color: "#666",
+    color: "#333",
+    fontWeight: "400",
+  },
+  linkText: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    textDecorationStyle: "dashed",
+  },
+  infoIcon: {
+    marginLeft: 6,
   },
   bold: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1a1a1a",
   },
+  totalPrice: {
+    fontSize: 18,
+    color: "#00BC66",
+  },
   savingsText: {
     color: "#27ae60",
     fontWeight: "500",
   },
+  savingsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    paddingTop: 12,
-    marginTop: 8,
+    paddingTop: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 8,
   },
   savingsMessage: {
     flexDirection: "row",
@@ -115,8 +205,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0fdf4",
     padding: 12,
     borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
+    marginTop: 8,
+    gap: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#27ae60",
   },
   savingsMessageText: {
     flex: 1,
