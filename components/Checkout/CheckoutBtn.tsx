@@ -7,6 +7,8 @@ import {
   Modal,
   Alert,
   Dimensions,
+  ScrollView,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useCheckoutStore } from "@/state/useCheckoutStore";
@@ -15,6 +17,7 @@ import useUserDetails from "@/hook/useUserDetails";
 import useDeliveryStore from "@/state/deliveryAddressStore";
 import CheckoutContent from "./CheckoutContent";
 import Loader from "../common/Loader";
+import { router } from "expo-router";
 
 const { height } = Dimensions.get("window");
 
@@ -25,7 +28,7 @@ interface CheckoutBtnProps {
 const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
   const { userDetails } = useUserDetails();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
-  
+
   const {
     isOpen,
     loading,
@@ -55,46 +58,64 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
     }
 
     if (!userDetails?.accessToken) {
-      Alert.alert(
-        "Login Required", 
-        "Please login to continue.",
-        [{ text: "OK" }]
-      );
+      Alert.alert("Login Required", "Please login to continue.", [
+        { text: "OK" },
+      ]);
       return;
     }
 
     setLoading(true);
     setOpen(true);
-
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/checkout`, {
+      // build the payload
+      const payload = {
+        context: {
+          bpp_id: cart.store.context?.bpp_id,
+          bpp_uri: cart.store.context?.bpp_uri,
+          core_version: cart.store.context?.core_version,
+          domain: cart.store.context?.domain,
+        },
+        deliveryAddressId: selectedDetails.addressId,
+        lat: selectedDetails.lat,
+        lon: selectedDetails.lng,
+        pincode: selectedDetails.pincode,
+        location_id: cart.store.location_id,
+        provider_id: cart.store.provider_id,
+        storeId: cart.store._id,
+        ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
+      };
+
+      console.log("=== CHECKOUT PAYLOAD ===", payload);
+
+      const url = `${process.env.EXPO_PUBLIC_API_URL}/select-cart`; // or whatever your Next route is
+      console.log("=== CHECKOUT URL ===", url);
+
+      const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${userDetails.accessToken}`,
+          Authorization: `Bearer ${userDetails.accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          context: {
-            bpp_id: cart.store.context.bpp_id,
-            bpp_uri: cart.store.context.bpp_uri,
-            core_version: cart.store.context.core_version,
-            domain: cart.store.context.domain,
-          },
-          deliveryAddressId: selectedDetails.addressId,
-          lat: selectedDetails.lat,
-          lon: selectedDetails.lng,
-          pincode: selectedDetails.pincode,
-          location_id: cart.store.location_id,
-          provider_id: cart.store.provider_id,
-          storeId: cart.store._id,
-          ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      // clone and log what the server returned
+      const text = await response.text();
+      console.log("=== RAW RESPONSE STATUS ===", response.status);
+      console.log("=== RAW RESPONSE BODY ===", text);
+
+      // parse JSON safely
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error(`Invalid JSON from server: ${text}`);
+      }
 
       if (!response.ok || data.error) {
-        throw new Error(data.error?.message || "Merchant is unavailable");
+        throw new Error(
+          data.error?.message || `Server responded ${response.status}`
+        );
       }
 
       setCheckoutData(data.data);
@@ -116,52 +137,160 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
     setCheckoutData(null);
   };
 
+  const formatCurrency = (amt: number) =>
+    `₹${amt.toFixed(2).replace(/\.?0+$/, "")}`;
+
   // Calculate total items and price
   const totalItems = cart.items?.length || cart.cart_items?.length || 0;
-  const totalPrice = cart.cartTotalPrice || 
+  const totalPrice =
+    cart.cartTotalPrice ||
     cart.items?.reduce((sum, item) => sum + (item.total_price || 0), 0) ||
-    cart.cart_items?.reduce((sum, item) => sum + (item.total_price || 0), 0) || 0;
+    cart.cart_items?.reduce((sum, item) => sum + (item.total_price || 0), 0) ||
+    0;
 
   return (
     <>
-      {/* Cart Summary Card */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
-          <Text style={styles.itemCount}>{totalItems} items</Text>
+      {/* Detailed Cart Display */}
+      <ScrollView
+        style={styles.mainContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Store Information */}
+        <View style={styles.storeSection}>
+          <TouchableOpacity
+            style={styles.storeHeader}
+            onPress={() =>
+              router.push(
+                `/(tabs)/home/result/productListing/${cart.store.slug}`
+              )
+            }
+            activeOpacity={0.7}
+          >
+            {cart.store?.symbol && (
+              <Image
+                source={{ uri: cart.store.symbol }}
+                style={styles.storeLogo}
+                onError={() => console.warn("Failed to load store image")}
+              />
+            )}
+            <View style={styles.storeInfo}>
+              <Text style={styles.storeName}>
+                {cart.store.name || "Unknown Store"}
+              </Text>
+              {cart.store.address?.street && (
+                <Text style={styles.storeAddress}>
+                  📍 {cart.store.address.street}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
-        
-        <View style={styles.priceRow}>
-          <Text style={styles.totalLabel}>Total Amount</Text>
-          <Text style={styles.totalPrice}>₹{totalPrice}</Text>
+
+        {/* Items Section */}
+        <View style={styles.itemsSection}>
+          <Text style={styles.sectionTitle}>Order Items ({totalItems})</Text>
+
+          {(cart.items || cart.cart_items || []).map((item, index) => {
+            if (!item || !item._id) return null;
+
+            const productName = item.product?.name || "Unknown Product";
+            const productImage = item.product?.symbol;
+            const unitPrice = item.unit_price || 0;
+            const quantity = item.qty || 1;
+            const itemTotal = unitPrice * quantity;
+
+            return (
+              <View key={item._id || index} style={styles.itemCard}>
+                <TouchableOpacity
+                  style={styles.itemContent}
+                  onPress={() => {
+                    if (item.product?.slug) {
+                      router.push(
+                        `/(tabs)/home/result/productDetails/${item.product.slug}`
+                      );
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  {/* Product Image */}
+                  <View style={styles.itemImageContainer}>
+                    {productImage ? (
+                      <Image
+                        source={{ uri: productImage }}
+                        style={styles.itemImage}
+                        onError={() =>
+                          console.warn("Failed to load product image")
+                        }
+                      />
+                    ) : (
+                      <View style={[styles.itemImage, styles.placeholderImage]}>
+                        <Text style={styles.placeholderText}>IMG</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Product Info */}
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={2}>
+                      {productName}
+                    </Text>
+                    <Text style={styles.itemPrice}>
+                      Unit: {formatCurrency(unitPrice)}
+                    </Text>
+                    <Text style={styles.itemQuantity}>Qty: {quantity}</Text>
+                    <Text style={styles.itemTotal}>
+                      Total: {formatCurrency(itemTotal)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
-      </View>
+
+        {/* Order Summary */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>Order Summary</Text>
+            <Text style={styles.itemCount}>{totalItems} items</Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalPrice}>₹{totalPrice}</Text>
+          </View>
+        </View>
+      </ScrollView>
 
       {/* Checkout Button */}
-      <TouchableOpacity
-        style={[styles.checkoutBtn, loading && styles.checkoutBtnDisabled]}
-        onPress={handleCheckout}
-        disabled={loading}
-        activeOpacity={0.8}
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <Loader/>
-            <Text style={styles.btnText}>Checking Out...</Text>
+      <View style={styles.checkoutButtonContainer}>
+        <TouchableOpacity
+          style={[styles.checkoutBtn, loading && styles.checkoutBtnDisabled]}
+          onPress={handleCheckout}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          <View style={loading ? styles.loadingContainer : styles.btnContainer}>
+            {loading ? (
+              <>
+                <Loader />
+                <Text style={styles.btnText}>Checking Out...</Text>
+              </>
+            ) : (
+              <>
+                <MaterialIcons name="payment" size={20} color="#ffffff" />
+                <Text style={styles.btnText}>Continue to Checkout</Text>
+              </>
+            )}
           </View>
-        ) : (
-          <View style={styles.btnContainer}>
-            <Text style={styles.btnText}>Continue to Checkout</Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
-          </View>
-        )}
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       {/* Checkout Modal */}
       <Modal
         visible={isOpen}
         animationType="slide"
-        transparent
+        presentationStyle="pageSheet"
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
@@ -172,7 +301,6 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
               <TouchableOpacity
                 onPress={handleCloseModal}
                 style={styles.closeBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
@@ -189,8 +317,10 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
                 />
               ) : loading ? (
                 <View style={styles.loadingContent}>
-                  <Loader/>
-                  <Text style={styles.loadingText}>Loading checkout details...</Text>
+                  <Loader />
+                  <Text style={styles.loadingText}>
+                    Loading checkout details...
+                  </Text>
                 </View>
               ) : null}
             </View>
@@ -204,12 +334,129 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
 export default CheckoutBtn;
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+  },
+
+  // Store Section
+  storeSection: {
+    backgroundColor: "white",
+    marginBottom: 12,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  storeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  storeLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: "#f8f9fa",
+    marginRight: 12,
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  storeName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  storeAddress: {
+    fontSize: 12,
+    color: "#666",
+  },
+
+  // Items Section
+  itemsSection: {
+    backgroundColor: "white",
+    marginBottom: 12,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  itemCard: {
+    marginBottom: 8,
+    marginHorizontal: 16,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  itemContent: {
+    flexDirection: "row",
+    padding: 12,
+  },
+  itemImageContainer: {
+    marginRight: 12,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+  },
+  placeholderImage: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    fontSize: 12,
+    color: "#999",
+    fontWeight: "500",
+  },
+  itemInfo: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  itemPrice: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 2,
+  },
+  itemQuantity: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 2,
+  },
+  itemTotal: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#00BC66",
+  },
+
   // Summary Card
   summaryCard: {
     backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    marginHorizontal: 16,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -247,6 +494,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#00BC66",
+  },
+
+  // Checkout Button Container
+  checkoutButtonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: "#f8f9fa",
   },
 
   // Checkout Button
@@ -292,8 +546,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: height * 0.9,
-    minHeight: height * 0.5,
+    maxHeight: height * 2,
+    minHeight: height * 0.9,
   },
   modalHeader: {
     flexDirection: "row",

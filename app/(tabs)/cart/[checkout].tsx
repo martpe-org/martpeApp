@@ -3,9 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   Alert,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,14 +13,20 @@ import { FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "@/hook/useUserDetails";
 import { fetchCarts } from "@/app/(tabs)/cart/fetch-carts";
 import CheckoutBtn from "@/components/Checkout/CheckoutBtn";
+import { Entypo } from "@expo/vector-icons";
+import Loader from "@/components/common/Loader";
 
 export default function CheckoutScreen() {
   const { checkout: cartId } = useLocalSearchParams<{
     checkout: string;
     storeId?: string;
   }>();
-  
-  const { userDetails, isLoading: userLoading, isAuthenticated } = useUserDetails();
+
+  const {
+    userDetails,
+    isLoading: userLoading,
+    isAuthenticated,
+  } = useUserDetails();
   const [cart, setCart] = useState<FetchCartType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,7 +34,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (!cartId) {
       Alert.alert("Error", "No cart ID provided", [
-        { text: "OK", onPress: () => router.back() }
+        { text: "OK", onPress: () => router.back() },
       ]);
       return;
     }
@@ -41,7 +47,7 @@ export default function CheckoutScreen() {
     // ✅ Check authentication after user details have loaded
     if (!isAuthenticated || !userDetails?.accessToken) {
       Alert.alert("Error", "Please login to continue", [
-        { text: "OK", onPress: () => router.back() }
+        { text: "OK", onPress: () => router.back() },
       ]);
       return;
     }
@@ -56,13 +62,13 @@ export default function CheckoutScreen() {
       }
 
       const carts = await fetchCarts(userDetails.accessToken);
-      
+
       if (!carts) {
         throw new Error("Failed to fetch carts");
       }
 
       const targetCart = carts.find((c) => c._id === cartId);
-      
+
       if (!targetCart) {
         throw new Error("Cart not found");
       }
@@ -76,25 +82,20 @@ export default function CheckoutScreen() {
     } catch (err: any) {
       console.error("CheckoutScreen: Error fetching cart", err);
       setError(err.message || "Failed to load cart");
-      
-      Alert.alert(
-        "Error", 
-        err.message || "Failed to load cart",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+
+      Alert.alert("Error", err.message || "Failed to load cart", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Show loading while user details are being fetched
   if (userLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00BC66" />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
+        <Loader />
+        <Text style={styles.loadingText}>Loading...</Text>
       </SafeAreaView>
     );
   }
@@ -102,10 +103,8 @@ export default function CheckoutScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00BC66" />
-          <Text style={styles.loadingText}>Loading checkout...</Text>
-        </View>
+        <Loader />
+        <Text style={styles.loadingText}>Loading checkout...</Text>
       </SafeAreaView>
     );
   }
@@ -125,13 +124,24 @@ export default function CheckoutScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Checkout</Text>
-            <Text style={styles.subtitle}>Review your order</Text>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <Entypo name="chevron-left" size={26} color="#111" />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.title}>Checkout</Text>
+              <Text style={styles.subtitle}>Review your order</Text>
+            </View>
           </View>
-          
+
           <CheckoutBtn cart={cart} />
         </View>
       </ScrollView>
@@ -150,12 +160,14 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  header: {
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
     paddingHorizontal: 4,
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "700",
     color: "#1a1a1a",
     marginBottom: 4,
@@ -164,11 +176,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  backButton: {
+    padding: 4,
+    marginTop: -19,
   },
+
   loadingText: {
     marginTop: 16,
     fontSize: 16,

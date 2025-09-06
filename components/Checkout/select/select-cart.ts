@@ -16,7 +16,7 @@ export const selectCart = async (
   offerId?: string,
 ) => {
   try {
-    const res = await fetch(`${process.env.BACKEND_BASE_URL}/v1/select-cart`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/v1/select-cart`, {
       method: "POST",
       body: JSON.stringify({
         lat,

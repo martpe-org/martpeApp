@@ -1,5 +1,6 @@
-import type { SelectedCustomizationType } from "@/lib/api/user/fetch-user-type";
-import { AddressType } from "../common-types";
+import { AddressType } from "@/common-types";
+import { SelectedCustomizationType } from "@/components/user/fetch-user-type";
+
 
 export interface SelectCartResponseType {
   error?: {
@@ -92,25 +93,6 @@ export interface Product {
   variant_info?: string;
 }
 
-// export interface Attributes {
-//   gender: string;
-//   color: string;
-//   color_name: string;
-//   size: string;
-//   brand: string;
-//   size_chart: string;
-//   fabric: string;
-//   plating: string;
-//   base_metal: string;
-//   material: string;
-// }
-
-// export interface Price {
-//   currency: string;
-//   value: number;
-//   maximum_value?: number;
-//   offerPercent?: number;
-// }
 
 export interface Unitized {
   measure: Measure;
