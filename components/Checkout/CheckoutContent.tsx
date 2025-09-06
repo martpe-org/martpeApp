@@ -10,30 +10,38 @@ import {
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { SelectData, useCheckoutStore } from "@/state/useCheckoutStore";
-import { FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
+import {
+  CartItemType,
+  FetchCartStore,
+  FetchCartType,
+} from "@/app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "@/hook/useUserDetails";
 import { useCartStore } from "@/state/useCartStore";
 import { prettifyTemporalDuration } from "@/utility/CheckoutUtils";
 import Loader from "../common/Loader";
 import { BillSummary } from "./BillSummary";
 import { CancellationPolicy } from "./CancellationPolicy";
-import { 
-  processRazorpayPayment, 
-  showPaymentSuccessAlert, 
-  showPaymentErrorAlert, 
-  getErrorMessage
+import {
+  processRazorpayPayment,
+  showPaymentSuccessAlert,
+  showPaymentErrorAlert,
+  getErrorMessage,
 } from "./paymentUtils";
 
 interface CheckoutContentProps {
   data: SelectData;
   cart: FetchCartType;
   appliedOfferId?: string;
+  id: string;
+  store: FetchCartStore;
+  items: CartItemType[];
   setOpen: (open: boolean) => void;
 }
 
 const CheckoutContent: React.FC<CheckoutContentProps> = ({
   data,
   cart,
+  store,
   appliedOfferId,
   setOpen,
 }) => {
@@ -43,8 +51,10 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const { items, fulfillments, breakups, sub_total } = data;
-  const selectedBreakup = breakups[selectedFulfillment] || Object.values(breakups)[0];
-  const selectedFulfillmentId = selectedFulfillment || fulfillments[0]?.id || "";
+  const selectedBreakup =
+    breakups[selectedFulfillment] || Object.values(breakups)[0];
+  const selectedFulfillmentId =
+    selectedFulfillment || fulfillments[0]?.id || "";
 
   const handlePayment = async () => {
     if (!selectedFulfillmentId) {
@@ -69,18 +79,21 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
       };
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/payment`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${userDetails.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/payment`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${userDetails.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const text = await response.text();
       let result: any;
-      
+
       try {
         result = JSON.parse(text);
       } catch (parseError) {
@@ -88,7 +101,9 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
       }
 
       if (!response.ok || result.error) {
-        throw new Error(result.error?.message || `Server error: ${response.status}`);
+        throw new Error(
+          result.error?.message || `Server error: ${response.status}`
+        );
       }
 
       if (!result.data?.id) {
@@ -125,15 +140,26 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
   };
 
   const hasOutOfStockItems = items.some((item) => !item.instock);
-  const isCancellable = items.some((item) => item.product?.cancellable !== false);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Store Details */}
-      <View style={styles.section}>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={() => {
+          const slug = store?.slug || cart?.store?.slug;
+          if (slug) {
+            router.push(`/(tabs)/home/result/productListing/${slug}`);
+          }
+        }}
+        activeOpacity={0.7}
+      >
         <Text style={styles.sectionTitle}>Store Details</Text>
         <View style={styles.storeCard}>
-          <Image source={{ uri: cart.store.symbol }} style={styles.storeImage} />
+          <Image
+            source={{ uri: cart.store.symbol }}
+            style={styles.storeImage}
+          />
           <View style={styles.storeInfo}>
             <Text style={styles.storeName}>{cart.store.name}</Text>
             <Text style={styles.storeAddress} numberOfLines={2}>
@@ -141,13 +167,13 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Delivery Address */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push("/address/savedAddresses")}
           >
@@ -158,7 +184,8 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         <View style={styles.addressCard}>
           <Text style={styles.addressName}>{data.address.name}</Text>
           <Text style={styles.addressText}>
-            {data.address.houseNo}, {data.address.street}, {data.address.city}, {data.address.state} - {data.address.pincode}
+            {data.address.houseNo}, {data.address.street}, {data.address.city},{" "}
+            {data.address.state} - {data.address.pincode}
           </Text>
           <Text style={styles.addressPhone}>Phone: {data.address.phone}</Text>
         </View>
@@ -167,20 +194,34 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
       {/* Cart Items */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Order Items ({items.length})</Text>
+        {/* productDetails routing here */}
         <View style={styles.itemsContainer}>
           {items.map((item, index) => (
-            <View key={`${item.id}-${index}`} style={styles.itemCard}>
-              <Image source={{ uri: item.product.symbol }} style={styles.itemImage} />
+            <TouchableOpacity
+              key={`${item.id}-${index}`}
+              style={styles.itemCard}
+              onPress={() =>
+                router.push(
+                  `/(tabs)/home/result/productDetails/${item.product.slug}`
+                )
+              }
+            >
+              <Image
+                source={{ uri: item.product.symbol }}
+                style={styles.itemImage}
+              />
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName} numberOfLines={2}>
                   {item.product.name}
                 </Text>
-                <Text style={[styles.itemQty, !item.instock && styles.outOfStock]}>
+                <Text
+                  style={[styles.itemQty, !item.instock && styles.outOfStock]}
+                >
                   Qty: {item.instock ? item.cart_qty : "unavailable"}
                 </Text>
               </View>
               <Text style={styles.itemPrice}>₹{item.total_price}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -194,18 +235,25 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
               key={fulfillment.id}
               style={[
                 styles.fulfillmentOption,
-                selectedFulfillmentId === fulfillment.id && styles.selectedFulfillment,
+                selectedFulfillmentId === fulfillment.id &&
+                  styles.selectedFulfillment,
               ]}
               onPress={() => setSelectedFulfillment(fulfillment.id)}
             >
-              <View style={[
-                styles.radio,
-                selectedFulfillmentId === fulfillment.id && styles.radioSelected,
-              ]} />
+              <View
+                style={[
+                  styles.radio,
+                  selectedFulfillmentId === fulfillment.id &&
+                    styles.radioSelected,
+                ]}
+              />
               <View style={styles.fulfillmentDetails}>
-                <Text style={styles.fulfillmentText}>{fulfillment.category}</Text>
+                <Text style={styles.fulfillmentText}>
+                  {fulfillment.category}
+                </Text>
                 <Text style={styles.fulfillmentTime}>
-                  Est. Delivery: {prettifyTemporalDuration(fulfillment.tat || "P0D")}
+                  Est. Delivery:{" "}
+                  {prettifyTemporalDuration(fulfillment.tat || "P0D")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -225,7 +273,7 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
 
       {/* Cancellation Policy Component */}
       <View style={styles.section}>
-        <CancellationPolicy isCancellable={isCancellable} />
+        <CancellationPolicy isCancellable />
       </View>
 
       {/* Out of Stock Message */}
@@ -233,7 +281,8 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         <View style={styles.outOfStockSection}>
           <MaterialIcons name="info" size={24} color="#f39c12" />
           <Text style={styles.outOfStockMessage}>
-            Some items in your cart are out of stock. Please remove them to continue.
+            Some items in your cart are out of stock. Please remove them to
+            continue.
           </Text>
         </View>
       )}
@@ -242,7 +291,11 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
       {!hasOutOfStockItems && (
         <View style={styles.paymentSection}>
           <TouchableOpacity
-            style={[styles.paymentBtn, (!selectedFulfillmentId || paymentLoading) && styles.paymentBtnDisabled]}
+            style={[
+              styles.paymentBtn,
+              (!selectedFulfillmentId || paymentLoading) &&
+                styles.paymentBtnDisabled,
+            ]}
             onPress={handlePayment}
             disabled={!selectedFulfillmentId || paymentLoading}
           >

@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
     borderBottomEndRadius: 10,
     padding: 15,
     marginHorizontal: 15,
-    marginBottom: 80,
   },
   titleContainer: {
     flexDirection: "row",

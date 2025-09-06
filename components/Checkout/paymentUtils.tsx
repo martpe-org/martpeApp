@@ -1,13 +1,13 @@
 import RazorpayCheckout from "expo-razorpay";
 import { Alert } from "react-native";
 import { router } from "expo-router";
+import { initCart, InitCartPayload } from "@/state/state-init/init-cart";
 
 const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_28OLg2dI6uOgm3";
 
 export interface PaymentOptions {
-  rpOrderId: string;
-  orderId: string;
-  amount: number;
+  payload: InitCartPayload;
+  authToken: string;
   storeName: string;
   userDetails: {
     firstName?: string;
@@ -24,10 +24,75 @@ export interface PaymentResult {
 }
 
 /**
- * Processes Razorpay payment
+ * Processes complete payment flow - init cart and Razorpay payment
+ */
+export const processPayment = async (
+  options: PaymentOptions
+): Promise<PaymentResult> => {
+  const { payload, authToken, storeName, userDetails } = options;
+
+  try {
+    // First, initialize the cart/payment
+    const initResult = await initCart(authToken, payload);
+
+    if (initResult.status !== 200 || !initResult.data?.data) {
+      throw new Error(initResult.data?.error?.message || "Failed to initialize payment");
+    }
+
+    const paymentData = initResult.data.data;
+
+    if (!paymentData.id) {
+      throw new Error("Invalid payment response");
+    }
+
+    // Then process with Razorpay
+    const razorpayOptions = {
+      key: RAZORPAY_KEY_ID,
+      amount: paymentData.amount, // Already in paisa from backend
+      currency: paymentData.currency || "INR",
+      name: "Martpe",
+      description: `Payment for ${storeName} - Order #${paymentData.notes?.orderId || paymentData.id}`,
+      order_id: paymentData.id,
+      prefill: {
+        name: `${userDetails.firstName || ""} ${userDetails.lastName || ""}`.trim(),
+        email: userDetails.email || "",
+        contact: userDetails.phoneNumber || "",
+      },
+      theme: { color: "#00BC66" },
+    };
+
+    const paymentResult = await RazorpayCheckout.open(razorpayOptions);
+
+    return {
+      success: true,
+      orderId: paymentData.notes?.orderId || paymentData.id,
+    };
+
+  } catch (error: any) {
+    console.error("Payment process failed:", error);
+    return {
+      success: false,
+      error: error.description || error.message || "Payment failed"
+    };
+  }
+};
+
+/**
+ * Legacy function for backwards compatibility
  */
 export const processRazorpayPayment = async (
-  options: PaymentOptions
+  options: {
+    rpOrderId: string;
+    orderId: string;
+    amount: number;
+    storeName: string;
+    userDetails: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phoneNumber?: string;
+    };
+  }
 ): Promise<PaymentResult> => {
   const { rpOrderId, orderId, amount, storeName, userDetails } = options;
 
@@ -48,16 +113,16 @@ export const processRazorpayPayment = async (
     };
 
     const paymentResult = await RazorpayCheckout.open(razorpayOptions);
-    
+
     return {
       success: true,
       orderId: orderId,
     };
   } catch (error: any) {
     console.error("Razorpay payment failed:", error);
-    return { 
-      success: false, 
-      error: error.description || "Payment failed" 
+    return {
+      success: false,
+      error: error.description || "Payment failed"
     };
   }
 };

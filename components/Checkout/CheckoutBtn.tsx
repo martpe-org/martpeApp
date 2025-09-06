@@ -49,18 +49,10 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
 
   const handleCheckout = async () => {
     if (!selectedDetails?.addressId) {
-      Alert.alert(
-        "Address Required",
-        "Please add a delivery address to continue.",
-        [{ text: "OK" }]
-      );
       return;
     }
 
     if (!userDetails?.accessToken) {
-      Alert.alert("Login Required", "Please login to continue.", [
-        { text: "OK" },
-      ]);
       return;
     }
 
@@ -85,10 +77,7 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
         ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
       };
 
-      console.log("=== CHECKOUT PAYLOAD ===", payload);
-
       const url = `${process.env.EXPO_PUBLIC_API_URL}/select-cart`; // or whatever your Next route is
-      console.log("=== CHECKOUT URL ===", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -101,8 +90,6 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
 
       // clone and log what the server returned
       const text = await response.text();
-      console.log("=== RAW RESPONSE STATUS ===", response.status);
-      console.log("=== RAW RESPONSE BODY ===", text);
 
       // parse JSON safely
       let data: any;
@@ -120,12 +107,6 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
 
       setCheckoutData(data.data);
     } catch (error: any) {
-      console.error("Checkout error:", error);
-      Alert.alert(
-        "Checkout Failed",
-        error.message || "Something went wrong. Please try again.",
-        [{ text: "OK" }]
-      );
       setOpen(false);
     } finally {
       setLoading(false);
