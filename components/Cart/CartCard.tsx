@@ -23,7 +23,11 @@ import {
 import {
   FetchCartStore,
   CartItemType,
+  FetchCartType,
 } from "../../app/(tabs)/cart/fetch-carts-type";
+
+// 🆕 import your Offer button
+import CartOfferBtn from "./CartOfferBtn";
 
 const STORAGE_KEY = "addedItems";
 
@@ -48,6 +52,10 @@ const CartCard: React.FC<CartCardProps> = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [validItems, setValidItems] = useState<CartItemType[]>([]);
   const [distance, setDistance] = useState<number | null>(null);
+
+  // 🆕 state for offers
+  const [appliedOfferId, setAppliedOfferId] = useState<string>("");
+  const [offersOpen, setOffersOpen] = useState(false);
 
   // ✅ Filter items that have an id
   useEffect(() => {
@@ -154,6 +162,22 @@ const CartCard: React.FC<CartCardProps> = ({
       </View>
     );
 
+  // 🆕 Build a cart object with offers (like FetchCartType)
+  const cartWithOffers: FetchCartType = {
+    _id: id,
+    store: {
+      ...store,
+      offers: store.offers || [], // ensure offers exist
+    },
+    items: validItems,
+    cart_items: [],
+    cartItemsCount: validItems.length,
+    cartTotalPrice: validItems.reduce(
+      (sum, item) => sum + (item.total_price || 0),
+      0
+    ),
+  };
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -210,20 +234,31 @@ const CartCard: React.FC<CartCardProps> = ({
         </TouchableOpacity>
       </View>
 
-{/* Cart Items */}
-{store.slug ? (
-  <CartItems
-    cartId={id}
-    storeId={store._id}            // ✅ now storeId is passed
-    storeSlug={store.slug}
-    items={validItems}
-    onCartChange={onCartChange}    // already passing this
-  />
-) : (
-  <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
-)}
+      {/* Cart Items */}
+      {store.slug ? (
+        <CartItems
+          cartId={id}
+          storeId={store._id}
+          storeSlug={store.slug}
+          items={validItems}
+          onCartChange={onCartChange}
+        />
+      ) : (
+        <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
+      )}
 
-
+      {/* 🆕 Offers Section */}
+      {store.offers && store.offers.length > 0 && (
+        <View style={{ marginTop: 12 }}>
+          <CartOfferBtn
+            appliedOfferId={appliedOfferId}
+            applyOffer={setAppliedOfferId}
+            cart={cartWithOffers}
+            offersOpen={offersOpen}
+            setOffersOpen={setOffersOpen}
+          />
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -271,7 +306,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#f8f9fa",
   },
-  placeholderLogo: { justifyContent: "center", alignItems: "center" },
   sellerInfo: { flex: 1 },
   sellerName: {
     fontSize: 16,
