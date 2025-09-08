@@ -31,7 +31,19 @@ interface CatalogItem {
   veg: any;
   slug?: string;
   store?: { _id: string; name?: string; slug?: string; symbol?: string };
+  customizable?: boolean; // ✅ Add this
+  directlyLinkedCustomGroupIds?: string[]; // ✅ Add this
+  customizations?: { // ✅ Add this for fallback
+    _id?: string;
+    id?: string;
+    groupId?: string;
+    group_id?: string;
+    optionId?: string;
+    option_id?: string;
+    name: string;
+  }[];
 }
+
 
 interface PLPCardContainerProps {
   catalog: CatalogItem[];
@@ -197,71 +209,78 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
     return <NoItemsDisplay category={selectedCategory} />;
   }
 
-  return (
-    <LinearGradient
-      colors={[gradientColors[0], gradientColors[1], gradientColors[2]]}
-      start={[0, 0]}
-      end={[0, 0.1]}
-      style={styles.container}
-    >
-      {filteredCatalog.map((item, idx) => {
-        const name = item?.descriptor?.name || "";
-        const desc = item?.descriptor?.long_desc || "";
-        const value = item?.price?.value || 0;
-        const maxPrice = item?.price?.maximum_value || 0;
-        const discount =
-          item?.price?.offer_percent ||
-          (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
-        const image =
-          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+return (
+  <LinearGradient
+    colors={[gradientColors[0], gradientColors[1], gradientColors[2]]}
+    start={[0, 0]}
+    end={[0, 0.1]}
+    style={styles.container}
+  >
+    {filteredCatalog.map((item, idx) => {
+      const name = item?.descriptor?.name || "";
+      const desc = item?.descriptor?.long_desc || "";
+      const value = item?.price?.value || 0;
+      const maxPrice = item?.price?.maximum_value || 0;
+      const discount =
+        item?.price?.offer_percent ||
+        (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
+      const image =
+        item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
 
-        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
+      const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-        // ✅ Fixed: Better storeId resolution logic
-        const resolveStoreId = (): string | undefined => {
-          // Priority order: item.provider.store_id > item.store?._id > storeId prop > provider_id
-          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
-            return item.provider.store_id;
-          }
-          if (item.store?._id && item.store._id !== "unknown-store") {
-            return item.store._id;
-          }
-          if (storeId && storeId !== "unknown-store") {
-            return storeId;
-          }
-          if (item.provider_id && item.provider_id !== "unknown-store") {
-            return item.provider_id;
-          }
-          return undefined; // No valid storeId found
-        };
+      // ✅ Extract customization group IDs
+      const directlyLinkedCustomGroupIds = item.directlyLinkedCustomGroupIds || 
+        item.customizations?.map(
+          customization => customization.groupId || customization.group_id || customization._id || customization.id
+        ).filter(Boolean) || [];
 
-        const safeStoreId = resolveStoreId();
-
-        // ✅ Fixed: Only log warning when we truly don't have a storeId
-        if (!safeStoreId) {
-          console.warn(
-            `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
-          );
+      // Existing storeId resolution logic
+      const resolveStoreId = (): string | undefined => {
+        if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+          return item.provider.store_id;
         }
+        if (item.store?._id && item.store._id !== "unknown-store") {
+          return item.store._id;
+        }
+        if (storeId && storeId !== "unknown-store") {
+          return storeId;
+        }
+        if (item.provider_id && item.provider_id !== "unknown-store") {
+          return item.provider_id;
+        }
+        return undefined;
+      };
 
-        return (
-          <FashionCard
-            key={uniqueKey}
-            itemName={name}
-            desc={desc}
-            value={value}
-            maxPrice={maxPrice}
-            discount={discount}
-            image={image}
-            id={item.id}
-            catalogId={item.catalog_id}
-            storeId={safeStoreId}
-            slug={item.slug}
-          />
+      const safeStoreId = resolveStoreId();
+
+      if (!safeStoreId) {
+        console.warn(
+          `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
         );
-      })}
-    </LinearGradient>
-  );
+      }
+
+      return (
+        <FashionCard
+          key={uniqueKey}
+          itemName={name}
+          desc={desc}
+          value={value}
+          maxPrice={maxPrice}
+          discount={discount}
+          image={image}
+          id={item.id}
+          catalogId={item.catalog_id}
+          storeId={safeStoreId}
+          slug={item.slug}
+          customizable={item.customizable || false} // ✅ Add customizable flag
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
+        />
+      );
+    })}
+  </LinearGradient>
+);
+
 };
 
 const styles = StyleSheet.create({

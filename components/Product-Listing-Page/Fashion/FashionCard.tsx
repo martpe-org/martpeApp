@@ -15,8 +15,8 @@ interface FashionCardProps {
   catalogId: string;
   storeId?: string;
   slug?: string;
-  customizable?: boolean; // ✅ add
-  customizations?: any[]; // ✅ add
+  customizable?: boolean;
+  directlyLinkedCustomGroupIds?: string[]; // ✅ add
 }
 
 const FashionCard: FC<FashionCardProps> = ({
@@ -31,7 +31,7 @@ const FashionCard: FC<FashionCardProps> = ({
   storeId,
   slug,
   customizable = false, // ✅ default
-  customizations = [], // ✅ default
+  directlyLinkedCustomGroupIds = [],
 }) => {
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
 
@@ -42,7 +42,6 @@ const FashionCard: FC<FashionCardProps> = ({
       );
     }
   }, [safeStoreId, id, itemName]);
-
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
@@ -59,6 +58,9 @@ const FashionCard: FC<FashionCardProps> = ({
           storeId={safeStoreId}
           slug={slug || id}
           catalogId={catalogId}
+          productName={itemName} // ✅ Product name
+          customizable={customizable} // ✅ Customizable flag
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Customization groups
         />
       </View>
     );

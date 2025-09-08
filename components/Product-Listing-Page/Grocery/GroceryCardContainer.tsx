@@ -27,6 +27,7 @@ export interface CatalogItem {
   weight?: string;
   unit?: string;
   customizable?: boolean;
+   directlyLinkedCustomGroupIds?: string[];
   customizations?: {
     _id?: string;
     id?: string;
@@ -74,6 +75,11 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
   return (
     <View style={containerStyles.container}>
       {displayedCatalog.map((item, index) => {
+        // ✅ Extract customization group IDs from the customizations array
+        const directlyLinkedCustomGroupIds = item.customizations?.map(
+          customization => customization.groupId || customization.group_id || customization._id || customization.id
+        ).filter(Boolean) || [];
+
         // Debug logging for first few items
         if (index < 3) {
           console.log(`🔍 Item ${index + 1}:`, {
@@ -81,6 +87,9 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
             images: item.descriptor?.images,
             symbol: item.descriptor?.symbol,
             directSymbol: item.symbol,
+            customizable: item.customizable,
+            customizations: item.customizations,
+            directlyLinkedCustomGroupIds,
           });
         }
 
@@ -103,7 +112,9 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
               unit={item.unit}
               originalPrice={item.price.maximum_value}
               discount={item.price.offerPercent}
-              item={item} // ✅ keep the full object for fallback storeId
+              item={item}
+              customizable={item.customizable || false} // ✅ Use customizable from item
+              directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} 
             />
           </View>
         );
@@ -111,6 +122,7 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
     </View>
   );
 };
+
 
 // ✅ Animated "No Items" Component
 const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {

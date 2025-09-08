@@ -1,455 +1,342 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  Dimensions,
-  Pressable,
-} from "react-native";
-import AddToCart from "./AddToCart";
-import { AntDesign, Feather } from "@expo/vector-icons";
-import { ActivityIndicator } from "react-native-paper";
-
-//
-// ---------------- TYPES ----------------
-//
-export interface SelectedCustomizationType {
-  groupId: string;
-  optionId: string;
-  name: string;
-}
-
-interface CustomizationOption {
-  child?: { id: string };
-  descriptor: { name: string };
-  price?: { value: number };
-  quantity?: { available: { count: number } };
-  related?: string;
-  type?: string;
-  group?: { default?: boolean; id: string };
-  tags?: {
-    code: string;
-    list: { code: string; value: string }[];
-  }[];
-}
-
-interface CustomizationData {
-  descriptor: { name: string };
-  options: CustomizationOption[];
-  custom_group_id: string;
-  config: {
-    input: "text" | "select";
-    max: number;
-    min: number;
-    seq: number;
-  };
-}
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { useCartStore } from '../../state/useCartStore';
+import useUserDetails from '../../hook/useUserDetails';
+import { useToast } from 'react-native-toast-notifications';
+import { fetchProductCustomizations } from '../customization/fetch-product-customizations';
+import WrapperSheet from './WrapperSheet';
 
 interface CustomizationGroupProps {
-  customizable: boolean;
-  customGroup: string[] | null;
-  vendorId: string | string[];
-  price: number;
-  itemId: string; // slug or catalogId
-  maxLimit: number;
-  closeFilter: () => void;
+  productSlug: string;
+  storeId: string;
+  catalogId: string;
+  productPrice: number;
+  directlyLinkedCustomGroupIds: string[];
+  visible: boolean;
+  onClose: () => void;
+  onAddSuccess: () => void;
+  productName?: string;
 }
 
-//
-// ---------------- MOCK FETCH ----------------
-// (replace this with your actual API call)
-//
-const fetchCustomizations = async (
-  customGroup: string[],
-  vendorId: string
-): Promise<CustomizationData[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // simulate API delay
-
-  return [
-    {
-      descriptor: { name: "Size Options" },
-      options: [
-        {
-          descriptor: { name: "Small" },
-          group: { id: "size_1" },
-          price: { value: 0 },
-        },
-        {
-          descriptor: { name: "Medium" },
-          group: { id: "size_2" },
-          price: { value: 50 },
-        },
-        {
-          descriptor: { name: "Large" },
-          group: { id: "size_3" },
-          price: { value: 100 },
-        },
-      ],
-      custom_group_id: customGroup[0],
-      config: { input: "select", max: 1, min: 1, seq: 1 },
-    },
-  ];
+export type SelectedOptionsType = {
+  [groupId: string]: {
+    groupId: string;
+    optionId: string;
+    name: string;
+  }[];
 };
 
-//
-// ---------------- COMPONENT ----------------
-//
-const CustomizationGroup: FC<CustomizationGroupProps> = ({
-  customizable,
-  customGroup,
-  vendorId,
-  price,
-  itemId,
-  maxLimit,
-  closeFilter,
+const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
+  productSlug,
+  storeId,
+  catalogId,
+  productPrice,
+  directlyLinkedCustomGroupIds,
+  visible,
+  onClose,
+  onAddSuccess,
+  productName,
 }) => {
-  const [activeCustomGroup, setActiveCustomGroup] = useState<string>(
-    customGroup?.[0] || ""
-  );
-  const [nextCustomGroup, setNextCustomGroup] = useState<string>("");
-  const [selectedCustomizations, setSelectedCustomizations] = useState<
-    SelectedCustomizationType[]
-  >([]);
-  const [finalCustomizations, setFinalCustomizations] = useState<
-    SelectedCustomizationType[][]
-  >([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [data, setData] = useState<CustomizationData[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [customizationData, setCustomizationData] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsType>({});
+  const [history, setHistory] = useState<{
+    groups: string[];
+    selectedOptions: SelectedOptionsType;
+  }[]>([{ groups: directlyLinkedCustomGroupIds, selectedOptions: {} }]);
+  const [step, setStep] = useState(0);
+  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds);
 
-  const [step, setStep] = useState<number>(0);
-  const [selected, setSelected] = useState<string>("");
-  const [multipleSelected, setMultipleSelected] = useState<string[]>([]);
+  const { addItem } = useCartStore();
+  const { userDetails } = useUserDetails();
+  const toast = useToast();
 
-  //
-  // Fetch customization data
-  //
   useEffect(() => {
-    const loadCustomizations = async () => {
-      if (!customGroup || !vendorId) return;
+    const fetchCustomizations = async () => {
+      if (!visible || !productSlug) return;
 
       try {
-        setIsLoading(true);
-        setError(null);
-        const result = await fetchCustomizations(customGroup, vendorId as string);
-        setData(result);
-      } catch (err) {
-        setError("Failed to load customizations");
-        console.error("Error fetching customizations:", err);
+        setLoading(true);
+        const data = await fetchProductCustomizations(productSlug);
+        
+        if (data) {
+          setCustomizationData(data);
+          
+          // Set default options
+          const groupIdDefaultOptionMap: SelectedOptionsType = {};
+          directlyLinkedCustomGroupIds.forEach((gid) => {
+            const group = data[`cg_${gid}`];
+            if (group) {
+              group.options.forEach((optionId: string) => {
+                const option = group[`ci_${optionId}`];
+                if (option.isDefaultOption) {
+                  groupIdDefaultOptionMap[gid] = [
+                    { groupId: gid, optionId, name: option.name },
+                  ];
+                }
+              });
+            }
+          });
+
+          if (Object.keys(groupIdDefaultOptionMap).length > 0) {
+            setSelectedOptions(groupIdDefaultOptionMap);
+          }
+          setStep(0);
+        }
+      } catch (error) {
+        console.error('Error fetching customizations:', error);
+        toast.show('Failed to load customizations', { type: 'danger' });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    loadCustomizations();
-  }, [customGroup, vendorId]);
+    fetchCustomizations();
+  }, [visible, productSlug]);
 
-  //
-  // Reset on group change
-  //
-  useEffect(() => {
-    if (customGroup?.[0]) {
-      setActiveCustomGroup(customGroup[0]);
+  const handleOptionChange = useCallback(
+    (groupId: string, optionId: string, name: string) => {
+      const currentGroup = customizationData?.[`cg_${groupId}`];
+      if (!currentGroup) return;
+
+      if (Number(currentGroup.config.max) > 1) {
+        // Multi-select logic
+        setSelectedOptions((prev) => ({
+          ...prev,
+          [groupId]: prev[groupId]
+            ? prev[groupId].find((o) => o.optionId === optionId)
+              ? prev[groupId].filter((o) => o.optionId !== optionId)
+              : [...prev[groupId], { groupId, optionId, name }]
+            : [{ groupId, optionId, name }],
+        }));
+      } else {
+        // Single-select logic
+        setSelectedOptions((prev) => ({
+          ...prev,
+          [groupId]: [{ groupId, optionId, name }],
+        }));
+      }
+    },
+    [customizationData]
+  );
+
+  const handlePrevious = () => {
+    if (step > 0) {
+      const previousState = history[step - 1];
+      setCurrentGroupIds(previousState.groups);
+      setSelectedOptions(previousState.selectedOptions);
+      setStep((prevStep) => prevStep - 1);
     }
-    setSelectedCustomizations([]);
-    setFinalCustomizations([]);
-    setStep(0);
-  }, [customGroup]);
+  };
 
-  //
-  // Handle adding a customization
-  //
-  const handleAddCustomization = (
-    activeCustomGroup: string | null,
-    customizationId: string,
-    name: string
-  ) => {
-    if (!customizationId) return;
+  const handleNext = () => {
+    if (!customizationData) return;
 
-    const newSelection: SelectedCustomizationType = {
-      groupId: activeCustomGroup || "",
-      optionId: customizationId,
-      name,
-    };
-
-    setSelectedCustomizations((prev) => {
-      if (prev.find((c) => c.optionId === customizationId)) {
-        return prev.filter((c) => c.optionId !== customizationId);
-      }
-      return [...prev, newSelection];
+    // Get all child group IDs from selected options
+    const childGroupIds = new Set<string>();
+    currentGroupIds.forEach((groupId) => {
+      const selectedGroupOptions = selectedOptions[groupId] || [];
+      selectedGroupOptions.forEach((option) => {
+        const optionData = customizationData[`cg_${groupId}`][`ci_${option.optionId}`];
+        if (optionData?.child_group_ids) {
+          optionData.child_group_ids.forEach((id: string) => childGroupIds.add(id));
+        }
+      });
     });
 
-    setNextCustomGroup(activeCustomGroup ?? "end");
-  };
+    if (childGroupIds.size > 0) {
+      const newGroupIds = Array.from(childGroupIds);
+      setCurrentGroupIds(newGroupIds);
 
-  //
-  // Go to next step
-  //
-  const handleNext = () => {
-    setFinalCustomizations((prev) => [...prev, selectedCustomizations]);
+      // Set default options for new groups
+      const groupIdDefaultOptionMap: SelectedOptionsType = {};
+      newGroupIds.forEach((gid) => {
+        const group = customizationData[`cg_${gid}`];
+        if (group) {
+          group.options.forEach((optionId: string) => {
+            const option = group[`ci_${optionId}`];
+            if (option.isDefaultOption) {
+              groupIdDefaultOptionMap[gid] = [
+                { groupId: gid, optionId, name: option.name },
+              ];
+            }
+          });
+        }
+      });
 
-    if (nextCustomGroup !== "end") {
-      setActiveCustomGroup(nextCustomGroup);
+      if (Object.keys(groupIdDefaultOptionMap).length > 0) {
+        setSelectedOptions((prev) => ({
+          ...prev,
+          ...groupIdDefaultOptionMap,
+        }));
+      }
+
+      setHistory((prev) => [
+        ...prev,
+        { groups: newGroupIds, selectedOptions: { ...selectedOptions } },
+      ]);
       setStep((prevStep) => prevStep + 1);
-    } else {
-      console.log("Final Customizations:", finalCustomizations);
     }
   };
 
-  //
-  // Go back step
-  //
-  const handlePrevious = () => {
-    setFinalCustomizations((prev) => prev.slice(0, -1));
-    setActiveCustomGroup(customGroup?.[step - 1] || customGroup?.[0] || "");
-    setStep((prevStep) => (prevStep > 0 ? prevStep - 1 : 0));
+  const isNextDisabled = useCallback(() => {
+    if (!customizationData) return true;
+
+    return currentGroupIds.some((groupId) => {
+      const group = customizationData[`cg_${groupId}`];
+      if (!group) return true;
+
+      const selectedCount = selectedOptions[groupId]?.length || 0;
+      return selectedCount < Number(group.config.min);
+    });
+  }, [customizationData, currentGroupIds, selectedOptions]);
+
+  const handleAddToCart = async () => {
+    if (!userDetails?.accessToken) {
+      toast.show('Please login to continue', { type: 'danger' });
+      return;
+    }
+
+    try {
+      setAdding(true);
+      const cartPayload = Object.entries(selectedOptions).flatMap(([groupId, options]) =>
+        options.map((option) => ({
+          groupId: `cg_${groupId}`,
+          optionId: `ci_${option.optionId}`,
+          name: option.name,
+        }))
+      );
+
+      const success = await addItem(
+        storeId,
+        productSlug,
+        catalogId,
+        1,
+        true,
+        cartPayload,
+        userDetails.accessToken
+      );
+
+      if (success) {
+        toast.show('Item added to cart successfully!', { type: 'success' });
+        onAddSuccess();
+        onClose();
+      } else {
+        toast.show('Failed to add item to cart', { type: 'danger' });
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.show('Error adding to cart', { type: 'danger' });
+    } finally {
+      setAdding(false);
+    }
   };
 
-  //
-  // UI states
-  //
-  if (customGroup === null) return null;
+  const handleClearGroup = (groupId: string) => {
+    setSelectedOptions((prev) => {
+      const updated = { ...prev };
+      delete updated[groupId];
+      return updated;
+    });
+  };
 
-  if (isLoading) {
+  const hasChildGroups = currentGroupIds.some((groupId) => {
+    const group = customizationData?.[`cg_${groupId}`];
+    if (!group) return false;
+
+    return group.options.some((optionId: string) => {
+      const option = group[`ci_${optionId}`];
+      return option?.child_group_ids && option.child_group_ids.length > 0;
+    });
+  });
+
+  const showAddButton = !hasChildGroups || (step !== 0 && step === history.length - 1);
+
+  if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#FB3E44" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f14343" />
+        <Text style={styles.loadingText}>Loading customizations...</Text>
       </View>
     );
   }
 
-  if (error) {
+  if (!customizationData) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, color: "red" }}>
-          We could not find any customizations
-        </Text>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>No customization data available</Text>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Text style={styles.closeButtonText}>Close</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  //
-  // Render UI
-  //
   return (
-    <View
-      style={{
-        paddingHorizontal: Dimensions.get("screen").width * 0.03,
-        height: "100%",
-        flex: 1,
-      }}
-    >
-      {customizable && (
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "600",
-              paddingVertical: Dimensions.get("screen").width * 0.04,
-            }}
-          >
-            Customize as per your taste
-          </Text>
-          <TouchableOpacity onPress={closeFilter}>
-            <AntDesign name="close" size={18} color="black" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <View style={{ borderBottomColor: "black", borderBottomWidth: 0.2 }} />
-
-      {data.map((item, idx) =>
-        item.custom_group_id === activeCustomGroup ? (
-          <View key={idx}>
-            <Text
-              style={{
-                fontSize: 16,
-                paddingVertical: 10,
-                fontWeight: "500",
-              }}
-            >
-              {item.descriptor.name}
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                paddingVertical: 10,
-                fontWeight: "400",
-              }}
-            >
-              {item.config.input} up to {item.config.max} option(s)
-            </Text>
-
-            <View
-              style={{
-                backgroundColor: "white",
-                elevation: 2,
-                paddingHorizontal: 10,
-                minHeight: 100,
-                borderRadius: 10,
-              }}
-            >
-              {item.options.map((option, idx2) => (
-                <Pressable
-                  key={idx2}
-                  onPress={() =>
-                    handleAddCustomization(
-                      item.custom_group_id,
-                      option?.group?.id || "",
-                      option.descriptor.name
-                    )
-                  }
-                >
-                  {item.config.input === "select" && item.config.max === 1 && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: 10,
-                      }}
-                    >
-                      <Text>{option.descriptor.name}</Text>
-                      <View
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderColor:
-                            selected === option.descriptor.name
-                              ? "#FB3E44"
-                              : "#ACAAAA",
-                          borderWidth: 1.5,
-                          borderRadius: 15,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {selected === option.descriptor.name && (
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              backgroundColor: "#FB3E44",
-                              borderRadius: 15,
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {item.config.input === "select" && item.config.max > 1 && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: 10,
-                      }}
-                    >
-                      <Text>{option.descriptor.name}</Text>
-                      <View
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderColor: multipleSelected.includes(
-                            option.descriptor.name
-                          )
-                            ? "#FB3E44"
-                            : "#ACAAAA",
-                          borderWidth: 1.5,
-                          borderRadius: 2,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {multipleSelected.includes(option.descriptor.name) && (
-                          <Feather name="check" size={12} color="#FB3E44" />
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Bottom buttons */}
-            <View
-              style={{
-                position: "absolute",
-                width: "100%",
-                bottom: -Dimensions.get("screen").width * 0.6,
-              }}
-            >
-              {item?.options[step]?.child?.id ? (
-                <View>
-                  {step > 0 && (
-                    <TouchableOpacity
-                      onPress={handlePrevious}
-                      style={{
-                        backgroundColor: "#FB3E44",
-                        padding: 12,
-                        borderRadius: 4,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <Text style={{ color: "white", fontWeight: "600" }}>
-                        Previous
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    onPress={handleNext}
-                    style={{
-                      backgroundColor: "#0e8910",
-                      padding: 12,
-                      borderRadius: 4,
-                    }}
-                  >
-                    <Text style={{ color: "white", fontWeight: "600" }}>
-                      Next
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <>
-                  {step > 0 && (
-                    <TouchableOpacity
-                      onPress={handlePrevious}
-                      style={{
-                        backgroundColor: "#FB3E44",
-                        padding: 12,
-                        borderRadius: 4,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <Text style={{ color: "white", fontWeight: "600" }}>
-                        Previous
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Final Add to Cart */}
-                  <AddToCart
-                    price={price}
-                    storeId={vendorId as string}
-                    slug={itemId}
-                    catalogId={itemId}
-                    customizable={true}
-                    customizations={finalCustomizations.flat()} // flatten to one array
-                  />
-                </>
-              )}
-            </View>
-          </View>
-        ) : null
-      )}
-    </View>
+    <WrapperSheet
+      visible={visible}
+      onClose={onClose}
+      productName={productName}
+      currentGroupIds={currentGroupIds}
+      customizationData={customizationData}
+      selectedOptions={selectedOptions}
+      step={step}
+      onOptionChange={handleOptionChange}
+      onClearGroup={handleClearGroup}
+      onPrevious={handlePrevious}
+      onNext={handleNext}
+      onAddToCart={handleAddToCart}
+      isNextDisabled={isNextDisabled}
+      hasChildGroups={hasChildGroups}
+      showAddButton={showAddButton}
+      adding={adding}
+    />
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#f14343',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 export default CustomizationGroup;

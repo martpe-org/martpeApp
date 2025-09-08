@@ -23,6 +23,8 @@ interface GroceryCardProps {
   image?: string;
   onPress?: () => void;
   item?: any;
+   customizable?: boolean; // ✅ Add this
+  directlyLinkedCustomGroupIds?: string[];
 }
 
 const GroceryCard: React.FC<GroceryCardProps> = ({
@@ -41,6 +43,8 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   image,
   onPress,
   item,
+    customizable = false, // ✅ Add default value
+  directlyLinkedCustomGroupIds = [],
 }) => {
   const handlePress = onPress || (() => {
     router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
@@ -66,22 +70,20 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   const resolvedSlug = slug || id;
   
 
-  return (
+ return (
     <TouchableOpacity
       style={cardStyles.card}
       onPress={handlePress}
       activeOpacity={0.8}
     >
-<ImageComp
-  source={image}
-  imageStyle={cardStyles.image}
-  resizeMode="cover"
-  fallbackSource={{ uri: "https://picsum.photos/200/300" }}
-  loaderColor="#666"
-  loaderSize="small"
-/>
-
-
+      <ImageComp
+        source={image}
+        imageStyle={cardStyles.image}
+        resizeMode="cover"
+        fallbackSource={{ uri: "https://picsum.photos/200/300" }}
+        loaderColor="#666"
+        loaderSize="small"
+      />
 
       <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>
@@ -107,11 +109,15 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           slug={resolvedSlug}
           catalogId={catalogId}
           price={cost}
+          productName={itemName} // ✅ Add product name
+          customizable={customizable} // ✅ Add customizable flag
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
         />
       </View>
     </TouchableOpacity>
   );
 };
+
 
 export default GroceryCard;
 

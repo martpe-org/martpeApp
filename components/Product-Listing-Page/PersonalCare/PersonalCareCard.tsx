@@ -87,26 +87,30 @@ const resolveStoreId = (): string | undefined => {
     return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
   };
 
-  const renderAddToCart = () => {
-    if (!storeId) {
-      return (
-        <View style={styles.cartWrapper}>
-          <Text style={styles.errorText}>Store ID missing</Text>
-        </View>
-      );
-    }
-
+const renderAddToCart = () => {
+  if (!storeId) {
     return (
       <View style={styles.cartWrapper}>
-        <AddToCart
-          storeId={storeId}
-          slug={slug || id} // ✅ no item?.slug needed
-          catalogId={catalogId || item?.catalog_id || ""}
-          price={price}
-        />
+        <Text style={styles.errorText}>Store ID missing</Text>
       </View>
     );
-  };
+  }
+
+  return (
+    <View style={styles.cartWrapper}>
+      <AddToCart
+        storeId={storeId}
+        slug={slug || id}
+        catalogId={catalogId || item?.catalog_id || ""}
+        price={price}
+        productName={title} // ✅ Add product name
+        customizable={false} // ✅ Add customizable flag (personal care items are typically not customizable)
+        directlyLinkedCustomGroupIds={[]} // ✅ Add empty array for customization groups
+      />
+    </View>
+  );
+};
+
 
   return (
     <TouchableOpacity

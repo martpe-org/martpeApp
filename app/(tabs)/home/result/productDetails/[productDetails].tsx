@@ -328,17 +328,22 @@ const ProductDetails: FC = () => {
       </ScrollView>
 
       {/* Sticky Add to Cart Footer */}
-    <View style={styles.stickyFooter}>
-  {productData && (
-    <AddToCart
-      storeId={productData.store_id}
-      slug={productData.slug}
-      catalogId={productData.catalog_id}
-      price={productData.price?.value || 0}
-    />
-  )}
-</View>
+      <View style={styles.stickyFooter}>
+{productData && (
+  <AddToCart
+    storeId={productData.store_id}
+    slug={productData.slug}
+    catalogId={productData.catalog_id}
+    price={productData.price?.value || 0}
+    productName={productData.name} // ✅ Add this line
+    customizable={productData.customizable}
+    directlyLinkedCustomGroupIds={
+      productData.directlyLinkedCustomGroupIds || []
+    }
+  />
+)}
 
+      </View>
     </SafeAreaView>
   );
 };

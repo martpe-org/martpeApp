@@ -121,15 +121,19 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
     });
   }, [catalog, activeCategory]);
 
-  const transformItems = (items: CatalogItem[]) =>
-    items.map((item) => ({
-      ...item,
-      image:
-        item.descriptor?.images?.[0] ||
-        "https://via.placeholder.com/150?text=Electronics",
-      symbol: item.symbol || item.descriptor?.symbol || "",
-      slug: item.slug || item.id, // ✅ ensure slug is always available
-    }));
+ const transformItems = (items: CatalogItem[]) =>
+  items.map((item) => ({
+    ...item,
+    image:
+      item.descriptor?.images?.[0] ||
+      "https://via.placeholder.com/150?text=Electronics",
+    symbol: item.symbol || item.descriptor?.symbol || "",
+    slug: item.slug || item.id,
+    // ✅ Customization data is already in the interface, just ensure defaults
+    customizable: item.customizable || false,
+    directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [],
+  }));
+
 
   const transformedFilteredCatalog = useMemo(
     () => transformItems(filteredCatalog),

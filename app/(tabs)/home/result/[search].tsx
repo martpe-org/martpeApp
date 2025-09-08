@@ -115,15 +115,6 @@ const Results: FC = () => {
     discount: 0,
   });
 
-  const [customizableGroup, setCustomizableGroup] =
-    useState<CustomizableGroupState>({
-      customizable: false,
-      vendorId: "",
-      customGroup: [],
-      itemId: "",
-      maxLimit: 0,
-      price: 0,
-    });
 
   const snapPoints = useMemo(() => ["50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -227,135 +218,115 @@ const Results: FC = () => {
     [handleOpenPress]
   );
 
-  // Handle customizable group
-  const handleCustomizableGroup = useCallback(
-    (product: ProductSearchResult) => {
-      setCustomizableGroup({
-        customizable: true,
-        vendorId: product.store_id,
-        customGroup: product.directlyLinkedCustomGroupIds || [],
-        itemId: product.symbol,
-        maxLimit: product.quantity || 1,
-        price: product.price.value,
-      });
-      handleOpenPress();
-    },
-    [handleOpenPress]
-  );
-
   // Product Card Component
-  const ProductCard: FC<{
-    item: [string, ProductSearchResult[]];
-  }> = ({ item: [storeId, products] }) => {
-    const firstProduct = products[0];
-    if (!firstProduct?.store) return null;
+const ProductCard: FC<{
+  item: [string, ProductSearchResult[]];
+}> = ({ item: [storeId, products] }) => {
+  const firstProduct = products[0];
+  if (!firstProduct?.store) return null;
 
-    const store = firstProduct.store;
-    const domainName = getDomainName(firstProduct.domain);
+  const store = firstProduct.store;
+  const domainName = getDomainName(firstProduct.domain);
 
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <TouchableOpacity
+          style={styles.storeInfo}
+          onPress={() =>
+            router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+          }
+        >
+          <ImageComp
+            source={{ uri: store.symbol || "https://via.placeholder.com/60" }}
+            imageStyle={styles.storeImage}
+            resizeMode="cover"
+          />
+          <View style={styles.storeDetails}>
+            <Text style={styles.storeName} numberOfLines={1}>
+              {store.name}
+            </Text>
+            <Text style={styles.storeMetrics}>
+              <Text>★ {store.rating || "4.2"} • </Text>
+              <Text>{Math.round((firstProduct.tts_in_h || 1) * 60)}min • </Text>
+              <Text>{firstProduct.distance_in_km.toFixed(1)}km</Text>
+            </Text>
+            {(firstProduct.price.offerPercent || 0) > 0 && (
+              <Text style={styles.offerText}>
+                Up to {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={products}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(product, index) => `${product.slug}-${index}`}
+        contentContainerStyle={styles.productsContainer}
+        renderItem={({ item: product }) => (
           <TouchableOpacity
-            style={styles.storeInfo}
+            style={styles.productCard}
             onPress={() =>
-              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+              router.push(
+                `/(tabs)/home/result/productDetails/${product.slug}`
+              )
             }
           >
             <ImageComp
-              source={{ uri: store.symbol || "https://via.placeholder.com/60" }}
-              imageStyle={styles.storeImage}
+              source={{
+                uri: product.symbol || "https://via.placeholder.com/120",
+              }}
+              imageStyle={styles.productImage}
               resizeMode="cover"
             />
-            <View style={styles.storeDetails}>
-              <Text style={styles.storeName} numberOfLines={1}>
-                {store.name}
+
+            <View style={styles.productInfo}>
+              {domainName === "F&B" && <VegIndicator />}
+              <Text style={styles.productName} numberOfLines={2}>
+                {product.name}
               </Text>
-              <Text style={styles.storeMetrics}>
-                <Text>★ {store.rating || "4.2"} • </Text>
-                <Text>{Math.round((firstProduct.tts_in_h || 1) * 60)}min • </Text>
-                <Text>{firstProduct.distance_in_km.toFixed(1)}km</Text>
-              </Text>
-              {(firstProduct.price.offerPercent || 0) > 0 && (
-                <Text style={styles.offerText}>
-                  Up to {Math.ceil(firstProduct.price.offerPercent || 0)}% Off
-                </Text>
-              )}
+
+              <View style={styles.priceRow}>
+                <Text style={styles.price}>₹{product.price.value}</Text>
+                {product.price.offerPercent && (
+                  <Text style={styles.originalPrice}>
+                    ₹{product.price.maximum_value}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.actionRow}>
+                {/* ✅ Use AddToCart component for all products */}
+                <AddToCart
+                  storeId={product.store_id}
+                  slug={product.slug}
+                  catalogId={product.catalog_id}
+                  price={product.price?.value || 0}
+                  productName={product.name} // ✅ Add product name
+                  customizable={product.customizable} // ✅ Add customizable flag
+                  directlyLinkedCustomGroupIds={product.directlyLinkedCustomGroupIds || []} // ✅ Add customization groups
+                />
+
+                {domainName === "F&B" && (
+                  <TouchableOpacity
+                    onPress={() => handleFoodDetails(product)}
+                    style={styles.infoButton}
+                  >
+                    <Text style={styles.infoButtonText}>Info</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
-        </View>
+        )}
+      />
+    </View>
+  );
+};
 
-        <FlatList
-          data={products}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(product, index) => `${product.slug}-${index}`}
-          contentContainerStyle={styles.productsContainer}
-          renderItem={({ item: product }) => (
-            <TouchableOpacity
-              style={styles.productCard}
-              onPress={() =>
-                router.push(
-                  `/(tabs)/home/result/productDetails/${product.slug}`
-                )
-              }
-            >
-              <ImageComp
-                source={{
-                  uri: product.symbol || "https://via.placeholder.com/120",
-                }}
-                imageStyle={styles.productImage}
-                resizeMode="cover"
-              />
-
-              <View style={styles.productInfo}>
-                {domainName === "F&B" && <VegIndicator />}
-                <Text style={styles.productName} numberOfLines={2}>
-                  {product.name}
-                </Text>
-
-                <View style={styles.priceRow}>
-                  <Text style={styles.price}>₹{product.price.value}</Text>
-                  {product.price.offerPercent && (
-                    <Text style={styles.originalPrice}>
-                      ₹{product.price.maximum_value}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.actionRow}>
-                  {product.customizable ? (
-                    <TouchableOpacity
-                      onPress={() => handleCustomizableGroup(product)}
-                      style={styles.addButton}
-                    >
-                      <Text style={styles.addButtonText}>ADD</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <AddToCart
-                      storeId={product.store_id}
-                      slug={product.slug}
-                      catalogId={product.catalog_id}
-                      price={product.price?.value || 0}
-                    />
-                  )}
-
-                  {domainName === "F&B" && (
-                    <TouchableOpacity
-                      onPress={() => handleFoodDetails(product)}
-                      style={styles.infoButton}
-                    >
-                      <Text style={styles.infoButtonText}>Info</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    );
-  };
 
   // Store Card Component
   const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => (
@@ -487,30 +458,20 @@ const Results: FC = () => {
         contentContainerStyle={styles.contentContainer}
       />
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backgroundStyle={{ backgroundColor: "#FFFFFF" }}
-        backdropComponent={renderBackdrop}
-      >
-        {foodDetails?.visible && (
-          <FoodDetailsComponent foodDetails={foodDetails} />
-        )}
+<BottomSheet
+  ref={bottomSheetRef}
+  index={-1}
+  snapPoints={snapPoints}
+  enablePanDownToClose={true}
+  backgroundStyle={{ backgroundColor: "#FFFFFF" }}
+  backdropComponent={renderBackdrop}
+>
+  {/* ✅ Only keep FoodDetailsComponent - CustomizationGroup is now handled by AddToCart */}
+  {foodDetails?.visible && (
+    <FoodDetailsComponent foodDetails={foodDetails} />
+  )}
+</BottomSheet>
 
-        {customizableGroup.customizable && (
-          <CustomizationGroup
-            customGroup={customizableGroup.customGroup}
-            customizable={customizableGroup.customizable}
-            vendorId={customizableGroup.vendorId}
-            itemId={customizableGroup.itemId}
-            maxLimit={customizableGroup.maxLimit}
-            price={customizableGroup.price}
-            closeFilter={handleClosePress}
-          />
-        )}
-      </BottomSheet>
     </View>
   );
 };
@@ -716,17 +677,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  addButton: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+
   infoButton: {
     borderColor: "#ddd",
     borderWidth: 1,

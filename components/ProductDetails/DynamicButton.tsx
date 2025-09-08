@@ -1,27 +1,23 @@
 import React, { useState } from "react";
 import {
+  View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Modal,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import useUserDetails from "../../hook/useUserDetails";
 import { useToast } from "react-native-toast-notifications";
-import CustomizationGroup from "./CustomizationGroup";
 
 interface DynamicButtonProps {
   storeId: string;
   slug: string;
-  onAddSuccess: () => void;
   catalogId: string;
   customizable?: boolean;
-  customizations?: {
-    groupId?: string;
-    optionId?: string;
-    name: string;
-  }[];
+  directlyLinkedCustomGroupIds?: string[];
+  onAddSuccess: () => void;
+  onShowCustomization?: () => void;
 }
 
 const DynamicButton: React.FC<DynamicButtonProps> = ({
@@ -29,8 +25,9 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
   slug,
   catalogId,
   customizable = false,
-  customizations = [],
-  onAddSuccess, // ✅ Make sure this is properly destructured
+  directlyLinkedCustomGroupIds = [],
+  onAddSuccess,
+  onShowCustomization,
 }) => {
   const { addItem } = useCartStore();
   const { userDetails } = useUserDetails();
@@ -38,13 +35,6 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
   const toast = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [showCustomization, setShowCustomization] = useState(false);
-
-  const normalizedCustomizations = customizations.map((c) => ({
-    groupId: c.groupId || "",
-    optionId: c.optionId || "",
-    name: c.name,
-  }));
 
   const handleAdd = async () => {
     if (!authToken) {
@@ -52,11 +42,13 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
       return;
     }
 
-    if (customizable && normalizedCustomizations.length > 0) {
-      setShowCustomization(true);
+    // If product is customizable and has customization groups, show customization modal
+    if (customizable && directlyLinkedCustomGroupIds.length > 0) {
+      onShowCustomization && onShowCustomization();
       return;
     }
 
+    // For non-customizable products or customizable products without groups
     setLoading(true);
     try {
       const success = await addItem(
@@ -65,13 +57,12 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
         catalogId,
         1,
         customizable,
-        normalizedCustomizations,
+        [], // empty customizations for non-customizable items
         authToken
       );
 
       if (success) {
-        toast.show("🎉 Congrats! Item added to cart", { type: "success" });
-        // ✅ Call onAddSuccess after successful addition
+        toast.show("Item added to cart successfully!", { type: "success" });
         onAddSuccess();
       } else {
         toast.show("Failed to add to cart", { type: "danger" });
@@ -84,39 +75,34 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
     }
   };
 
-  return (
-    <>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleAdd}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
+ const getButtonContent = () => {
+    if (loading) {
+      return <ActivityIndicator color="#fff" size="small" />;
+    }
+    
+    if (customizable && directlyLinkedCustomGroupIds.length > 0) {
+      return (
+        <View style={styles.buttonContent}>
           <Text style={styles.text}>Add</Text>
-        )}
-      </TouchableOpacity>
+          <Text style={styles.plusIcon}>+</Text>
+        </View>
+      );
+    }
+    
+    return <Text style={styles.text}>Add</Text>;
+  };
 
-      {/* Customization modal */}
-      <Modal
-        visible={showCustomization}
-        animationType="slide"
-        onRequestClose={() => setShowCustomization(false)}
-      >
-        <CustomizationGroup
-          customizable
-          customGroup={normalizedCustomizations.map((c) => c.groupId)}
-          vendorId={storeId}
-          price={0}
-          itemId={catalogId}
-          maxLimit={5}
-          closeFilter={() => setShowCustomization(false)}
-        />
-      </Modal>
-    </>
+  return (
+    <TouchableOpacity
+      style={styles.button}
+      onPress={handleAdd}
+      disabled={loading}
+    >
+      {getButtonContent()}
+    </TouchableOpacity>
   );
 };
+
 
 export default DynamicButton;
 
@@ -128,6 +114,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
+  },
+    buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+    plusIcon: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 4,
   },
   text: {
     color: "#fff",
