@@ -19,9 +19,11 @@ import {
 import useUserDetails from "@/hook/useUserDetails";
 import { useCartStore } from "@/state/useCartStore";
 import { prettifyTemporalDuration } from "@/utility/CheckoutUtils";
+import { getAsyncStorageItem } from "@/utility/asyncStorage";
 import Loader from "../common/Loader";
 import { BillSummary } from "./BillSummary";
 import { CancellationPolicy } from "./CancellationPolicy";
+// 🆕 Import offer components
 import {
   processPayment,
   showPaymentSuccessAlert,
@@ -30,6 +32,7 @@ import {
   validatePaymentPayload,
   InitCartPayload,
 } from "./paymentUtils";
+import CartOfferBtn from "../Cart/CartOfferBtn";
 
 interface CheckoutContentProps {
   data: SelectData;
@@ -50,10 +53,20 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
 }) => {
   const { userDetails } = useUserDetails();
   const { removeCart } = useCartStore();
-  const { selectedFulfillment, setSelectedFulfillment } = useCheckoutStore();
+  const { 
+    selectedFulfillment, 
+    setSelectedFulfillment,
+    appliedOfferId: storeAppliedOfferId,
+    setAppliedOfferId 
+  } = useCheckoutStore();
   
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  // 🆕 Local state for offers
+  const [offersOpen, setOffersOpen] = useState(false);
+
+  // 🆕 Use the applied offer ID from either props or store
+  const currentAppliedOfferId = appliedOfferId || storeAppliedOfferId;
 
   // Validate and set default fulfillment option
   useEffect(() => {
@@ -72,6 +85,18 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
 
   const hasOutOfStockItems = items.some((item) => !item.instock);
 
+  // 🆕 Handle offer application
+  const handleOfferApply = useCallback((offerId: string) => {
+    setAppliedOfferId(offerId);
+    // You might want to trigger a re-calculation of the checkout data here
+    // This would involve calling the select-cart API again with the new offer
+    Alert.alert(
+      "Offer Applied",
+      `Offer "${offerId}" has been applied. The discount will be reflected in your final bill.`,
+      [{ text: "OK", style: "default" }]
+    );
+  }, [setAppliedOfferId]);
+
   const handleBreakupPress = useCallback((breakup: any) => {
     if (breakup.children && breakup.children.length > 0) {
       const details = breakup.children
@@ -87,31 +112,15 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
   }, []);
 
   const validateFormData = useCallback((): { valid: boolean; error?: string } => {
-    if (!userDetails?.accessToken) {
-      return { valid: false, error: "Please login to continue" };
-    }
-
-    if (!selectedFulfillmentId) {
-      return { valid: false, error: "Please select a delivery option" };
-    }
-
-    if (hasOutOfStockItems) {
-      return { valid: false, error: "Some items are out of stock. Please remove them to continue." };
-    }
-
-    if (!data.address || !data.address.name || !data.address.phone) {
-      return { valid: false, error: "Please add a complete delivery address" };
-    }
-
-    if (selectedBreakup.total <= 0) {
-      return { valid: false, error: "Invalid order total" };
-    }
-
+    if (!userDetails?.accessToken) return { valid: false, error: "Please login to continue" };
+    if (!selectedFulfillmentId) return { valid: false, error: "Please select a delivery option" };
+    if (hasOutOfStockItems) return { valid: false, error: "Some items are out of stock. Please remove them to continue." };
+    if (!data.address?.name || !data.address?.phone) return { valid: false, error: "Please add a complete delivery address" };
+    if (selectedBreakup.total <= 0) return { valid: false, error: "Invalid order total" };
     return { valid: true };
   }, [userDetails, selectedFulfillmentId, hasOutOfStockItems, data.address, selectedBreakup.total]);
 
   const handlePayment = useCallback(async () => {
-    // Validate form data
     const validation = validateFormData();
     if (!validation.valid) {
       showPaymentErrorAlert(validation.error!);
@@ -121,34 +130,29 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     setPaymentLoading(true);
 
     try {
-      // Prepare payment payload
+      const authToken = await getAsyncStorageItem("auth-token");
+      if (!authToken) throw new Error("Please login to continue");
+
+      const referralId = await getAsyncStorageItem("referralId").catch(() => null);
+
       const payload: InitCartPayload = {
-        address: {
-          name: data.address.name,
-          houseNo: data.address.houseNo,
-          street: data.address.street,
-          city: data.address.city,
-          state: data.address.state,
-          pincode: data.address.pincode,
-          phone: data.address.phone,
-        },
+        address: { ...data.address, gps: data.address.gps || { lat: 0, lon: 0 } },
         onselect_msgId: data.context.message_id,
         storeId: cart.store._id,
         addressId: data.addressId,
         selected_fulfillmentId: selectedFulfillmentId,
-        ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
+        // 🆕 Include the applied offer ID
+        ...(currentAppliedOfferId && { offerId: currentAppliedOfferId }),
+        ...(referralId && { referrer_id: referralId }),
       };
 
       // Validate payload
       const payloadValidation = validatePaymentPayload(payload);
-      if (!payloadValidation.valid) {
-        throw new Error(payloadValidation.errors.join(', '));
-      }
+      if (!payloadValidation.valid) throw new Error(payloadValidation.errors.join(", "));
 
-      // Process payment
       const paymentResult = await processPayment({
         payload,
-        authToken: userDetails!.accessToken!,
+        authToken,
         storeName: cart.store.name,
         userDetails: {
           firstName: userDetails!.firstName,
@@ -159,26 +163,21 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
       });
 
       if (paymentResult.success && paymentResult.orderId) {
-        // Success - clean up and navigate
         setOpen(false);
-        await removeCart(cart.store._id, userDetails!.accessToken!);
+        await removeCart(cart.store._id, authToken);
         showPaymentSuccessAlert(paymentResult.orderId);
-        setRetryCount(0); // Reset retry count on success
+        setRetryCount(0);
       } else {
         throw new Error(paymentResult.error || "Payment failed");
       }
     } catch (error: any) {
-      console.error("Payment error:", error);
       const errorMessage = getErrorMessage(error);
-      
-      // Show error with retry option if not too many retries
+      console.error("Payment error:", errorMessage);
+
       showPaymentErrorAlert(
         errorMessage,
         cart.store._id,
-        retryCount < 2 ? () => {
-          setRetryCount(prev => prev + 1);
-          handlePayment();
-        } : undefined
+        retryCount < 2 ? () => { setRetryCount(prev => prev + 1); handlePayment(); } : undefined
       );
     } finally {
       setPaymentLoading(false);
@@ -188,7 +187,7 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     data,
     cart.store,
     selectedFulfillmentId,
-    appliedOfferId,
+    currentAppliedOfferId, // 🆕 Include in dependencies
     userDetails,
     removeCart,
     setOpen,
@@ -216,7 +215,7 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         <View style={styles.storeInfo}>
           <Text style={styles.storeName}>{cart.store.name}</Text>
           <Text style={styles.storeAddress} numberOfLines={2}>
-            {cart.store.address.street}, {cart.store.address.city}
+            {cart.store.address.street}, {cart.store.address.locality}, {cart.store.address.city}, {cart.store.address.state} - {cart.store.address.area_code}
           </Text>
         </View>
         <MaterialIcons name="arrow-forward-ios" size={16} color="#ccc" />
@@ -245,6 +244,30 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         <Text style={styles.addressPhone}>📞 {data.address.phone}</Text>
       </View>
     </View>
+  );
+
+  // 🆕 Render Offers Section
+  const renderOffersSection = () => (
+    cart.store.offers && cart.store.offers.length > 0 && (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Available Offers</Text>
+        <CartOfferBtn
+          appliedOfferId={currentAppliedOfferId}
+          applyOffer={handleOfferApply}
+          cart={cart}
+          offersOpen={offersOpen}
+          setOffersOpen={setOffersOpen}
+        />
+        {currentAppliedOfferId && (
+          <View style={styles.offerAppliedInfo}>
+            <MaterialIcons name="check-circle" size={16} color="#00BC66" />
+            <Text style={styles.offerAppliedText}>
+              Offer "{currentAppliedOfferId}" applied successfully
+            </Text>
+          </View>
+        )}
+      </View>
+    )
   );
 
   const renderItemsSection = () => (
@@ -391,6 +414,10 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     >
       {renderStoreSection()}
       {renderAddressSection()}
+      
+      {/* 🆕 Add offers section before items */}
+      {renderOffersSection()}
+      
       {renderItemsSection()}
       {renderFulfillmentSection()}
 
@@ -402,6 +429,8 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
           totalSavings={selectedBreakup.total_savings}
           grandTotal={selectedBreakup.total}
           onBreakupPress={handleBreakupPress}
+          // 🆕 Pass applied offer info
+          appliedOfferId={currentAppliedOfferId}
         />
       </View>
 
@@ -515,6 +544,26 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "500",
   },
+
+  // 🆕 Offer styles
+  offerAppliedInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#f0fdf4",
+    borderRadius: 8,
+    gap: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#00BC66",
+  },
+  offerAppliedText: {
+    fontSize: 14,
+    color: "#00BC66",
+    fontWeight: "500",
+    flex: 1,
+  },
+
   itemsContainer: {
     gap: 12,
   },

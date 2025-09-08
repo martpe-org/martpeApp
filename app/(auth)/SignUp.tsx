@@ -65,7 +65,7 @@ const SignUp: React.FC = () => {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       console.log("User is already authenticated, redirecting to home");
-      router.replace("./(tabs)/home");
+      router.replace("/(tabs)/home/HomeScreen");
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -193,7 +193,7 @@ const SignUp: React.FC = () => {
 
         // Navigate to home screen - router will handle this automatically due to auth state change
         // But we can also manually navigate to ensure immediate redirect
-        router.replace("../(tabs)/home");
+        router.replace("/(tabs)/home/HomeScreen");
       } else {
         // Handle API errors
         const errorMessage =

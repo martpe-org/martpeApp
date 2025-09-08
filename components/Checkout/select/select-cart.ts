@@ -35,12 +35,6 @@ export const selectCart = async (
       },
     });
 
-    // if (res.status !== 200) {
-    //   console.log("create user failed");
-    //   const data = await res.json();
-    //   return { status: res.status, data };
-    // }
-
     const data = await res.json();
     return { status: res.status, data };
   } catch (error) {

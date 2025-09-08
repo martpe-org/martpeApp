@@ -8,12 +8,14 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 export interface InitCartPayload {
   address: {
     name: string;
+    phone: string;
+    building?: string;
     houseNo: string;
     street: string;
     city: string;
     state: string;
     pincode: string;
-    phone: string;
+    gps?: { lat: number; lon: number };
   };
   onselect_msgId: string;
   storeId: string;
@@ -69,11 +71,13 @@ const initializePayment = async (
       throw new Error("Authentication token required");
     }
 
+    // Use the same endpoint structure as Next.js
     const response = await fetch(`${API_BASE_URL}/payment`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${authToken}`,
         "Content-Type": "application/json",
+        "Cookie": `auth-token=${authToken}`, // Add cookie header for compatibility
       },
       body: JSON.stringify(payload),
     });
@@ -88,8 +92,10 @@ const initializePayment = async (
       throw new Error("Invalid response from server");
     }
 
+    console.log("Payment init response:", { status: response.status, result });
+
     if (!response.ok) {
-      const errorMessage = result?.error?.message || result?.message || `HTTP ${response.status}`;
+      const errorMessage = result?.error?.message || result?.message || `HTTP ${response.status}: ${response.statusText}`;
       throw new Error(errorMessage);
     }
 
@@ -97,11 +103,15 @@ const initializePayment = async (
       throw new Error(result.error.message || "Payment initialization failed");
     }
 
-    if (!result.data?.id) {
+    // Handle the response structure - it might be nested in 'data' property
+    const paymentData = result.data || result;
+    
+    if (!paymentData?.id) {
+      console.error("Invalid payment response:", result);
       throw new Error("Invalid payment response - missing order ID");
     }
 
-    return { success: true, data: result.data };
+    return { success: true, data: paymentData };
   } catch (error: any) {
     console.error("Payment initialization failed:", error);
     return {
@@ -211,6 +221,51 @@ const processRazorpayPayment = async (
 };
 
 /**
+ * Alternative payment flow using create-payment endpoint
+ */
+const createPaymentOrder = async (
+  authToken: string,
+  oninitMsgId: string,
+  offerId?: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    if (!API_BASE_URL) {
+      throw new Error("API base URL not configured");
+    }
+
+    const payload = {
+      oninitMsgId,
+      ...(offerId && { offer_id: offerId }),
+      method: "upi" as const, // Default to UPI
+    };
+
+    const response = await fetch(`${API_BASE_URL}/payment/create-payment`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Create payment failed:", result);
+      throw new Error(result?.error?.message || `HTTP ${response.status}`);
+    }
+
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("Create payment order failed:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to create payment order"
+    };
+  }
+};
+
+/**
  * Complete payment flow - initialize and process payment
  */
 export const processPayment = async (
@@ -232,15 +287,47 @@ export const processPayment = async (
       throw new Error("Complete delivery address is required");
     }
 
-    // Step 1: Initialize payment
-    console.log("Initializing payment...");
-    const initResult = await initializePayment(authToken, payload);
+    console.log("Starting payment process with payload:", {
+      ...payload,
+      address: { ...payload.address, phone: "***hidden***" }
+    });
+
+    // Step 1: Try primary payment initialization
+    console.log("Attempting primary payment initialization...");
+    let initResult = await initializePayment(authToken, payload);
+
+    // Step 2: If primary fails, try alternative create-payment endpoint
+    if (!initResult.success && payload.onselect_msgId) {
+      console.log("Primary init failed, trying alternative endpoint...");
+      const createResult = await createPaymentOrder(
+        authToken, 
+        payload.onselect_msgId, 
+        payload.offerId
+      );
+
+      if (createResult.success && createResult.data) {
+        // Transform the create-payment response to match expected format
+        initResult = {
+          success: true,
+          data: {
+            id: createResult.data.id,
+            amount: createResult.data.amount,
+            currency: createResult.data.currency || "INR",
+            notes: createResult.data.notes || {
+              orderId: createResult.data.receipt || createResult.data.id,
+              storeId: payload.storeId,
+              userId: "user"
+            }
+          }
+        };
+      }
+    }
 
     if (!initResult.success || !initResult.data) {
       throw new Error(initResult.error || "Failed to initialize payment");
     }
 
-    // Step 2: Process with Razorpay
+    // Step 3: Process with Razorpay
     console.log("Processing Razorpay payment...");
     const paymentResult = await processRazorpayPayment(
       initResult.data,
