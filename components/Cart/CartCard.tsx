@@ -151,48 +151,33 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
     return timeInMinutes < 1 ? "< 1 min" : `${timeInMinutes} min`;
   };
 
-  const handleRemoveCart = () => {
-    if (!authToken || !store?._id) {
-      Alert.alert("Login Required", "Please login to remove cart.");
+const handleRemoveCart = async () => {
+  if (!authToken || !store?._id) {
+    return;
+  }
+
+  setIsRemoving(true);
+  try {
+    const success = await removeCart(store._id, authToken);
+    if (!success) {
       return;
     }
 
-    Alert.alert(
-      "Remove Cart",
-      `Are you sure you want to remove the cart from "${store.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            setIsRemoving(true);
-            try {
-              const success = await removeCart(store._id, authToken);
-              if (!success) {
-                Alert.alert("Error", "Failed to remove cart. Please try again.");
-                return;
-              }
-
-              // cleanup local storage of added item slugs
-              const data = await getAsyncStorageItem(STORAGE_KEY);
-              const storedItems: string[] = data ? JSON.parse(data) : [];
-              const updatedItems = storedItems.filter(
-                (slug) => !validItems.some((i) => i.slug === slug)
-              );
-              await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
-              onCartChange?.();
-            } catch (error) {
-              console.error("CartCard: Error deleting cart", error);
-              Alert.alert("Error", "Something went wrong.");
-            } finally {
-              setIsRemoving(false);
-            }
-          },
-        },
-      ]
+    // cleanup local storage of added item slugs
+    const data = await getAsyncStorageItem(STORAGE_KEY);
+    const storedItems: string[] = data ? JSON.parse(data) : [];
+    const updatedItems = storedItems.filter(
+      (slug) => !validItems.some((i) => i.slug === slug)
     );
-  };
+    await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
+    onCartChange?.();
+
+  } catch (error) {
+    console.error("CartCard: Error deleting cart", error);
+  } finally {
+    setIsRemoving(false);
+  }
+};
 
   return (
     <View

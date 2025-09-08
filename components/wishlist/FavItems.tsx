@@ -75,7 +75,16 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
             </View>
 
             {/* Content */}
-            <View style={styles.cardContent}>
+            <TouchableOpacity style={styles.cardContent} 
+             onPress={() =>
+                router.push({
+                  pathname:
+                    "/(tabs)/home/result/productDetails/[productDetails]",
+                  params: { productDetails: item.slug },
+                })
+              }
+              activeOpacity={0.8}
+            >
               {/* Product Image + AddToCart */}
               <View style={styles.imageContainer}>
                 <ImageComp
@@ -117,22 +126,6 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   catalogId={item.catalog_id}
                 />
               </View>
-            </View>
-
-            {/* Footer */}
-            <TouchableOpacity
-              style={styles.cardFooter}
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/(tabs)/home/result/productDetails/[productDetails]",
-                  params: { productDetails: item.slug },
-                })
-              }
-              activeOpacity={0.8}
-            >
-              <Text style={styles.viewDetailsText}>Tap to view details</Text>
-              <FontAwesome name="chevron-right" size={12} color="#A0AEC0" />
             </TouchableOpacity>
           </View>
         );

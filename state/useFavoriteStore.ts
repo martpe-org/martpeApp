@@ -13,9 +13,9 @@ interface FavoriteState {
   error: string | null;
   loadFavoritesFromStorage: () => Promise<void>;
   fetchFavs: (authToken: string) => Promise<void>;
-  addFavorite: (productId: string, authToken: string) => Promise<void>;
+  addFavorite: (productId: string, authToken: string, productData?: Partial<Product>) => Promise<void>;
   removeFavorite: (productId: string, authToken: string) => Promise<void>;
-  addStoreFavorite: (store: Store, authToken: string) => Promise<void>; // Changed to accept full store object
+  addStoreFavorite: (store: Store, authToken: string) => Promise<void>;
   removeStoreFavorite: (storeId: string, authToken: string) => Promise<void>;
 }
 
@@ -66,7 +66,6 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
       const normalizedFavorites = normalizeFavorites(favorites);
       console.log("✨ Normalized favorites:", normalizedFavorites);
 
-      // Save to AsyncStorage and update state
       await saveFavoritesToStorage(normalizedFavorites);
       set({
         allFavorites: normalizedFavorites,
@@ -80,32 +79,68 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
     }
   },
 
-  addFavorite: async (productId, authToken) => {
+  addFavorite: async (productId, authToken, productData) => {
     if (!authToken) return;
-    set({ isUpdating: true, error: null });
-
+    
     const current = get().allFavorites;
-
-    if (!current.products.some((p) => p.id === productId)) {
-      const updatedFavorites = {
-        ...current,
-        products: [...current.products, { id: productId } as Product],
-      };
-      await saveFavoritesToStorage(updatedFavorites);
-      set({ allFavorites: updatedFavorites });
+    
+    // Check if already exists
+    if (current.products.some((p) => p.id === productId || p.slug === productId)) {
+      console.log("Product already in favorites");
+      return;
     }
 
+    set({ isUpdating: true, error: null });
+
+    // Create optimistic product with available data
+    const optimisticProduct: Product = {
+      id: productId,
+      slug: productId,
+      ...productData, // Merge any additional product data passed
+    } as Product;
+
+    // Optimistically update UI
+    const optimisticFavorites = {
+      ...current,
+      products: [...current.products, optimisticProduct],
+    };
+    
+    set({ allFavorites: optimisticFavorites });
+    await saveFavoritesToStorage(optimisticFavorites);
+
     try {
-      await updateFavAction(authToken, { action: "add", entity: "product", slug: productId });
-      await get().fetchFavs(authToken);
+      const result = await updateFavAction(authToken, { 
+        action: "add", 
+        entity: "product", 
+        slug: productId 
+      });
+      
+      if (!result.success) {
+        throw new Error("Failed to add favorite on server");
+      }
+      
+      console.log("✅ Successfully added product to favorites");
+      
+      // Fetch fresh data to get complete product info
+      setTimeout(() => {
+        get().fetchFavs(authToken);
+      }, 1000);
+      
     } catch (error) {
       console.error("Failed to add favorite:", error);
-      const reverted = {
+      
+      // Revert on failure
+      const revertedFavorites = {
         ...current,
-        products: current.products.filter((p) => p.id !== productId),
+        products: current.products.filter((p) => p.id !== productId && p.slug !== productId),
       };
-      await saveFavoritesToStorage(reverted);
-      set({ allFavorites: reverted, error: "Failed to add favorite", isUpdating: false });
+      
+      set({ 
+        allFavorites: revertedFavorites, 
+        error: "Failed to add favorite" 
+      });
+      await saveFavoritesToStorage(revertedFavorites);
+      throw error; // Re-throw to handle in UI
     } finally {
       set({ isUpdating: false });
     }
@@ -113,29 +148,53 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
 
   removeFavorite: async (productId, authToken) => {
     if (!authToken) return;
+    
+    const current = get().allFavorites;
+    const productToRestore = current.products.find((p) => p.id === productId || p.slug === productId);
+    
+    if (!productToRestore) {
+      console.log("Product not in favorites");
+      return;
+    }
+
     set({ isUpdating: true, error: null });
 
-    const current = get().allFavorites;
-    const productToRestore = current.products.find((p) => p.id === productId);
-
-    const updatedFavorites = {
+    // Optimistically update UI
+    const optimisticFavorites = {
       ...current,
-      products: current.products.filter((p) => p.id !== productId),
+      products: current.products.filter((p) => p.id !== productId && p.slug !== productId),
     };
-    await saveFavoritesToStorage(updatedFavorites);
-    set({ allFavorites: updatedFavorites });
+    
+    set({ allFavorites: optimisticFavorites });
+    await saveFavoritesToStorage(optimisticFavorites);
 
     try {
-      await updateFavAction(authToken, { action: "remove", entity: "product", slug: productId });
-      await get().fetchFavs(authToken);
+      const result = await updateFavAction(authToken, { 
+        action: "remove", 
+        entity: "product", 
+        slug: productId 
+      });
+      
+      if (!result.success) {
+        throw new Error("Failed to remove favorite on server");
+      }
+      
+      console.log("✅ Successfully removed product from favorites");
     } catch (error) {
       console.error("Failed to remove favorite:", error);
-      if (productToRestore) {
-        const reverted = { ...current, products: [...current.products, productToRestore] };
-        await saveFavoritesToStorage(reverted);
-        set({ allFavorites: reverted });
-      }
-      set({ error: "Failed to remove favorite", isUpdating: false });
+      
+      // Revert on failure
+      const revertedFavorites = { 
+        ...current, 
+        products: [...current.products, productToRestore] 
+      };
+      
+      set({ 
+        allFavorites: revertedFavorites, 
+        error: "Failed to remove favorite" 
+      });
+      await saveFavoritesToStorage(revertedFavorites);
+      throw error; // Re-throw to handle in UI
     } finally {
       set({ isUpdating: false });
     }
@@ -149,24 +208,72 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
       return;
     }
     
-    set({ isUpdating: true, error: null });
-
     const current = get().allFavorites;
-
-    if (!current.stores.some((s) => s.id === store.id)) {
-      const updated = { ...current, stores: [...current.stores, store] };
-      await saveFavoritesToStorage(updated);
-      set({ allFavorites: updated });
+    
+    // Check if already exists (check both id and slug)
+    if (current.stores.some((s) => s.id === store.id || s.slug === store.slug)) {
+      console.log("Store already in favorites");
+      return;
     }
 
+    set({ isUpdating: true, error: null });
+
+    // Ensure store has proper structure
+    const optimisticStore: Store = {
+      id: store.id || store.slug,
+      slug: store.slug || store.id,
+      descriptor: {
+        name: store.descriptor?.name || store.name || "Unknown Store",
+        short_desc: store.descriptor?.short_desc || store.short_desc || "",
+        description: store.descriptor?.description || store.description || "",
+        ...store.descriptor,
+      },
+      symbol: store.symbol || "",
+      ...store,
+    } as Store;
+
+    // Optimistically update UI
+    const optimisticFavorites = { 
+      ...current, 
+      stores: [...current.stores, optimisticStore] 
+    };
+    
+    set({ allFavorites: optimisticFavorites });
+    await saveFavoritesToStorage(optimisticFavorites);
+
     try {
-      await updateFavAction(authToken, { action: "add", entity: "store", slug: store.id });
-      await get().fetchFavs(authToken);
+      const result = await updateFavAction(authToken, { 
+        action: "add", 
+        entity: "store", 
+        slug: store.id || store.slug 
+      });
+      
+      if (!result.success) {
+        throw new Error("Failed to add store favorite on server");
+      }
+      
+      console.log("✅ Successfully added store to favorites");
+      
+      // Fetch fresh data to ensure we have complete store info
+      setTimeout(() => {
+        get().fetchFavs(authToken);
+      }, 1000);
+      
     } catch (error) {
       console.error("Failed to add store favorite:", error);
-      const reverted = { ...current, stores: current.stores.filter((s) => s.id !== store.id) };
-      await saveFavoritesToStorage(reverted);
-      set({ allFavorites: reverted, error: "Failed to add store favorite", isUpdating: false });
+      
+      // Revert on failure
+      const revertedFavorites = { 
+        ...current, 
+        stores: current.stores.filter((s) => s.id !== store.id && s.slug !== store.slug) 
+      };
+      
+      set({ 
+        allFavorites: revertedFavorites, 
+        error: "Failed to add store favorite" 
+      });
+      await saveFavoritesToStorage(revertedFavorites);
+      throw error; // Re-throw to handle in UI
     } finally {
       set({ isUpdating: false });
     }
@@ -174,26 +281,53 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
 
   removeStoreFavorite: async (storeId, authToken) => {
     if (!authToken) return;
+    
+    const current = get().allFavorites;
+    const storeToRestore = current.stores.find((s) => s.id === storeId || s.slug === storeId);
+    
+    if (!storeToRestore) {
+      console.log("Store not in favorites");
+      return;
+    }
+
     set({ isUpdating: true, error: null });
 
-    const current = get().allFavorites;
-    const storeToRestore = current.stores.find((s) => s.id === storeId);
-
-    const updated = { ...current, stores: current.stores.filter((s) => s.id !== storeId) };
-    await saveFavoritesToStorage(updated);
-    set({ allFavorites: updated });
+    // Optimistically update UI
+    const optimisticFavorites = { 
+      ...current, 
+      stores: current.stores.filter((s) => s.id !== storeId && s.slug !== storeId) 
+    };
+    
+    set({ allFavorites: optimisticFavorites });
+    await saveFavoritesToStorage(optimisticFavorites);
 
     try {
-      await updateFavAction(authToken, { action: "remove", entity: "store", slug: storeId });
-      await get().fetchFavs(authToken);
+      const result = await updateFavAction(authToken, { 
+        action: "remove", 
+        entity: "store", 
+        slug: storeId 
+      });
+      
+      if (!result.success) {
+        throw new Error("Failed to remove store favorite on server");
+      }
+      
+      console.log("✅ Successfully removed store from favorites");
     } catch (error) {
       console.error("Failed to remove store favorite:", error);
-      if (storeToRestore) {
-        const reverted = { ...current, stores: [...current.stores, storeToRestore] };
-        await saveFavoritesToStorage(reverted);
-        set({ allFavorites: reverted });
-      }
-      set({ error: "Failed to remove store favorite", isUpdating: false });
+      
+      // Revert on failure
+      const revertedFavorites = { 
+        ...current, 
+        stores: [...current.stores, storeToRestore] 
+      };
+      
+      set({ 
+        allFavorites: revertedFavorites, 
+        error: "Failed to remove store favorite" 
+      });
+      await saveFavoritesToStorage(revertedFavorites);
+      throw error; // Re-throw to handle in UI
     } finally {
       set({ isUpdating: false });
     }

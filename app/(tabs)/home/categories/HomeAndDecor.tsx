@@ -278,7 +278,7 @@ function Interior() {
             contentContainerStyle={{ paddingHorizontal: 10 }}
             keyExtractor={(item, index) => `store-${item.id}-${index}`}
             renderItem={({ item }) => (
-              <View style={{ width: 300, height: 350, marginBottom: -30 }}>
+              <View style={{ width: 300, height: 320, marginRight: 6 , marginLeft:-10, marginBottom:-20}}>
                 <StoreCard3
                   storeData={item}
                   categoryFiltered={[]}

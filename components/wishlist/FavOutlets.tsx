@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -12,6 +12,7 @@ import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
 import Loader from "../common/Loader";
+import { useToast } from "react-native-toast-notifications";
 
 const { width: screenWidth } = Dimensions.get("screen");
 
@@ -21,8 +22,28 @@ interface FavOutletsProps {
 }
 
 const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
-  const { isLoading } = useFavoriteStore();
+  const { isLoading, isUpdating, removeStoreFavorite } = useFavoriteStore();
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null);
   const router = useRouter();
+  const toast = useToast();
+
+ const handleDeleteStore = async (store: any) => {
+  const storeId = store.id || store.slug;
+
+  if (!authToken) {
+    toast.show("Authentication required", { type: "danger" });
+    return;
+  }
+
+  setDeletingStoreId(storeId);
+  try {
+    await removeStoreFavorite(storeId, authToken);
+  } catch (error) {
+  } finally {
+    setDeletingStoreId(null);
+  }
+};
+
 
   if (isLoading) {
     return (
@@ -51,6 +72,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
       showsVerticalScrollIndicator={false}
     >
       {[...itemsData].reverse().map((store: any, index: number) => {
+        const storeId = store.id || store.slug;
         const storeName =
           store?.descriptor?.name || store?.name || "Unnamed Store";
         const storeDescription =
@@ -60,34 +82,42 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
           store?.descriptor?.description ||
           null;
         const imageUrl = store?.symbol;
+        const isDeleting = deletingStoreId === storeId;
 
         return (
           <View
             key={store.id || store.slug || `store-${index}`}
-            style={styles.storeCard}
+            style={[styles.storeCard, isDeleting && styles.deletingCard]}
           >
             {/* Header */}
             <View style={styles.cardHeader}>
               <View style={styles.favoriteIndicator}>
                 <FontAwesome name="heart" size={16} color="#E53E3E" />
-                <Text
-                  style={{
-                    marginLeft: 6,
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: "#E53E3E",
-                  }}
-                >
+                <Text style={styles.favoriteText}>
                   Favorite
                 </Text>
               </View>
+              {/* Delete Button */}
+              <TouchableOpacity
+                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+                onPress={() => handleDeleteStore(store)}
+                disabled={isDeleting || isUpdating}
+              >
+                {isDeleting ? (
+                  <MaterialIcons name="hourglass-empty" size={20} color="#A0AEC0" />
+                ) : (
+                  <MaterialIcons name="delete-outline" size={20} color="#E53E3E" />
+                )}
+              </TouchableOpacity>
             </View>
 
             {/* Content */}
-            <TouchableOpacity style={styles.cardContent}
-             onPress={() =>
-                router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+            <TouchableOpacity 
+              style={[styles.cardContent, isDeleting && styles.disabledContent]}
+              onPress={() =>
+                !isDeleting && router.push(`/(tabs)/home/result/productListing/${store.slug}`)
               }
+              disabled={isDeleting}
             >
               <View style={styles.imageContainer}>
                 <ImageComp
@@ -95,6 +125,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
                   imageStyle={styles.storeImage}
                   resizeMode="contain"
                 />
+                {isDeleting && <View style={styles.imageOverlay} />}
               </View>
               <View style={styles.storeInfo}>
                 <Text style={styles.storeName} numberOfLines={2}>
@@ -166,6 +197,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
+  deletingCard: {
+    opacity: 0.6,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -182,19 +216,48 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  favoriteText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#E53E3E",
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#FED7D7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteButtonDisabled: {
+    backgroundColor: "#F7FAFC",
+  },
   cardContent: {
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  disabledContent: {
+    opacity: 0.7,
+  },
   imageContainer: {
     marginRight: 12,
+    position: "relative",
   },
   storeImage: {
     width: screenWidth * 0.25,
     height: screenWidth * 0.25,
     borderRadius: 12,
     backgroundColor: "#F7FAFC",
+  },
+  imageOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 12,
   },
   storeInfo: {
     flex: 1,

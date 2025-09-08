@@ -19,7 +19,7 @@ import ProductHeader from "../../../../../components/ProductDetails/ProductHeade
 import ProductPricing from "../../../../../components/ProductDetails/ProductPricing";
 import SellerDetails from "../../../../../components/ProductDetails/Seller";
 import Services from "../../../../../components/ProductDetails/Services";
-import VariantGroup from "../../../../../components/ProductDetails/VariantGroup";
+import VariantGroup from "../../../../../components/variants/VariantGroup";
 import Loader from "../../../../../components/common/Loader";
 import Search from "../../../../../components/common/Search";
 import { fetchProductDetails } from "../../../../../components/product/fetch-product";
