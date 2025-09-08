@@ -5,6 +5,7 @@ import { removeCartItems as removeCartItemsApi } from "./removeCartItems";
 import { updateQty } from "./updateQty";
 import { addToCartAction } from "./addToCart";
 import { fetchCarts } from "@/app/(tabs)/cart/fetch-carts";
+
 interface CartItem {
   _id: string;
   qty: number;
@@ -21,6 +22,12 @@ interface CartItem {
   };
 }
 
+interface AppliedOffer {
+  offerId: string;
+  discount: number;
+  total: number;
+}
+
 interface Cart {
   store: { _id: string };
   cart_items: CartItem[];
@@ -28,9 +35,10 @@ interface Cart {
 
 interface CartState {
   allCarts: Cart[];
+  appliedOffers: Record<string, AppliedOffer>;
   setAllCarts: (carts: Cart[]) => void;
   loadCartFromStorage: () => Promise<void>;
-    syncCartFromApi: (authToken: string | null) => Promise<void>;
+  syncCartFromApi: (authToken: string | null) => Promise<void>;
   addItem: (
     storeId: string,
     slug: string,
@@ -47,11 +55,14 @@ interface CartState {
   ) => Promise<boolean>;
   removeCartItems: (itemIds: string[], authToken: string | null) => Promise<boolean>;
   removeCart: (storeId: string, authToken: string | null) => Promise<boolean>;
+
+  /** 🆕 Offer actions */
+  updateCartOffer: (cartId: string, offerId: string, discount: number, total: number) => void;
+  clearCartOffer: (cartId: string) => void;
 }
 
 const CART_STORAGE_KEY = "user_cart";
 
-// Helpers
 const sanitizeCartItems = (items: (CartItem | undefined | null)[]): CartItem[] =>
   items.filter((item): item is CartItem => !!item && !!item._id);
 
@@ -84,6 +95,7 @@ const loadCartFromStorage = async (): Promise<Cart[]> => {
 
 export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
+  appliedOffers: {},
 
   setAllCarts: (carts) => {
     const sanitized = sanitizeCarts(carts || []);
@@ -96,7 +108,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ allCarts: carts });
   },
 
-  // 👇 NEW
   syncCartFromApi: async (authToken) => {
     if (!authToken) return;
     try {
@@ -110,73 +121,57 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-addItem: async (
-  storeId,
-  slug,
-  catalogId,
-  quantity,
-  customizable,
-  customizations,
-  authToken
-) => {
-  if (!authToken) return false;
+  addItem: async (storeId, slug, catalogId, quantity, customizable, customizations, authToken) => {
+    if (!authToken) return false;
 
-  const input = {
-    store_id: storeId,
-    slug,
-    catalog_id: catalogId,
-    qty: quantity,
-    customizable,
-    customizations,
-  };
+    const input = {
+      store_id: storeId,
+      slug,
+      catalog_id: catalogId,
+      qty: quantity,
+      customizable,
+      customizations,
+    };
 
-  try {
-    const { success, data } = await addToCartAction(input, authToken);
+    try {
+      const { success, data } = await addToCartAction(input, authToken);
 
-    if (success && data) {
-      set((state) => {
-        const updatedCarts = [...state.allCarts];
-        const cartIndex = updatedCarts.findIndex((c) => c.store._id === storeId);
+      if (success && data) {
+        set((state) => {
+          const updatedCarts = [...state.allCarts];
+          const cartIndex = updatedCarts.findIndex((c) => c.store._id === storeId);
 
-        // ✅ Build a proper cart item from API response
-        const newItem: CartItem = {
-          _id: data._id,
-          qty: data.qty,
-          slug: data.product_slug,
-          unit_price: data.unit_price,
-          unit_max_price: data.unit_max_price,
-          total_price: data.total_price,
-          total_max_price: data.total_max_price,
-          product: {
-            name: data.product_slug, // or fetch product details separately
-            quantity: data.qty,
-            instock: true, // adjust if backend provides
-          },
-        };
-
-        if (cartIndex >= 0) {
-          updatedCarts[cartIndex] = {
-            ...updatedCarts[cartIndex],
-            cart_items: [...updatedCarts[cartIndex].cart_items, newItem],
+          const newItem: CartItem = {
+            _id: data._id,
+            qty: data.qty,
+            slug: data.product_slug,
+            unit_price: data.unit_price,
+            unit_max_price: data.unit_max_price,
+            total_price: data.total_price,
+            total_max_price: data.total_max_price,
+            product: { name: data.product_slug, quantity: data.qty, instock: true },
           };
-        } else {
-          updatedCarts.push({
-            store: { _id: storeId },
-            cart_items: [newItem],
-          });
-        }
 
-        saveCartToStorage(updatedCarts);
-        return { allCarts: sanitizeCarts(updatedCarts) };
-      });
+          if (cartIndex >= 0) {
+            updatedCarts[cartIndex] = {
+              ...updatedCarts[cartIndex],
+              cart_items: [...updatedCarts[cartIndex].cart_items, newItem],
+            };
+          } else {
+            updatedCarts.push({ store: { _id: storeId }, cart_items: [newItem] });
+          }
+
+          saveCartToStorage(updatedCarts);
+          return { allCarts: sanitizeCarts(updatedCarts) };
+        });
+      }
+
+      return success;
+    } catch (error) {
+      console.error("addItem error:", error);
+      return false;
     }
-
-    return success;
-  } catch (error) {
-    console.error("addItem error:", error);
-    return false;
-  }
-},
+  },
 
   updateQty: async (cartItemId, qty, authToken) => {
     if (!authToken || !cartItemId) return false;
@@ -192,12 +187,7 @@ addItem: async (
           cart_items: sanitizeCartItems(
             cart.cart_items.map((item) =>
               item._id === cartItemId
-                ? {
-                    ...item,
-                    qty,
-                    total_price: item.unit_price * qty,
-                    total_max_price: item.unit_max_price * qty,
-                  }
+                ? { ...item, qty, total_price: item.unit_price * qty, total_max_price: item.unit_max_price * qty }
                 : item
             )
           ),
@@ -221,9 +211,7 @@ addItem: async (
       set((state) => {
         const updatedCarts = state.allCarts.map((cart) => ({
           ...cart,
-          cart_items: sanitizeCartItems(
-            cart.cart_items.filter((item) => !itemIds.includes(item._id))
-          ),
+          cart_items: sanitizeCartItems(cart.cart_items.filter((item) => !itemIds.includes(item._id))),
         }));
         saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
@@ -245,9 +233,7 @@ addItem: async (
 
     try {
       set((state) => {
-        const updatedCarts = state.allCarts.filter(
-          (cart) => cart.store._id !== storeId
-        );
+        const updatedCarts = state.allCarts.filter((cart) => cart.store._id !== storeId);
         saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
       });
@@ -261,4 +247,16 @@ addItem: async (
       return false;
     }
   },
+
+  /** 🆕 Offer actions */
+  updateCartOffer: (cartId, offerId, discount, total) =>
+    set((state) => ({
+      appliedOffers: { ...state.appliedOffers, [cartId]: { offerId, discount, total } },
+    })),
+  clearCartOffer: (cartId) =>
+    set((state) => {
+      const next = { ...state.appliedOffers };
+      delete next[cartId];
+      return { appliedOffers: next };
+    }),
 }));

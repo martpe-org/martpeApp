@@ -11,8 +11,7 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
-import { ActivityIndicator } from "react-native-paper";
-import LikeButton from "../common/likeButton";
+import Loader from "../common/Loader";
 
 const { width: screenWidth } = Dimensions.get("screen");
 
@@ -28,7 +27,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E53E3E" />
+        <Loader />
         <Text style={styles.loadingText}>Loading favorites...</Text>
       </View>
     );
@@ -82,17 +81,14 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
                   Favorite
                 </Text>
               </View>
-
-              {/* 🔄 LikeButton syncs removal */}
-              <LikeButton
-                vendorId={store.id}
-                storeData={store}
-                color="#E11D48"
-              />
             </View>
 
             {/* Content */}
-            <View style={styles.cardContent}>
+            <TouchableOpacity style={styles.cardContent}
+             onPress={() =>
+                router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+              }
+            >
               <View style={styles.imageContainer}>
                 <ImageComp
                   source={imageUrl}
@@ -118,17 +114,6 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
                   <Text style={styles.badgeText}>Favorite Store</Text>
                 </View>
               </View>
-            </View>
-
-            {/* Footer */}
-            <TouchableOpacity
-              style={styles.cardFooter}
-              onPress={() =>
-                router.push(`/(tabs)/home/result/productListing/${store.slug}`)
-              }
-            >
-              <Text style={styles.viewStoreText}>Tap to view store</Text>
-              <FontAwesome name="chevron-right" size={12} color="#A0AEC0" />
             </TouchableOpacity>
           </View>
         );
@@ -251,23 +236,6 @@ const styles = StyleSheet.create({
     color: "#4A5568",
     fontWeight: "500",
     marginLeft: 4,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    backgroundColor: "#FAFAFA",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  viewStoreText: {
-    fontSize: 13,
-    color: "#718096",
-    fontWeight: "500",
   },
 });
 

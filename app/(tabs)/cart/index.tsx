@@ -20,6 +20,7 @@ import CartCard from "../../../components/Cart/CartCard";
 
 // ✅ Import TanStack Query
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 function calculateTotals(cartData: FetchCartType[]) {
   const totalCarts = cartData.length;
@@ -118,7 +119,7 @@ const {
   const { totalCarts, totalItems } = calculateTotals(carts);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.title}>
         <BackArrow onPress={() => router.back()} />
@@ -131,7 +132,6 @@ const {
             router.push({ pathname: "/(tabs)/account/wishlist" })
           }
         >
-          <MaterialCommunityIcons name="heart" size={24} color="#f14343" />
           <Text style={styles.wishlistText}>Wishlist</Text>
         </TouchableOpacity>
       </View>
@@ -166,7 +166,7 @@ const {
           />
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -179,11 +179,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 20,
   },
   titleText: { fontSize: 20, fontWeight: "700", marginLeft: 10, flex: 1 },
   wishlistButton: { flexDirection: "column", alignItems: "center" },
-  wishlistText: { color: "#f14343", fontSize: 12, fontWeight: "500" },
+  wishlistText: { color: "#f14343", fontSize: 14, fontWeight: "bold" },
   header: {
     flexDirection: "row",
     alignItems: "baseline",

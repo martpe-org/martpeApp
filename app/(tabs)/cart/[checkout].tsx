@@ -171,14 +171,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1a1a1a",
     marginBottom: 4,
+    marginLeft: 8,
   },
   subtitle: {
     fontSize: 16,
     color: "#666",
+    marginLeft: 8,
   },
   backButton: {
     padding: 4,
     marginTop: -19,
+    marginLeft: -14,
   },
 
   loadingText: {

@@ -22,10 +22,10 @@ interface BillSummaryProps {
 }
 
 const formatPrice = (price: number): string => {
-  if (typeof price !== 'number' || isNaN(price)) {
-    return '₹0';
+  if (typeof price !== "number" || isNaN(price)) {
+    return "₹0";
   }
-  return `₹${price.toFixed(2).replace(/\.?0+$/, '')}`;
+  return `₹${price.toFixed(2).replace(/\.?0+$/, "")}`;
 };
 
 export const BillSummary: React.FC<BillSummaryProps> = ({
@@ -36,20 +36,27 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
   onBreakupPress,
 }) => {
   // Validate props and provide defaults
-  const validSubTotal = typeof subTotal === 'number' && !isNaN(subTotal) ? subTotal : 0;
+  const validSubTotal =
+    typeof subTotal === "number" && !isNaN(subTotal) ? subTotal : 0;
   const validBreakups = Array.isArray(breakups) ? breakups : [];
-  const validTotalSavings = typeof totalSavings === 'number' && !isNaN(totalSavings) ? totalSavings : 0;
-  const validGrandTotal = typeof grandTotal === 'number' && !isNaN(grandTotal) ? grandTotal : 0;
+  const validTotalSavings =
+    typeof totalSavings === "number" && !isNaN(totalSavings) ? totalSavings : 0;
+  const validGrandTotal =
+    typeof grandTotal === "number" && !isNaN(grandTotal) ? grandTotal : 0;
 
   const renderBreakupItem = (breakup: BillBreakup, index: number) => {
     const hasChildren = breakup.children && breakup.children.length > 0;
     const title = breakup.custom_title || breakup.title || `Item ${index + 1}`;
-    
+
     return (
       <TouchableOpacity
         key={`breakup-${index}`}
         style={[styles.row, hasChildren && styles.touchableRow]}
-        onPress={hasChildren && onBreakupPress ? () => onBreakupPress(breakup) : undefined}
+        onPress={
+          hasChildren && onBreakupPress
+            ? () => onBreakupPress(breakup)
+            : undefined
+        }
         disabled={!hasChildren || !onBreakupPress}
         activeOpacity={hasChildren ? 0.7 : 1}
       >
@@ -58,7 +65,12 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
             {title}
           </Text>
           {hasChildren && (
-            <MaterialIcons name="info-outline" size={16} color="#666" style={styles.infoIcon} />
+            <MaterialIcons
+              name="info-outline"
+              size={16}
+              color="#666"
+              style={styles.infoIcon}
+            />
           )}
         </View>
         <Text style={styles.text}>{formatPrice(breakup.price)}</Text>
@@ -69,33 +81,37 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bill Summary</Text>
-      
+
       <View style={styles.priceContainer}>
         {/* Items Total */}
         <View style={styles.row}>
           <Text style={styles.text}>Items Total</Text>
           <Text style={styles.text}>{formatPrice(validSubTotal)}</Text>
         </View>
-        
+
         {/* Breakups */}
-        {validBreakups.map((breakup, index) => renderBreakupItem(breakup, index))}
-        
+        {validBreakups.map((breakup, index) =>
+          renderBreakupItem(breakup, index)
+        )}
+
         {/* Total Savings */}
         {validTotalSavings > 0 && (
           <View style={styles.row}>
             <View style={styles.savingsContainer}>
-              <MaterialIcons name="local-offer" size={16} color="#27ae60" />
-              <Text style={[styles.text, styles.savingsText]}>Total Savings</Text>
+              <MaterialIcons name="local-offer" size={16} color="#d3273e" />
+              <Text style={[styles.text, styles.savingsText]}>
+                Total Savings
+              </Text>
             </View>
             <Text style={[styles.text, styles.savingsText]}>
-              -{formatPrice(validTotalSavings)}
+              - {formatPrice(validTotalSavings)}
             </Text>
           </View>
         )}
-        
+
         {/* Divider */}
         <View style={styles.divider} />
-        
+
         {/* Grand Total */}
         <View style={[styles.row, styles.totalRow]}>
           <Text style={[styles.text, styles.bold]}>Grand Total</Text>
@@ -103,7 +119,7 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
             {formatPrice(validGrandTotal)}
           </Text>
         </View>
-        
+
         {/* Savings Message */}
         {validTotalSavings > 0 && (
           <View style={styles.savingsMessage}>
@@ -180,10 +196,10 @@ const styles = StyleSheet.create({
   },
   totalPrice: {
     fontSize: 18,
-    color: "#00BC66",
+    color: "#000",
   },
   savingsText: {
-    color: "#27ae60",
+    color: "red",
     fontWeight: "500",
   },
   savingsContainer: {

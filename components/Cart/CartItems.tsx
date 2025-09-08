@@ -19,10 +19,16 @@ interface CartItemsProps {
   storeSlug: string;
   storeId: string;
   items: CartItemType[];
-  onCartChange?: () => void;   // ✅ Add this
+  onCartChange?: () => void; // ✅ Add this
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items, onCartChange }) => {
+const CartItems: React.FC<CartItemsProps> = ({
+  cartId,
+  storeId,
+  storeSlug,
+  items,
+  onCartChange,
+}) => {
   const { isLoading: userLoading } = useUserDetails();
   const toast = useToast();
 
@@ -47,21 +53,21 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items
     const totalPrice = unitPrice * (item.qty || 1);
 
     return (
-      <TouchableOpacity
-        style={styles.item}
-        key={item._id}
-        onPress={() => {
-          if (item.product?.slug) {
-            router.push(
-              `/(tabs)/home/result/productDetails/${item.product.slug}`
-            );
-          } else {
-            toast.show("Product details not available", { type: "warning" });
-          }
-        }}
-      >
+      <View style={styles.item}>
         {/* Product Image */}
-        <View style={styles.imageContainer}>
+        <TouchableOpacity
+          style={styles.imageContainer}
+          key={item._id}
+          onPress={() => {
+            if (item.product?.slug) {
+              router.push(
+                `/(tabs)/home/result/productDetails/${item.product.slug}`
+              );
+            } else {
+              toast.show("Product details not available", { type: "warning" });
+            }
+          }}
+        >
           {productImage ? (
             <Image
               source={{ uri: productImage }}
@@ -78,7 +84,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items
               <Text style={styles.placeholderText}>IMG</Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* Product Info */}
         <View style={styles.productInfo}>
@@ -86,9 +92,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items
             {productName}
           </Text>
           <Text style={styles.price}>Unit: {formatCurrency(unitPrice)}</Text>
-          <Text style={styles.total}>
-            Total: {formatCurrency(totalPrice)}
-          </Text>
+          <Text style={styles.total}>Total: {formatCurrency(totalPrice)}</Text>
           <Text style={styles.quantity}>Qty: {item.qty || 1}</Text>
         </View>
 
@@ -123,10 +127,9 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items
             }}
           />
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
-
 
   // Calculate totals from local state
   const { totalCost, totalItems } = useMemo(() => {
@@ -162,7 +165,7 @@ const CartItems: React.FC<CartItemsProps> = ({ cartId, storeId, storeSlug, items
     );
   }
 
-return (
+  return (
     <View style={styles.container}>
       {/* Header */}
       <Text style={styles.header}>
@@ -179,27 +182,19 @@ return (
         contentContainerStyle={styles.listContainer}
       />
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.subtotal}>
-          Subtotal: {formatCurrency(totalCost)}
-        </Text>
-<TouchableOpacity
-  style={styles.checkout}
-  onPress={() => {
-    console.log("Checkout pressed for cart:", cartId);
-    router.push({
-      pathname: "/(tabs)/cart/[checkout]",
-      params: { checkout: cartId, storeId },   // ✅ both params available
-    });
-  }}
-  activeOpacity={0.8}
->
-  <Text style={styles.checkoutText}>Checkout</Text>
-</TouchableOpacity>
-
-
-      </View>
+      <TouchableOpacity
+        style={styles.checkout}
+        onPress={() => {
+          console.log("Checkout pressed for cart:", cartId);
+          router.push({
+            pathname: "/(tabs)/cart/[checkout]",
+            params: { checkout: cartId, storeId }, // ✅ both params available
+          });
+        }}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.checkoutText}>Checkout</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -329,6 +324,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    marginTop: 16,
   },
   checkoutText: {
     color: "#fff",

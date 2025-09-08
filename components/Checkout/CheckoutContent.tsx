@@ -1,29 +1,11 @@
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  Alert,
-} from "react-native";
-import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { SelectData, useCheckoutStore } from "@/state/useCheckoutStore";
-import {
-  CartItemType,
-  FetchCartStore,
-  FetchCartType,
-} from "@/app/(tabs)/cart/fetch-carts-type";
-import useUserDetails from "@/hook/useUserDetails";
+import { Alert, ScrollView, StyleSheet } from "react-native";
+import { useCheckoutStore } from "@/state/useCheckoutStore";
 import { useCartStore } from "@/state/useCartStore";
-import { prettifyTemporalDuration } from "@/utility/CheckoutUtils";
+import useUserDetails from "@/hook/useUserDetails";
 import { getAsyncStorageItem } from "@/utility/asyncStorage";
-import Loader from "../common/Loader";
-import { BillSummary } from "./BillSummary";
-import { CancellationPolicy } from "./CancellationPolicy";
-// 🆕 Import offer components
+import { CheckoutSections } from "./CheckoutSections";
+import { CheckoutActions } from "./CheckoutAction";
 import {
   processPayment,
   showPaymentSuccessAlert,
@@ -32,7 +14,8 @@ import {
   validatePaymentPayload,
   InitCartPayload,
 } from "./paymentUtils";
-import CartOfferBtn from "../Cart/CartOfferBtn";
+import { SelectData } from "./select/select-cart-type";
+import { CartItemType, FetchCartStore, FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
 
 interface CheckoutContentProps {
   data: SelectData;
@@ -53,20 +36,54 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
 }) => {
   const { userDetails } = useUserDetails();
   const { removeCart } = useCartStore();
-  const { 
-    selectedFulfillment, 
-    setSelectedFulfillment,
-    appliedOfferId: storeAppliedOfferId,
-    setAppliedOfferId 
-  } = useCheckoutStore();
+  const { selectedFulfillment, setSelectedFulfillment } = useCheckoutStore();
   
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  // 🆕 Local state for offers
-  const [offersOpen, setOffersOpen] = useState(false);
+  
+  // ✅ Local state for items with quantities
+  const [localItems, setLocalItems] = useState(data.items);
+  const [localSubTotal, setLocalSubTotal] = useState(data.sub_total);
 
-  // 🆕 Use the applied offer ID from either props or store
-  const currentAppliedOfferId = appliedOfferId || storeAppliedOfferId;
+  // Keep local state in sync when parent items change
+  useEffect(() => {
+    if (data.items?.length) {
+      setLocalItems(data.items);
+      // Recalculate sub_total
+      const newSubTotal = data.items.reduce((sum, item) => sum + (item.total_price || 0), 0);
+      setLocalSubTotal(newSubTotal);
+    }
+  }, [data.items]);
+
+  // ✅ Quantity change handler
+  const handleQuantityChange = useCallback((itemId: string, newQty: number) => {
+    if (newQty < 1) return; // Prevent negative quantities
+    
+    setLocalItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.id === itemId) {
+          const newTotalPrice = (item.unit_price || 0) * newQty;
+          return { 
+            ...item, 
+            cart_qty: newQty, 
+            total_price: newTotalPrice 
+          };
+        }
+        return item;
+      });
+    });
+
+    // Recalculate sub_total
+    setLocalSubTotal(prevSubTotal => {
+      const updatedItems = localItems.map(item => {
+        if (item.id === itemId) {
+          return { ...item, cart_qty: newQty, total_price: (item.unit_price || 0) * newQty };
+        }
+        return item;
+      });
+      return updatedItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+    });
+  }, [localItems]);
 
   // Validate and set default fulfillment option
   useEffect(() => {
@@ -75,50 +92,30 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     }
   }, [data.fulfillments, selectedFulfillment, setSelectedFulfillment]);
 
-  const { items, fulfillments, breakups, sub_total } = data;
+  const { fulfillments, breakups } = data;
   const selectedBreakup = breakups[selectedFulfillment] || Object.values(breakups)[0] || { 
     breakups: [], 
     total_savings: 0, 
-    total: sub_total 
+    total: localSubTotal 
   };
+  
+  // ✅ Recalculate total based on updated sub_total
+  const updatedSelectedBreakup = {
+    ...selectedBreakup,
+    total: selectedBreakup.total - data.sub_total + localSubTotal // Adjust total by difference
+  };
+  
   const selectedFulfillmentId = selectedFulfillment || fulfillments[0]?.id || "";
-
-  const hasOutOfStockItems = items.some((item) => !item.instock);
-
-  // 🆕 Handle offer application
-  const handleOfferApply = useCallback((offerId: string) => {
-    setAppliedOfferId(offerId);
-    // You might want to trigger a re-calculation of the checkout data here
-    // This would involve calling the select-cart API again with the new offer
-    Alert.alert(
-      "Offer Applied",
-      `Offer "${offerId}" has been applied. The discount will be reflected in your final bill.`,
-      [{ text: "OK", style: "default" }]
-    );
-  }, [setAppliedOfferId]);
-
-  const handleBreakupPress = useCallback((breakup: any) => {
-    if (breakup.children && breakup.children.length > 0) {
-      const details = breakup.children
-        .map((child: any) => `${child.custom_title || child.title}: ₹${child.price}`)
-        .join('\n');
-      
-      Alert.alert(
-        breakup.custom_title || breakup.title,
-        details,
-        [{ text: "OK", style: "default" }]
-      );
-    }
-  }, []);
+  const hasOutOfStockItems = localItems.some((item) => !item.instock);
 
   const validateFormData = useCallback((): { valid: boolean; error?: string } => {
     if (!userDetails?.accessToken) return { valid: false, error: "Please login to continue" };
     if (!selectedFulfillmentId) return { valid: false, error: "Please select a delivery option" };
     if (hasOutOfStockItems) return { valid: false, error: "Some items are out of stock. Please remove them to continue." };
     if (!data.address?.name || !data.address?.phone) return { valid: false, error: "Please add a complete delivery address" };
-    if (selectedBreakup.total <= 0) return { valid: false, error: "Invalid order total" };
+    if (updatedSelectedBreakup.total <= 0) return { valid: false, error: "Invalid order total" };
     return { valid: true };
-  }, [userDetails, selectedFulfillmentId, hasOutOfStockItems, data.address, selectedBreakup.total]);
+  }, [userDetails, selectedFulfillmentId, hasOutOfStockItems, data.address, updatedSelectedBreakup.total]);
 
   const handlePayment = useCallback(async () => {
     const validation = validateFormData();
@@ -141,12 +138,10 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
         storeId: cart.store._id,
         addressId: data.addressId,
         selected_fulfillmentId: selectedFulfillmentId,
-        // 🆕 Include the applied offer ID
-        ...(currentAppliedOfferId && { offerId: currentAppliedOfferId }),
+        ...(appliedOfferId && { offerId: appliedOfferId }),
         ...(referralId && { referrer_id: referralId }),
       };
 
-      // Validate payload
       const payloadValidation = validatePaymentPayload(payload);
       if (!payloadValidation.valid) throw new Error(payloadValidation.errors.join(", "));
 
@@ -187,224 +182,26 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     data,
     cart.store,
     selectedFulfillmentId,
-    currentAppliedOfferId, // 🆕 Include in dependencies
+    appliedOfferId,
     userDetails,
     removeCart,
     setOpen,
     retryCount
   ]);
 
-  const renderStoreSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Store Details</Text>
-      <TouchableOpacity
-        style={styles.storeCard}
-        onPress={() => {
-          const slug = store?.slug || cart?.store?.slug;
-          if (slug) {
-            router.push(`/(tabs)/home/result/productListing/${slug}`);
-          }
-        }}
-        activeOpacity={0.7}
-      >
-        <Image
-          source={{ uri: cart.store.symbol }}
-          style={styles.storeImage}
-          resizeMode="cover"
-        />
-        <View style={styles.storeInfo}>
-          <Text style={styles.storeName}>{cart.store.name}</Text>
-          <Text style={styles.storeAddress} numberOfLines={2}>
-            {cart.store.address.street}, {cart.store.address.locality}, {cart.store.address.city}, {cart.store.address.state} - {cart.store.address.area_code}
-          </Text>
-        </View>
-        <MaterialIcons name="arrow-forward-ios" size={16} color="#ccc" />
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderAddressSection = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Delivery Address</Text>
-        <TouchableOpacity
-          style={styles.editBtn}
-          onPress={() => router.push("/address/savedAddresses")}
-        >
-          <MaterialCommunityIcons name="pencil" size={16} color="#666" />
-          <Text style={styles.editText}>Edit</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.addressCard}>
-        <Text style={styles.addressName}>{data.address.name}</Text>
-        <Text style={styles.addressText}>
-          {data.address.houseNo}, {data.address.street}, {data.address.city},{" "}
-          {data.address.state} - {data.address.pincode}
-        </Text>
-        <Text style={styles.addressPhone}>📞 {data.address.phone}</Text>
-      </View>
-    </View>
-  );
-
-  // 🆕 Render Offers Section
-  const renderOffersSection = () => (
-    cart.store.offers && cart.store.offers.length > 0 && (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Available Offers</Text>
-        <CartOfferBtn
-          appliedOfferId={currentAppliedOfferId}
-          applyOffer={handleOfferApply}
-          cart={cart}
-          offersOpen={offersOpen}
-          setOffersOpen={setOffersOpen}
-        />
-        {currentAppliedOfferId && (
-          <View style={styles.offerAppliedInfo}>
-            <MaterialIcons name="check-circle" size={16} color="#00BC66" />
-            <Text style={styles.offerAppliedText}>
-              Offer "{currentAppliedOfferId}" applied successfully
-            </Text>
-          </View>
-        )}
-      </View>
-    )
-  );
-
-  const renderItemsSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Order Items ({items.length})</Text>
-      <View style={styles.itemsContainer}>
-        {items.map((item, index) => (
-          <TouchableOpacity
-            key={`${item.id}-${index}`}
-            style={styles.itemCard}
-            onPress={() =>
-              router.push(
-                `/(tabs)/home/result/productDetails/${item.product.slug}`
-              )
-            }
-            activeOpacity={0.7}
-          >
-            <Image
-              source={{ uri: item.product.symbol }}
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
-            <View style={styles.itemDetails}>
-              <Text style={styles.itemName} numberOfLines={2}>
-                {item.product.name}
-              </Text>
-              <Text
-                style={[styles.itemQty, !item.instock && styles.outOfStock]}
-              >
-                Qty: {item.instock ? item.cart_qty : "unavailable"}
-              </Text>
-              {item.product.variant_info && (
-                <Text style={styles.variantText}>{item.product.variant_info}</Text>
-              )}
-              {item.selected_customizations && item.selected_customizations.length > 0 && (
-                <Text style={styles.customizationsText}>
-                  Customizations: {item.selected_customizations.map(c => c.name).join(", ")}
-                </Text>
-              )}
-            </View>
-            <View style={styles.itemPriceContainer}>
-              <Text style={styles.itemPrice}>₹{item.total_price}</Text>
-              {!item.instock && (
-                <MaterialIcons name="error" size={20} color="#e74c3c" />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderFulfillmentSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Delivery Options</Text>
-      <View style={styles.fulfillmentContainer}>
-        {fulfillments.map((fulfillment: any) => (
-          <TouchableOpacity
-            key={fulfillment.id}
-            style={[
-              styles.fulfillmentOption,
-              selectedFulfillmentId === fulfillment.id &&
-                styles.selectedFulfillment,
-            ]}
-            onPress={() => setSelectedFulfillment(fulfillment.id)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.radio,
-                selectedFulfillmentId === fulfillment.id &&
-                  styles.radioSelected,
-              ]}
-            >
-              {selectedFulfillmentId === fulfillment.id && (
-                <View style={styles.radioInner} />
-              )}
-            </View>
-            <View style={styles.fulfillmentDetails}>
-              <Text style={styles.fulfillmentText}>
-                {fulfillment.category}
-              </Text>
-              <Text style={styles.fulfillmentTime}>
-                Est. Delivery: {prettifyTemporalDuration(fulfillment.tat || "P0D")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderOutOfStockSection = () => (
-    hasOutOfStockItems && (
-      <View style={styles.outOfStockSection}>
-        <MaterialIcons name="warning" size={24} color="#f39c12" />
-        <View style={styles.outOfStockContent}>
-          <Text style={styles.outOfStockTitle}>Items Unavailable</Text>
-          <Text style={styles.outOfStockMessage}>
-            Some items in your cart are out of stock. Please remove them to continue with your order.
-          </Text>
-        </View>
-      </View>
-    )
-  );
-
-  const renderPaymentButton = () => (
-    !hasOutOfStockItems && (
-      <View style={styles.paymentSection}>
-        <TouchableOpacity
-          style={[
-            styles.paymentBtn,
-            (!selectedFulfillmentId || paymentLoading) &&
-              styles.paymentBtnDisabled,
-          ]}
-          onPress={handlePayment}
-          disabled={!selectedFulfillmentId || paymentLoading}
-          activeOpacity={0.8}
-        >
-          {paymentLoading ? (
-            <View style={styles.loadingContainer}>
-              <Loader />
-              <Text style={styles.paymentBtnText}>Processing Payment...</Text>
-            </View>
-          ) : (
-            <View style={styles.paymentContainer}>
-              <Text style={styles.paymentBtnText}>
-                Pay ₹{selectedBreakup.total}
-              </Text>
-              <MaterialIcons name="lock" size={20} color="#ffffff" />
-            </View>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.secureText}>🔒 Secure payment powered by Razorpay</Text>
-      </View>
-    )
-  );
+  const handleBreakupPress = useCallback((breakup: any) => {
+    if (breakup.children && breakup.children.length > 0) {
+      const details = breakup.children
+        .map((child: any) => `${child.custom_title || child.title}: ₹${child.price}`)
+        .join('\n');
+      
+      Alert.alert(
+        breakup.custom_title || breakup.title,
+        details,
+        [{ text: "OK", style: "default" }]
+      );
+    }
+  }, []);
 
   return (
     <ScrollView 
@@ -412,35 +209,28 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
-      {renderStoreSection()}
-      {renderAddressSection()}
-      
-      {/* 🆕 Add offers section before items */}
-      {renderOffersSection()}
-      
-      {renderItemsSection()}
-      {renderFulfillmentSection()}
+      <CheckoutSections
+        data={data}
+        cart={cart}
+        store={store}
+        items={localItems} // ✅ Use local items with updated quantities
+        fulfillments={fulfillments}
+        selectedFulfillmentId={selectedFulfillmentId}
+        selectedBreakup={updatedSelectedBreakup} // ✅ Use updated breakup with new totals
+        hasOutOfStockItems={hasOutOfStockItems}
+        onFulfillmentSelect={setSelectedFulfillment}
+        onBreakupPress={handleBreakupPress}
+        onQuantityChange={handleQuantityChange} // ✅ Pass quantity change handler
+        subTotal={localSubTotal} // ✅ Use updated sub total
+      />
 
-      {/* Bill Summary */}
-      <View style={styles.section}>
-        <BillSummary
-          subTotal={sub_total}
-          breakups={selectedBreakup.breakups}
-          totalSavings={selectedBreakup.total_savings}
-          grandTotal={selectedBreakup.total}
-          onBreakupPress={handleBreakupPress}
-          // 🆕 Pass applied offer info
-          appliedOfferId={currentAppliedOfferId}
-        />
-      </View>
-
-      {/* Cancellation Policy */}
-      <View style={styles.section}>
-        <CancellationPolicy isCancellable />
-      </View>
-
-      {renderOutOfStockSection()}
-      {renderPaymentButton()}
+      <CheckoutActions
+        hasOutOfStockItems={hasOutOfStockItems}
+        selectedFulfillmentId={selectedFulfillmentId}
+        paymentLoading={paymentLoading}
+        totalAmount={updatedSelectedBreakup.total} // ✅ Use updated total
+        onPayment={handlePayment}
+      />
     </ScrollView>
   );
 };
@@ -455,293 +245,5 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  editBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    backgroundColor: "white",
-  },
-  editText: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  storeCard: {
-    flexDirection: "row",
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    alignItems: "center",
-  },
-  storeImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  storeInfo: {
-    flex: 1,
-  },
-  storeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  storeAddress: {
-    fontSize: 14,
-    color: "#666",
-  },
-  addressCard: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addressName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  addressPhone: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
-  },
-
-  // 🆕 Offer styles
-  offerAppliedInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#f0fdf4",
-    borderRadius: 8,
-    gap: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#00BC66",
-  },
-  offerAppliedText: {
-    fontSize: 14,
-    color: "#00BC66",
-    fontWeight: "500",
-    flex: 1,
-  },
-
-  itemsContainer: {
-    gap: 12,
-  },
-  itemCard: {
-    flexDirection: "row",
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    alignItems: "flex-start",
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  itemQty: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
-  variantText: {
-    fontSize: 12,
-    color: "#888",
-    fontStyle: "italic",
-    marginBottom: 2,
-  },
-  customizationsText: {
-    fontSize: 12,
-    color: "#666",
-  },
-  outOfStock: {
-    color: "#e74c3c",
-    fontWeight: "500",
-  },
-  itemPriceContainer: {
-    alignItems: "flex-end",
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  fulfillmentContainer: {
-    gap: 12,
-  },
-  fulfillmentOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  selectedFulfillment: {
-    borderColor: "#00BC66",
-    backgroundColor: "#f0fdf4",
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    marginRight: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  radioSelected: {
-    borderColor: "#00BC66",
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#00BC66",
-  },
-  fulfillmentDetails: {
-    flex: 1,
-  },
-  fulfillmentText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1a1a1a",
-    marginBottom: 2,
-  },
-  fulfillmentTime: {
-    fontSize: 14,
-    color: "#666",
-  },
-  paymentSection: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  paymentBtn: {
-    backgroundColor: "#00BC66",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    shadowColor: "#00BC66",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    width: "100%",
-    maxWidth: 400,
-  },
-  paymentBtnDisabled: {
-    backgroundColor: "#a0a0a0",
-    shadowOpacity: 0.1,
-  },
-  paymentContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  loadingContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  paymentBtnText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  secureText: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  outOfStockSection: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#fff3cd",
-    padding: 16,
-    borderRadius: 12,
-    marginVertical: 16,
-    gap: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f39c12",
-  },
-  outOfStockContent: {
-    flex: 1,
-  },
-  outOfStockTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#856404",
-    marginBottom: 4,
-  },
-  outOfStockMessage: {
-    fontSize: 14,
-    color: "#856404",
-    lineHeight: 20,
   },
 });

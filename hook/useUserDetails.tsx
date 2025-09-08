@@ -5,19 +5,9 @@ import {
   setAsyncStorageItem,
 } from "../utility/asyncStorage";
 
-export const getUserDetails = async () => {
-  try {
-    const details = await getAsyncStorageItem("userDetails");
-    return details;
-  } catch (error) {
-    console.error("Error retrieving user details:", error);
-    return null;
-  } 
-};
-
 interface UserDetails {
-  _id:string;
-  email:string;
+  _id: string;
+  email: string;
   accessToken: string;
   refreshToken: string;
   firstName: string;
@@ -36,23 +26,22 @@ const useUserDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ✅ Delivery location state
-  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
+  const [deliveryDetails, setDeliveryDetails] =
+    useState<DeliveryDetails | null>(null);
 
-  // Initialize user + delivery details when hook is first used
   useEffect(() => {
     initializeUserDetails();
     initializeDeliveryDetails();
   }, []);
 
   // ---------------------------
-  // USER DETAILS FUNCTIONS
+  // USER DETAILS
   // ---------------------------
   const initializeUserDetails = async () => {
     try {
       setIsLoading(true);
       const details = await getAsyncStorageItem("userDetails");
-      if (details && typeof details === "string") {
+      if (details) {
         const parsedDetails = JSON.parse(details) as UserDetails;
         setUserDetails(parsedDetails);
         setIsAuthenticated(true);
@@ -74,7 +63,7 @@ const useUserDetails = () => {
       await setAsyncStorageItem("userDetails", JSON.stringify(details));
       setUserDetails(details);
       setIsAuthenticated(true);
-      console.log("User details saved successfully, details:", details);
+      console.log("User details saved successfully:", details);
     } catch (error) {
       console.error("Error saving user details:", error);
     }
@@ -83,7 +72,7 @@ const useUserDetails = () => {
   const getUserDetails = async (): Promise<UserDetails | null> => {
     try {
       const details = await getAsyncStorageItem("userDetails");
-      if (details && typeof details === "string") {
+      if (details) {
         const parsedDetails = JSON.parse(details) as UserDetails;
         setUserDetails(parsedDetails);
         setIsAuthenticated(true);
@@ -108,21 +97,21 @@ const useUserDetails = () => {
   };
 
   const checkAuthentication = () => {
-    return isAuthenticated && userDetails && userDetails.accessToken;
+    return !!(isAuthenticated && userDetails?.accessToken);
   };
 
   // ---------------------------
-  // DELIVERY LOCATION FUNCTIONS
+  // DELIVERY DETAILS
   // ---------------------------
   const initializeDeliveryDetails = async () => {
     try {
       const details = await getAsyncStorageItem("deliveryDetails");
-      if (details && typeof details === "string") {
+      if (details) {
         const parsedDetails = JSON.parse(details) as DeliveryDetails;
         setDeliveryDetails(parsedDetails);
         console.log("Delivery details loaded from storage:", parsedDetails);
       } else {
-        console.log("No delivery details found in storage");
+        console.log("No delivery details found in storage"); // ✅ Always logs this
       }
     } catch (error) {
       console.error("Error initializing delivery details:", error);
@@ -151,7 +140,7 @@ const useUserDetails = () => {
 
   // ---------------------------
   return {
-    // User data
+    // User
     userDetails,
     authToken: userDetails?.accessToken || null,
     isLoading,
@@ -162,7 +151,7 @@ const useUserDetails = () => {
     checkAuthentication,
     refreshUserDetails: initializeUserDetails,
 
-    // Delivery location
+    // Delivery
     deliveryDetails,
     saveDeliveryDetails,
     removeDeliveryDetails,

@@ -3,48 +3,67 @@ import { Redirect } from "expo-router";
 import { ToastProvider } from "react-native-toast-notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import useUserDetails from "../hook/useUserDetails";
+import useDeliveryStore from "@/state/deliveryAddressStore";
 import { isTokenValid } from "../utility/token";
 
 export default function Page() {
   const { userDetails, getUserDetails } = useUserDetails();
+  const { loadDeliveryDetails } = useDeliveryStore();
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // default false
-  const queryClient = new QueryClient();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // ✅ Create QueryClient once
+  const [queryClient] = useState(() => new QueryClient());
 
+  // ✅ Initialize app data
   useEffect(() => {
-    const checkAuth = async () => {
-      await getUserDetails(); // fetch from AsyncStorage
-      console.log("User details from app:", userDetails);
-
-      if (userDetails) {
-        const { accessToken, refreshToken } = userDetails;
-        const isAccessTokenValid = isTokenValid(accessToken);
-        const isRefreshTokenValid = isTokenValid(refreshToken);
-        console.log(
-          "isAccessTokenValid:",
-          isAccessTokenValid,
-          "isRefreshTokenValid:",
-          isRefreshTokenValid,
-        );
-
-        setIsLoggedIn(isAccessTokenValid || isRefreshTokenValid);
-      } else {
-        setIsLoggedIn(false);
+    const initializeApp = async () => {
+      try {
+        console.log("Initializing app...");
+        await getUserDetails();
+        await loadDeliveryDetails(); // ✅ Load saved address
+        console.log("App initialization complete");
+      } catch (error) {
+        console.error("App initialization error:", error);
+        setIsLoading(false);
       }
-
-      setIsLoading(false); // move this to end
     };
+    
+    initializeApp();
+  }, [getUserDetails, loadDeliveryDetails]);
 
-    checkAuth();
-  }, []); // empty dependency list — runs only once
+  // ✅ Handle authentication state changes
+  useEffect(() => {
+    console.log("User details updated:", userDetails);
+    
+    if (!userDetails) {
+      setIsLoggedIn(false);
+      setIsLoading(false);
+      return;
+    }
 
-  if (isLoading) return null;
+    const { accessToken, refreshToken } = userDetails;
+    const isAccessTokenValid = isTokenValid(accessToken);
+    const isRefreshTokenValid = isTokenValid(refreshToken);
+    
+    console.log("Token validation:", { 
+      isAccessTokenValid, 
+      isRefreshTokenValid 
+    });
+
+    setIsLoggedIn(isAccessTokenValid || isRefreshTokenValid);
+    setIsLoading(false);
+  }, [userDetails]);
+
+  if (isLoading) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         {isLoggedIn ? (
-          <Redirect href={"./(tabs)/home"} />
+          <Redirect href={"/(tabs)/home/HomeScreen"} />
         ) : (
           <Redirect href={"./(auth)/"} />
         )}

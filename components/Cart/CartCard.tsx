@@ -26,7 +26,6 @@ import {
   FetchCartType,
 } from "../../app/(tabs)/cart/fetch-carts-type";
 
-// 🆕 import your Offer button
 import CartOfferBtn from "./CartOfferBtn";
 
 const STORAGE_KEY = "addedItems";
@@ -38,13 +37,9 @@ interface CartCardProps {
   onCartChange?: () => void;
 }
 
-const CartCard: React.FC<CartCardProps> = ({
-  id,
-  store,
-  items,
-  onCartChange,
-}) => {
-  const { removeCart } = useCartStore();
+const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) => {
+  // ---- Hooks (always at top; never after a conditional return) ----
+  const { removeCart, updateCartOffer, clearCartOffer, appliedOffers } = useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
@@ -53,16 +48,22 @@ const CartCard: React.FC<CartCardProps> = ({
   const [validItems, setValidItems] = useState<CartItemType[]>([]);
   const [distance, setDistance] = useState<number | null>(null);
 
-  // 🆕 state for offers
+  // Offer state for this cart
   const [appliedOfferId, setAppliedOfferId] = useState<string>("");
   const [offersOpen, setOffersOpen] = useState(false);
 
-  // ✅ Filter items that have an id
+  // restore previously applied offer (if any) for this cart
+  useEffect(() => {
+    const existing = appliedOffers[id]?.offerId;
+    if (existing) setAppliedOfferId(existing);
+  }, [id, appliedOffers]);
+
+  // filter valid items
   useEffect(() => {
     setValidItems(items?.filter((item) => item && item._id) || []);
   }, [items]);
 
-  // ✅ Calculate distance
+  // compute distance
   useEffect(() => {
     if (
       !store?.gps?.lat ||
@@ -73,27 +74,75 @@ const CartCard: React.FC<CartCardProps> = ({
       setDistance(null);
       return;
     }
-
     const storeLat = Number(store.gps.lat);
     const storeLon = Number(store.gps.lon);
     const userLat = Number(selectedDetails.lat);
     const userLng = Number(selectedDetails.lng);
 
-    if (
-      [storeLat, storeLon, userLat, userLng].some(
-        (val) => isNaN(val) || Math.abs(val) > 180
-      )
-    ) {
+    if ([storeLat, storeLon, userLat, userLng].some((v) => isNaN(v) || Math.abs(v) > 180)) {
       setDistance(null);
       return;
     }
 
-    const distanceInMeters = getDistance(
+    const meters = getDistance(
       { latitude: storeLat, longitude: storeLon },
       { latitude: userLat, longitude: userLng }
     );
-    setDistance(Number((distanceInMeters / 1000).toFixed(1)));
+    setDistance(Number((meters / 1000).toFixed(1)));
   }, [store?.gps, selectedDetails]);
+
+  // ---- Prices & discount (no hooks below here) ----
+  const cartSubtotal = validItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+
+  const offer = store?.offers?.find((o) => o.offer_id === appliedOfferId);
+
+  // generic & safe discount computation
+  const qualifierMin = Number(offer?.qualifier?.min_value ?? 0);
+  const meetsMin = cartSubtotal >= qualifierMin;
+
+  let computedDiscount = 0;
+  if (offer && meetsMin) {
+    const valueType = offer?.benefit?.value_type; // "percentage" | "absolute" | etc.
+    const rawPercent = Number(
+      (offer as any)?.benefit?.value ?? (offer as any)?.benefit?.percent ?? 0
+    );
+    const rawFlat = Number(
+      (offer as any)?.benefit?.value ?? (offer as any)?.benefit?.value_cap ?? 0
+    );
+    if (valueType === "percentage") {
+      const cap = Number((offer as any)?.benefit?.value_cap ?? Number.POSITIVE_INFINITY);
+      const pctDiscount = (cartSubtotal * rawPercent) / 100;
+      computedDiscount = Math.min(pctDiscount, Number.isFinite(cap) ? cap : pctDiscount);
+    } else {
+      computedDiscount = rawFlat;
+    }
+  }
+
+  const discount = Math.max(0, Math.min(computedDiscount, cartSubtotal));
+  const cartTotal = Math.max(0, cartSubtotal - discount);
+
+  // sync offer selection to store (keep this effect ABOVE any return)
+  useEffect(() => {
+    if (appliedOfferId) {
+      updateCartOffer(id, appliedOfferId, discount, cartTotal);
+    } else {
+      clearCartOffer(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedOfferId, cartSubtotal, discount, cartTotal, id]);
+
+  // ---- early returns AFTER all hooks are declared ----
+  if (!id || !store?._id) return null;
+
+  // shape cart for offer sheet
+  const cartWithOffers: FetchCartType = {
+    _id: id,
+    store: { ...store, offers: store.offers || [] },
+    items: validItems,
+    cart_items: [],
+    cartItemsCount: validItems.length,
+    cartTotalPrice: cartTotal,
+  };
 
   const calculateDeliveryTime = (distanceKm: number) => {
     if (!distanceKm || distanceKm < 0) return "N/A";
@@ -102,7 +151,6 @@ const CartCard: React.FC<CartCardProps> = ({
     return timeInMinutes < 1 ? "< 1 min" : `${timeInMinutes} min`;
   };
 
-  // ✅ Remove cart
   const handleRemoveCart = () => {
     if (!authToken || !store?._id) {
       Alert.alert("Login Required", "Please login to remove cart.");
@@ -122,24 +170,17 @@ const CartCard: React.FC<CartCardProps> = ({
             try {
               const success = await removeCart(store._id, authToken);
               if (!success) {
-                Alert.alert(
-                  "Error",
-                  "Failed to remove cart. Please try again."
-                );
+                Alert.alert("Error", "Failed to remove cart. Please try again.");
                 return;
               }
 
-              // Cleanup local storage
+              // cleanup local storage of added item slugs
               const data = await getAsyncStorageItem(STORAGE_KEY);
               const storedItems: string[] = data ? JSON.parse(data) : [];
               const updatedItems = storedItems.filter(
                 (slug) => !validItems.some((i) => i.slug === slug)
               );
-              await setAsyncStorageItem(
-                STORAGE_KEY,
-                JSON.stringify(updatedItems)
-              );
-
+              await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
               onCartChange?.();
             } catch (error) {
               console.error("CartCard: Error deleting cart", error);
@@ -153,50 +194,22 @@ const CartCard: React.FC<CartCardProps> = ({
     );
   };
 
-  if (!id || !store?._id) return null;
-  if (validItems.length === 0)
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Cart is empty</Text>
-        <Text style={styles.emptySubText}>Add items to get started</Text>
-      </View>
-    );
-
-  // 🆕 Build a cart object with offers (like FetchCartType)
-  const cartWithOffers: FetchCartType = {
-    _id: id,
-    store: {
-      ...store,
-      offers: store.offers || [], // ensure offers exist
-    },
-    items: validItems,
-    cart_items: [],
-    cartItemsCount: validItems.length,
-    cartTotalPrice: validItems.reduce(
-      (sum, item) => sum + (item.total_price || 0),
-      0
-    ),
-  };
-
   return (
-    <TouchableOpacity
+    <View
       style={styles.container}
-      onPress={() =>
-        router.push(`/(tabs)/home/result/productListing/${store.slug}`)
-      }
-      activeOpacity={0.7}
+  
     >
-      {/* Store Header */}
-      <View style={styles.sellerInfoContainer}>
+      {/* Header */}
+      <TouchableOpacity style={styles.sellerInfoContainer}
+          onPress={() => router.push(`/(tabs)/home/result/productListing/${store.slug}`)}
+      activeOpacity={0.7}
+      >
         <View style={styles.sellerLogoContainer}>
           {store?.symbol && (
-            <Image
-              source={{ uri: store.symbol }}
-              style={styles.sellerLogo}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: store.symbol }} style={styles.sellerLogo} resizeMode="cover" />
           )}
         </View>
+
         <View style={styles.sellerInfo}>
           <Text style={styles.sellerName} numberOfLines={2}>
             {store.name || "Unknown Store"}
@@ -206,13 +219,12 @@ const CartCard: React.FC<CartCardProps> = ({
               📍 {store.address.street}
             </Text>
           )}
+
           {distance !== null && (
             <View style={styles.distanceContainer}>
               <Text style={styles.distanceText}>{distance} km</Text>
               <Text style={styles.separator}> • </Text>
-              <Text style={styles.timeText}>
-                ⏱️ {calculateDeliveryTime(distance)}
-              </Text>
+              <Text style={styles.timeText}>⏱️ {calculateDeliveryTime(distance)}</Text>
             </View>
           )}
         </View>
@@ -225,16 +237,12 @@ const CartCard: React.FC<CartCardProps> = ({
           {isRemoving ? (
             <ActivityIndicator size="small" color="red" />
           ) : (
-            <FontAwesome
-              name="trash-o"
-              size={18}
-              color={authToken ? "red" : "#ccc"}
-            />
+            <FontAwesome name="trash-o" size={18} color={authToken ? "red" : "#ccc"} />
           )}
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
 
-      {/* Cart Items */}
+      {/* Items */}
       {store.slug ? (
         <CartItems
           cartId={id}
@@ -247,7 +255,7 @@ const CartCard: React.FC<CartCardProps> = ({
         <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
       )}
 
-      {/* 🆕 Offers Section */}
+      {/* Offers */}
       {store.offers && store.offers.length > 0 && (
         <View style={{ marginTop: 12 }}>
           <CartOfferBtn
@@ -259,7 +267,24 @@ const CartCard: React.FC<CartCardProps> = ({
           />
         </View>
       )}
-    </TouchableOpacity>
+
+      {/* Totals */}
+      <View style={{ marginTop: 8 }}>
+
+        {!!discount && (
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+            <Text style={{ fontSize: 14, color: "#28a745" }}>
+              Discount {appliedOfferId ? `(${appliedOfferId})` : ""}
+            </Text>
+            <Text style={{ fontSize: 14, color: "#28a745" }}>−₹{discount.toFixed(2)}</Text>
+          </View>
+        )}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
+          <Text style={{ fontSize: 15, fontWeight: "600" }}>Total</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700" }}>₹{cartTotal.toFixed(2)}</Text>
+        </View>
+      </View>
+    </View>
   );
 };
 

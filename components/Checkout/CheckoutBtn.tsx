@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -17,22 +17,14 @@ import useDeliveryStore from "@/state/deliveryAddressStore";
 import CheckoutContent from "./CheckoutContent";
 import Loader from "../common/Loader";
 import { router } from "expo-router";
-import CartOfferBtn from "../Cart/CartOfferBtn";
 
 const { height } = Dimensions.get("window");
 
 interface CheckoutBtnProps {
   cart: FetchCartType;
-  // 🆕 Add offer props
-  appliedOfferId?: string;
-  onOfferApply?: (offerId: string) => void;
 }
 
-const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ 
-  cart, 
-  appliedOfferId = "",
-  onOfferApply 
-}) => {
+const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
   const { userDetails } = useUserDetails();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
@@ -40,41 +32,15 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
     isOpen,
     loading,
     checkoutData,
+    appliedOfferId,
     setOpen,
     setLoading,
     setCheckoutData,
-    // Use the appliedOfferId from the checkout store
-    appliedOfferId: storeAppliedOfferId,
-    setAppliedOfferId,
   } = useCheckoutStore();
 
-  // 🆕 Local state for offers
-  const [offersOpen, setOffersOpen] = useState(false);
-  
-  // 🆕 Use the applied offer ID from either props or store
-  const currentAppliedOfferId = appliedOfferId || storeAppliedOfferId;
-
-  // 🆕 Handle offer application
-  const handleOfferApply = (offerId: string) => {
-    setAppliedOfferId(offerId);
-    if (onOfferApply) {
-      onOfferApply(offerId);
-    }
-    // If checkout is already open, refresh the data with the new offer
-    if (isOpen) {
-      handleCheckout();
-    }
-  };
-
-  // Reset when cart changes
-  useEffect(() => {
-    if (isOpen && cart && selectedDetails) {
-      setCheckoutData(null);
-      handleCheckout();
-    }
-  }, [selectedDetails, currentAppliedOfferId]); // 🆕 Add appliedOfferId to dependencies
 
   const handleCheckout = async () => {
+    
     if (!selectedDetails?.addressId) {
       return;
     }
@@ -101,11 +67,10 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
         location_id: cart.store.location_id,
         provider_id: cart.store.provider_id,
         storeId: cart.store._id,
-        // 🆕 Include the applied offer ID
-        ...(currentAppliedOfferId ? { offerId: currentAppliedOfferId } : {}),
+        ...(appliedOfferId ? { offerId: appliedOfferId } : {}),
       };
 
-      const url = `${process.env.EXPO_PUBLIC_API_URL}/select-cart`;
+      const url = `${process.env.EXPO_PUBLIC_API_URL}/select-cart`; // or whatever your Next route is
 
       const response = await fetch(url, {
         method: "POST",
@@ -116,12 +81,14 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
         body: JSON.stringify(payload),
       });
 
+      // clone and log what the server returned
       const text = await response.text();
 
+      // parse JSON safely
       let data: any;
       try {
         data = JSON.parse(text);
-      } catch (err) {
+      } catch (error) {
         throw new Error(`Invalid JSON from server: ${text}`);
       }
 
@@ -192,28 +159,6 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* 🆕 Offers Section - Show before items if offers are available */}
-        {cart.store.offers && cart.store.offers.length > 0 && (
-          <View style={styles.offersSection}>
-            <Text style={styles.sectionTitle}>Available Offers</Text>
-            <CartOfferBtn
-              appliedOfferId={currentAppliedOfferId}
-              applyOffer={handleOfferApply}
-              cart={cart}
-              offersOpen={offersOpen}
-              setOffersOpen={setOffersOpen}
-            />
-            {currentAppliedOfferId && (
-              <View style={styles.offerAppliedInfo}>
-                <MaterialIcons name="check-circle" size={16} color="#00BC66" />
-                <Text style={styles.offerAppliedText}>
-                  Offer "{currentAppliedOfferId}" has been applied to your order
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
 
         {/* Items Section */}
         <View style={styles.itemsSection}>
@@ -288,18 +233,6 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalPrice}>₹{totalPrice}</Text>
           </View>
-          
-          {/* 🆕 Show discount if offer is applied */}
-          {currentAppliedOfferId && (
-            <View style={styles.discountRow}>
-              <Text style={styles.discountLabel}>
-                Offer Discount ({currentAppliedOfferId})
-              </Text>
-              <Text style={styles.discountAmount}>
-                - ₹0.00 {/* This will be calculated based on actual offer data */}
-              </Text>
-            </View>
-          )}
         </View>
       </ScrollView>
 
@@ -353,7 +286,7 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({
                 <CheckoutContent
                   cart={cart}
                   data={checkoutData}
-                  appliedOfferId={currentAppliedOfferId}
+                  appliedOfferId={appliedOfferId}
                   setOpen={setOpen}
                 />
               ) : loading ? (
@@ -417,41 +350,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 
-  // 🆕 Offers Section
-  offersSection: {
-    backgroundColor: "white",
-    marginBottom: 12,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 12,
-  },
-  offerAppliedInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: "#f0fdf4",
-    borderRadius: 6,
-    gap: 6,
-  },
-  offerAppliedText: {
-    fontSize: 12,
-    color: "#00BC66",
-    fontWeight: "500",
-    flex: 1,
-  },
-
   // Items Section
   itemsSection: {
     backgroundColor: "white",
@@ -463,6 +361,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   itemCard: {
     marginBottom: 8,
@@ -562,27 +467,6 @@ const styles = StyleSheet.create({
   totalPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#00BC66",
-  },
-
-  // 🆕 Discount Row
-  discountRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 8,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  discountLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#00BC66",
-  },
-  discountAmount: {
-    fontSize: 16,
-    fontWeight: "600",
     color: "#00BC66",
   },
 
