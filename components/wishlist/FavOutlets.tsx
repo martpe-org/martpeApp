@@ -27,23 +27,22 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
   const router = useRouter();
   const toast = useToast();
 
- const handleDeleteStore = async (store: any) => {
-  const storeId = store.id || store.slug;
+  const handleDeleteStore = async (store: any) => {
+    const storeId = store.id || store.slug;
 
-  if (!authToken) {
-    toast.show("Authentication required", { type: "danger" });
-    return;
-  }
+    if (!authToken) {
+      toast.show("Authentication required", { type: "danger" });
+      return;
+    }
 
-  setDeletingStoreId(storeId);
-  try {
-    await removeStoreFavorite(storeId, authToken);
-  } catch (error) {
-  } finally {
-    setDeletingStoreId(null);
-  }
-};
-
+    setDeletingStoreId(storeId);
+    try {
+      await removeStoreFavorite(storeId, authToken);
+    } catch (err) {
+    } finally {
+      setDeletingStoreId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -93,29 +92,35 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
             <View style={styles.cardHeader}>
               <View style={styles.favoriteIndicator}>
                 <FontAwesome name="heart" size={16} color="#E53E3E" />
-                <Text style={styles.favoriteText}>
-                  Favorite
-                </Text>
+                <Text style={styles.favoriteText}>Favorite</Text>
               </View>
               {/* Delete Button */}
               <TouchableOpacity
-                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+                style={[
+                  styles.deleteButton,
+                  isDeleting && styles.deleteButtonDisabled,
+                ]}
                 onPress={() => handleDeleteStore(store)}
                 disabled={isDeleting || isUpdating}
               >
                 {isDeleting ? (
-                  <MaterialIcons name="hourglass-empty" size={20} color="#A0AEC0" />
+                  <MaterialIcons
+                    name="hourglass-empty"
+                    size={20}
+                    color="#0d5bc0"
+                  />
                 ) : (
-                  <MaterialIcons name="delete-outline" size={20} color="#E53E3E" />
+                  <FontAwesome name="trash-o" size={18} color="#718096" />
                 )}
               </TouchableOpacity>
             </View>
 
             {/* Content */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.cardContent, isDeleting && styles.disabledContent]}
               onPress={() =>
-                !isDeleting && router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+                !isDeleting &&
+                router.push(`/(tabs)/home/result/productListing/${store.slug}`)
               }
               disabled={isDeleting}
             >
@@ -152,7 +157,6 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   center: {
     flex: 1,
@@ -225,7 +229,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: "#FED7D7",
+    backgroundColor: "#f1f1f1",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -301,5 +305,4 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
-
 export default FavOutlets;

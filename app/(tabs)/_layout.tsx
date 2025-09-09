@@ -1,9 +1,14 @@
-import { Tabs } from "expo-router";
-import { View, Text } from "react-native";
+import { router, Tabs } from "expo-router";
+import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
 import { useCartStore } from "../../state/useCartStore";
-import { MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
 import { useHideTabBarStore } from "../../state/hideTabBar";
+import {
+  CartTab,
+  Hometab,
+  ProfileTab,
+} from "@/constants/icons/tabIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TabsLayout() {
   const { allCarts } = useCartStore();
@@ -14,6 +19,7 @@ export default function TabsLayout() {
       totalItems += item.qty;
     }
   }
+  
 
   const hideTabBar = useHideTabBarStore((state) => state.hideTabBar);
 
@@ -63,13 +69,14 @@ export default function TabsLayout() {
           tabBarLabel: "Home",
           title: "Home",
           tabBarIcon: ({ focused }) => (
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <Entypo
-                name="home"
-                size={22}
+            <TouchableOpacity style={{ alignItems: "center", justifyContent: "center" }}
+          onPress={() => router.push({ pathname: "/(tabs)/home/HomeScreen" })}
+            >
+              <Hometab
                 color={focused ? activeTabColor : inactiveTabColor}
+                active={focused}
               />
-            </View>
+            </TouchableOpacity>
           ),
         }}
       />
@@ -82,40 +89,11 @@ export default function TabsLayout() {
           title: "Cart",
           tabBarIcon: ({ focused }) => (
             <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <View style={{ position: "relative" }}>
-                <MaterialCommunityIcons
-                  name="shopping-outline"
-                  size={22}
-                  color={focused ? activeTabColor : inactiveTabColor}
-                />
-                {totalItems > 0 && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: -8,
-                      right: -8,
-                      backgroundColor: "#FF1744",
-                      borderRadius: 10,
-                      minWidth: 18,
-                      height: 18,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      borderWidth: 2,
-                      borderColor: "#FFFFFF",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#FFFFFF",
-                        fontSize: 10,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {totalItems > 99 ? "99+" : totalItems}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              <CartTab
+                color={focused ? activeTabColor : inactiveTabColor}
+                active={focused}
+                itemCount={totalItems}
+              />
             </View>
           ),
         }}
@@ -167,10 +145,9 @@ export default function TabsLayout() {
           },
           tabBarIcon: ({ focused }) => (
             <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <MaterialCommunityIcons
-                name={focused ? "account" : "account-outline"}
-                size={22}
+              <ProfileTab
                 color={focused ? activeTabColor : inactiveTabColor}
+                active={focused}
               />
             </View>
           ),

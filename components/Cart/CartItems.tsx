@@ -2,7 +2,6 @@ import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import React, { useMemo, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { useToast } from "react-native-toast-notifications";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "../../hook/useUserDetails";
 import ChangeQtyButton from "./ChangeQtyButton";
+import Loader from "../common/Loader";
 
 interface CartItemsProps {
   cartId: string;
@@ -121,8 +121,6 @@ const CartItems: React.FC<CartItemsProps> = ({
                   p._id === item._id ? { ...p, qty: newQty } : p
                 )
               );
-
-              // ✅ Trigger refresh so parent refetches from backend
               onCartChange?.();
             }}
           />
@@ -132,7 +130,7 @@ const CartItems: React.FC<CartItemsProps> = ({
   };
 
   // Calculate totals from local state
-  const { totalCost, totalItems } = useMemo(() => {
+  const {  totalItems } = useMemo(() => {
     if (!localItems?.length) return { totalCost: 0, totalItems: 0 };
 
     return localItems.reduce(
@@ -150,7 +148,7 @@ const CartItems: React.FC<CartItemsProps> = ({
   if (userLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2f9740" />
+        <Loader/>
         <Text style={styles.loadingText}>Loading cart...</Text>
       </View>
     );

@@ -5,8 +5,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -27,6 +25,7 @@ import {
 } from "../../app/(tabs)/cart/fetch-carts-type";
 
 import CartOfferBtn from "./CartOfferBtn";
+import Loader from "../common/Loader";
 
 const STORAGE_KEY = "addedItems";
 
@@ -220,7 +219,7 @@ const handleRemoveCart = async () => {
           disabled={isRemoving || !authToken || isUserLoading}
         >
           {isRemoving ? (
-            <ActivityIndicator size="small" color="red" />
+            <Loader/>
           ) : (
             <FontAwesome name="trash-o" size={18} color={authToken ? "red" : "#ccc"} />
           )}
