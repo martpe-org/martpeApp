@@ -1,0 +1,13 @@
+node_modules
+.expo
+.expo-shared
+dist
+build
+android/build
+ios/build
+*.log
+*.tmp
+*.swp
+.git
+.gitignore
+yarn-error.log

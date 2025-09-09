@@ -302,32 +302,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-  // Fetch home data using react-query with hardcoded values
-
-  // const {
-  //   data: homeData,
-  //   isLoading,
-  //   error,
-  //   refetch,
-  //   isRefetching,
-  // } = useQuery({
-  //   queryKey: [
-  //     "homeData",
-  //     selectedDetails?.lat ?? 12.9716,
-  //     selectedDetails?.lng ?? 77.5946,
-  //     selectedDetails?.pincode ?? "560001",
-  //   ],
-  //   queryFn: async () => {
-  //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
-  //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
-  //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
-
-  //     return fetchHome(lat, lng, pin);
-  //   },
-  //   staleTime: 1000 * 60 * 5, // 5 minutes
-  //   enabled: true,
-  //   retry: 1,
-  // });
-
-  // Animation value for "No Data" messages
-
