@@ -1,4 +1,4 @@
-import { Entypo, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import {  Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -232,7 +232,7 @@ const SearchScreen: React.FC = () => {
             onPress={() => router.back()}
             style={styles.headerLeftIcon}
           >
-            <Entypo name="chevron-left" size={22} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
             <Text style={styles.headerTitle}>Search anything you want</Text>
           </View>

@@ -15,6 +15,7 @@ import {
 import { widthPercentageToDP as wp } from "react-native-responsive-screen";
 import { createUser } from "../../components/user/create-user";
 import useUserDetails from "../../hook/useUserDetails";
+import Loader from "@/components/common/Loader";
 
 interface UserFormData {
   firstName: string;
@@ -153,14 +154,6 @@ const SignUp: React.FC = () => {
       const phoneToUse = mobileNumber
         ? String(mobileNumber).replace(/^\+?91/, "")
         : formData.phoneNumber;
-
-      console.log("Submitting user data:", {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
-        phoneNumber: phoneToUse,
-      });
-
       const response = await createUser(
         formData.firstName.trim(),
         phoneToUse,
@@ -188,11 +181,6 @@ const SignUp: React.FC = () => {
 
         // Save user details using the hook
         await saveUserDetails(userDetails);
-
-        console.log("User details saved successfully, navigating to home");
-
-        // Navigate to home screen - router will handle this automatically due to auth state change
-        // But we can also manually navigate to ensure immediate redirect
         router.replace("/(tabs)/home/HomeScreen");
       } else {
         // Handle API errors
@@ -224,7 +212,7 @@ const SignUp: React.FC = () => {
   if (authLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#FB3E44" />
+        <Loader />
         <Text style={styles.loadingText}>Loading...</Text>
       </SafeAreaView>
     );

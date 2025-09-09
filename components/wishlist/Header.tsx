@@ -1,4 +1,4 @@
-import { BackArrow } from "../../constants/icons/tabIcons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { View, Text, Dimensions, TouchableOpacity } from "react-native";
@@ -28,7 +28,7 @@ const HeaderWishlist = () => {
           router.push("/(tabs)/account");
         }}
       >
-        <BackArrow />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
       </TouchableOpacity>
 
       <Text style={{ fontSize: 20, fontWeight: "bold", color: "#000" }}>

@@ -19,7 +19,7 @@ import useDeliveryStore from "../../../../state/deliveryAddressStore";
 import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
 import { Store2 } from "../../../../hook/fetch-domain-type";
 import StoreCard3 from "../../../../components/Categories/StoreCard3";
-import { Entypo } from "@expo/vector-icons";
+import { Entypo, Ionicons } from "@expo/vector-icons";
 import { styles } from "./cat";
 
 const { width } = Dimensions.get("window");
@@ -158,7 +158,7 @@ function Fashion() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Entypo name="chevron-left" size={22} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
           <View style={styles.searchWrapper}>
             <Search onPress={handleSearchPress} />

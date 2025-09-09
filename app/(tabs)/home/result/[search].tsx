@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { router, useGlobalSearchParams } from "expo-router";
@@ -371,7 +371,7 @@ const Results: FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Feather name="arrow-left" size={24} color="#333" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Results</Text>
         </View>

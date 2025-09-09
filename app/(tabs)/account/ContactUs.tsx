@@ -36,7 +36,7 @@ const ContactUs: React.FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Entypo name="chevron-left" size={26} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
           <View>
             <Text style={styles.title}>Contact Us</Text>

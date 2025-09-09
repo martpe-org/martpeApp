@@ -13,7 +13,7 @@ import { FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "@/hook/useUserDetails";
 import { fetchCarts } from "@/app/(tabs)/cart/fetch-carts";
 import CheckoutBtn from "@/components/Checkout/CheckoutBtn";
-import { Entypo } from "@expo/vector-icons";
+import {  Ionicons } from "@expo/vector-icons";
 import Loader from "@/components/common/Loader";
 
 export default function CheckoutScreen() {
@@ -134,7 +134,7 @@ export default function CheckoutScreen() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Entypo name="chevron-left" size={26} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
             </TouchableOpacity>
             <View>
               <Text style={styles.title}>Checkout</Text>

@@ -66,13 +66,6 @@ const NewLogin: React.FC = () => {
   const generateOtpForUser = async (mobileNumber: string) => {
     try {
       const response = await generateOTP(`${mobileNumber}`);
-      console.log(
-        `OTP response for [${mobileNumber.slice(0, 3)}XXXX${mobileNumber.slice(
-          7
-        )}]:`,
-        response
-      );
-
       if (response.status === 200) {
         router.push({
           pathname: "/(auth)/VerifyOTP",

@@ -202,7 +202,7 @@ function Food() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Entypo name="chevron-left" size={22} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
           <View style={styles.searchWrapper}>
             <Search onPress={handleSearchPress} />

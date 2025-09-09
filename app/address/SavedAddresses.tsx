@@ -94,7 +94,6 @@ const SavedAddresses: React.FC = () => {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated || !checkAuthentication()) {
-        console.log('User not authenticated');
         setError('Please log in to view your saved addresses.');
         setIsLoading(false);
       }
@@ -116,20 +115,16 @@ const SavedAddresses: React.FC = () => {
       }
 
       const addressesData = await fetchAddress(authToken);
-      console.log("Fetched addresses:", addressesData);
       
       if (addressesData && Array.isArray(addressesData)) {
         setAddresses(addressesData); 
-        console.log(`Successfully loaded ${addressesData.length} addresses`);
       } else if (addressesData === null) {
         setError('Failed to fetch addresses. Please try again.');
         setAddresses([]);
       } else {
-        console.log('No addresses found or invalid response format');
         setAddresses([]);
       }
     } catch (error) {
-      console.error("Error fetching addresses:", error);
       setError('Failed to load addresses. Please try again.');
       setAddresses([]);
     } finally {

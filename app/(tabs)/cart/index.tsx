@@ -12,7 +12,7 @@ import { BackArrow } from "../../../constants/icons/commonIcons";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fetchCarts } from "./fetch-carts";
 import { FetchCartType } from "./fetch-carts-type";
 import useUserDetails from "../../../hook/useUserDetails";
@@ -122,7 +122,7 @@ const {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.title}>
-        <BackArrow onPress={() => router.back()} />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
         <Text style={styles.titleText}>
           {carts.length > 1 ? "My Carts" : "My Cart"}
         </Text>

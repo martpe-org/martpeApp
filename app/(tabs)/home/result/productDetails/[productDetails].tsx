@@ -25,7 +25,6 @@ import Search from "../../../../../components/common/Search";
 import { fetchProductDetails } from "../../../../../components/product/fetch-product";
 import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
 import { useRouter } from "expo-router";
-import { Entypo } from "@expo/vector-icons";
 import { styles } from "./pdpStyles";
 
 // Constants
@@ -137,7 +136,7 @@ const ProductDetails: FC = () => {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Entypo name="chevron-left" size={22} color="#111" />
+        <Ionicons name="arrow-back-outline" size={20} color="black" />
       </TouchableOpacity>
       <View style={styles.searchWrapper}>
         <Search onPress={handleSearchPress} />

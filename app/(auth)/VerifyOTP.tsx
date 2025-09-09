@@ -170,7 +170,6 @@ const VerifyOTP: React.FC = () => {
             savedAddresses: user.lastUsedAddress ? [user.lastUsedAddress] : [],
           };
 
-          console.log("Saving user details...");
           await saveUserDetails(userDetails);
           router.push("/(auth)/SignUp");
         } else if (isOTPVerified && !user) {
@@ -188,7 +187,6 @@ const VerifyOTP: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error);
       Alert.alert("Error", "An error occurred during verification");
     }
   };
