@@ -11,7 +11,7 @@ interface CatalogItem {
     long_desc: string;
     name: string;
     short_desc: string;
-    symbol?: string; // ✅ Add symbol field
+    symbol?: string;
   };
   id: string;
   price: {
@@ -20,8 +20,8 @@ interface CatalogItem {
   };
   provider_id: string;
   provider?: { store_id: string };
-  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // ✅ Add store field
-  slug?: string; // ✅ Add slug field like FashionCard
+  store?: { _id: string; name?: string; slug?: string; symbol?: string };
+  slug?: string;
 }
 
 interface PLPPersonalCareProps {
@@ -38,14 +38,13 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
   searchString,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-  // ✅ Enhanced filter logic with proper validation
+  // Enhanced filter logic with proper validation
   const filteredCatalog = useMemo(() => {
     let items = catalog || [];
-
+    
     // Filter by category
     if (selectedCategory && selectedCategory !== "All") {
       items = items.filter((item) => item.category_id === selectedCategory);
@@ -61,12 +60,12 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
     return items;
   }, [catalog, selectedCategory, searchString]);
 
-  // ✅ Animate "No Items" with proper conditions
+  // Animate "No Items" with proper conditions
   useEffect(() => {
-    const shouldShowNoItems = filteredCatalog.length === 0 && 
-                              selectedCategory !== "All" && 
-                              catalog.length > 0;
-
+    const shouldShowNoItems = filteredCatalog.length === 0 &&
+      selectedCategory !== "All" &&
+      catalog.length > 0;
+      
     if (shouldShowNoItems) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -95,25 +94,49 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
     }
   }, [filteredCatalog.length, selectedCategory, catalog.length]);
 
-  // ✅ Enhanced default buttons with images (like HorizontalNavbar)
+  // Enhanced navbar buttons using local assets (like other components)
   const getNavbarButtons = () => {
     if (sidebarTitles && sidebarTitles.length > 0) {
       return sidebarTitles.map((title) => ({
         title,
-        image: undefined, // Will use placeholder in HorizontalNavbar
+        image: undefined, // Let HorizontalNavbar handle fallback
       }));
     }
 
-    // Default personal care categories with placeholder images
+    // Default personal care categories using local image assets
     return [
-      { title: "All", image: undefined },
-      { title: "Bath & Body", image: undefined },
-      { title: "Feminine Care", image: undefined },
-      { title: "Fragrance", image: undefined },
-      { title: "Hair Care", image: undefined },
-      { title: "Oral Care", image: undefined },
-      { title: "Make Up", image: undefined },
-      { title: "Skin Care", image: undefined },
+      {
+        title: "All",
+        image: require("../../../assets/headerImage1.png"), // Reuse existing asset
+      },
+      {
+        title: "Bath & Body",
+        image: require("../../../assets/headerImage2.png"), // Reuse existing asset
+      },
+      {
+        title: "Feminine Care",
+        image: require("../../../assets/headerImage3.png"), // Reuse existing asset
+      },
+      {
+        title: "Fragrance",
+        image: require("../../../assets/headerImage4.png"), // Reuse existing asset
+      },
+      {
+        title: "Hair Care",
+        image: require("../../../assets/headerImage5.png"), // Reuse existing asset
+      },
+      {
+        title: "Oral Care",
+        image: require("../../../assets/headerImage6.png"), // Reuse existing asset
+      },
+      {
+        title: "Make Up",
+        image: require("../../../assets/headerImage1.png"), // Reuse existing asset
+      },
+      {
+        title: "Skin Care",
+        image: require("../../../assets/headerImage2.png"), // Reuse existing asset
+      },
     ];
   };
 
@@ -121,50 +144,51 @@ const PLPPersonalCare: React.FC<PLPPersonalCareProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* ✅ Enhanced HorizontalNavbar with hasProducts prop */}
+      {/* Enhanced HorizontalNavbar with hasProducts prop */}
       <HorizontalNavbar
+        domainColor="#9b59b6" // Purple color for personal care
         navbarTitles={navbarButtons}
-        domainColor="#530633"
         onFilterSelect={setSelectedCategory}
         activeCategory={selectedCategory}
         hasProducts={filteredCatalog.length > 0}
       />
 
-      {/* ✅ Always render container, even if empty */}
+      {/* Always render container, even if empty */}
       <PersonalCareCardContainer
-        searchString={searchString}
-        providerId={providerId}
         catalog={filteredCatalog}
+        domainColor="rgba(155, 89, 182, red(1)" // Purple color
         selectedCategory={selectedCategory}
+        storeId={typeof providerId === 'string' ? providerId : providerId[0]}
       />
 
-      {/* ✅ Enhanced "No items" display with better conditions */}
-      {selectedCategory !== "All" && 
-       filteredCatalog.length === 0 && 
-       catalog.length > 0 && (
-        <Animated.View
-          style={[
-            styles.noItemsContainer,
-            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
-          ]}
-        >
-          <Text style={styles.noItemsEmoji}>🧴</Text>
-          <Text style={styles.noItemsTitle}>No Products Found</Text>
-          <Text style={styles.noItemsSubtext}>
-            Nothing available in{" "}
-            <Text style={{ fontWeight: "bold", color: "#530633" }}>
-              {selectedCategory}
+      {/* Enhanced "No items" display with better conditions */}
+      {selectedCategory !== "All" &&
+        filteredCatalog.length === 0 &&
+        catalog.length > 0 && (
+          <Animated.View
+            style={[
+              styles.noItemsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.noItemsEmoji}>🔍</Text>
+            <Text style={styles.noItemsTitle}>No Products Found</Text>
+            <Text style={styles.noItemsSubtext}>
+              Nothing available in{" "}
+              <Text style={{ fontWeight: "600" }}>{selectedCategory}</Text>
             </Text>
-          </Text>
-          {searchString && (
-            <Text style={styles.searchHint}>
-              Try searching for {searchString} in other categories
-            </Text>
-          )}
-        </Animated.View>
-      )}
+            {searchString && (
+              <Text style={styles.searchHint}>
+                Try searching for {searchString} in other categories
+              </Text>
+            )}
+          </Animated.View>
+        )}
 
-      {/* ✅ Show message when no catalog data at all */}
+      {/* Show message when no catalog data at all */}
       {(!catalog || catalog.length === 0) && (
         <View style={styles.noDataContainer}>
           <Text style={styles.noItemsEmoji}>📦</Text>
@@ -217,7 +241,7 @@ const styles = StyleSheet.create({
   },
   searchHint: {
     fontSize: 12,
-    color: "#530633",
+    color: "#9b59b6", // Match domain color
     textAlign: "center",
     fontStyle: "italic",
   },

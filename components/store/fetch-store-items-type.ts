@@ -5,6 +5,7 @@ export interface FetchStoreItemsResponseType {
 }
 
 export interface StoreItem {
+  _id: string;
   symbol: string;
   store_status: string;
   rating?: number;

@@ -9,6 +9,8 @@ interface PLPElectronicsProps {
   catalog: CatalogItem[];
   sidebarTitles?: string[];
   searchString: string;
+  storeId?: string;
+  storeName?: string;
 }
 
 const PLPElectronics: React.FC<PLPElectronicsProps> = ({

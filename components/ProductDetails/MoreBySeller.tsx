@@ -28,7 +28,7 @@ interface DescriptorType {
 
 export interface ProductType {
   id: string;
-  slug: string;
+  slug?: string;
   descriptor: DescriptorType;
   price: PriceType;
 }

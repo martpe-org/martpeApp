@@ -1,4 +1,4 @@
-import { FC, useState, useMemo, useCallback } from "react";
+import { FC, useState } from "react";
 import { View } from "react-native";
 import FashionCategories from "./FashionCategories";
 import PLPCardContainer from "./PLPCardContainer";
@@ -6,25 +6,15 @@ import PLPCardContainer from "./PLPCardContainer";
 interface PLPFashionProps {
   catalog: any[];
   headers: string[];
-  storeId?: string;
-  storeName?: string;
+  storeId?: string; // Make optional since we're not using it anymore
 }
 
-const PLPFashion: FC<PLPFashionProps> = ({ 
-  catalog, 
-  headers, 
-  storeId,
-  storeName 
-}) => {
+const PLPFashion: FC<PLPFashionProps> = ({ catalog, headers }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  // Memoize the catalog to prevent unnecessary re-processing
-  const memoizedCatalog = useMemo(() => catalog, [catalog]);
-
-  // Use useCallback to prevent unnecessary re-renders of child components
-  const handleCategorySelect = useCallback((category: string) => {
+  const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-  }, []);
+  };
 
   return (
     <View style={{ backgroundColor: "#fff", flex: 1 }}>
@@ -33,10 +23,10 @@ const PLPFashion: FC<PLPFashionProps> = ({
         activeCategory={selectedCategory}
       />
       <PLPCardContainer
-        domainColor="#f6fafa"
-        catalog={memoizedCatalog}
+        domainColor="rgba(163, 251, 251, 1)"
+        catalog={catalog}
         selectedCategory={selectedCategory}
-        storeId={storeId}
+        // Removed storeId prop - let PLPCardContainer resolve from catalog items
       />
     </View>
   );

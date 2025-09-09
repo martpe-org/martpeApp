@@ -97,7 +97,10 @@ const Profile = () => {
           <TouchableOpacity style={styles.gridButton}>
             <Text style={styles.gridText}>FAQs</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton}>
+          <TouchableOpacity
+            style={styles.gridButton}
+            onPress={() => router.push("/(tabs)/account/ContactUs")}
+          >
             <Text style={styles.gridText}>Contact us</Text>
           </TouchableOpacity>
           <TouchableOpacity

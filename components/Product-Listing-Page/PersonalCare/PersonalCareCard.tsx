@@ -71,9 +71,6 @@ const resolveStoreId = (): string | undefined => {
 
   useEffect(() => {
     if (!storeId) {
-      console.warn(
-        `⚠️ PersonalCareCard: Missing storeId for product ${id} (${title})`
-      );
     }
   }, [storeId, id, title]);
 

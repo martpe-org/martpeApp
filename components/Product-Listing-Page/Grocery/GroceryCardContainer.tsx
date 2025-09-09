@@ -43,6 +43,8 @@ interface GroceryCardContainerProps {
   catalog: CatalogItem[];
   selectedCategory?: string;
   searchString: string;
+    storeId: string;
+storeName: string;
 }
 
 const CARD_SPACING = Dimensions.get("window").width * 0.03;

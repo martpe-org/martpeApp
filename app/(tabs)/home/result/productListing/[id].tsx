@@ -1,203 +1,44 @@
-import GroceryCardContainer from "@/components/Product-Listing-Page/Grocery/GroceryCardContainer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { router, useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   RefreshControl,
   SafeAreaView,
-  ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { widthPercentageToDP } from "react-native-responsive-screen";
-import { useQuery } from "@tanstack/react-query";
-import PLPElectronics from "../../../../../components/Product-Listing-Page/Electronics/PLPElectronics";
-import PLPFashion from "../../../../../components/Product-Listing-Page/Fashion/PLPFashion";
 import PLPBanner from "../../../../../components/Product-Listing-Page/FoodAndBeverages/PLPBanner";
 import Searchbox from "../../../../../components/Product-Listing-Page/FoodAndBeverages/Searchbox";
-import PLPHomeAndDecor from "../../../../../components/Product-Listing-Page/HomeAndDecor/PLPHomeAndDecor";
-import PLPPersonalCare from "../../../../../components/Product-Listing-Page/PersonalCare/PLPPersonalCare";
+import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../../components/common/Loader";
-import { fetchStoreDetails } from "../../../../../components/store/fetch-store-details";
-import { FetchStoreDetailsResponseType } from "../../../../../components/store/fetch-store-details-type";
-import { fetchStoreItems } from "../../../../../components/store/fetch-store-items";
-import { FetchStoreItemsResponseType, StoreItem } from "../../../../../components/store/fetch-store-items-type";
 import useDeliveryStore from "../../../../../state/deliveryAddressStore";
-
-// Types
-interface ComponentCatalogItem {
-  bpp_id: string;
-  bpp_uri: string;
-  catalog_id: string;
-  category_id: string;
-  descriptor: {
-    images: string[];
-    long_desc: string;
-    name: string;
-    short_desc: string;
-    symbol: string;
-  };
-  id: string;
-  location_id: string;
-  non_veg: boolean | null;
-  price: {
-    maximum_value: number;
-    offer_percent: number | null;
-    offer_value: number | null;
-    value: number;
-  };
-  quantity: {
-    available: { count: number };
-    maximum: { count: number };
-  };
-  provider_id: string;
-  veg: boolean;
-}
-
-interface VendorData {
-  _id: string;
-  address?: {
-    area_code?: string;
-    city?: string;
-    locality?: string;
-    state?: string;
-    street?: string;
-  };
-  catalogs: ComponentCatalogItem[];
-  descriptor: {
-    images: string[];
-    name: string;
-    symbol: string;
-  };
-  domain: string;
-  geoLocation: {
-    lat: number;
-    lng: number;
-  };
-  storeSections: string[];
-  panIndia: boolean;
-  hyperLocal: boolean;
-}
+import { useVendorData } from "@/state/useVendorData";
+import { checkServiceability, computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
+import { getErrorMessage } from "@/utility/CheckoutUtils";
+import {styles} from "./PlpStyles";
 
 // Helper functions
 const getFirst = (maybeArr: string | string[] | undefined): string =>
   Array.isArray(maybeArr) ? maybeArr[0] : maybeArr ?? "";
 
-const safeNormalize = (val?: string) =>
-  typeof val === "string" ? val.toLowerCase().trim() : "";
-
-// Convert backend data to component format
-const convertToVendorData = (
-  storeDetails: FetchStoreDetailsResponseType,
-  storeItems: FetchStoreItemsResponseType
-): VendorData | null => {
-  try {
-    if (!storeDetails || !storeItems?.results) return null;
-
-    const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
-      (item: StoreItem) => ({
-        bpp_id: storeDetails._id,
-        bpp_uri: "",
-        catalog_id: item.catalog_id || "",
-        category_id: item.category_id || "",
-        descriptor: {
-          images: item.images || [],
-          long_desc: item.short_desc || "",
-          name: item.name || "",
-          short_desc: item.short_desc || "",
-          symbol: item.symbol || "",
-        },
-        id: item.slug || item._id || "",
-        location_id: item.location_id || "",
-        non_veg: item.diet_type === "non_veg",
-        price: {
-          maximum_value: item.price?.maximum_value ?? item.price?.value ?? 0,
-          offer_percent: item.price?.offerPercent ?? null,
-          offer_value: null,
-          value: item.price?.value ?? 0,
-        },
-        quantity: {
-          available: { count: item.quantity ?? 0 },
-          maximum: { count: item.quantity ?? 0 },
-        },
-        provider_id: storeDetails._id,
-        veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
-      })
-    );
-
-    return {
-      _id: storeDetails._id,
-      address: {
-        area_code: storeDetails.address?.area_code || "",
-        city: storeDetails.address?.city || "",
-        locality: storeDetails.address?.locality || "",
-        state: storeDetails.address?.state || "",
-        street: storeDetails.address?.street || "",
-      },
-      catalogs: catalogItems,
-      descriptor: {
-        images: storeDetails.images || [],
-        name: storeDetails.name || "",
-        symbol: storeDetails.symbol || "",
-      },
-      domain: storeDetails.domain || "",
-      geoLocation: {
-        lat: storeDetails.gps?.lat || 0,
-        lng: storeDetails.gps?.lon || 0,
-      },
-      storeSections: storeDetails.store_categories || [],
-      panIndia: !!storeDetails.isPanindia,
-      hyperLocal: !!storeDetails.isHyperLocalOnly,
-    };
-  } catch (error) {
-    console.error("Error converting vendor data:", error);
-    return null;
-  }
-};
-
-// Query Keys
-const QUERY_KEYS = {
-  storeDetails: (vendorSlug: string) => ["storeDetails", vendorSlug],
-  storeItems: (vendorSlug: string) => ["storeItems", vendorSlug],
-  vendorData: (vendorSlug: string) => ["vendorData", vendorSlug],
-} as const;
-
-// Custom hook for fetching vendor data
-const useVendorData = (vendorSlug: string) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.vendorData(vendorSlug),
-    queryFn: async (): Promise<VendorData | null> => {
-      if (!vendorSlug) {
-        throw new Error("Store ID is required");
-      }
-
-      const [storeDetails, storeItems] = await Promise.all([
-        fetchStoreDetails(vendorSlug),
-        fetchStoreItems(vendorSlug),
-      ]);
-
-      if (!storeDetails || !storeItems) {
-        throw new Error("Store not found or unavailable");
-      }
-
-      const convertedData = convertToVendorData(storeDetails, storeItems);
-      if (!convertedData) {
-        throw new Error("Failed to process store data");
-      }
-
-      console.log("Store details loaded successfully:", storeDetails.name);
-      return convertedData;
-    },
-    enabled: !!vendorSlug,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-};
+interface FoodDetails {
+  images: string;
+  long_desc: string;
+  name: string;
+  short_desc: string;
+  symbol: string;
+  price: string;
+  storeId: string;
+  maxQuantity: number;
+  itemId: string;
+  visible: boolean;
+  maxPrice: number;
+  discount: number;
+}
 
 const PLP: React.FC = () => {
   const vendor = useLocalSearchParams();
@@ -207,8 +48,22 @@ const PLP: React.FC = () => {
 
   // State
   const [searchString, setSearchString] = useState<string>("");
+  const [foodDetails] = useState<FoodDetails>({
+    images: "",
+    long_desc: "",
+    name: "",
+    short_desc: "",
+    symbol: "",
+    price: "",
+    storeId: "",
+    maxQuantity: 0,
+    itemId: "",
+    visible: true,
+    maxPrice: 0,
+    discount: 0,
+  });
 
-  // TanStack Query
+  // Custom hook for vendor data - File 2 style
   const {
     data: vendorData,
     isLoading,
@@ -217,6 +72,21 @@ const PLP: React.FC = () => {
     refetch,
     isRefetching,
   } = useVendorData(vendorSlug);
+
+  // BottomSheet setup
+  const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        {...props}
+      />
+    ),
+    []
+  );
 
   // Event handlers
   const handleRefresh = useCallback(() => {
@@ -233,67 +103,24 @@ const PLP: React.FC = () => {
 
   // Computed values
   const serviceable = useMemo(() => {
-    if (!vendorData) return false;
-
-    try {
-      const panIndia = !!vendorData?.panIndia;
-      const selectedCity = safeNormalize(selectedDetails?.city);
-      const vendorCity = safeNormalize(vendorData?.address?.city);
-
-      return panIndia || (!!selectedCity && selectedCity === vendorCity);
-    } catch (err) {
-      console.error("Error checking serviceability:", err);
-      return false;
-    }
+    return checkServiceability(vendorData, selectedDetails?.city);
   }, [vendorData, selectedDetails?.city]);
 
   const { vendorAddress, storeCategories, dropdownHeaders } = useMemo(() => {
-    if (!vendorData)
+    if (!vendorData) {
       return {
         vendorAddress: "",
         storeCategories: "",
         dropdownHeaders: [] as string[],
       };
-
-    const { locality, street, city, state, area_code } = vendorData.address || {};
-    const vendorAddress = [locality, street, city, state, area_code]
-      .filter(Boolean)
-      .join(", ");
-
-    const storeCategories = vendorData.storeSections
-      ?.map((section) =>
-        section
-          .replace(/_/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase()
-          .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
-      )
-      .join(", ") || "";
-
-    const dropdownHeaders = Array.from(
-      new Set(vendorData.catalogs.map((item) => item.category_id || ""))
-    );
-
-    return { vendorAddress, storeCategories, dropdownHeaders };
+    }
+    return computeVendorInfo(vendorData, vendorData.catalogs);
   }, [vendorData]);
 
-  // Error message helper
-  const getErrorMessage = (error: Error | null): string => {
-    if (!error) return "An unexpected error occurred";
-    
-    if (error.message.includes("Store ID is required")) {
-      return "Store ID is required";
-    }
-    if (error.message.includes("Store not found")) {
-      return "Store not found or unavailable";
-    }
-    if (error.message.includes("Failed to process")) {
-      return "Failed to process store data";
-    }
-    
-    return "Failed to load store details. Please check your connection.";
-  };
+  // Simple data flattening - File 2 style (all items at once)
+  const allItems = useMemo(() => {
+    return vendorData?.catalogs || [];
+  }, [vendorData]);
 
   // Render error component
   const renderError = () => (
@@ -344,63 +171,6 @@ const PLP: React.FC = () => {
     </SafeAreaView>
   );
 
-  // Choose PLP component by domain
-  const renderProductListingPage = () => {
-    if (!vendorData) return null;
-
-    const { domain, catalogs, _id: storeId, descriptor } = vendorData;
-
-    switch (domain) {
-      case "ONDC:RET10":
-        return (
-          <GroceryCardContainer
-            catalog={catalogs}
-            searchString={searchString}
-            storeId={storeId}
-            storeName={descriptor.name}
-          />
-        );
-
-      case "ONDC:RET12":
-        return (
-          <PLPFashion
-            headers={dropdownHeaders}
-            catalog={catalogs}
-            storeId={storeId}
-            storeName={descriptor.name}
-          />
-        );
-
-      case "ONDC:RET13":
-        return (
-          <PLPPersonalCare
-            providerId={storeId}
-            catalog={catalogs}
-            sidebarTitles={dropdownHeaders}
-            searchString={searchString}
-          />
-        );
-
-      case "ONDC:RET14":
-        return (
-          <PLPElectronics
-            catalog={catalogs}
-            sidebarTitles={dropdownHeaders}
-            searchString={searchString}
-            storeId={storeId}
-          />
-        );
-
-      case "ONDC:RET16":
-        return <PLPHomeAndDecor catalog={catalogs} storeId={storeId} />;
-
-      default:
-        return (
-          <Text style={styles.invalidDomainText}>Unsupported store type</Text>
-        );
-    }
-  };
-
   // Loading state
   if (isLoading) {
     return <Loader />;
@@ -430,9 +200,35 @@ const PLP: React.FC = () => {
   // Main render
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        data={[1]} // single container
+        renderItem={() => (
+          <View>
+            <Searchbox
+              search={onInputChanged}
+              placeHolder={vendorData.descriptor?.name || "Store"}
+              catalog={vendorData.catalogs || []}
+            />
+            <PLPBanner
+              address={vendorAddress}
+              descriptor={vendorData.descriptor}
+              storeSections={storeCategories}
+              geoLocation={vendorData.geoLocation}
+              userLocation={selectedDetails}
+              userAddress={selectedDetails?.fullAddress ?? ""}
+              vendorId={vendorSlug}
+            />
+
+            {/* This is where the magic happens - proper props like File 2 */}
+            {renderProductListingByDomain({
+              vendorData,
+              allItems,
+              dropdownHeaders,
+              searchString,
+              vendorSlug,
+            })}
+          </View>
+        )}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -441,135 +237,26 @@ const PLP: React.FC = () => {
             tintColor="#030303"
           />
         }
+        keyExtractor={() => "plp-content"}
         showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      />
+
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        handleIndicatorStyle={styles.bottomSheetIndicator}
+        backgroundStyle={styles.bottomSheetBackground}
+        backdropComponent={renderBackdrop}
       >
-        <Searchbox
-          search={onInputChanged}
-          placeHolder={vendorData.descriptor?.name || "Store"}
-          catalog={vendorData.catalogs || []}
-        />
-
-        <PLPBanner
-          address={vendorAddress}
-          descriptor={vendorData.descriptor}
-          storeSections={storeCategories}
-          geoLocation={vendorData.geoLocation}
-          userLocation={selectedDetails}
-          userAddress={selectedDetails?.fullAddress ?? ""}
-          vendorId={vendorSlug}
-        />
-
-        {renderProductListingPage()}
-      </ScrollView>
+        {foodDetails?.visible && (
+          <FoodDetailsComponent foodDetails={foodDetails} />
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 };
-
 export default PLP;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  errorText: {
-    color: "#DC2626",
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: "center",
-    marginBottom: 24,
-    fontWeight: "500",
-  },
-  retryButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 120,
-    alignItems: "center",
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  unserviceableContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingBottom: 30,
-  },
-  animationContainer: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-  lottieAnimation: {
-    width: widthPercentageToDP("100%"),
-    backgroundColor: "#fff",
-  },
-  messageContainer: {
-    height: 50,
-    alignItems: "center",
-    paddingHorizontal: 40,
-  },
-  unserviceableText: {
-    color: "#909095",
-    fontWeight: "500",
-    textAlign: "center",
-    fontSize: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#030303",
-    width: widthPercentageToDP("90%"),
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 50,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 20,
-  },
-  secondaryButton: {
-    borderColor: "#030303",
-    width: widthPercentageToDP("90%"),
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 50,
-    alignItems: "center",
-    borderWidth: 2,
-    marginVertical: 10,
-  },
-  secondaryButtonText: {
-    color: "#030303",
-    fontWeight: "600",
-    fontSize: 20,
-  },
-  invalidDomainText: {
-    color: "#666",
-    fontSize: 16,
-    textAlign: "center",
-    padding: 20,
-  },
-});
