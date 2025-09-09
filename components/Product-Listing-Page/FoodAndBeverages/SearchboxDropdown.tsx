@@ -30,7 +30,7 @@ const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
     <ScrollView
       style={styles.scrollView}
       showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled" // 👈 important for single tap
+      keyboardShouldPersistTaps="handled"
       nestedScrollEnabled={true}
     >
       {suggestions.slice(0, 8).map((item, index) => (
@@ -39,7 +39,7 @@ const SearchboxDropdown: React.FC<SearchboxDropdownProps> = ({
           key={`${item.id}-${index}`}
           item={item}
           onPress={() => {
-            inputRef?.current?.blur(); // 👈 blur input immediately
+            inputRef?.current?.blur();
             onItemPress?.(item);
           }}
         />

@@ -1,6 +1,5 @@
 import { FC } from "react";
-import { Text, StyleSheet, Animated } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Text, StyleSheet, Animated, View } from "react-native";
 import { useRef, useEffect } from "react";
 import FashionCard from "./FashionCard";
 
@@ -31,9 +30,9 @@ interface CatalogItem {
   veg: any;
   slug?: string;
   store?: { _id: string; name?: string; slug?: string; symbol?: string };
-  customizable?: boolean; // ✅ Add this
-  directlyLinkedCustomGroupIds?: string[]; // ✅ Add this
-  customizations?: { // ✅ Add this for fallback
+  customizable?: boolean;
+  directlyLinkedCustomGroupIds: string[];
+  customizations?: { 
     _id?: string;
     id?: string;
     groupId?: string;
@@ -43,7 +42,6 @@ interface CatalogItem {
     name: string;
   }[];
 }
-
 
 interface PLPCardContainerProps {
   catalog: CatalogItem[];
@@ -119,13 +117,6 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   selectedCategory = "All",
   storeId,
 }) => {
-  const bgColor = domainColor.slice(0, -3);
-  const gradientColors = [
-    bgColor + "1)",
-    bgColor + "0.7486)",
-    bgColor + "0.1)",
-  ];
-
   // Filter catalog based on selected category
   const getFilteredCatalog = (): CatalogItem[] => {
     if (
@@ -209,82 +200,77 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
     return <NoItemsDisplay category={selectedCategory} />;
   }
 
-return (
-  <LinearGradient
-    colors={[gradientColors[0], gradientColors[1], gradientColors[2]]}
-    start={[0, 0]}
-    end={[0, 0.1]}
-    style={styles.container}
-  >
-    {filteredCatalog.map((item, idx) => {
-      const name = item?.descriptor?.name || "";
-      const desc = item?.descriptor?.long_desc || "";
-      const value = item?.price?.value || 0;
-      const maxPrice = item?.price?.maximum_value || 0;
-      const discount =
-        item?.price?.offer_percent ||
-        (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
-      const image =
-        item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+  return (
+    <View style={styles.container}>
+      {filteredCatalog.map((item, idx) => {
+        const name = item?.descriptor?.name || "";
+        const desc = item?.descriptor?.long_desc || "";
+        const value = item?.price?.value || 0;
+        const maxPrice = item?.price?.maximum_value || 0;
+        const discount =
+          item?.price?.offer_percent ||
+          (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
+        const image =
+          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
 
-      const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
+        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-      // ✅ Extract customization group IDs
-      const directlyLinkedCustomGroupIds = item.directlyLinkedCustomGroupIds || 
-        item.customizations?.map(
-          customization => customization.groupId || customization.group_id || customization._id || customization.id
-        ).filter(Boolean) || [];
+        // ✅ Extract customization group IDs
+        const directlyLinkedCustomGroupIds = item.directlyLinkedCustomGroupIds || 
+          item.customizations?.map(
+            customization => customization.groupId || customization.group_id || customization._id || customization.id
+          ).filter(Boolean) || [];
 
-      // Existing storeId resolution logic
-      const resolveStoreId = (): string | undefined => {
-        if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
-          return item.provider.store_id;
+        // Existing storeId resolution logic
+        const resolveStoreId = (): string | undefined => {
+          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+            return item.provider.store_id;
+          }
+          if (item.store?._id && item.store._id !== "unknown-store") {
+            return item.store._id;
+          }
+          if (storeId && storeId !== "unknown-store") {
+            return storeId;
+          }
+          if (item.provider_id && item.provider_id !== "unknown-store") {
+            return item.provider_id;
+          }
+          return undefined;
+        };
+
+        const safeStoreId = resolveStoreId();
+
+        if (!safeStoreId) {
+          console.warn(
+            `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
+          );
         }
-        if (item.store?._id && item.store._id !== "unknown-store") {
-          return item.store._id;
-        }
-        if (storeId && storeId !== "unknown-store") {
-          return storeId;
-        }
-        if (item.provider_id && item.provider_id !== "unknown-store") {
-          return item.provider_id;
-        }
-        return undefined;
-      };
 
-      const safeStoreId = resolveStoreId();
-
-      if (!safeStoreId) {
-        console.warn(
-          `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
+        return (
+          <FashionCard
+            key={uniqueKey}
+            itemName={name}
+            desc={desc}
+            value={value}
+            maxPrice={maxPrice}
+            discount={discount}
+            image={image}
+            id={item.id}
+            catalogId={item.catalog_id}
+            storeId={safeStoreId}
+            slug={item.slug}
+            customizable={item.customizable || false} // ✅ Add customizable flag
+            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
+          />
         );
-      }
-
-      return (
-        <FashionCard
-          key={uniqueKey}
-          itemName={name}
-          desc={desc}
-          value={value}
-          maxPrice={maxPrice}
-          discount={discount}
-          image={image}
-          id={item.id}
-          catalogId={item.catalog_id}
-          storeId={safeStoreId}
-          slug={item.slug}
-          customizable={item.customizable || false} // ✅ Add customizable flag
-          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
-        />
-      );
-    })}
-  </LinearGradient>
-);
-
+      })}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: '#fff',
     borderRadius: 25,
     padding: 10,
     paddingTop: 20,

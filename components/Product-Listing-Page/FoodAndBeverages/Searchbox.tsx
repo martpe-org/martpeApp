@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { View, StyleSheet, TextInput, Animated, Platform } from "react-native";
 import SearchboxDropdown from "./SearchboxDropdown";
 import { MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CatalogItem {
   descriptor: {
     name: string;
-symbol:string
+    symbol: string;
   };
   id: string;
   slug?: string;
@@ -127,9 +128,14 @@ const Searchbox: React.FC<SearchboxProps> = ({
     setIsSearchboxActive(false);
     search("");
   };
+  const getTruncatedPlaceholder = (text: string, maxLength: number = 25) => {
+    return text.length > maxLength
+      ? `${text.substring(0, maxLength)}...`
+      : text;
+  };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.searchBoxContainer}>
         <MaterialIcons
           name="search"
@@ -143,11 +149,13 @@ const Searchbox: React.FC<SearchboxProps> = ({
           onSubmitEditing={handleSubmitEditing}
           value={searchInput}
           style={styles.searchBox}
-          placeholder={`Search in ${placeHolder}`}
+          placeholder={getTruncatedPlaceholder(`Search in ${placeHolder}`)}
           placeholderTextColor="#9CA3AF"
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
+          numberOfLines={1}
+          multiline={false}
         />
 
         {searchInput.length > 0 && (
@@ -171,7 +179,7 @@ const Searchbox: React.FC<SearchboxProps> = ({
           />
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -180,13 +188,12 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 1000,
     marginBottom: 10,
-    marginTop: 30,
     marginLeft: 50,
   },
   searchBoxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     marginHorizontal: 16,
     borderRadius: 12,
@@ -214,10 +221,11 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "400",
     color: "#1F2937",
     paddingVertical: 0,
+    maxWidth: "100%",
   },
   clearIcon: {
     marginLeft: 8,

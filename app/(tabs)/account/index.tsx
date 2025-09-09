@@ -42,6 +42,7 @@ const Profile = () => {
               </Text>
               !
             </Text>
+            <Text style={{fontSize:18,fontWeight:"bold", textAlign:"center", color:"red", marginTop:6}}>What are you shopping for today?</Text>
           </View>
 
           <TouchableOpacity
@@ -94,7 +95,10 @@ const Profile = () => {
           <TouchableOpacity style={styles.gridButton}>
             <Text style={styles.gridText}>My Complaints</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton}>
+          <TouchableOpacity
+            style={styles.gridButton}
+            onPress={() => router.push("/(tabs)/account/Faqs")}
+          >
             <Text style={styles.gridText}>FAQs</Text>
           </TouchableOpacity>
           <TouchableOpacity

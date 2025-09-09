@@ -1,147 +1,187 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  Linking, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ScrollView 
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from "react";
+import {
+  View,
+  Text,
+  Linking,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
+import { Entypo, Ionicons } from "@expo/vector-icons";
+
+import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ContactUs: React.FC = () => {
   const handleEmailPress = () => {
-    Linking.openURL('mailto:support@martpe.in');
+    Linking.openURL("mailto:support@martpe.in");
   };
 
   const handlePhonePress = () => {
-    Linking.openURL('tel:+917358301523');
+    Linking.openURL("tel:+917358301523");
   };
-    const handleLocationPress = () => {
-    const address = 'PNORM TECHNOLOGY PRIVATE LIMITED, Aster 4A, Klassik Landmark, Kasavanahalli Road, Carmelram, Bangalore South, Karnataka, 560035';
-    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
+  const handleLocationPress = () => {
+    const address =
+      "PNORM TECHNOLOGY PRIVATE LIMITED, Aster 4A, Klassik Landmark, Kasavanahalli Road, Carmelram, Bangalore South, Karnataka, 560035";
+    Linking.openURL(
+      `https://maps.google.com/?q=${encodeURIComponent(address)}`
+    );
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Contact Us</Text>
-        
-        <Text style={styles.description}>
-          We would love to hear from you! For any queries, feel free to write to us at:
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Entypo name="chevron-left" size={26} color="#111" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.title}>Contact Us</Text>
+          </View>
+        </View>
+        <Text style={styles.companyName}>
+          We would love to hear from you! For any queries, feel free to write to
+          us at:
         </Text>
-        
-        <TouchableOpacity onPress={handleEmailPress} style={styles.emailContainer}>
+        <TouchableOpacity
+          onPress={handleEmailPress}
+          style={styles.emailContainer}
+        >
           <Text style={styles.emailLink}>support@martpe.in</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Our Office</Text>
-        
+
         <View style={styles.officeInfo}>
           <View style={styles.officeHeader}>
-            <TouchableOpacity style={styles.officeDetails}
-              onPress={handleLocationPress}
-            activeOpacity={0.7}
-            >
-              <Text style={styles.companyName}>PNORM TECHNOLOGY PRIVATE LIMITED</Text>
-                          <Ionicons name="location" size={20} color="#e4522e" style={styles.locationIcon} />
+            <View style={styles.officeDetails}>
+              <Text style={styles.companyName}>
+                PNORM TECHNOLOGY PRIVATE LIMITED
+              </Text>
+              <Ionicons
+                name="location"
+                size={20}
+                color="#e4522e"
+                style={styles.locationIcon}
+                onPress={handleLocationPress}
+                activeOpacity={0.7}
+              />
 
-              <Text style={styles.addressText}>Aster 4A, Klassik Landmark,</Text>
+              <Text style={styles.addressText}>
+                Aster 4A, Klassik Landmark,
+              </Text>
               <Text style={styles.addressText}>Kasavanahalli Road,</Text>
-              <Text style={styles.addressText}>Carmelram, Bangalore South,</Text>
+              <Text style={styles.addressText}>
+                Carmelram, Bangalore South,
+              </Text>
               <Text style={styles.addressText}>Karnataka, 560035</Text>
               <Text style={styles.addressText}>India</Text>
-            </TouchableOpacity>
+            </View>
           </View>
-          
-          <TouchableOpacity onPress={handlePhonePress} style={styles.phoneContainer}>
-            <Ionicons name="call-outline" size={20} color="#0a0909" style={styles.phoneIcon} />
+
+          <TouchableOpacity
+            onPress={handlePhonePress}
+            style={styles.phoneContainer}
+          >
+            <Ionicons
+              name="call-outline"
+              size={20}
+              color="#0a0909"
+              style={styles.phoneIcon}
+            />
             <Text style={styles.phoneLink}>+91 7358301523</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  contentContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 40,
+    backgroundColor: "#f8f9fa",
   },
   content: {
-    maxWidth: 600,
-    alignSelf: 'center',
-    paddingHorizontal: 40,
-    width: '100%',
+    padding: 16,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 30,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 20,
+    marginLeft: 8,
+  },
+
+  backButton: {
+    padding: 4,
+    marginTop: -19,
+    marginLeft: -14,
   },
   description: {
     fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
     lineHeight: 24,
     marginBottom: 20,
   },
   emailContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 50,
   },
   emailLink: {
     fontSize: 18,
-    color: '#4A90E2',
-    textDecorationLine: 'underline',
+    color: "#4A90E2",
+    textDecorationLine: "underline",
   },
   sectionTitle: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#333",
+    textAlign: "center",
     marginBottom: 30,
   },
   officeInfo: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   officeHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 20,
     maxWidth: 400,
   },
   locationIcon: {
     marginTop: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   officeDetails: {
     flex: 1,
   },
   companyName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   addressText: {
     fontSize: 15,
-    color: '#666',
+    color: "#666",
     lineHeight: 22,
-    textAlign: 'center',
+    textAlign: "center",
   },
   phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 10,
   },
   phoneIcon: {
@@ -149,8 +189,8 @@ const styles = StyleSheet.create({
   },
   phoneLink: {
     fontSize: 16,
-    color: '#4A90E2',
-    textDecorationLine: 'underline',
+    color: "#4A90E2",
+    textDecorationLine: "underline",
   },
 });
 

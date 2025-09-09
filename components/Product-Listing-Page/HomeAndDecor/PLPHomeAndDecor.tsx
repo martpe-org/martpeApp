@@ -8,7 +8,7 @@ interface CatalogItem {
   bpp_uri: string;
   catalog_id: string;
   category_id: string;
-  provider: { store_id: string }; // ✅ Made required to match PLPCardContainer
+  provider: { store_id: string };
   descriptor: {
     images: string[];
     long_desc?: string;
@@ -28,8 +28,8 @@ interface CatalogItem {
   provider_id: string;
   quantity: { available: any; maximum: any };
   veg: any;
-  slug?: string; // ✅ Add slug to match PLPCardContainer
-  store?: { _id: string; name?: string; slug?: string; symbol?: string }; // ✅ Keep as optional
+  slug?: string;
+  store?: { _id: string; name?: string; slug?: string; symbol?: string };
 }
 
 interface PLPHomeAndDecorProps {
@@ -173,19 +173,17 @@ const PLPHomeAndDecor: React.FC<PLPHomeAndDecorProps> = ({ catalog }) => {
 
       {filteredCatalog.length > 0 ? (
         <PLPCardContainer 
-          domainColor="rgba(252, 225, 89, 1)" 
+          domainColor="#f8f7f4" 
           catalog={filteredCatalog}
           selectedCategory={activeTab}
-          // ✅ Removed hardcoded storeId - let PLPCardContainer resolve from items
         />
       ) : activeTab !== "Home & Decor" ? (
         <NoItemsDisplay />
       ) : (
         <PLPCardContainer 
-          domainColor="rgba(252, 225, 89, 1)" 
+          domainColor="#faf9f5" 
           catalog={catalog}
           selectedCategory="All"
-          // ✅ Removed hardcoded storeId - let PLPCardContainer resolve from items
         />
       )}
     </View>

@@ -1,4 +1,4 @@
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -10,6 +10,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import Svg, { Path } from "react-native-svg";
@@ -23,7 +25,7 @@ import {
 import { fetchSearchSuggesstions } from "./fetch-suggest";
 import { SuggestionsType } from "./fetch-suggest-type";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
 
 interface SelectedDetails {
@@ -219,78 +221,87 @@ const SearchScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <View style={styles.headerRow}>
-          <Feather
-            name="arrow-left"
-            style={styles.headerLeftIcon}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <View style={styles.headerContainer}>
+          <View style={styles.headerRow}>
+           <TouchableOpacity
             onPress={() => router.back()}
-          />
-          <Text style={styles.headerTitle}>Search anything you want</Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <TextInput
-            value={inputValue}
-            onChangeText={setInputValue}
-            autoFocus
-            placeholder={
-              placeHolder || `Search for '${searchTexts[searchTextIndex]}'`
-            }
-            style={styles.textInput}
-            selectionColor="#8E8A8A"
-            placeholderTextColor="#8E8A8A"
-            onSubmitEditing={handleSearchSubmit}
-            returnKeyType="search"
-          />
-          <TouchableOpacity
-            onPress={handleSearchSubmit}
-            style={styles.searchIcon}
+            style={styles.headerLeftIcon}
           >
-            <Feather name="search" size={20} color="#8E8A8A" />
+            <Entypo name="chevron-left" size={22} color="#111" />
           </TouchableOpacity>
-        </View>
-      </View>
+            <Text style={styles.headerTitle}>Search anything you want</Text>
+          </View>
 
-      {inputValue.length < 3 ? (
-        <View style={styles.recentSearchContainer}>
-          <Text style={styles.recentSearchHeader}>
-            {recentSearches.length > 0
-              ? "Recent Searches"
-              : "Discover something new!"}
-          </Text>
-          <View style={styles.recentSearchItemsContainer}>
-            {recentSearches.slice(0, 5).map((term, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.recentSearchItem}
-                onPress={() => navigateToSearch(term)}
-              >
-                <Feather name="clock" size={13} color="#35374B" />
-                <Text style={styles.recentSearchText}>
-                  {term.length < 20 ? term : term.slice(0, 20) + "..."}
-                </Text>
-                <TouchableOpacity onPress={() => removeSearchTerm(term)}>
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={14}
-                    color="#35374B"
-                  />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.searchContainer}>
+            <TextInput
+              value={inputValue}
+              onChangeText={setInputValue}
+              autoFocus
+              placeholder={
+                placeHolder || `Search for '${searchTexts[searchTextIndex]}'`
+              }
+              style={styles.textInput}
+              selectionColor="#8E8A8A"
+              placeholderTextColor="#8E8A8A"
+              onSubmitEditing={handleSearchSubmit}
+              returnKeyType="search"
+            />
+            <TouchableOpacity
+              onPress={handleSearchSubmit}
+              style={styles.searchIcon}
+            >
+              <Feather name="search" size={20} color="#8E8A8A" />
+            </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        <View>
-          <Text style={styles.suggestionsHeader}>Suggestions</Text>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="red" />
+
+        {inputValue.length < 3 ? (
+          <View style={styles.recentSearchContainer}>
+            <Text style={styles.recentSearchHeader}>
+              {recentSearches.length > 0
+                ? "Recent Searches"
+                : "Discover something new!"}
+            </Text>
+            <View style={styles.recentSearchItemsContainer}>
+              {recentSearches.slice(0, 5).map((term, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.recentSearchItem}
+                  onPress={() => navigateToSearch(term)}
+                >
+                  <Feather name="clock" size={13} color="#35374B" />
+                  <Text style={styles.recentSearchText}>
+                    {term.length < 20 ? term : term.slice(0, 20) + "..."}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeSearchTerm(term)}>
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={14}
+                      color="#35374B"
+                    />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
             </View>
-          ) : suggestions.length > 0 ? (
-            <SafeAreaView style={styles.suggestionsContainer}>
-              <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          </View>
+        ) : (
+          <View style={styles.suggestionsWrapper}>
+            <Text style={styles.suggestionsHeader}>Suggestions</Text>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="red" />
+              </View>
+            ) : suggestions.length > 0 ? (
+              <ScrollView 
+                style={styles.suggestionsContainer}
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+              >
                 {suggestions.map((suggestion, index) => (
                   <TouchableOpacity
                     onPress={() => handleSuggestionPress(suggestion)}
@@ -316,14 +327,14 @@ const SearchScreen: React.FC = () => {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </SafeAreaView>
-          ) : (
-            <View style={styles.noResultsContainer}>
-              <Text>No results found</Text>
-            </View>
-          )}
-        </View>
-      )}
+            ) : (
+              <View style={styles.noResultsContainer}>
+                <Text>No results found</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -335,6 +346,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.WHITE_COLOR,
     paddingVertical: width * 0.1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   headerContainer: {
     paddingHorizontal: 16,
@@ -376,6 +390,7 @@ const styles = StyleSheet.create({
   recentSearchContainer: {
     marginTop: 10,
     paddingHorizontal: 15,
+    flex: 1,
   },
   recentSearchItemsContainer: {
     marginTop: 10,
@@ -401,6 +416,9 @@ const styles = StyleSheet.create({
     color: "#35374B",
     marginHorizontal: width * 0.01,
   },
+  suggestionsWrapper: {
+    flex: 1,
+  },
   suggestionsHeader: {
     marginHorizontal: 20,
     marginBottom: 10,
@@ -411,7 +429,6 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     flex: 1,
-    minHeight: height * 0.8,
   },
   searchRow: {
     paddingVertical: 15,

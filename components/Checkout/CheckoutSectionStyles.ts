@@ -118,6 +118,8 @@ export const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#1a1a1a",
     marginBottom: 4,
+    flexShrink: 1,
+    marginRight: 8,
   },
   itemPrice: {
     fontSize: 12,

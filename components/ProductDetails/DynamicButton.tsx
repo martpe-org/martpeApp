@@ -4,11 +4,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import useUserDetails from "../../hook/useUserDetails";
 import { useToast } from "react-native-toast-notifications";
+import Loader from "../common/Loader";
 
 interface DynamicButtonProps {
   storeId: string;
@@ -62,7 +62,6 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
       );
 
       if (success) {
-        toast.show("Item added to cart successfully!", { type: "success" });
         onAddSuccess();
       } else {
         toast.show("Failed to add to cart", { type: "danger" });
@@ -77,9 +76,8 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
 
  const getButtonContent = () => {
     if (loading) {
-      return <ActivityIndicator color="#fff" size="small" />;
+      return <Loader />;
     }
-    
     if (customizable && directlyLinkedCustomGroupIds.length > 0) {
       return (
         <View style={styles.buttonContent}>
@@ -88,7 +86,6 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
         </View>
       );
     }
-    
     return <Text style={styles.text}>Add</Text>;
   };
 
