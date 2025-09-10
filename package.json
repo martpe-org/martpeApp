@@ -14,9 +14,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
-    "@expo/config-plugins": "~10.1.1",
     "@expo/plist": "^0.3.5",
-    "@expo/prebuild-config": "~9.0.0",
     "@expo/vector-icons": "^14.1.0",
     "@gorhom/bottom-sheet": "^5.1.8",
     "@react-native-async-storage/async-storage": "2.1.2",
@@ -42,7 +40,7 @@
     "expo-linking": "~7.1.7",
     "expo-location": "~18.1.6",
     "expo-razorpay": "^2.2.8",
-    "expo-router": "~5.1.5",
+    "expo-router": "~5.1.6",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
@@ -50,7 +48,6 @@
     "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "geolib": "^3.3.4",
- 
     "i18next": "^25.3.2",
     "lottie-react-native": "7.2.2",
     "react": "19.0.0",
@@ -67,7 +64,6 @@
     "react-native-paper": "^5.14.5",
     "react-native-radio-buttons-group": "^3.1.0",
     "react-native-ratings": "^8.1.0",
-    "react-native-razorpay": "^2.3.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-reanimated-carousel": "^4.0.2",
     "react-native-responsive-screen": "^1.4.2",
@@ -94,7 +90,6 @@
     "@types/react": "~19.0.10",
     "@types/react-dom": "~18.2.25",
     "@types/react-native-vector-icons": "^6.4.18",
-    "eas-cli": "^16.18.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "metro": "^0.82.0",
@@ -105,10 +100,6 @@
   },
   "private": true,
   "packageManager": "yarn@1.22.19",
-  "resolutions": {
-    "@expo/config-plugins": "~10.1.1",
-    "@expo/prebuild-config": "~9.0.0"
-  },
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {

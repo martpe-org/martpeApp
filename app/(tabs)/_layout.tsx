@@ -2,7 +2,7 @@ import { router, Tabs } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
 import { useCartStore } from "../../state/useCartStore";
-import { useHideTabBarStore } from "../../state/hideTabBar";
+import { useHideTabBarStore } from "../../components/common/hideTabBar";
 import {
   CartTab,
   Hometab,

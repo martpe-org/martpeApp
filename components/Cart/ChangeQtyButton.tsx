@@ -1,17 +1,17 @@
+import { removeCartItems } from "@/components/Cart/api/removeCartItems";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useCartStore } from "../../state/useCartStore";
-import useUserDetails from "../../hook/useUserDetails";
 import { useToast } from "react-native-toast-notifications";
+import useUserDetails from "../../hook/useUserDetails";
+import { useCartStore } from "../../state/useCartStore";
 import CustomizationGroup from "../ProductDetails/CustomizationGroup";
-import { removeCartItems } from "@/state/removeCartItems";
 
 interface Props {
   cartItemId: string;
@@ -144,7 +144,9 @@ const ChangeQtyButton: React.FC<Props> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.dialogContainer}>
-            <Text style={styles.dialogTitle}>Repeat previous customization?</Text>
+            <Text style={styles.dialogTitle}>
+              Repeat previous customization?
+            </Text>
             <View style={styles.dialogButtons}>
               <TouchableOpacity
                 style={[styles.dialogButton, styles.outlineButton]}

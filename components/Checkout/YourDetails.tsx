@@ -1,30 +1,33 @@
-import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TextInput } from "react-native";
+import React, { useCallback, useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import useUserDetails from "../../hook/useUserDetails";
-import useDeliveryStore from "../../state/deliveryAddressStore";
+import useDeliveryStore from "../address/deliveryAddressStore";
 import Loader from "../common/Loader";
 
 interface YourDetailsProps {
   onDeliveryInstructionsChange?: (instructions: string) => void;
 }
 
-export const YourDetails: React.FC<YourDetailsProps> = ({ 
-  onDeliveryInstructionsChange 
+export const YourDetails: React.FC<YourDetailsProps> = ({
+  onDeliveryInstructionsChange,
 }) => {
   const { userDetails, isLoading } = useUserDetails();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
 
-  const handleInstructionsChange = useCallback((text: string) => {
-    setDeliveryInstructions(text);
-    onDeliveryInstructionsChange?.(text);
-  }, [onDeliveryInstructionsChange]);
+  const handleInstructionsChange = useCallback(
+    (text: string) => {
+      setDeliveryInstructions(text);
+      onDeliveryInstructionsChange?.(text);
+    },
+    [onDeliveryInstructionsChange]
+  );
 
   // Show loading indicator while user details are being fetched
   if (isLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <Loader color="#666"  />
+        <Loader color="#666" />
       </View>
     );
   }
@@ -72,9 +75,7 @@ export const YourDetails: React.FC<YourDetailsProps> = ({
           onChangeText={handleInstructionsChange}
           maxLength={200}
         />
-        <Text style={styles.charCount}>
-          {deliveryInstructions.length}/200
-        </Text>
+        <Text style={styles.charCount}>{deliveryInstructions.length}/200</Text>
       </View>
     </View>
   );
@@ -92,19 +93,19 @@ const styles = StyleSheet.create({
     borderTopStartRadius: 10,
   },
   loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 100,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 100,
   },
   emptyText: {
     fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
+    color: "#999",
+    fontStyle: "italic",
   },
   row: {
     marginBottom: 8,
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     color: "#333",
     lineHeight: 20,
   },
-  bold: { 
+  bold: {
     fontWeight: "600",
     fontSize: 16,
     color: "#000",
@@ -124,8 +125,8 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 8,
   },
   input: {
@@ -139,8 +140,8 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
+    color: "#999",
+    textAlign: "right",
     marginTop: 4,
   },
 });

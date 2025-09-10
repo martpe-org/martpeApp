@@ -1,22 +1,22 @@
+import { FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
+import useDeliveryStore from "@/components/address/deliveryAddressStore";
+import useUserDetails from "@/hook/useUserDetails";
+import { useCheckoutStore } from "@/state/useCheckoutStore";
+import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
   Dimensions,
-  ScrollView,
   Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useCheckoutStore } from "@/state/useCheckoutStore";
-import { FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
-import useUserDetails from "@/hook/useUserDetails";
-import useDeliveryStore from "@/state/deliveryAddressStore";
-import CheckoutContent from "./CheckoutContent";
 import Loader from "../common/Loader";
-import { router } from "expo-router";
+import CheckoutContent from "./CheckoutContent";
 
 const { height } = Dimensions.get("window");
 
@@ -38,9 +38,7 @@ const CheckoutBtn: React.FC<CheckoutBtnProps> = ({ cart }) => {
     setCheckoutData,
   } = useCheckoutStore();
 
-
   const handleCheckout = async () => {
-    
     if (!selectedDetails?.addressId) {
       return;
     }

@@ -8,7 +8,6 @@ import {
   RefreshControl,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { BackArrow } from "../../../constants/icons/commonIcons";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";

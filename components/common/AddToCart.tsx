@@ -1,9 +1,9 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { View } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
-import DynamicButton from "./DynamicButton";
 import ChangeQtyButton from "../Cart/ChangeQtyButton";
-import CustomizationGroup from "./CustomizationGroup";
+import CustomizationGroup from "../ProductDetails/CustomizationGroup";
+import DynamicButton from "./DynamicButton";
 
 interface AddToCartProps {
   price: number;
@@ -48,7 +48,11 @@ const AddToCart: FC<AddToCartProps> = ({
       price,
     });
 
-    if (!storeId || storeId === "unknown-store" || storeId === "default-provider") {
+    if (
+      !storeId ||
+      storeId === "unknown-store" ||
+      storeId === "default-provider"
+    ) {
       console.error("❌ AddToCart failed: invalid storeId", {
         slug,
         catalogId,
@@ -99,7 +103,7 @@ const AddToCart: FC<AddToCartProps> = ({
         />
       )}
 
-  {/* Customization Modal */}
+      {/* Customization Modal */}
       {customizable && directlyLinkedCustomGroupIds.length > 0 && (
         <CustomizationGroup
           productSlug={slug}

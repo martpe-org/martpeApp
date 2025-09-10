@@ -6,7 +6,7 @@ interface LoaderProps {
   color?: string;
 }
 
-const Loader: React.FC<LoaderProps> = ({ size = "large", color = "#ff0000" }) => {
+const Loader: React.FC<LoaderProps> = ({ size = "small", color = "red" }) => {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color={color} />

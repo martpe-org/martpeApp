@@ -1,115 +1,26 @@
-import React, { useRef, useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
-  Dimensions,
-  ScrollView,
-} from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import OfferCard3 from "../../../../components/Categories/OfferCard3";
-import Search from "../../../../components/common/Search";
-import { fashionCategoryData } from "../../../../constants/categories";
+import React from "react";
+import { SafeAreaView, ScrollView } from "react-native";
+import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
-import { fetchHomeByDomain } from "../../../../hook/fetch-domain-data";
-import { Store2 } from "../../../../hook/fetch-domain-type";
-import StoreCard3 from "../../../../components/Categories/StoreCard3";
-import { Entypo, Ionicons } from "@expo/vector-icons";
-import { styles } from "./cat";
+import { fashionCategoryData } from "../../../../constants/categories";
+import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
+import { styles } from "@/components/Categories/cat";
+import { CategoryHeader, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
 
-const { width } = Dimensions.get("window");
-const domain = "ONDC:RET12";
-
-// ✅ Slugify fallback
-const slugify = (name: string, fallback: string) =>
-  name
-    ? name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "")
-    : fallback;
-
-// ✅ Store transform
-const transformStoreData = (stores: Store2[]) => {
-  return stores.map((store, index) => ({
-    id: store.provider_id || `store-${index}`,
-    slug: store.slug || slugify(store.name, store.provider_id || `store-${index}`),
-    descriptor: {
-      name: store.name,
-      symbol: store.symbol,
-      images: store.images,
-    },
-    address: {
-      city: store.address?.city || "",
-      state: store.address?.state || "",
-    },
-    geoLocation: {
-      lat: store.gps?.lat,
-      lng: store.gps?.lon,
-    },
-    calculated_max_offer: {
-      percent: store.maxStoreItemOfferPercent || 0,
-    },
-  }));
-};
-
-// ✅ Domain fetch hook
-const useDomainData = (lat?: number, lng?: number, pincode?: string) => {
-  return useQuery({
-    queryKey: ["domainData", domain, lat, lng, pincode],
-    queryFn: async () => {
-      if (!lat || !lng || !pincode) {
-        throw new Error("Location data is required");
-      }
-      const response = await fetchHomeByDomain(lat, lng, pincode, domain, 1, 20);
-      if (!response) throw new Error("Failed to fetch domain data");
-
-      return {
-        stores: transformStoreData(response.stores.items || []),
-      };
-    },
-    enabled: !!lat && !!lng && !!pincode,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 3,
-  });
-};
 
 function Fashion() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
   const pincode = selectedAddress?.pincode || selectedAddress || "110001";
 
   const { data: domainData, isLoading } = useDomainData(
+    DOMAINS.FASHION,
     selectedAddress?.lat,
     selectedAddress?.lng,
     pincode
   );
 
   const storesData = domainData?.stores || [];
-
-  // ✅ Carousel State
-  const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
-
-  // ✅ Auto-scroll every 3s
-  useEffect(() => {
-    if (!storesData.length) return;
-    const timer = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % storesData.length;
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
-        animated: true,
-      });
-      setActiveIndex(nextIndex);
-    }, 3000);
-
-    return () => clearInterval(timer);
-  }, [activeIndex, storesData.length]);
 
   if (isLoading) {
     return (
@@ -123,151 +34,30 @@ function Fashion() {
     router.push("/search");
   };
 
-  const renderSubCategories = () => {
-    return fashionCategoryData.slice(0, 8).map((subCategory) => (
-      <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/[search]",
-            params: { search: subCategory.name, domainData: domain },
-          })
-        }
-        style={styles.subCategory}
-        key={subCategory.id}
-      >
-        <View style={styles.subCategoryImage}>
-          <Image
-            source={{ uri: subCategory.image }}
-            resizeMode="contain"
-            style={{ width: 80, height: 80 }}
-          />
-        </View>
-        <Text style={styles.subHeadingTextUp} numberOfLines={1}>
-          {subCategory.name}
-        </Text>
-      </TouchableOpacity>
-    ));
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Search Header */}
-        <View style={styles.headerContainer}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
-          </TouchableOpacity>
-          <View style={styles.searchWrapper}>
-            <Search onPress={handleSearchPress} />
-          </View>
-        </View>
+        <CategoryHeader onSearchPress={handleSearchPress} />
 
-        {/* ✅ Offers Section with auto-scroll + dots */}
-        {storesData.length > 0 && (
-          <View>
-            <FlatList
-              ref={flatListRef}
-              data={storesData}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => `offer-${item.id}-${index}`}
-              renderItem={({ item }) => (
-                <View style={{ width: width * 0.8, alignItems: "center" }}>
-                  <OfferCard3 storeData={item} />
-                </View>
-              )}
-              onMomentumScrollEnd={(ev) => {
-                const index = Math.round(
-                  ev.nativeEvent.contentOffset.x / (width * 0.8)
-                );
-                setActiveIndex(index);
-              }}
-            />
-
-            {/* Pagination Dots */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                marginTop: 10,
-              }}
-            >
-              {storesData.map((_, index) => (
-                <View
-                  key={index}
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 4,
-                    marginHorizontal: 4,
-                    backgroundColor:
-                      activeIndex === index ? "#E11D48" : "#ccc",
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-        )}
+        {/* Offers Section with auto-scroll + dots */}
+        <OffersCarousel storesData={storesData} activeColor="#E11D48" />
 
         {/* Shop by Category Section */}
-        <View style={styles.section}>
-          <View style={styles.subHeading}>
-            <View style={styles.line} />
-            <Text style={styles.subHeadingText}>Shop by Category</Text>
-            <View style={styles.line} />
-          </View>
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/home/result/[search]",
-                params: { search: "fashion", domainData: domain },
-              })
-            }
-            style={styles.viewMoreButton}
-          >
-            <Text style={styles.viewMoreButtonText}>View More</Text>
-            <Image
-              source={require("../../../../assets/right_arrow.png")}
-              style={{ marginLeft: 5 }}
-            />
-          </TouchableOpacity>
-          <View style={styles.subCategories}>{renderSubCategories()}</View>
-        </View>
+        <SubCategoriesSection
+          categoryData={fashionCategoryData}
+          domain={DOMAINS.FASHION}
+          sectionTitle="Shop by Category"
+          searchCategory="fashion"
+          useLinearGradient={false}
+        />
 
         {/* Stores Section */}
-        <View style={styles.section}>
-          <View style={styles.subHeading}>
-            <Text style={styles.subHeadingText}>
-              <View style={styles.line} />
-              Your Nearby Fashion Outlets
-              <View style={styles.line} />
-            </Text>
-          </View>
-
-          <FlatList
-            data={storesData}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 10 }}
-            keyExtractor={(item, index) => `store-${item.id}-${index}`}
-            renderItem={({ item }) => (
-              <View style={{ width: 300, height: 320, marginRight: 6 , marginLeft:-10, marginBottom:-20}}>
-                <StoreCard3
-                  storeData={item}
-                  categoryFiltered={[]}
-                  userLocation={{
-                    lat: selectedAddress?.lat || 0,
-                    lng: selectedAddress?.lng || 0,
-                  }}
-                />
-              </View>
-            )}
-          />
-        </View>
+        <StoresSection
+          storesData={storesData}
+          storesSectionTitle="Your Nearby Fashion Outlets"
+          selectedAddress={selectedAddress}
+        />
       </ScrollView>
     </SafeAreaView>
   );

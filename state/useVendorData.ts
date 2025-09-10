@@ -4,7 +4,6 @@ import { fetchStoreItems } from "@/components/store/fetch-store-items";
 import { FetchStoreItemsResponseType, StoreItem } from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
 
-
 // Types
 interface ComponentCatalogItem {
   bpp_id: string;
@@ -38,7 +37,7 @@ interface ComponentCatalogItem {
 }
 
 interface VendorData {
-  _id: string; // This is crucial for cart functionality
+  _id: string;
   address?: {
     area_code?: string;
     city?: string;
@@ -62,7 +61,7 @@ interface VendorData {
   hyperLocal: boolean;
 }
 
-// Convert backend data to component format - File 2 style
+// Convert backend data to component format - OPTIMIZED
 const convertToVendorData = (
   storeDetails: FetchStoreDetailsResponseType,
   storeItems: FetchStoreItemsResponseType
@@ -70,9 +69,15 @@ const convertToVendorData = (
   try {
     if (!storeDetails || !storeItems?.results) return null;
 
-    const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
-      (item: StoreItem) => ({
-        bpp_id: storeDetails._id, // Use storeDetails._id consistently
+    // Use a more efficient mapping approach
+    const catalogItems: ComponentCatalogItem[] = storeItems.results.map((item: StoreItem) => {
+      const isNonVeg = item.diet_type === "non_veg";
+      const priceValue = item.price?.value ?? 0;
+      const maxPriceValue = item.price?.maximum_value ?? priceValue;
+      const quantity = item.quantity ?? 0;
+
+      return {
+        bpp_id: storeDetails._id,
         bpp_uri: "",
         catalog_id: item.catalog_id || "",
         category_id: item.category_id || "",
@@ -85,24 +90,26 @@ const convertToVendorData = (
         },
         id: item.slug || item._id || "",
         location_id: item.location_id || "",
-        non_veg: item.diet_type === "non_veg",
+        non_veg: isNonVeg,
         price: {
-          maximum_value: item.price?.maximum_value ?? item.price?.value ?? 0,
+          maximum_value: maxPriceValue,
           offer_percent: item.price?.offerPercent ?? null,
           offer_value: null,
-          value: item.price?.value ?? 0,
+          value: priceValue,
         },
         quantity: {
-          available: { count: item.quantity ?? 0 },
-          maximum: { count: item.quantity ?? 0 },
+          available: { count: quantity },
+          maximum: { count: quantity },
         },
-        provider_id: storeDetails._id, // Use storeDetails._id consistently
-        veg: item.diet_type === "veg" || item.diet_type !== "non_veg",
-      })
-    );
+        provider_id: storeDetails._id,
+        veg: !isNonVeg,
+        store_id: storeDetails._id,
+        storeId: storeDetails._id,
+      };
+    });
 
     return {
-      _id: storeDetails._id, // This _id is crucial for cart functionality
+      _id: storeDetails._id,
       address: {
         area_code: storeDetails.address?.area_code || "",
         city: storeDetails.address?.city || "",
@@ -155,7 +162,7 @@ const getErrorMessage = (error: Error | null): string => {
   return "Failed to load store details. Please check your connection.";
 };
 
-// Custom hook for fetching vendor data - File 2 style
+// OPTIMIZED custom hook for fetching vendor data
 export const useVendorData = (vendorSlug: string) => {
   return useQuery({
     queryKey: QUERY_KEYS.vendorData(vendorSlug),
@@ -164,6 +171,7 @@ export const useVendorData = (vendorSlug: string) => {
         throw new Error("Store ID is required");
       }
 
+      // Parallel fetch for better performance
       const [storeDetails, storeItems] = await Promise.all([
         fetchStoreDetails(vendorSlug),
         fetchStoreItems(vendorSlug),
@@ -178,14 +186,46 @@ export const useVendorData = (vendorSlug: string) => {
         throw new Error("Failed to process store data");
       }
 
-      console.log("Store details loaded successfully:", storeDetails.name);
+      console.log(`Store loaded: ${storeDetails.name} (${convertedData.catalogs.length} items)`);
       return convertedData;
     },
     enabled: !!vendorSlug,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // AGGRESSIVE CACHING FOR STORE DATA
+    staleTime: 1000 * 60 * 15, // 15 minutes (stores don't change frequently)
+    gcTime: 1000 * 60 * 60, // 1 hour in cache
+    refetchOnWindowFocus: false, // Don't refetch when returning to app
+    refetchOnMount: false, // Don't refetch on mount if data exists
+    refetchOnReconnect: true, // Only refetch on network reconnect
+    retry: 2, // Reduced retry attempts
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Faster retry
+    // Add network mode for offline support
+    networkMode: 'online',
+  });
+};
+
+// SEPARATE HOOK FOR STORE DETAILS ONLY (lighter payload)
+export const useStoreDetails = (vendorSlug: string) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.storeDetails(vendorSlug),
+    queryFn: () => fetchStoreDetails(vendorSlug),
+    enabled: !!vendorSlug,
+    staleTime: 1000 * 60 * 30, // 30 minutes for basic store info
+    gcTime: 1000 * 60 * 60 * 2, // 2 hours in cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
+// SEPARATE HOOK FOR STORE ITEMS ONLY
+export const useStoreItems = (vendorSlug: string) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.storeItems(vendorSlug),
+    queryFn: () => fetchStoreItems(vendorSlug),
+    enabled: !!vendorSlug,
+    staleTime: 1000 * 60 * 10, // 10 minutes for items (may change more frequently)
+    gcTime: 1000 * 60 * 30, // 30 minutes in cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };
 

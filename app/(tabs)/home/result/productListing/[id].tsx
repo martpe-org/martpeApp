@@ -15,11 +15,11 @@ import PLPBanner from "../../../../../components/Product-Listing-Page/FoodAndBev
 import Searchbox from "../../../../../components/Product-Listing-Page/FoodAndBeverages/Searchbox";
 import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../../components/common/Loader";
-import useDeliveryStore from "../../../../../state/deliveryAddressStore";
 import { useVendorData } from "@/state/useVendorData";
 import { checkServiceability, computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
 import { getErrorMessage } from "@/utility/CheckoutUtils";
 import {styles} from "./PlpStyles";
+import useDeliveryStore from "@/components/address/deliveryAddressStore";
 
 // Helper functions
 const getFirst = (maybeArr: string | string[] | undefined): string =>

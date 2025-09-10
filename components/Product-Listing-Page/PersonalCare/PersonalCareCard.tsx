@@ -1,14 +1,14 @@
+import AddToCart from "@/components/common/AddToCart";
+import ImageComp from "@/components/common/ImageComp";
+import { router } from "expo-router";
 import React, { useEffect } from "react";
 import {
+  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Dimensions,
 } from "react-native";
-import { router } from "expo-router";
-import ImageComp from "@/components/common/ImageComp";
-import AddToCart from "@/components/ProductDetails/AddToCart";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.46;
@@ -52,20 +52,18 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   const handlePress = () => {
     router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
   };
-const isMongoId = (id?: string): boolean =>
-  !!id && /^[0-9a-fA-F]{24}$/.test(id);
+  const isMongoId = (id?: string): boolean =>
+    !!id && /^[0-9a-fA-F]{24}$/.test(id);
 
-const resolveStoreId = (): string | undefined => {
-  if (isMongoId(item?.store?._id)) return item!.store!._id;
-  if (isMongoId(item?.provider?.store_id)) return item!.provider!.store_id;
-  if (isMongoId(item?.store_id)) return item!.store_id;
-  if (isMongoId(item?.provider_id)) return item!.provider_id;
-  if (isMongoId(typeof providerId === "string" ? providerId : undefined))
-    return providerId as string;
-  return undefined;
-};
-
-
+  const resolveStoreId = (): string | undefined => {
+    if (isMongoId(item?.store?._id)) return item!.store!._id;
+    if (isMongoId(item?.provider?.store_id)) return item!.provider!.store_id;
+    if (isMongoId(item?.store_id)) return item!.store_id;
+    if (isMongoId(item?.provider_id)) return item!.provider_id;
+    if (isMongoId(typeof providerId === "string" ? providerId : undefined))
+      return providerId as string;
+    return undefined;
+  };
 
   const storeId = resolveStoreId();
 
@@ -84,30 +82,29 @@ const resolveStoreId = (): string | undefined => {
     return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
   };
 
-const renderAddToCart = () => {
-  if (!storeId) {
+  const renderAddToCart = () => {
+    if (!storeId) {
+      return (
+        <View style={styles.cartWrapper}>
+          <Text style={styles.errorText}>Store ID missing</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.cartWrapper}>
-        <Text style={styles.errorText}>Store ID missing</Text>
+        <AddToCart
+          storeId={storeId}
+          slug={slug || id}
+          catalogId={catalogId || item?.catalog_id || ""}
+          price={price}
+          productName={title} // ✅ Add product name
+          customizable={false} // ✅ Add customizable flag (personal care items are typically not customizable)
+          directlyLinkedCustomGroupIds={[]} // ✅ Add empty array for customization groups
+        />
       </View>
     );
-  }
-
-  return (
-    <View style={styles.cartWrapper}>
-      <AddToCart
-        storeId={storeId}
-        slug={slug || id}
-        catalogId={catalogId || item?.catalog_id || ""}
-        price={price}
-        productName={title} // ✅ Add product name
-        customizable={false} // ✅ Add customizable flag (personal care items are typically not customizable)
-        directlyLinkedCustomGroupIds={[]} // ✅ Add empty array for customization groups
-      />
-    </View>
-  );
-};
-
+  };
 
   return (
     <TouchableOpacity
@@ -140,9 +137,7 @@ const renderAddToCart = () => {
 
         <View style={styles.priceRow}>
           <Text style={styles.price}>₹{price}</Text>
-          {discount > 1 && (
-            <Text style={styles.discount}>{discount}% Off</Text>
-          )}
+          {discount > 1 && <Text style={styles.discount}>{discount}% Off</Text>}
         </View>
       </View>
 

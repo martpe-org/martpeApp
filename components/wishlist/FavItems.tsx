@@ -1,18 +1,18 @@
+import { FontAwesome } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { FC } from "react";
 import {
   Dimensions,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StyleSheet,
 } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useFavoriteStore } from "../../state/useFavoriteStore";
-import { useRouter } from "expo-router";
-import ImageComp from "../../components/common/ImageComp";
 import { Toast } from "react-native-toast-notifications";
-import AddToCart from "../ProductDetails/AddToCart";
+import ImageComp from "../../components/common/ImageComp";
+import { useFavoriteStore } from "../../state/useFavoriteStore";
+import AddToCart from "../common/AddToCart";
 
 const { width: screenWidth } = Dimensions.get("screen");
 
@@ -75,8 +75,9 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
             </View>
 
             {/* Content */}
-            <TouchableOpacity style={styles.cardContent} 
-             onPress={() =>
+            <TouchableOpacity
+              style={styles.cardContent}
+              onPress={() =>
                 router.push({
                   pathname:
                     "/(tabs)/home/result/productDetails/[productDetails]",
@@ -118,7 +119,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   )}
                 </View>
               </View>
-              <View style={{ justifyContent:"flex-end" ,}}>
+              <View style={{ justifyContent: "flex-end" }}>
                 <AddToCart
                   price={item.price?.value}
                   storeId={item.store_id}

@@ -2,7 +2,7 @@ import ImageComp from "@/components/common/ImageComp";
 import { router } from "expo-router";
 import { FC, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import AddToCart from "../../ProductDetails/AddToCart";
+import AddToCart from "../../common/AddToCart";
 
 interface FashionCardProps {
   itemName: string;

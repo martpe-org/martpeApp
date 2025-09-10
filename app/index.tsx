@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Redirect } from "expo-router";
-import { ToastProvider } from "react-native-toast-notifications";
+import useDeliveryStore from "@/components/address/deliveryAddressStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Redirect } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ToastProvider } from "react-native-toast-notifications";
 import useUserDetails from "../hook/useUserDetails";
-import useDeliveryStore from "@/state/deliveryAddressStore";
 import { isTokenValid } from "../utility/token";
 
 export default function Page() {
@@ -11,7 +11,7 @@ export default function Page() {
   const { loadDeliveryDetails } = useDeliveryStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+
   // ✅ Create QueryClient once
   const [queryClient] = useState(() => new QueryClient());
 
@@ -28,14 +28,14 @@ export default function Page() {
         setIsLoading(false);
       }
     };
-    
+
     initializeApp();
   }, [getUserDetails, loadDeliveryDetails]);
 
   // ✅ Handle authentication state changes
   useEffect(() => {
     console.log("User details updated:", userDetails);
-    
+
     if (!userDetails) {
       setIsLoggedIn(false);
       setIsLoading(false);
@@ -45,10 +45,10 @@ export default function Page() {
     const { accessToken, refreshToken } = userDetails;
     const isAccessTokenValid = isTokenValid(accessToken);
     const isRefreshTokenValid = isTokenValid(refreshToken);
-    
-    console.log("Token validation:", { 
-      isAccessTokenValid, 
-      isRefreshTokenValid 
+
+    console.log("Token validation:", {
+      isAccessTokenValid,
+      isRefreshTokenValid,
     });
 
     setIsLoggedIn(isAccessTokenValid || isRefreshTokenValid);

@@ -1,7 +1,7 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import PLPCard from "./PLPCard";
-import { CatalogItem } from "../../../state/types";
+import { CatalogItem } from "../../common/types";
 
 interface DropdownProps {
   isVisible: boolean;

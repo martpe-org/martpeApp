@@ -1,23 +1,22 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import * as Location from "expo-location";
 import {
   Animated,
   Dimensions,
   FlatList,
   Image,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  RefreshControl,
 } from "react-native";
-import { fetchHome } from "../../../hook/fetch-home-data";
-import useDeliveryStore from "../../../state/deliveryAddressStore";
-import { Ionicons } from "@expo/vector-icons";
-import { useRenderFunctions } from "../../../components/Landing Page/render";
+import useDeliveryStore from "../../../components/address/deliveryAddressStore";
+import { useRenderFunctions } from "../../../components/Landing-Page/render";
 import {
   categoryData,
   electronicsCategoryData,
@@ -27,10 +26,12 @@ import {
   homeAndDecorCategoryData,
   personalCareCategoryData,
 } from "../../../constants/categories";
+import { fetchHome } from "../../../hook/fetch-home-data";
 import { styles } from "./HomeScreenStyle";
 // Import the new components
 import LocationBar from "../../../components/common/LocationBar";
 import Search from "../../../components/common/Search";
+
 const windowWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
@@ -50,14 +51,13 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
-  //main component
-
+  // Fetch home data using react-query with optimized caching
   const {
     data: homeData,
     isLoading,
     error,
     refetch,
-    isRefetching, // ✅ react-query provides this
+    isRefetching,
   } = useQuery({
     queryKey: [
       "homeData",
@@ -88,37 +88,17 @@ export default function HomeScreen() {
 
       return fetchHome(lat, lng, pin);
     },
-    staleTime: 1000 * 60 * 5,
+    // Optimized caching configuration
+    staleTime: 1000 * 60 * 10, // Data stays fresh for 10 minutes (increased from 5)
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes (formerly cacheTime)
     enabled: true,
     retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
+    refetchOnMount: false, // Don't refetch on component mount if data exists and is fresh
+    refetchOnReconnect: true, // Only refetch on network reconnect
+    // Use network-only for first load, then cache-first for subsequent loads
+    networkMode: 'online',
   });
-
-  // Fetch home data using react-query with hardcoded values
-
-  // const {
-  //   data: homeData,
-  //   isLoading,
-  //   error,
-  //   refetch,
-  //   isRefetching,
-  // } = useQuery({
-  //   queryKey: [
-  //     "homeData",
-  //     selectedDetails?.lat ?? 12.9716,
-  //     selectedDetails?.lng ?? 77.5946,
-  //     selectedDetails?.pincode ?? "560001",
-  //   ],
-  //   queryFn: async () => {
-  //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
-  //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
-  //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
-
-  //     return fetchHome(lat, lng, pin);
-  //   },
-  //   staleTime: 1000 * 60 * 5, // 5 minutes
-  //   enabled: true,
-  //   retry: 1,
-  // });
 
   // Animation value for "No Data" messages
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -145,7 +125,7 @@ export default function HomeScreen() {
     router.push("/search");
   };
 
-  // Pull-to-refresh handler
+  // Pull-to-refresh handler - forces fresh data
   const onRefresh = () => {
     refetch();
   };
@@ -272,6 +252,7 @@ export default function HomeScreen() {
               </Animated.View>
             )
           )}
+
           {/* Explore Categories Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>

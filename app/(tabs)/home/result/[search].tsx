@@ -11,19 +11,19 @@ import {
   View,
 } from "react-native";
 
+import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
+import AddToCart from "../../../../components/common/AddToCart";
 import ImageComp from "../../../../components/common/ImageComp";
 import Loader from "../../../../components/common/Loader";
-import AddToCart from "../../../../components/ProductDetails/AddToCart";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
-import useDeliveryStore from "../../../../state/deliveryAddressStore";
 
 // Import search functions and types
+import { SafeAreaView } from "react-native-safe-area-context";
 import { searchProducts } from "../../../search/search-products";
 import { ProductSearchResult } from "../../../search/search-products-type";
 import { searchStores } from "../../../search/search-stores";
 import { StoreSearchResult } from "../../../search/search-stores-type";
 import { styles } from "./searchStyle";
-import { SafeAreaView } from "react-native-safe-area-context";
 interface SearchInput {
   lat: number;
   lon: number;
@@ -371,7 +371,7 @@ const Results: FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
+            <Ionicons name="arrow-back-outline" size={20} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Results</Text>
         </View>

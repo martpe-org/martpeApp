@@ -1,14 +1,9 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
-import { useCartStore } from "../../state/useCartStore";
-import useUserDetails from "../../hook/useUserDetails";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "react-native-toast-notifications";
-import Loader from "../common/Loader";
+import useUserDetails from "../../hook/useUserDetails";
+import { useCartStore } from "../../state/useCartStore";
+import Loader from "./Loader";
 
 interface DynamicButtonProps {
   storeId: string;
@@ -74,7 +69,7 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
     }
   };
 
- const getButtonContent = () => {
+  const getButtonContent = () => {
     if (loading) {
       return <Loader />;
     }
@@ -100,7 +95,6 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
   );
 };
 
-
 export default DynamicButton;
 
 const styles = StyleSheet.create({
@@ -112,11 +106,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-    buttonContent: {
+  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
   },
-    plusIcon: {
+  plusIcon: {
     color: "#fff",
     fontWeight: "600",
     fontSize: 16,

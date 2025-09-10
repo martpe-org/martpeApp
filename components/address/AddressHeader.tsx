@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Ionicons} from "@expo/vector-icons";
+import {Feather} from "@expo/vector-icons";
 
 interface AddressHeaderProps {
   title?: string;
@@ -18,7 +18,7 @@ const Header: React.FC<AddressHeaderProps> = ({ title = "Saved Address" }) => {
     <>
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
+          <Feather name="arrow-left" size={25} style={styles.headerIcon} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
               <StatusBar style="dark" />

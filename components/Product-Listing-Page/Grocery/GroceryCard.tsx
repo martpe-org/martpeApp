@@ -1,8 +1,14 @@
 import ImageComp from "@/components/common/ImageComp";
-import AddToCart from "../../../components/ProductDetails/AddToCart";
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
+import React from "react";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import AddToCart from "../../common/AddToCart";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -23,7 +29,7 @@ interface GroceryCardProps {
   image?: string;
   onPress?: () => void;
   item?: any;
-   customizable?: boolean; // ✅ Add this
+  customizable?: boolean; // ✅ Add this
   directlyLinkedCustomGroupIds?: string[];
 }
 
@@ -43,17 +49,22 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   image,
   onPress,
   item,
-    customizable = false, // ✅ Add default value
+  customizable = false, // ✅ Add default value
   directlyLinkedCustomGroupIds = [],
 }) => {
-  const handlePress = onPress || (() => {
-    router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
-  });
+  const handlePress =
+    onPress ||
+    (() => {
+      router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+    });
 
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
     if (item) {
-      if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+      if (
+        item.provider?.store_id &&
+        item.provider.store_id !== "unknown-store"
+      ) {
         return item.provider.store_id;
       }
       if (item.store_id && item.store_id !== "unknown-store") {
@@ -68,9 +79,8 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
   const storeId = resolveStoreId();
   const resolvedSlug = slug || id;
-  
 
- return (
+  return (
     <TouchableOpacity
       style={cardStyles.card}
       onPress={handlePress}
@@ -96,7 +106,9 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         <View style={cardStyles.priceRow}>
           <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
           {discount && originalPrice && (
-            <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed(2)}</Text>
+            <Text style={cardStyles.originalPrice}>
+              ₹{originalPrice.toFixed(2)}
+            </Text>
           )}
         </View>
 
@@ -117,7 +129,6 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
     </TouchableOpacity>
   );
 };
-
 
 export default GroceryCard;
 

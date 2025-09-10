@@ -1,22 +1,22 @@
-import {  Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import Svg, { Path } from "react-native-svg";
+import useDeliveryStore from "../../components/address/deliveryAddressStore";
 import ImageComp from "../../components/common/ImageComp";
-import useDeliveryStore from "../../state/deliveryAddressStore";
 import { Colors, Fonts } from "../../theme";
 import {
   getAsyncStorageItem,
@@ -221,19 +221,19 @@ const SearchScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <View style={styles.headerContainer}>
           <View style={styles.headerRow}>
-           <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerLeftIcon}
-          >
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.headerLeftIcon}
+            >
+              <Ionicons name="arrow-back-outline" size={20} color="black" />
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Search anything you want</Text>
           </View>
 
@@ -297,7 +297,7 @@ const SearchScreen: React.FC = () => {
                 <ActivityIndicator size="large" color="red" />
               </View>
             ) : suggestions.length > 0 ? (
-              <ScrollView 
+              <ScrollView
                 style={styles.suggestionsContainer}
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"

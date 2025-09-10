@@ -1,10 +1,16 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { FC } from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable, TouchableOpacity } from "react-native";
-import Svg, { Mask, Path, G } from "react-native-svg";
-import useDeliveryStore from "../../state/deliveryAddressStore";
-import { MaterialIcons } from "@expo/vector-icons";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { widthPercentageToDP } from "react-native-responsive-screen";
+import Svg, { G, Mask, Path } from "react-native-svg";
+import useDeliveryStore from "../address/deliveryAddressStore";
 
 interface ServicesProps {
   isReturnable: boolean;

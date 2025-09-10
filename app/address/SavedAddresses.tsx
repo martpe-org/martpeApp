@@ -1,4 +1,6 @@
-import React, { useCallback, useState, useEffect } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   SafeAreaView,
@@ -8,17 +10,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
-import useDeliveryStore from "../../state/deliveryAddressStore";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Header from "../../components/address/AddressHeader";
+import { deleteAddress } from "../../components/address/deleteAddress";
+import useDeliveryStore from "../../components/address/deliveryAddressStore";
 import Loader from "../../components/common/Loader";
 import ShareButton from "../../components/common/Share";
-import { deleteAddress } from "../../components/address/deleteAddress";
-import Header from '../../components/address/AddressHeader';
-import useUserDetails from '../../hook/useUserDetails';
+import useUserDetails from "../../hook/useUserDetails";
 interface AddressType {
   id: string;
-  type: 'Home' | 'Work' | 'FriendsAndFamily' | 'Other';
+  type: "Home" | "Work" | "FriendsAndFamily" | "Other";
   name: string;
   phone: string;
   gps: {
@@ -35,48 +35,58 @@ interface AddressType {
 }
 
 // Create fetchAddress function since it's missing
-const fetchAddress = async (authToken: string): Promise<AddressType[] | null> => {
+const fetchAddress = async (
+  authToken: string
+): Promise<AddressType[] | null> => {
   try {
-    console.log('Fetching addresses with token:', authToken ? 'Token present' : 'No token');
-    console.log('API URL:', `${process.env.EXPO_PUBLIC_API_URL}/users/address`);
-    
+    console.log(
+      "Fetching addresses with token:",
+      authToken ? "Token present" : "No token"
+    );
+    console.log("API URL:", `${process.env.EXPO_PUBLIC_API_URL}/users/address`);
+
     const response = await fetch(
       `${process.env.EXPO_PUBLIC_API_URL}/users/address`,
       {
-        method: 'GET',
+        method: "GET",
         headers: {
           Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        cache: 'no-cache'
+        cache: "no-cache",
       }
     );
 
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
+    console.log("Response status:", response.status);
+    console.log("Response ok:", response.ok);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('Fetch address failed:', response.status, errorText);
+      console.log("Fetch address failed:", response.status, errorText);
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Fetched address data:', data);
+    console.log("Fetched address data:", data);
     return data;
   } catch (error) {
-    console.error('Fetch address error:', error);
+    console.error("Fetch address error:", error);
     return null;
   }
 };
 
 const SavedAddresses: React.FC = () => {
   // Get user details and authentication status
-  const { userDetails, isLoading: authLoading, isAuthenticated, checkAuthentication } = useUserDetails();
-  
+  const {
+    userDetails,
+    isLoading: authLoading,
+    isAuthenticated,
+    checkAuthentication,
+  } = useUserDetails();
+
   // Updated to use the new delivery store methods
   const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
-  
+
   // states
   const [isLoading, setIsLoading] = useState(true);
   const [addresses, setAddresses] = useState<AddressType[]>([]);
@@ -94,7 +104,8 @@ const SavedAddresses: React.FC = () => {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated || !checkAuthentication()) {
-        setError('Please log in to view your saved addresses.');
+        console.log("User not authenticated");
+        setError("Please log in to view your saved addresses.");
         setIsLoading(false);
       }
     }
@@ -103,82 +114,82 @@ const SavedAddresses: React.FC = () => {
   // handlers
   const fetchUserAddresses = async () => {
     try {
-      console.log('Starting to fetch addresses...');
+      console.log("Starting to fetch addresses...");
       setIsLoading(true);
       setError(null);
-      
+
       if (!authToken) {
-        console.log('No auth token available');
-        setError('No authentication token available');
+        console.log("No auth token available");
+        setError("No authentication token available");
         setAddresses([]);
         return;
       }
 
       const addressesData = await fetchAddress(authToken);
-      
+
       if (addressesData && Array.isArray(addressesData)) {
-        setAddresses(addressesData); 
+        setAddresses(addressesData);
       } else if (addressesData === null) {
-        setError('Failed to fetch addresses. Please try again.');
+        setError("Failed to fetch addresses. Please try again.");
         setAddresses([]);
       } else {
         setAddresses([]);
       }
     } catch (error) {
-      setError('Failed to load addresses. Please try again.');
+      setError("Failed to load addresses. Please try again.");
       setAddresses([]);
     } finally {
       setIsLoading(false);
     }
   };
 
- const handleDeleteAddress = async (addressId: string) => {
-  Alert.alert(
-    "Delete Address",
-    "Are you sure you want to delete this address?",
-    [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const result = await deleteAddress(authToken, addressId);
-            if (result) {
-              await fetchUserAddresses();
-              Alert.alert("Success", "Address deleted successfully");
-            } else {
+  const handleDeleteAddress = async (addressId: string) => {
+    Alert.alert(
+      "Delete Address",
+      "Are you sure you want to delete this address?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await deleteAddress(authToken, addressId);
+              if (result) {
+                await fetchUserAddresses();
+                Alert.alert("Success", "Address deleted successfully");
+              } else {
+                Alert.alert("Error", "Failed to delete address");
+              }
+            } catch (error) {
+              console.error("Error deleting address:", error);
               Alert.alert("Error", "Failed to delete address");
             }
-          } catch (error) {
-            console.error("Error deleting address:", error);
-            Alert.alert("Error", "Failed to delete address");
-          }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
   const handleRetry = () => {
     if (authToken && isAuthenticated) {
       fetchUserAddresses();
     } else {
-      setError('Please log in to continue.');
+      setError("Please log in to continue.");
     }
   };
 
   // hooks
   useFocusEffect(
     useCallback(() => {
-      console.log('useFocusEffect triggered');
-      console.log('authLoading:', authLoading);
-      console.log('isAuthenticated:', isAuthenticated);
-      console.log('authToken:', authToken ? 'present' : 'missing');
-      
+      console.log("useFocusEffect triggered");
+      console.log("authLoading:", authLoading);
+      console.log("isAuthenticated:", isAuthenticated);
+      console.log("authToken:", authToken ? "present" : "missing");
+
       if (!authLoading && isAuthenticated && authToken) {
         fetchUserAddresses();
       }
@@ -191,7 +202,11 @@ const SavedAddresses: React.FC = () => {
       <SafeAreaView style={styles.savedAddressesContainer}>
         <Header title="Pick or Add Address" />
         <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={80} color="#E74C3C" />
+          <MaterialCommunityIcons
+            name="alert-circle"
+            size={80}
+            color="#E74C3C"
+          />
           <Text style={styles.errorText}>Oops! Something went wrong</Text>
           <Text style={styles.errorSubtext}>{error}</Text>
           <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
@@ -210,15 +225,21 @@ const SavedAddresses: React.FC = () => {
   return (
     <SafeAreaView style={styles.savedAddressesContainer}>
       <Header title="Pick or Add Address" />
-      
+
       {addresses.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="map-marker-off" size={80} color="#ccc" />
+          <MaterialCommunityIcons
+            name="map-marker-off"
+            size={80}
+            color="#ccc"
+          />
           <Text style={styles.emptyText}>No saved addresses</Text>
-          <Text style={styles.emptySubtext}>Add your first address to get started</Text>
+          <Text style={styles.emptySubtext}>
+            Add your first address to get started
+          </Text>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.cardContainer}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -231,8 +252,12 @@ const SavedAddresses: React.FC = () => {
               return 0;
             })
             .map((address) => {
-              const fullAddress = `${address.houseNo ? address.houseNo + ', ' : ''}${address.street ? address.street + ', ' : ''}${address.building ? address.building + ', ' : ''}${address.city}, ${address.state}, ${address.pincode}`;
-              
+              const fullAddress = `${
+                address.houseNo ? address.houseNo + ", " : ""
+              }${address.street ? address.street + ", " : ""}${
+                address.building ? address.building + ", " : ""
+              }${address.city}, ${address.state}, ${address.pincode}`;
+
               return (
                 <SavedAddressCard
                   key={address.id}
@@ -284,7 +309,7 @@ const shadowEffect = {
 };
 
 interface SavedAddressCard {
-  type: 'Home' | 'Work' | 'FriendsAndFamily' | 'Other';
+  type: "Home" | "Work" | "FriendsAndFamily" | "Other";
   fullAddress: string;
   userPhone: string;
   name: string;
@@ -331,32 +356,42 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
       lat,
       lng,
     };
-    
+
     // This will now save to AsyncStorage automatically
     await addDeliveryDetail(deliveryDetails);
-    
-    console.log('Selected delivery address:', deliveryDetails);
+
+    console.log("Selected delivery address:", deliveryDetails);
     router.back();
   };
 
   const getAddressIcon = () => {
     switch (type) {
-      case 'Home':
-        return <MaterialCommunityIcons name="account-group" size={24} color="#8E44AD" />;
+      case "Home":
+        return (
+          <MaterialCommunityIcons
+            name="account-group"
+            size={24}
+            color="#8E44AD"
+          />
+        );
       default:
-        return <MaterialCommunityIcons name="map-marker" size={24} color="#3498DB" />;
+        return (
+          <MaterialCommunityIcons name="map-marker" size={24} color="#3498DB" />
+        );
     }
   };
 
   const getDisplayName = () => {
-    if (type === 'FriendsAndFamily') return 'Friends & Family';
+    if (type === "FriendsAndFamily") return "Friends & Family";
     return type;
   };
 
   const isSelected = selectedDetails?.addressId === addressId;
 
   return (
-    <View style={[styles.savedAddressesCard, isSelected && styles.selectedCard]}>
+    <View
+      style={[styles.savedAddressesCard, isSelected && styles.selectedCard]}
+    >
       <View style={styles.addressCardHeader}>
         <View style={styles.addressTypeContainer}>
           {getAddressIcon()}
@@ -380,17 +415,17 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
             }
             style={styles.actionButton}
           >
-            <MaterialCommunityIcons
-              name="pencil"
-              size={20}
-              color="#666"
-            />
+            <MaterialCommunityIcons name="pencil" size={20} color="#666" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => onPress(addressId)}
             style={styles.actionButton}
           >
-            <MaterialCommunityIcons name="delete-outline" size={20} color="#E74C3C" />
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={20}
+              color="#E74C3C"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -420,7 +455,11 @@ const SavedAddressCard: React.FC<SavedAddressCard> = (props) => {
           </TouchableOpacity>
         ) : (
           <View style={styles.selectedIndicator}>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#01884B" />
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={16}
+              color="#01884B"
+            />
             <Text style={styles.selectedText}>Selected</Text>
           </View>
         )}

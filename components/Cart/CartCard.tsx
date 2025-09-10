@@ -1,31 +1,25 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { getDistance } from "geolib";
+import React, { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import CartItems from "./CartItems";
-import { useCartStore } from "../../state/useCartStore";
-import useDeliveryStore from "../../state/deliveryAddressStore";
+import {
+  CartItemType,
+  FetchCartStore,
+  FetchCartType,
+} from "../../app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "../../hook/useUserDetails";
+import { useCartStore } from "../../state/useCartStore";
 import {
   getAsyncStorageItem,
   setAsyncStorageItem,
 } from "../../utility/asyncStorage";
-import {
-  FetchCartStore,
-  CartItemType,
-  FetchCartType,
-} from "../../app/(tabs)/cart/fetch-carts-type";
+import useDeliveryStore from "../address/deliveryAddressStore";
+import CartItems from "./CartItems";
 
-import CartOfferBtn from "./CartOfferBtn";
 import Loader from "../common/Loader";
+import CartOfferBtn from "./CartOfferBtn";
 
 const STORAGE_KEY = "addedItems";
 
@@ -36,9 +30,15 @@ interface CartCardProps {
   onCartChange?: () => void;
 }
 
-const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) => {
+const CartCard: React.FC<CartCardProps> = ({
+  id,
+  store,
+  items,
+  onCartChange,
+}) => {
   // ---- Hooks (always at top; never after a conditional return) ----
-  const { removeCart, updateCartOffer, clearCartOffer, appliedOffers } = useCartStore();
+  const { removeCart, updateCartOffer, clearCartOffer, appliedOffers } =
+    useCartStore();
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
@@ -78,7 +78,11 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
     const userLat = Number(selectedDetails.lat);
     const userLng = Number(selectedDetails.lng);
 
-    if ([storeLat, storeLon, userLat, userLng].some((v) => isNaN(v) || Math.abs(v) > 180)) {
+    if (
+      [storeLat, storeLon, userLat, userLng].some(
+        (v) => isNaN(v) || Math.abs(v) > 180
+      )
+    ) {
       setDistance(null);
       return;
     }
@@ -91,7 +95,10 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
   }, [store?.gps, selectedDetails]);
 
   // ---- Prices & discount (no hooks below here) ----
-  const cartSubtotal = validItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+  const cartSubtotal = validItems.reduce(
+    (sum, item) => sum + (item.total_price || 0),
+    0
+  );
 
   const offer = store?.offers?.find((o) => o.offer_id === appliedOfferId);
 
@@ -109,9 +116,14 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
       (offer as any)?.benefit?.value ?? (offer as any)?.benefit?.value_cap ?? 0
     );
     if (valueType === "percentage") {
-      const cap = Number((offer as any)?.benefit?.value_cap ?? Number.POSITIVE_INFINITY);
+      const cap = Number(
+        (offer as any)?.benefit?.value_cap ?? Number.POSITIVE_INFINITY
+      );
       const pctDiscount = (cartSubtotal * rawPercent) / 100;
-      computedDiscount = Math.min(pctDiscount, Number.isFinite(cap) ? cap : pctDiscount);
+      computedDiscount = Math.min(
+        pctDiscount,
+        Number.isFinite(cap) ? cap : pctDiscount
+      );
     } else {
       computedDiscount = rawFlat;
     }
@@ -150,47 +162,50 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
     return timeInMinutes < 1 ? "< 1 min" : `${timeInMinutes} min`;
   };
 
-const handleRemoveCart = async () => {
-  if (!authToken || !store?._id) {
-    return;
-  }
-
-  setIsRemoving(true);
-  try {
-    const success = await removeCart(store._id, authToken);
-    if (!success) {
+  const handleRemoveCart = async () => {
+    if (!authToken || !store?._id) {
       return;
     }
 
-    // cleanup local storage of added item slugs
-    const data = await getAsyncStorageItem(STORAGE_KEY);
-    const storedItems: string[] = data ? JSON.parse(data) : [];
-    const updatedItems = storedItems.filter(
-      (slug) => !validItems.some((i) => i.slug === slug)
-    );
-    await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
-    onCartChange?.();
+    setIsRemoving(true);
+    try {
+      const success = await removeCart(store._id, authToken);
+      if (!success) {
+        return;
+      }
 
-  } catch (error) {
-    console.error("CartCard: Error deleting cart", error);
-  } finally {
-    setIsRemoving(false);
-  }
-};
+      // cleanup local storage of added item slugs
+      const data = await getAsyncStorageItem(STORAGE_KEY);
+      const storedItems: string[] = data ? JSON.parse(data) : [];
+      const updatedItems = storedItems.filter(
+        (slug) => !validItems.some((i) => i.slug === slug)
+      );
+      await setAsyncStorageItem(STORAGE_KEY, JSON.stringify(updatedItems));
+      onCartChange?.();
+    } catch (error) {
+      console.error("CartCard: Error deleting cart", error);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   return (
-    <View
-      style={styles.container}
-  
-    >
+    <View style={styles.container}>
       {/* Header */}
-      <TouchableOpacity style={styles.sellerInfoContainer}
-          onPress={() => router.push(`/(tabs)/home/result/productListing/${store.slug}`)}
-      activeOpacity={0.7}
+      <TouchableOpacity
+        style={styles.sellerInfoContainer}
+        onPress={() =>
+          router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+        }
+        activeOpacity={0.7}
       >
         <View style={styles.sellerLogoContainer}>
           {store?.symbol && (
-            <Image source={{ uri: store.symbol }} style={styles.sellerLogo} resizeMode="cover" />
+            <Image
+              source={{ uri: store.symbol }}
+              style={styles.sellerLogo}
+              resizeMode="cover"
+            />
           )}
         </View>
 
@@ -208,7 +223,9 @@ const handleRemoveCart = async () => {
             <View style={styles.distanceContainer}>
               <Text style={styles.distanceText}>{distance} km</Text>
               <Text style={styles.separator}> • </Text>
-              <Text style={styles.timeText}>⏱️ {calculateDeliveryTime(distance)}</Text>
+              <Text style={styles.timeText}>
+                ⏱️ {calculateDeliveryTime(distance)}
+              </Text>
             </View>
           )}
         </View>
@@ -219,9 +236,13 @@ const handleRemoveCart = async () => {
           disabled={isRemoving || !authToken || isUserLoading}
         >
           {isRemoving ? (
-            <Loader/>
+            <Loader />
           ) : (
-            <FontAwesome name="trash-o" size={18} color={authToken ? "red" : "#ccc"} />
+            <FontAwesome
+              name="trash-o"
+              size={18}
+              color={authToken ? "red" : "#ccc"}
+            />
           )}
         </TouchableOpacity>
       </TouchableOpacity>
@@ -254,18 +275,33 @@ const handleRemoveCart = async () => {
 
       {/* Totals */}
       <View style={{ marginTop: 8 }}>
-
         {!!discount && (
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 4,
+            }}
+          >
             <Text style={{ fontSize: 14, color: "#28a745" }}>
               Discount {appliedOfferId ? `(${appliedOfferId})` : ""}
             </Text>
-            <Text style={{ fontSize: 14, color: "#28a745" }}>−₹{discount.toFixed(2)}</Text>
+            <Text style={{ fontSize: 14, color: "#28a745" }}>
+              −₹{discount.toFixed(2)}
+            </Text>
           </View>
         )}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginTop: 6,
+          }}
+        >
           <Text style={{ fontSize: 15, fontWeight: "600" }}>Total</Text>
-          <Text style={{ fontSize: 16, fontWeight: "700" }}>₹{cartTotal.toFixed(2)}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700" }}>
+            ₹{cartTotal.toFixed(2)}
+          </Text>
         </View>
       </View>
     </View>

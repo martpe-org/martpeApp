@@ -1,5 +1,9 @@
-import { create } from 'zustand';
-import { setAsyncStorageItem, getAsyncStorageItem, removeAsyncStorageItem } from '../utility/asyncStorage';
+import { create } from "zustand";
+import {
+  getAsyncStorageItem,
+  removeAsyncStorageItem,
+  setAsyncStorageItem,
+} from "../../utility/asyncStorage";
 
 export interface DeliveryDetails {
   addressId: string;
@@ -21,7 +25,7 @@ interface DeliveryStore {
   clearDeliveryDetails: () => Promise<void>;
 }
 
-const DELIVERY_STORAGE_KEY = 'selectedDeliveryAddress';
+const DELIVERY_STORAGE_KEY = "selectedDeliveryAddress";
 
 const useDeliveryStore = create<DeliveryStore>((set, get) => ({
   selectedDetails: null,
@@ -31,13 +35,13 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
     try {
       // Save to AsyncStorage
       await setAsyncStorageItem(DELIVERY_STORAGE_KEY, JSON.stringify(details));
-      
+
       // Update Zustand store
       set({ selectedDetails: details });
-      
-      console.log('Delivery details saved to AsyncStorage:', details);
+
+      console.log("Delivery details saved to AsyncStorage:", details);
     } catch (error) {
-      console.error('Error saving delivery details to AsyncStorage:', error);
+      console.error("Error saving delivery details to AsyncStorage:", error);
     }
   },
 
@@ -46,9 +50,12 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
     try {
       await removeAsyncStorageItem(DELIVERY_STORAGE_KEY);
       set({ selectedDetails: null });
-      console.log('Delivery details removed from AsyncStorage');
+      console.log("Delivery details removed from AsyncStorage");
     } catch (error) {
-      console.error('Error removing delivery details from AsyncStorage:', error);
+      console.error(
+        "Error removing delivery details from AsyncStorage:",
+        error
+      );
     }
   },
 
@@ -56,17 +63,20 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
   loadDeliveryDetails: async () => {
     try {
       const storedDetails = await getAsyncStorageItem(DELIVERY_STORAGE_KEY);
-      
-      if (storedDetails && typeof storedDetails === 'string') {
+
+      if (storedDetails && typeof storedDetails === "string") {
         const parsedDetails = JSON.parse(storedDetails) as DeliveryDetails;
         set({ selectedDetails: parsedDetails });
-        console.log('Delivery details loaded from AsyncStorage:', parsedDetails);
+        console.log(
+          "Delivery details loaded from AsyncStorage:",
+          parsedDetails
+        );
       } else {
-        console.log('No delivery details found in AsyncStorage');
+        console.log("No delivery details found in AsyncStorage");
         set({ selectedDetails: null });
       }
     } catch (error) {
-      console.error('Error loading delivery details from AsyncStorage:', error);
+      console.error("Error loading delivery details from AsyncStorage:", error);
       set({ selectedDetails: null });
     }
   },
