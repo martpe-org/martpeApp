@@ -2,7 +2,6 @@ import { Link, Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Keyboard,
@@ -16,6 +15,7 @@ import {
 import { widthPercentageToDP } from "react-native-responsive-screen";
 import { generateOTP } from "../../components/OTP/gen-otp";
 import useUserDetails from "../../hook/useUserDetails";
+import Loader from "@/components/common/Loader";
 
 const PRIMARY_COLOR = "#FB3E44";
 const DISABLED_COLOR = "#d9d9d9";
@@ -114,7 +114,7 @@ const NewLogin: React.FC = () => {
   if (authLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <Loader />
         <Text style={styles.loadingText}>{t("Loading...")}</Text>
       </SafeAreaView>
     );
@@ -181,7 +181,7 @@ const NewLogin: React.FC = () => {
           accessibilityHint="Press to verify your mobile number"
         >
           {isLoading ? (
-            <ActivityIndicator color="#ffffff" />
+            <Loader/>
           ) : (
             <Text style={styles.continueButtonText}>{t("Continue")}</Text>
           )}

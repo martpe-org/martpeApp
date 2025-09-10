@@ -82,7 +82,7 @@ router.push("/privacy-policy");
           <Text style={styles.link} onPress={handlePrivacyPolicyPress}>
             Privacy Policy
           </Text>
-          {" "}(<Text style={styles.bold}>"Privacy Policy"</Text>) which governs Your visit to MartPe, to understand Our practices. The personal information / data provided to Us by You during the course of Your usage of MartPe will be treated as in accordance with the Privacy Policy and applicable laws and regulations. If You object to Your information being transferred or used, please do not use MartPe.
+          {" "} which governs Your visit to MartPe, to understand Our practices. The personal information / data provided to Us by You during the course of Your usage of MartPe will be treated as in accordance with the Privacy Policy and applicable laws and regulations. If You object to Your information being transferred or used, please do not use MartPe.
         </Text>
 
         <Text style={styles.sectionHeading}>Commercial Terms</Text>
@@ -224,10 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'justify',
   },
-  bold: {
-    fontWeight: 'bold',
-    color: '#212529',
-  },
+
   link: {
     color: '#007bff',
     textDecorationLine: 'underline',

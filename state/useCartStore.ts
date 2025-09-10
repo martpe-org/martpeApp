@@ -36,7 +36,7 @@ interface Cart {
 interface CartState {
   allCarts: Cart[];
   appliedOffers: Record<string, AppliedOffer>;
-  setAllCarts: (carts: Cart[]) => void;
+  setAllCarts: (carts: Cart[] | any[]) => void; // ✅ Allow any[] for TanStack Query data
   loadCartFromStorage: () => Promise<void>;
   syncCartFromApi: (authToken: string | null) => Promise<void>;
   addItem: (
@@ -84,6 +84,32 @@ const sanitizeCarts = (carts: Cart[]): Cart[] =>
     }))
     .filter((cart) => cart.cart_items.length > 0);
 
+// ✅ Transform TanStack Query data to Zustand format
+const transformToZustandFormat = (carts: any[]): Cart[] => {
+  if (!Array.isArray(carts)) return [];
+  
+  return carts.map(cart => ({
+    store: { 
+      _id: cart.store?._id || cart.store_id || cart._id 
+    },
+    cart_items: (cart.cart_items || []).map((item: any) => ({
+      _id: item._id,
+      qty: item.qty || 1,
+      slug: item.slug || item.product_slug || '',
+      unit_price: item.unit_price || 0,
+      unit_max_price: item.unit_max_price || 0,
+      total_price: item.total_price || 0,
+      total_max_price: item.total_max_price || 0,
+      product: {
+        name: item.product?.name || item.product_slug || '',
+        symbol: item.product?.symbol || '',
+        quantity: item.qty || 1,
+        instock: item.product?.instock !== false,
+      }
+    }))
+  })).filter(cart => cart.cart_items.length > 0);
+};
+
 const saveCartToStorage = async (carts: Cart[]) => {
   try {
     await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(carts));
@@ -107,7 +133,17 @@ export const useCartStore = create<CartState>((set, get) => ({
   appliedOffers: {},
 
   setAllCarts: (carts) => {
-    const sanitized = sanitizeCarts(carts || []);
+    let sanitized: Cart[];
+    
+    // ✅ Check if it's TanStack Query data format
+    if (Array.isArray(carts) && carts.length > 0 && carts[0].cartItemsCount !== undefined) {
+      // This is TanStack Query format, transform it
+      sanitized = transformToZustandFormat(carts);
+    } else {
+      // This is already in Zustand format
+      sanitized = sanitizeCarts(carts || []);
+    }
+    
     set({ allCarts: sanitized });
     saveCartToStorage(sanitized);
   },
@@ -122,8 +158,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     try {
       const carts = await fetchCarts(authToken);
       if (carts) {
-        set({ allCarts: sanitizeCarts(carts) });
-        saveCartToStorage(carts);
+        const transformed = transformToZustandFormat(carts);
+        set({ allCarts: transformed });
+        saveCartToStorage(transformed);
       }
     } catch (err) {
       console.error("syncCartFromApi error:", err);

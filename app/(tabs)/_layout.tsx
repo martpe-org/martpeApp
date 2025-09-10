@@ -1,6 +1,6 @@
 import { router, Tabs } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { useCartStore } from "../../state/useCartStore";
 import { useHideTabBarStore } from "../../components/common/hideTabBar";
 import {
@@ -9,9 +9,25 @@ import {
   ProfileTab,
 } from "@/constants/icons/tabIcons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import useUserDetails from "../../hook/useUserDetails";
 
 export default function TabsLayout() {
-  const { allCarts } = useCartStore();
+  const { allCarts, loadCartFromStorage, syncCartFromApi } = useCartStore();
+  const { userDetails } = useUserDetails();
+  const authToken = userDetails?.accessToken;
+
+  // ✅ Load cart data when the app starts
+  useEffect(() => {
+    // First load from storage (for immediate display)
+    loadCartFromStorage();
+  }, []); // Only run once on mount
+
+  // ✅ Sync from API when authToken changes
+  useEffect(() => {
+    if (authToken) {
+      syncCartFromApi(authToken);
+    }
+  }, [authToken]); // Only depend on authToken
 
   let totalItems = 0;
   for (const cart of allCarts) {

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -20,6 +20,8 @@ import CartCard from "../../../components/Cart/CartCard";
 // ✅ Import TanStack Query
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
+// ✅ Import Zustand store
+import { useCartStore } from "../../../state/useCartStore";
 
 function calculateTotals(cartData: FetchCartType[]) {
   const totalCarts = cartData.length;
@@ -36,6 +38,7 @@ const CartScreen = () => {
   const { userDetails, isLoading: isUserLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const queryClient = useQueryClient();
+  const lastCartsData = useRef<string>('');
 
 const {
   data: carts = [],
@@ -57,6 +60,25 @@ const {
     })),
 });
 
+// ✅ Sync TanStack Query data with Zustand store whenever carts data changes
+useEffect(() => {
+  if (carts && carts.length >= 0) {
+    const cartsDataString = JSON.stringify(carts.map(c => ({ id: c._id, items: c.cart_items?.length || 0 })));
+    
+    // Only update if data actually changed
+    if (cartsDataString !== lastCartsData.current) {
+      lastCartsData.current = cartsDataString;
+      
+      // Transform the fetched carts to match Zustand store format
+      const zustandCarts = carts.map(cart => ({
+        store: { _id: cart.store._id },
+        cart_items: cart.cart_items || []
+      }));
+      
+      useCartStore.getState().setAllCarts(zustandCarts);
+    }
+  }
+}, [carts]);
 
   // ✅ Whenever add/delete happens in CartCard
   // Call this from inside CartCard after mutation

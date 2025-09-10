@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -328,7 +327,7 @@ const SignUp: React.FC = () => {
               disabled={!isFormValid() || loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <Loader/>
               ) : (
                 <Text style={styles.submitButtonText}>Create Account</Text>
               )}
