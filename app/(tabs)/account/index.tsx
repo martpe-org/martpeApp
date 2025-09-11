@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,9 @@ import {
 import useUserDetails from "../../../hook/useUserDetails";
 import { router } from "expo-router";
 import Fontisto from "@expo/vector-icons/Fontisto";
+
 const Profile = () => {
   const { removeUserDetails, userDetails, getUserDetails } = useUserDetails();
-
-  const [isProfileVisible, setProfileVisible] = useState(true);
 
   useEffect(() => {
     getUserDetails();
@@ -22,10 +21,6 @@ const Profile = () => {
   const handleLogout = async () => {
     await removeUserDetails();
     router.replace("/(auth)");
-  };
-
-  const toggleProfileVisibility = () => {
-    setProfileVisible(!isProfileVisible);
   };
 
   return (
@@ -42,40 +37,40 @@ const Profile = () => {
               </Text>
               !
             </Text>
-            <Text style={{fontSize:18,fontWeight:"bold", textAlign:"center", color:"red", marginTop:6}}>What are you shopping for today?</Text>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                textAlign: "center",
+                color: "red",
+                marginTop: 6,
+              }}
+            >
+              What are you shopping for today?
+            </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.openProfileButton}
-            onPress={toggleProfileVisibility}
-          >
-            <Text style={styles.openProfileButtonText}>
-              {isProfileVisible ? "Close Profile" : "Open Profile"}
-            </Text>
-          </TouchableOpacity>
+          {/* Profile Details Always Visible */}
+          <View style={styles.profileDetails}>
+            <Text style={styles.profileLabel}>Profile Details</Text>
 
-          {isProfileVisible && (
-            <View style={styles.profileDetails}>
-              <Text style={styles.profileLabel}>Profile Details</Text>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailTitle}>Full Name:</Text>
-                <Text>
-                  {userDetails?.firstName} {userDetails?.lastName}
-                </Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailTitle}>Phone:</Text>
-                <Text>{userDetails?.phoneNumber}</Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailTitle}>Email:</Text>
-                <Text>{userDetails?.email}</Text>
-              </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailTitle}>Full Name:</Text>
+              <Text>
+                {userDetails?.firstName} {userDetails?.lastName}
+              </Text>
             </View>
-          )}
+
+            <View style={styles.detailItem}>
+              <Text style={styles.detailTitle}>Phone:</Text>
+              <Text>{userDetails?.phoneNumber}</Text>
+            </View>
+
+            <View style={styles.detailItem}>
+              <Text style={styles.detailTitle}>Email:</Text>
+              <Text>{userDetails?.email}</Text>
+            </View>
+          </View>
         </View>
 
         {/* Action Buttons */}
@@ -159,24 +154,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   detailTitle: { fontWeight: "600", fontSize: 13, color: "#333" },
-  editButton: {
-    marginTop: 12,
-    backgroundColor: "#f2f2f2",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  openProfileButton: {
-    backgroundColor: "#ff3c41",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  openProfileButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -195,38 +172,4 @@ const styles = StyleSheet.create({
   gridText: { fontWeight: "600", fontSize: 14 },
   logoutButton: { backgroundColor: "#ff3c41" },
   logoutText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalView: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 16,
-    width: "85%",
-    elevation: 5,
-  },
-  modalTitle: {
-    fontWeight: "bold",
-    fontSize: 18,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-  },
-  saveBtn: {
-    backgroundColor: "#00C851",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    flex: 1,
-    marginRight: 8,
-  },
 });

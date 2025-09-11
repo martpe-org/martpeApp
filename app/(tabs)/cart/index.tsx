@@ -16,77 +16,95 @@ import { fetchCarts } from "./fetch-carts";
 import { FetchCartType } from "./fetch-carts-type";
 import useUserDetails from "../../../hook/useUserDetails";
 import CartCard from "../../../components/Cart/CartCard";
-
-// ✅ Import TanStack Query
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
-// ✅ Import Zustand store
 import { useCartStore } from "../../../state/useCartStore";
-
-function calculateTotals(cartData: FetchCartType[]) {
-  const totalCarts = cartData.length;
-  let totalItems = 0;
-  for (const cart of cartData) {
-    totalItems += cart.cartItemsCount;
-  }
-  return { totalCarts, totalItems };
-}
 
 const CartScreen = () => {
   const router = useRouter();
-  const animation = useRef(null);
-  const { userDetails, isLoading: isUserLoading } = useUserDetails();
+  const animation = useRef<LottieView>(null);
+  const { userDetails, isLoading } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const queryClient = useQueryClient();
-  const lastCartsData = useRef<string>('');
+  const lastCartsData = useRef<string>("");
 
-const {
-  data: carts = [],
-  isLoading,
-  isFetching,
-  refetch,
-} = useQuery<FetchCartType[], Error>({
-  queryKey: ["carts", authToken],
-  queryFn: () => fetchCarts(authToken!),
-  enabled: !!authToken,
-  select: (fetchedCarts) =>
-    fetchedCarts.map((cart) => ({
-      ...cart,
-      store: cart.store ?? {
-        _id: cart.store_id,
-        name: "Unknown Store",
-        slug: "",
-      },
-    })),
-});
+  // Get carts from Zustand store
+  const { allCarts } = useCartStore();
 
-// ✅ Sync TanStack Query data with Zustand store whenever carts data changes
-useEffect(() => {
-  if (carts && carts.length >= 0) {
-    const cartsDataString = JSON.stringify(carts.map(c => ({ id: c._id, items: c.cart_items?.length || 0 })));
+  const {
+    data: apiCarts = [],
+    isLoading: isCartsLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useQuery<FetchCartType[], Error>({
+    queryKey: ["carts", authToken],
+    queryFn: () => fetchCarts(authToken!),
+    enabled: !!authToken,
+    select: (fetchedCarts) => {
+      // Ensure we return properly formatted data
+      if (!Array.isArray(fetchedCarts)) return [];
+      
+      return fetchedCarts
+        .filter(cart => cart && (cart.cart_items?.length > 0 || cart.cartItemsCount > 0))
+        .map((cart) => ({
+          ...cart,
+          store: cart.store ?? {
+            _id: cart.store_id || cart._id,
+            name: cart.store?.name || "Unknown Store",
+            slug: cart.store?.slug || "",
+          },
+        }));
+    },
+  });
+
+  // ✅ Sync TanStack Query data with Zustand
+  useEffect(() => {
+    if (!apiCarts || !Array.isArray(apiCarts)) return;
     
-    // Only update if data actually changed
+    const cartsDataString = JSON.stringify(
+      apiCarts.map((c) => ({ 
+        id: c._id, 
+        items: c.cart_items?.length || c.cartItemsCount || 0 
+      }))
+    );
+
     if (cartsDataString !== lastCartsData.current) {
       lastCartsData.current = cartsDataString;
-      
-      // Transform the fetched carts to match Zustand store format
-      const zustandCarts = carts.map(cart => ({
-        store: { _id: cart.store._id },
-        cart_items: cart.cart_items || []
-      }));
-      
-      useCartStore.getState().setAllCarts(zustandCarts);
+      // Set all carts to Zustand store
+      useCartStore.getState().setAllCarts(apiCarts);
     }
-  }
-}, [carts]);
+  }, [apiCarts]);
 
-  // ✅ Whenever add/delete happens in CartCard
-  // Call this from inside CartCard after mutation
+  // ✅ Refresh carts from children (CartCard)
   const refreshCarts = () => {
     queryClient.invalidateQueries({ queryKey: ["carts", authToken] });
   };
 
-  if (isUserLoading || isLoading) {
+  // Calculate totals from Zustand store (actual cart items)
+  const calculateTotals = () => {
+    if (!Array.isArray(allCarts) || allCarts.length === 0) {
+      return { totalCarts: 0, totalItems: 0 };
+    }
+
+    const validCarts = allCarts.filter(cart => 
+      cart && cart.cart_items && cart.cart_items.length > 0
+    );
+
+    const totalCarts = validCarts.length;
+    let totalItems = 0;
+    
+    for (const cart of validCarts) {
+      if (cart.cart_items && Array.isArray(cart.cart_items)) {
+        // Sum up quantities for accurate item count
+        totalItems += cart.cart_items.reduce((sum, item) => sum + (item.qty || 1), 0);
+      }
+    }
+    
+    return { totalCarts, totalItems };
+  };
+
+  if (isLoading || isCartsLoading) {
     return (
       <View style={styles.centered}>
         <Text>Loading...</Text>
@@ -94,7 +112,38 @@ useEffect(() => {
     );
   }
 
-  if (!carts || carts.length === 0) {
+  // Handle error state
+  if (error) {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.emptyContainer}
+        refreshControl={
+          <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+        }
+      >
+        <View style={styles.emptyHeader}>
+          <Text style={styles.emptyHeaderText}>Cart</Text>
+        </View>
+        <View style={styles.emptyTextContainer}>
+          <Text style={styles.emptyTitle}>Unable to load cart</Text>
+          <Text style={styles.emptySubtitle}>Please try again</Text>
+        </View>
+        <TouchableOpacity
+          onPress={refetch}
+          style={styles.startShoppingButton}
+        >
+          <Text style={styles.startShoppingText}>Retry</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // Use apiCarts for rendering (has all the store info) but Zustand for counts
+  const validCarts = Array.isArray(apiCarts) ? apiCarts.filter(cart => 
+    cart && (cart.cart_items?.length > 0 || cart.cartItemsCount > 0)
+  ) : [];
+
+  if (validCarts.length === 0) {
     return (
       <ScrollView
         contentContainerStyle={styles.emptyContainer}
@@ -107,17 +156,6 @@ useEffect(() => {
           <Text style={styles.emptyHeaderText}>Cart</Text>
         </View>
 
-        {/* Empty animation */}
-        <View style={styles.animationContainer}>
-          <LottieView
-            autoPlay
-            loop
-            ref={animation}
-            style={{ width: widthPercentageToDP("60") }}
-            source={require("../../../assets/lottiefiles/empty_cart_2.json")}
-          />
-        </View>
-
         {/* Empty text */}
         <View style={styles.emptyTextContainer}>
           <Text style={styles.emptyTitle}>Your Cart is Empty!</Text>
@@ -128,7 +166,7 @@ useEffect(() => {
 
         {/* Button */}
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "/(tabs)/home/HomeScreen" })}
+          onPress={() => router.push("/(tabs)/home/HomeScreen")}
           style={styles.startShoppingButton}
         >
           <Text style={styles.startShoppingText}>Start Shopping</Text>
@@ -137,43 +175,47 @@ useEffect(() => {
     );
   }
 
-  const { totalCarts, totalItems } = calculateTotals(carts);
+  const { totalCarts, totalItems } = calculateTotals();
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.title}>
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back-outline" size={20} color="black" />
+        </TouchableOpacity>
         <Text style={styles.titleText}>
-          {carts.length > 1 ? "My Carts" : "My Cart"}
+          {validCarts.length > 1 ? "My Carts" : "My Cart"}
         </Text>
         <TouchableOpacity
           style={styles.wishlistButton}
-          onPress={() =>
-            router.push({ pathname: "/(tabs)/account/wishlist" })
-          }
+          onPress={() => router.push("/(tabs)/account/wishlist")}
         >
           <Text style={styles.wishlistText}>Wishlist</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Sub-header */}
+      {/* Sub-header with correct counts from Zustand store */}
       <View style={styles.header}>
         <MaterialCommunityIcons name="cart" size={16} color="black" />
         <View style={styles.headerDetails}>
-          <Text style={styles.totalHeaderText}>{totalItems} Items</Text>
+          <Text style={styles.totalHeaderText}>
+            {totalItems} Item{totalItems !== 1 ? 's' : ''}
+          </Text>
           <Text style={styles.dot}>{" \u25CF"}</Text>
-          <Text style={styles.totalHeaderText}>{totalCarts} Store(s)</Text>
+          <Text style={styles.totalHeaderText}>
+            {totalCarts} Store{totalCarts !== 1 ? 's' : ''}
+          </Text>
         </View>
       </View>
 
       <FlashList
-        data={[...carts].slice().reverse()}
-        keyExtractor={(item) =>
-          item._id || item.store._id || `cart-${Math.random()}`
+        data={validCarts.slice().reverse()}
+        keyExtractor={(item, index) =>
+          item._id || item.store?._id || `cart-${index}`
         }
         estimatedItemSize={200}
-        extraData={carts.length}
+        extraData={[validCarts.length, totalItems, totalCarts]} // Add dependency for re-renders
         contentContainerStyle={styles.listWrapper}
         refreshControl={
           <RefreshControl refreshing={isFetching} onRefresh={refetch} />
@@ -183,7 +225,7 @@ useEffect(() => {
             id={item._id}
             store={item.store}
             items={item.cart_items || []}
-            onCartChange={refreshCarts} // ✅ pass this down
+            onCartChange={refreshCarts}
           />
         )}
       />

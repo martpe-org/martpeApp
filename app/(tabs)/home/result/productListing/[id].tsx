@@ -16,7 +16,7 @@ import Searchbox from "../../../../../components/Product-Listing-Page/FoodAndBev
 import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodDetails";
 import Loader from "../../../../../components/common/Loader";
 import { useVendorData } from "@/state/useVendorData";
-import { checkServiceability, computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
+import { computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
 import { getErrorMessage } from "@/utility/CheckoutUtils";
 import {styles} from "./PlpStyles";
 import useDeliveryStore from "@/components/address/deliveryAddressStore";
@@ -43,7 +43,6 @@ interface FoodDetails {
 const PLP: React.FC = () => {
   const vendor = useLocalSearchParams();
   const vendorSlug = getFirst(vendor.id);
-  const animation = useRef<LottieView>(null);
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
   // State
@@ -63,7 +62,7 @@ const PLP: React.FC = () => {
     discount: 0,
   });
 
-  // Custom hook for vendor data - File 2 style
+  // Custom hook for vendor data
   const {
     data: vendorData,
     isLoading,
@@ -102,10 +101,6 @@ const PLP: React.FC = () => {
   }, []);
 
   // Computed values
-  const serviceable = useMemo(() => {
-    return checkServiceability(vendorData, selectedDetails?.city);
-  }, [vendorData, selectedDetails?.city]);
-
   const { vendorAddress, storeCategories, dropdownHeaders } = useMemo(() => {
     if (!vendorData) {
       return {
@@ -117,7 +112,7 @@ const PLP: React.FC = () => {
     return computeVendorInfo(vendorData, vendorData.catalogs);
   }, [vendorData]);
 
-  // Simple data flattening - File 2 style (all items at once)
+  // Simple data flattening
   const allItems = useMemo(() => {
     return vendorData?.catalogs || [];
   }, [vendorData]);
@@ -133,41 +128,6 @@ const PLP: React.FC = () => {
           <Text style={styles.retryButtonText}>Tap to retry</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
-  );
-
-  // Render unserviceable component
-  const renderUnserviceable = () => (
-    <SafeAreaView style={styles.unserviceableContainer}>
-      <View style={styles.animationContainer}>
-        <LottieView
-          autoPlay
-          ref={animation}
-          style={styles.lottieAnimation}
-          source={require("../../../../../assets/lottiefiles/no_store.json")}
-        />
-      </View>
-
-      <View style={styles.messageContainer}>
-        <Text style={styles.unserviceableText}>
-          The store is currently not serviceable in your area
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        onPress={() => router.push("/address/SavedAddresses")}
-        style={styles.primaryButton}
-      >
-        <MaterialCommunityIcons size={20} name="map-marker" />
-        <Text style={styles.primaryButtonText}>Change Location</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => router.push("/(tabs)/home/HomeScreen")}
-        style={styles.secondaryButton}
-      >
-        <Text style={styles.secondaryButtonText}>View other stores</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 
@@ -192,12 +152,7 @@ const PLP: React.FC = () => {
     );
   }
 
-  // Unserviceable state
-  if (!serviceable) {
-    return renderUnserviceable();
-  }
-
-  // Main render
+  // Main render - Always show data regardless of serviceability
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
@@ -219,7 +174,7 @@ const PLP: React.FC = () => {
               vendorId={vendorSlug}
             />
 
-            {/* This is where the magic happens - proper props like File 2 */}
+            {/* Render product listing directly */}
             {renderProductListingByDomain({
               vendorData,
               allItems,

@@ -1,8 +1,4 @@
 import { FetchDomainType } from './fetch-domain-type';
-// import Constants from 'expo-constants';
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
-
 export const fetchHomeByDomain = async (
   lat: number,
   lon: number,

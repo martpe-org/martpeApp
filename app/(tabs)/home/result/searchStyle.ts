@@ -199,18 +199,6 @@ const { width } = Dimensions.get("window");
     justifyContent: "space-between",
     alignItems: "center",
   },
-
-  infoButton: {
-    borderColor: "#ddd",
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  infoButtonText: {
-    fontSize: 11,
-    color: "#666",
-  },
   storeCard: {
     flexDirection: "row",
     alignItems: "center",

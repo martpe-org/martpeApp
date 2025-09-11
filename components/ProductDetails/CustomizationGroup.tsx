@@ -11,6 +11,7 @@ import useUserDetails from '../../hook/useUserDetails';
 import { useToast } from 'react-native-toast-notifications';
 import { fetchProductCustomizations } from '../customization/fetch-product-customizations';
 import WrapperSheet from './WrapperSheet';
+import Loader from '../common/Loader';
 
 interface CustomizationGroupProps {
   productSlug: string;
@@ -262,7 +263,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f14343" />
+        <Loader/>
         <Text style={styles.loadingText}>Loading customizations...</Text>
       </View>
     );
@@ -271,7 +272,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   if (!customizationData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>No customization data available</Text>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>

@@ -47,10 +47,10 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
       <View
         style={{ flexDirection: "row", marginTop: 5, alignItems: "center" }}
       >
-        {/* <Image
+        <Image
           style={{ height: 20, width: 20 }}
           source={require("../../../assets/PLPFooterPin.png")}
-        /> */}
+        />
         <MaterialIcons name="location-pin" size={16} color="black" />
         <Text style={{ marginLeft: 5, color: "#79787D" }}>{vendorAddress}</Text>
       </View>

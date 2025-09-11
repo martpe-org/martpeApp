@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient'; // ✅ Add this import
 import {
   foodCategoryData,
   groceriesCategoryData,
@@ -23,6 +24,7 @@ export const useRenderFunctions = () => {
   const handleCategoryPress = (item: any) => {
     router.push(`../../(tabs)/home/categories/${item.link}`);
   };
+
   // Compact version for smaller screens or different layouts
   const renderCategoryItemCompact = ({ item, index }: { item: any; index?: number }) => (
     <TouchableOpacity
@@ -40,85 +42,78 @@ export const useRenderFunctions = () => {
     </TouchableOpacity>
   );
 
+  // ✅ Updated restaurant card with linear gradient and store card sizing
   const renderRestaurantItem = ({ item }: { item: Store2 }) => (
     <TouchableOpacity
-      style={styles.restaurantCard}
-    onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/productListing/[id]",
-            params: { id: item.slug },
-          })
-        }
+      style={styles.restaurantCardCompact} // ✅ New compact style
+      onPress={() =>
+        router.push({
+          pathname: "/(tabs)/home/result/productListing/[id]",
+          params: { id: item.slug },
+        })
+      }
     >
-      <View style={styles.restaurantImageContainer}>
+      <View style={styles.restaurantImageContainerCompact}>
         <Image
           source={{
-            uri: item.symbol || "https://via.placeholder.com/150x100",
+            uri: item.symbol || "https://via.placeholder.com/120x80",
           }}
-          style={styles.restaurantImage}
+          style={styles.restaurantImageCompact}
           resizeMode="cover"
         />
+        {/* ✅ Linear gradient overlay */}
+        <LinearGradient
+          colors={['rgba(255,107,53,0.1)', 'rgba(255,152,48,0.05)']} // Subtle orange gradient
+          style={styles.gradientOverlay}
+        />
         {item.offers && item.offers.length > 0 && (
-          <View style={styles.restaurantOfferBadge}>
-            <Text style={styles.restaurantOfferText}>
+          <View style={styles.restaurantOfferBadgeCompact}>
+            <Text style={styles.restaurantOfferTextCompact}>
               {item.maxStoreItemOfferPercent ?? "20"}% OFF
             </Text>
           </View>
         )}
         {item.avg_tts_in_h && (
-          <View style={styles.restaurantTimeBadge}>
-            <Ionicons name="time-outline" size={10} color="white" />
-            <Text style={styles.restaurantTimeText}>
+          <View style={styles.restaurantTimeBadgeCompact}>
+            <Ionicons name="time-outline" size={8} color="white" />
+            <Text style={styles.restaurantTimeTextCompact}>
               {Math.round(item.avg_tts_in_h * 60)} min
             </Text>
           </View>
         )}
       </View>
 
-      <View style={styles.restaurantInfo}>
-        <Text style={styles.restaurantName} numberOfLines={1}>
+      <View style={styles.restaurantInfoCompact}>
+        <Text style={styles.restaurantNameCompact} numberOfLines={1}>
           {item.name ?? "Unknown Restaurant"}
         </Text>
-        <Text style={styles.restaurantCuisine} numberOfLines={1}>
+        <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
           {item.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
         </Text>
 
-        <View style={styles.restaurantDetailsRow}>
-          <View style={styles.restaurantRating}>
-            <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.restaurantRatingText}>
-              {typeof item.rating === "number" ? item.rating.toFixed(1) : "4.2"}
-            </Text>
-          </View>
-
-          <Text style={styles.restaurantDeliveryTime}>
+        <View style={styles.restaurantBottomRowCompact}>
+          <Text style={styles.restaurantDeliveryTimeCompact}>
             {item.avg_tts_in_h
               ? `${Math.round(item.avg_tts_in_h * 60)} mins`
               : "30-40 mins"}
           </Text>
-        </View>
-
-        <View style={styles.restaurantBottomRow}>
-          <Text style={styles.restaurantLocation} numberOfLines={1}>
-            {item.address?.locality || item.address?.city || "Local Area"}
-          </Text>
-          <View style={styles.restaurantStatus}>
+          <View style={styles.restaurantStatusCompact}>
             <View
               style={[
-                styles.restaurantStatusDot,
+                styles.restaurantStatusDotCompact,
                 {
                   backgroundColor:
-                    item.status === "open" ? "#00C851" : "#FF4444",
+                    item.status === "open" ? "#00C851" : "green",
                 },
               ]}
             />
             <Text
               style={[
-                styles.restaurantStatusText,
-                { color: item.status === "open" ? "#00C851" : "#FF4444" },
+                styles.restaurantStatusTextCompact,
+                { color: item.status === "open" ? "#00C851" : "#00C851" },
               ]}
             >
-              {item.status === "open" ? "Open" : "Closed"}
+              Open
             </Text>
           </View>
         </View>
@@ -126,7 +121,7 @@ export const useRenderFunctions = () => {
     </TouchableOpacity>
   );
 
-  const renderNearbyItem = ({ item }: { item: Store2 }) => {
+  const renderStores = ({ item }: { item: Store2 }) => {
     const title = item.store_name || item.name || "Unnamed";
     const category =
       item.store_sub_categories?.join(", ") ||
@@ -136,10 +131,6 @@ export const useRenderFunctions = () => {
       typeof item.distance_in_km === "number"
         ? `${item.distance_in_km.toFixed(1)} km`
         : "";
-    const rating =
-      typeof item.rating === "number" && !isNaN(item.rating)
-        ? item.rating.toFixed(1)
-        : null;
 
     return (
       <TouchableOpacity
@@ -177,12 +168,6 @@ export const useRenderFunctions = () => {
           </Text>
           {distance !== "" && (
             <Text style={styles.nearbyDistance}>{distance}</Text>
-          )}
-          {rating && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={12} color="#FFD700" />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
           )}
         </View>
       </TouchableOpacity>
@@ -265,13 +250,125 @@ export const useRenderFunctions = () => {
     handleCategoryPress,
     renderCategoryItemCompact,
     renderRestaurantItem,
-    renderNearbyItem,
+    renderStores,
     renderFoodCategories,
     renderGroceryCategories,
   };
 };
 
 const styles = StyleSheet.create({
+  // ✅ New compact restaurant card styles (similar to store card size)
+  restaurantCardCompact: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    width: 200, // Same as nearbyCard width
+    overflow: "hidden",
+  },
+  restaurantImageContainerCompact: {
+    position: "relative",
+    width: "100%",
+    height: 120, // Same as nearbyImage height
+    backgroundColor: "#f5f5f5",
+  },
+  restaurantImageCompact: {
+    width: "100%",
+    height: "100%",
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  // ✅ Linear gradient overlay for restaurants
+  gradientOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  restaurantOfferBadgeCompact: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 1,
+  },
+  restaurantOfferTextCompact: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  restaurantTimeBadgeCompact: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  restaurantTimeTextCompact: {
+    color: "white",
+    fontSize: 10,
+    marginLeft: 2,
+    fontWeight: "500",
+  },
+  restaurantInfoCompact: {
+    padding: 12, // Same as nearbyInfo padding
+  },
+  restaurantNameCompact: {
+    fontSize: 16, // Same as nearbyName
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  restaurantCuisineCompact: {
+    fontSize: 12, // Same as nearbyCategory
+    color: "#888",
+    marginBottom: 8,
+    textTransform: "capitalize",
+  },
+  restaurantBottomRowCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  restaurantDeliveryTimeCompact: {
+    fontSize: 12,
+    color: "#FF9130", // Orange color like nearbyDistance
+    fontWeight: "500",
+  },
+  restaurantStatusCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  restaurantStatusDotCompact: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  restaurantStatusTextCompact: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  // Original restaurant card styles (keeping for backward compatibility)
   restaurantCard: {
     backgroundColor: "white",
     borderRadius: 16,
@@ -284,7 +381,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
-    width: 260,
+    width: 200,
     overflow: "hidden",
   },
   restaurantImageContainer: {
@@ -400,6 +497,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+
+  // Store card styles (unchanged)
   nearbyCard: {
     backgroundColor: "white",
     borderRadius: 12,
@@ -492,7 +591,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-    catCard: {
+  catCard: {
     alignItems: "center",
     justifyContent: "center",
     marginRight: 18,
@@ -554,6 +653,6 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    marginBottom:-7
+    marginBottom: -7
   },
 });

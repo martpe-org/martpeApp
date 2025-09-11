@@ -6,6 +6,7 @@ import PLPFashion from "../Product-Listing-Page/Fashion/PLPFashion";
 import PLPHomeAndDecor from "../Product-Listing-Page/HomeAndDecor/PLPHomeAndDecor";
 import PLPPersonalCare from "../Product-Listing-Page/PersonalCare/PLPPersonalCare";
 import { ComponentCatalogItem, VendorData } from "@/state/useVendorData";
+import PLPFnB from "../Product-Listing-Page/FoodAndBeverages/PLPFnB";
 
 interface PLPComponentsProps {
   vendorData: VendorData;
@@ -36,13 +37,28 @@ export const renderProductListingByDomain = ({
         />
       );
 
+case "ONDC:RET11": // Food and Beverage
+  return (
+    <PLPFnB
+      catalog={allItems}
+      dropdownHeaders={dropdownHeaders}
+      vendorAddress={vendorData.address?.street || ""}
+      street={vendorData.address?.locality || ""}
+      fssaiLiscenseNo="" // Add to VendorData if needed
+      providerId={storeId}
+      searchString={searchString}
+      storeName={storeName}
+    />
+  );
+
+
     case "ONDC:RET12": // Fashion
       return (
         <PLPFashion
           headers={dropdownHeaders}
           catalog={allItems}
           storeId={storeId}
-         // storeName={storeName}
+          // storeName={storeName}
         />
       );
 
@@ -89,7 +105,8 @@ export const computeVendorInfo = (
   vendorData: VendorData,
   allItems: ComponentCatalogItem[]
 ) => {
-  const { locality, street, city, state, area_code } = vendorData?.address || {};
+  const { locality, street, city, state, area_code } =
+    vendorData?.address || {};
 
   const vendorAddress = [locality, street, city, state, area_code]
     .filter(Boolean)
@@ -129,7 +146,10 @@ export const checkServiceability = (
   const normalizedSelectedCity = safeNormalize(selectedCity);
   const vendorCity = safeNormalize(vendorData?.address?.city);
 
-  return panIndia || (!!normalizedSelectedCity && normalizedSelectedCity === vendorCity);
+  return (
+    panIndia ||
+    (!!normalizedSelectedCity && normalizedSelectedCity === vendorCity)
+  );
 };
 
 const styles = StyleSheet.create({

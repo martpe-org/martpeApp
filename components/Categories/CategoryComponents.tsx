@@ -46,21 +46,6 @@ interface StoreData {
   time_to_ship_in_hours?: number;
 }
 
-interface SharedComponentsProps {
-  categoryData: CategoryData[];
-  storesData: StoreData[];
-  domain: string;
-  selectedAddress: any;
-  sectionTitle: string;
-  storesSectionTitle: string;
-  searchCategory: string;
-  gradientColors?: string[];
-  activeColor?: string;
-  isLoading?: boolean;
-  onRefresh?: () => void;
-  showNoStoresAnimation?: boolean;
-}
-
 // ✅ Shared Header Component
 export const CategoryHeader: React.FC<{
   onSearchPress: () => void;

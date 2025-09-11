@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const {
     renderCategoryItemCompact,
     renderRestaurantItem,
-    renderNearbyItem,
+    renderStores,
     renderFoodCategories,
     renderGroceryCategories,
   } = useRenderFunctions();
@@ -51,7 +51,7 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
-  // Fetch home data using react-query with optimized caching
+ // Fetch home data using react-query with optimized caching
   const {
     data: homeData,
     isLoading,
@@ -100,6 +100,32 @@ export default function HomeScreen() {
     networkMode: 'online',
   });
 
+    // Fetch home data using react-query with hardcoded values
+  // const {
+  //   data: homeData,
+  //   isLoading,
+  //   error,
+  //   refetch,
+  //   isRefetching,
+  // } = useQuery({
+  //   queryKey: [
+  //     "homeData",
+  //     selectedDetails?.lat ?? 12.9716,
+  //     selectedDetails?.lng ?? 77.5946,
+  //     selectedDetails?.pincode ?? "560001",
+  //   ],
+  //   queryFn: async () => {
+  //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
+  //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
+  //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+
+  //     return fetchHome(lat, lng, pin);
+  //   },
+  //   staleTime: 1000 * 60 * 5, // 5 minutes
+  //   enabled: true,
+  //   retry: 1,
+  // });
+
   // Animation value for "No Data" messages
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -139,8 +165,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isRefetching || isLoading}
             onRefresh={onRefresh}
-            colors={["#f2663c"]} // Android spinner color
-            tintColor="#f2663c" // iOS spinner color
+            colors={["#4324f0"]} // Android spinner color
+            tintColor="#4e3cf2" // iOS spinner color
           />
         }
       >
@@ -233,7 +259,7 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) => `store_${item.slug}_${index}`}
                 contentContainerStyle={styles.nearbyList}
-                renderItem={renderNearbyItem}
+                renderItem={renderStores}
               />
             </View>
           ) : (

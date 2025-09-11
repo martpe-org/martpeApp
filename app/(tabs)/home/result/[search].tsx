@@ -84,7 +84,7 @@ const Results: FC = () => {
 
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
-  const [foodDetails, setFoodDetails] = useState<FoodDetailsState>({
+  const [foodDetails] = useState<FoodDetailsState>({
     images: "",
     long_desc: "",
     name: "",
@@ -101,11 +101,6 @@ const Results: FC = () => {
 
   const snapPoints = useMemo(() => ["50%", "70%"], []);
   const bottomSheetRef = useRef<BottomSheet>(null);
-
-  const handleOpenPress = useCallback(
-    () => bottomSheetRef.current?.expand(),
-    []
-  );
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -177,27 +172,6 @@ const Results: FC = () => {
     setIsItem(itemTab);
   }, []);
 
-  // Handle food details
-  const handleFoodDetails = useCallback(
-    (product: ProductSearchResult) => {
-      setFoodDetails({
-        images: product.images?.[0] || "",
-        long_desc: product.short_desc || "",
-        name: product.name,
-        short_desc: product.short_desc || "",
-        symbol: product.symbol,
-        price: product.price.value.toString(),
-        storeId: product.store_id,
-        itemId: product.symbol,
-        discount: product.price.offerPercent || 0,
-        maxPrice: product.price.maximum_value || 0,
-        visible: true,
-        maxQuantity: product.quantity || 1,
-      });
-      handleOpenPress();
-    },
-    [handleOpenPress]
-  );
 
   // Product Card Component
   const ProductCard: FC<{
@@ -295,14 +269,7 @@ const Results: FC = () => {
                     } // ✅ Add customization groups
                   />
 
-                  {domainName === "F&B" && (
-                    <TouchableOpacity
-                      onPress={() => handleFoodDetails(product)}
-                      style={styles.infoButton}
-                    >
-                      <Text style={styles.infoButtonText}>Info</Text>
-                    </TouchableOpacity>
-                  )}
+
                 </View>
               </View>
             </TouchableOpacity>
@@ -330,7 +297,6 @@ const Results: FC = () => {
       <View style={styles.storeCardInfo}>
         <Text style={styles.storeCardName}>{store.name}</Text>
         <Text style={styles.storeCardDetails}>
-          <Text>★ {store.rating || "4.2"} • </Text>
           <Text>{store.distance_in_km.toFixed(1)}km</Text>
         </Text>
         <Text style={styles.storeCardAddress} numberOfLines={1}>

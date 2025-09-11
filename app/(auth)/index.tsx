@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: "center",
-    fontSize: widthPercentageToDP("2.5"),
+    fontSize: widthPercentageToDP("2.9"),
     paddingHorizontal: 20,
     marginTop: 20,
   },
