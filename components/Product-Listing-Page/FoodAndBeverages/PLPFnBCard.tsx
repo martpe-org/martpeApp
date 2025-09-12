@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import AddToCart from "../../common/AddToCart";
+import LikeButton from "@/components/common/likeButton";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -20,6 +21,7 @@ interface PLPFnBCardProps {
   maxLimit?: number;
   providerId?: string;
   slug?: string;
+  productId: string | string[];
   catalogId: string;
   weight?: string;
   unit?: string;
@@ -43,6 +45,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   cost,
   maxLimit,
   providerId,
+  productId,
   slug,
   catalogId,
   weight = "1 serving",
@@ -68,17 +71,8 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
     if (item) {
-      if (
-        item.provider?.store_id &&
-        item.provider.store_id !== "unknown-store"
-      ) {
-        return item.provider.store_id;
-      }
       if (item.store_id && item.store_id !== "unknown-store") {
         return item.store_id;
-      }
-      if (item.provider_id && item.provider_id !== "unknown-store") {
-        return item.provider_id;
       }
     }
     return catalogId || id || "default-store";
@@ -93,9 +87,12 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     if (non_veg) return "#ef4444";
     return "#f0f0f0";
   };
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  const uniqueProductId = productIdString || slug || id;
+
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+    <View >
       <View style={[cardStyles.card, { borderColor: getBorderColor() }]}>
         {/* ✅ Veg/Non-Veg Indicator */}
         <View style={cardStyles.dietIndicator}>
@@ -105,16 +102,21 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
 
         <ImageComp
           source={image || symbol}
-          style={cardStyles.image}
+          imageStyle={cardStyles.image}
           resizeMode="cover"
-          fallbackText={itemName?.charAt(0) || "F"}
+        fallbackSource={{ uri: "https://picsum.photos/200/300" }}
+        loaderColor="#666"
+        loaderSize="small"
         />
-        
-        <View style={cardStyles.info}>
+              <View style={cardStyles.topActions}>
+        <LikeButton productId={uniqueProductId} color="#E11D48" />
+      </View>
+        <TouchableOpacity style={cardStyles.info}
+        onPress={handlePress} activeOpacity={0.8}
+        >
           <Text style={cardStyles.name} numberOfLines={2}>
             {itemName}
           </Text>
-          
           <Text style={cardStyles.weight}>
             {weight} / {unit}
           </Text>
@@ -138,7 +140,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           {discount && (
             <Text style={cardStyles.discount}>{discount}% off</Text>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* ✅ AddToCart Component */}
         <View style={cardStyles.cartWrapper}>
@@ -152,7 +154,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           />
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -171,6 +173,17 @@ const cardStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
     borderWidth: 1,
+  },
+    topActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
   },
   dietIndicator: {
     position: "absolute",

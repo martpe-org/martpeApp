@@ -1,8 +1,9 @@
 import ImageComp from "@/components/common/ImageComp";
 import { router } from "expo-router";
-import { FC, useEffect } from "react";
+import { FC } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AddToCart from "../../common/AddToCart";
+import LikeButton from "@/components/common/likeButton";
 
 interface FashionCardProps {
   itemName: string;
@@ -10,11 +11,14 @@ interface FashionCardProps {
   value: number;
   maxPrice?: number;
   discount: number | string;
+  productId: string | string[];
   image: string;
   id: string;
   catalogId: string;
   storeId?: string;
   slug?: string;
+  onPress?: () => void;
+
   customizable?: boolean;
   directlyLinkedCustomGroupIds?: string[]; // ✅ add
 }
@@ -28,20 +32,20 @@ const FashionCard: FC<FashionCardProps> = ({
   image,
   id,
   catalogId,
+  productId,
   storeId,
   slug,
+  onPress,
   customizable = false, // ✅ default
   directlyLinkedCustomGroupIds = [],
 }) => {
+  const handlePress =
+    onPress ||
+    (() => {
+      router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+    });
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
 
-  useEffect(() => {
-    if (!safeStoreId) {
-      console.warn(
-        `⚠️ FashionCard: Missing storeId for product ${id} (${itemName})`
-      );
-    }
-  }, [safeStoreId, id, itemName]);
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
@@ -66,15 +70,13 @@ const FashionCard: FC<FashionCardProps> = ({
     );
   };
 
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+
+  const uniqueProductId = productIdString || slug || id;
   return (
     <View style={styles.fashionCard}>
       {/* Card Clickable Content */}
-      <TouchableOpacity
-        onPress={() =>
-          router.push(`/(tabs)/home/result/productDetails/${slug || id}`)
-        }
-        style={styles.cardContent}
-      >
+      <View style={styles.cardContent}>
         <ImageComp
           source={image}
           imageStyle={styles.fashionCardImage}
@@ -85,7 +87,14 @@ const FashionCard: FC<FashionCardProps> = ({
           loaderColor="#666"
           loaderSize="small"
         />
-        <View style={styles.fashionCardContent}>
+        <View style={styles.topActions}>
+          <LikeButton productId={uniqueProductId} color="#E11D48" />
+        </View>
+        <TouchableOpacity
+          style={styles.fashionCardContent}
+          onPress={handlePress}
+          activeOpacity={0.8}
+        >
           <Text
             style={styles.fashionCardTitle}
             numberOfLines={1}
@@ -114,8 +123,8 @@ const FashionCard: FC<FashionCardProps> = ({
               </Text>
             )}
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       {/* Add to Cart Button */}
       {renderAddToCart()}
@@ -135,6 +144,17 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+  },
+  topActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
   },
   fashionCardImage: {
     width: 185,

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import AddToCart from "../../common/AddToCart";
+import LikeButton from "@/components/common/likeButton";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -16,6 +17,7 @@ const CARD_WIDTH = width * 0.44;
 interface GroceryCardProps {
   id: string;
   itemName: string;
+  productId: string | string[];
   cost: number;
   maxLimit?: number;
   providerId?: string;
@@ -29,7 +31,7 @@ interface GroceryCardProps {
   image?: string;
   onPress?: () => void;
   item?: any;
-  customizable?: boolean; // ✅ Add this
+  customizable?: boolean;
   directlyLinkedCustomGroupIds?: string[];
 }
 
@@ -46,10 +48,11 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   originalPrice,
   discount,
   symbol,
+  productId,
   image,
   onPress,
   item,
-  customizable = false, // ✅ Add default value
+  customizable = false,
   directlyLinkedCustomGroupIds = [],
 }) => {
   const handlePress =
@@ -61,17 +64,8 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
     if (item) {
-      if (
-        item.provider?.store_id &&
-        item.provider.store_id !== "unknown-store"
-      ) {
-        return item.provider.store_id;
-      }
       if (item.store_id && item.store_id !== "unknown-store") {
         return item.store_id;
-      }
-      if (item.provider_id && item.provider_id !== "unknown-store") {
-        return item.provider_id;
       }
     }
     return catalogId || id || "default-store";
@@ -79,13 +73,16 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
   const storeId = resolveStoreId();
   const resolvedSlug = slug || id;
+  
+  // Convert productId to string if it's an array (same as ProductHeader)
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  
+  // Use the most reliable unique identifier available
+  // Priority: productId -> slug -> id
+  const uniqueProductId = productIdString || slug || id;
 
   return (
-    <TouchableOpacity
-      style={cardStyles.card}
-      onPress={handlePress}
-      activeOpacity={0.8}
-    >
+    <View style={cardStyles.card}>
       <ImageComp
         source={image}
         imageStyle={cardStyles.image}
@@ -94,8 +91,15 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         loaderColor="#666"
         loaderSize="small"
       />
+      <View style={cardStyles.topActions}>
+        <LikeButton productId={uniqueProductId} color="#E11D48" />
+      </View>
 
-      <View style={cardStyles.info}>
+      <TouchableOpacity 
+        style={cardStyles.info}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
         <Text style={cardStyles.name} numberOfLines={2}>
           {itemName}
         </Text>
@@ -113,7 +117,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         </View>
 
         {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
-      </View>
+      </TouchableOpacity>
 
       <View style={cardStyles.cartWrapper}>
         <AddToCart
@@ -121,12 +125,12 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           slug={resolvedSlug}
           catalogId={catalogId}
           price={cost}
-          productName={itemName} // ✅ Add product name
-          customizable={customizable} // ✅ Add customizable flag
-          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
+          productName={itemName}
+          customizable={customizable}
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
         />
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -144,6 +148,17 @@ const cardStyles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
+  },
+  topActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
   },
   image: {
     width: "100%",

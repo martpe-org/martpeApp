@@ -1,5 +1,6 @@
 import AddToCart from "@/components/common/AddToCart";
 import ImageComp from "@/components/common/ImageComp";
+import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import {
@@ -16,6 +17,8 @@ const CARD_WIDTH = width * 0.46;
 interface PersonalCareCardProps {
   title: string;
   description: string;
+    productId: string | string[];
+
   price: number;
   discount: number;
   image?: string;
@@ -40,6 +43,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   description,
   price,
   discount,
+  productId,
   image,
   symbol,
   maxValue,
@@ -105,12 +109,13 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
       </View>
     );
   };
-
+ const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  const uniqueProductId = productIdString || slug || id;
+  
   return (
-    <TouchableOpacity
-      onPress={handlePress}
+    <View
       style={styles.card}
-      activeOpacity={0.85}
+
     >
       <View style={styles.imageContainer}>
         <ImageComp
@@ -123,9 +128,15 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           loaderColor="#530633"
           loaderSize="small"
         />
+              <View style={styles.topActions}>
+        <LikeButton productId={uniqueProductId} color="#E11D48" />
+      </View>
       </View>
 
-      <View style={styles.info}>
+      <TouchableOpacity style={styles.info}
+            onPress={handlePress}
+      activeOpacity={0.85}
+      >
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
@@ -139,10 +150,10 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           <Text style={styles.price}>₹{price}</Text>
           {discount > 1 && <Text style={styles.discount}>{discount}% Off</Text>}
         </View>
-      </View>
+      </TouchableOpacity>
 
       {renderAddToCart()}
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -161,6 +172,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
+  },
+    topActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
   },
   imageContainer: {
     backgroundColor: "#f7f7f7",

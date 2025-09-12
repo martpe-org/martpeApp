@@ -2,7 +2,6 @@ import React, { FC } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import ShareButton from "../../components/common/Share";
 import LikeButton from "../../components/common/likeButton";
-import { useFavoriteStore } from "../../state/useFavoriteStore";
 
 interface ProductHeaderProps {
   itemName: string;
@@ -23,21 +22,8 @@ const ProductHeader: FC<ProductHeaderProps> = ({
   quantity,
   unit,
 }) => {
-  const { allFavorites } = useFavoriteStore();
-
   // Convert productId to string if it's an array
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
-
-  // Check favorite state directly from store
-  const isFavorite = allFavorites?.products?.some(
-    (item) => item.id === productIdString
-  );
-
-  console.log("ProductHeader Debug:", {
-    productId: productIdString,
-    isFavorite,
-    favoritesCount: allFavorites?.products?.length || 0,
-  });
 
   return (
     <View style={styles.container}>
