@@ -44,7 +44,7 @@ case "ONDC:RET11": // Food and Beverage
       dropdownHeaders={dropdownHeaders}
       vendorAddress={vendorData.address?.street || ""}
       street={vendorData.address?.locality || ""}
-      fssaiLiscenseNo="" // Add to VendorData if needed
+      fssaiLiscenseNo=""
       providerId={storeId}
       searchString={searchString}
       storeName={storeName}
@@ -58,7 +58,6 @@ case "ONDC:RET11": // Food and Beverage
           headers={dropdownHeaders}
           catalog={allItems}
           storeId={storeId}
-          // storeName={storeName}
         />
       );
 

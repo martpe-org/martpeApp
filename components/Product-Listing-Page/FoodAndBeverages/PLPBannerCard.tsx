@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import {
   FontAwesome,
@@ -18,7 +13,6 @@ import ShareButton from "@/components/common/Share";
 interface PLPBannerCardProps {
   title: string;
   description: string;
-  rating: number;
   address: string;
   deliveryTime: string;
   distance: number;
@@ -32,7 +26,6 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
   title,
   vendorId,
   description,
-  rating,
   address,
   deliveryTime,
   distance,
@@ -41,7 +34,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
   userAddress,
 }) => {
   const safeDescription = description ?? "";
-  
+
   // Convert vendorId to string if it's an array (consistent with ProductHeader)
   const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
 
@@ -66,29 +59,56 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
       </Text>
 
       {/* horizontal description bar */}
-      <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 5, ...styles.horizontalBar }}>
-        <FontAwesome name="star" size={12} color="#fbbf24" style={{ marginRight: 3 }} />
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{rating}</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>{" \u25CF"}</Text>
+      <View
+        style={{
+          ...styles.PLPBannerCardContentContainer,
+          marginTop: 5,
+          ...styles.horizontalBar,
+        }}
+      >
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
 
-        <MaterialCommunityIcons name="clock-time-four" size={12} color="black" style={{ marginRight: 3 }} />
+        <MaterialCommunityIcons
+          name="clock-time-four"
+          size={12}
+          color="black"
+          style={{ marginRight: 3 }}
+        />
         <Text style={{ fontSize: 12, fontWeight: "500" }}>{deliveryTime}</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>{" \u25CF"}</Text>
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
 
-        <MaterialIcons name="delivery-dining" size={16} color="black" style={{ marginRight: 3 }} />
+        <MaterialIcons
+          name="delivery-dining"
+          size={16}
+          color="black"
+          style={{ marginRight: 3 }}
+        />
         <Text style={{ fontSize: 12, fontWeight: "500" }}>{distance} km</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>{" \u25CF"}</Text>
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
 
         <Text style={{ fontSize: 12, fontWeight: "500" }}>{delivery}</Text>
       </View>
 
       {/* from address */}
       <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 15 }}>
-        <View style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}>
+        <View
+          style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}
+        >
           <MaterialIcons name="location-pin" size={14} color="black" />
         </View>
         <Text
-          style={{ fontSize: 12, marginLeft: 10, lineHeight: 14, color: "#848080" }}
+          style={{
+            fontSize: 12,
+            marginLeft: 10,
+            lineHeight: 14,
+            color: "#848080",
+          }}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -98,10 +118,19 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 
       {/* to address */}
       <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 10 }}>
-        <View style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}>
+        <View
+          style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}
+        >
           <MaterialIcons name="my-location" size={14} color="black" />
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flex: 1,
+          }}
+        >
           <TouchableOpacity
             style={{ flexDirection: "row", alignItems: "center" }}
             onPress={() => router.push("/address/SavedAddresses")}
@@ -125,17 +154,23 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
       </View>
 
       {/* like + share */}
-      <View style={{ flexDirection: "row", width: "100%", justifyContent: "flex-end" }}>
-<LikeButton
-  vendorId={vendorIdString}
-  storeData={{
-    id: vendorIdString,
-    name: title,
-    descriptor: { short_desc: description },
-    symbol: "https://via.placeholder.com/150", // replace with actual logo if available
-  }}
-  color="#E11D48"
-/>
+      <View
+        style={{
+          flexDirection: "row",
+          width: "100%",
+          justifyContent: "flex-end",
+        }}
+      >
+        <LikeButton
+          vendorId={vendorIdString}
+          storeData={{
+            id: vendorIdString,
+            name: title,
+            descriptor: { short_desc: description },
+            symbol: "https://via.placeholder.com/150", // replace with actual logo if available
+          }}
+          color="#E11D48"
+        />
         <View style={{ marginHorizontal: 5 }} />
         <ShareButton storeName={title} type="outlet" />
       </View>
@@ -148,7 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f1f1",
     borderRadius: 10,
     marginHorizontal: 15,
-   // overflow: "hidden",
+    // overflow: "hidden",
     padding: 20,
     elevation: 3,
   },

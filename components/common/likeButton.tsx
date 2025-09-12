@@ -10,25 +10,25 @@ interface LikeButtonProps {
   productId?: string;
   vendorId?: string;
   storeData?: any;
-  productData?: any; // Add productData prop
+  productData?: any;
   color?: string;
 }
 
-const LikeButton = ({ 
-  productId, 
-  vendorId, 
-  storeData, 
-  productData, 
-  color = "#000" 
+const LikeButton = ({
+  productId,
+  vendorId,
+  storeData,
+  productData,
+  color = "#000",
 }: LikeButtonProps) => {
   const { authToken } = useUserDetails();
-  const { 
-    allFavorites, 
-    addFavorite, 
-    removeFavorite, 
-    addStoreFavorite, 
-    removeStoreFavorite, 
-    isUpdating 
+  const {
+    allFavorites,
+    addFavorite,
+    removeFavorite,
+    addStoreFavorite,
+    removeStoreFavorite,
+    isUpdating,
   } = useFavoriteStore();
   const toast = useToast();
   const scaleValue = useRef(new Animated.Value(1)).current;
@@ -37,16 +37,23 @@ const LikeButton = ({
   const isStore = !!vendorId;
   const itemId = isStore ? vendorId : productId;
 
-  // 🔑 Derive favorite state from Zustand - check both id and slug
+  // Check favorite state - handle both id and slug matching
   const isFavorite = React.useMemo(() => {
     if (isStore) {
-      return allFavorites?.stores?.some((s) => 
-        s.id === itemId || s.slug === itemId
-      ) || false;
+      const isInFavorites =
+        allFavorites?.stores?.some(
+          (s) => s.id === itemId || s.slug === itemId
+        ) || false;
+
+      return isInFavorites;
     }
-    return allFavorites?.products?.some((p) => 
-      p.id === itemId || p.slug === itemId
-    ) || false;
+
+    const isInFavorites =
+      allFavorites?.products?.some(
+        (p) => p.id === itemId || p.slug === itemId
+      ) || false;
+
+    return isInFavorites;
   }, [allFavorites, itemId, isStore]);
 
   const handlePressIn = () => {
@@ -74,7 +81,7 @@ const LikeButton = ({
       Alert.alert("Login Required", "Please login to use favorites.");
       return;
     }
-    
+
     if (!itemId) {
       console.error("No item ID provided");
       return;
@@ -100,43 +107,41 @@ const LikeButton = ({
             id: storeData.id || storeData.slug || itemId,
             slug: storeData.slug || storeData.id || itemId,
             descriptor: {
-              name: storeData.descriptor?.name || storeData.name || "Unknown Store",
-              short_desc: storeData.descriptor?.short_desc || storeData.short_desc || "",
-              description: storeData.descriptor?.description || storeData.description || "",
+              name:
+                storeData.descriptor?.name || storeData.name || "Unknown Store",
+              short_desc:
+                storeData.descriptor?.short_desc || storeData.short_desc || "",
+              description:
+                storeData.descriptor?.description ||
+                storeData.description ||
+                "",
+              images: storeData.descriptor?.images || storeData.images || [],
+              symbol: storeData.descriptor?.symbol || storeData.symbol || "",
               ...storeData.descriptor,
             },
             symbol: storeData.symbol || "",
+            address: storeData.address || {},
+            geoLocation: storeData.geoLocation || {},
+            calculated_max_offer: storeData.calculated_max_offer || {},
             ...storeData,
+            // Override with normalized values
+            id: storeData.id || storeData.slug || itemId,
+            slug: storeData.slug || storeData.id || itemId,
           };
-          
+
           await addStoreFavorite(normalizedStoreData, authToken);
           toast.show("Store added to favorites", { type: "success" });
         } else if (!isStore) {
           // Pass available product data for better optimistic updates
-          const normalizedProductData = productData ? {
-            id: productData.id || productData.slug || itemId,
-            slug: productData.slug || productData.id || itemId,
-            descriptor: {
-              name: productData.descriptor?.name || productData.name || "Unknown Product",
-              images: productData.descriptor?.images || productData.images || [],
-              ...productData.descriptor,
-            },
-            price: productData.price || {},
-            provider: productData.provider || {},
-            store_id: productData.store_id,
-            catalog_id: productData.catalog_id,
-            ...productData,
-          } : undefined;
-          
-          await addFavorite(itemId, authToken, normalizedProductData);
+
+
+          await addFavorite(itemId, authToken);
           toast.show("Added to favorites", { type: "success" });
         } else {
-          console.error("Missing storeData for store favorite");
           toast.show("Error: Missing store data", { type: "danger" });
         }
       }
     } catch (err) {
-      console.error("Error updating favorite:", err);
       toast.show("Error updating favorites", { type: "danger" });
     } finally {
       setIsProcessing(false);
@@ -144,8 +149,8 @@ const LikeButton = ({
   };
 
   return (
-    <TouchableOpacity 
-      onPressIn={handlePressIn} 
+    <TouchableOpacity
+      onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isProcessing || isUpdating}
       style={{ opacity: isProcessing || isUpdating ? 0.7 : 1 }}

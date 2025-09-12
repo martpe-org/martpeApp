@@ -79,7 +79,6 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         searchbox={searchbox}
         title={descriptor?.name || "Store Name"}
         description={storeSections}
-        rating={4.5}
         address={address}
         deliveryTime={deliveryTime}
         distance={distance}

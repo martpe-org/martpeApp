@@ -1,12 +1,15 @@
 import React from "react";
-import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
 import {
-  MaterialCommunityIcons,
-  MaterialIcons,
-} from "@expo/vector-icons";
+  View,
+  StyleSheet,
+  Image,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+} from "react-native";
+import { router } from "expo-router";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import LikeButton from "../../components/common/likeButton";
-import ShareButton from "../../components/common/Share";
 import { getDistance } from "geolib";
 
 interface StoreCard3Props {
@@ -15,16 +18,11 @@ interface StoreCard3Props {
   userLocation: { lat: number; lng: number };
 }
 
-const StoreCard3: React.FC<StoreCard3Props> = ({
-  storeData,
-  categoryFiltered,
-  userLocation,
-}) => {
+const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
   if (!storeData) return null;
 
   const {
     descriptor = {},
-    id,
     address = {},
     calculated_max_offer = {},
     geoLocation = {},
@@ -34,7 +32,6 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
   const { city = "" } = address;
   const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
 
-  /** ---------- Distance & delivery time (from your first file) ---------- **/
   const distanceKm = geoLocation?.lat
     ? Number(
         (
@@ -55,16 +52,43 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
       ? `${Math.round((distanceKm / speed) * 60)} min`
       : `${Math.round(distanceKm / speed)} hr`;
 
+  // Fix: Use consistent vendorId - prioritize slug, then id
+  const vendorIdString = storeData?.slug || storeData?.id || "";
+  // Fix: Create properly structured store data for LikeButton
+  const normalizedStoreData = {
+    id: vendorIdString,
+    slug: vendorIdString, // Ensure both id and slug are the same for consistency
+    descriptor: {
+      name: descriptor?.name || name || "Unknown Store",
+      short_desc: descriptor?.short_desc || "",
+      description: descriptor?.description || "",
+      images: descriptor?.images || images || [],
+      symbol: descriptor?.symbol || symbol || "",
+      ...descriptor,
+    },
+    symbol: storeData?.symbol || symbol || "",
+    address: storeData?.address || address || {},
+    geoLocation: storeData?.geoLocation || geoLocation || {},
+    calculated_max_offer:
+      storeData?.calculated_max_offer || calculated_max_offer || {},
+    // Include all original store data
+    ...storeData,
+    // Override with our normalized values
+    id: vendorIdString,
+    slug: vendorIdString,
+  };
+
   return (
-    <View style={styles.cardWrapper}>
+    <SafeAreaView style={styles.cardWrapper}>
       {/* Banner with gradient overlay */}
       <View style={styles.bannerContainer}>
         <TouchableOpacity
           onPress={() => {
             if (storeData.slug) {
-              router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
+              router.push(
+                `/(tabs)/home/result/productListing/${storeData.slug}`
+              );
             } else {
-              console.warn("Store slug missing");
             }
           }}
         >
@@ -73,32 +97,15 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
             style={styles.backgroundImage}
             resizeMode="cover"
           />
-
-
-
-          {/* Floating discount badge */}
-          {calculated_max_offer?.percent > 0 && (
-            <View style={styles.discountTag}>
-              <Text style={styles.discountText}>
-                {Math.round(calculated_max_offer.percent)}% OFF
-              </Text>
-            </View>
-          )}
         </TouchableOpacity>
 
         {/* Floating actions */}
         <View style={styles.topActions}>
           <LikeButton
-            vendorId={id}
-            storeData={{
-              id,
-              name,
-              descriptor: { short_desc: "Electronics store" },
-              symbol,
-            }}
+            vendorId={vendorIdString}
+            storeData={normalizedStoreData}
             color="#E11D48"
           />
-          <ShareButton storeName={name} type="outlet" />
         </View>
       </View>
 
@@ -108,11 +115,15 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
           {name}
         </Text>
 
-        {/* ✅ Info Row pulled from other file */}
+        {/* Info Row */}
         <View style={[styles.infoContainer, styles.horizontalBar]}>
           <Text style={styles.separator}> • </Text>
 
-          <MaterialCommunityIcons name="clock-time-four" size={12} color="#444" />
+          <MaterialCommunityIcons
+            name="clock-time-four"
+            size={12}
+            color="#444"
+          />
           <Text style={styles.infoText}>{deliveryTime}</Text>
           <Text style={styles.separator}> • </Text>
 
@@ -128,7 +139,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({
           </Text>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -136,9 +147,8 @@ export default StoreCard3;
 
 const styles = StyleSheet.create({
   cardWrapper: {
-    marginBottom: 20,
     marginHorizontal: 15,
-    borderRadius: 20,
+    borderRadius: 50,
     backgroundColor: "#fff",
     elevation: 8,
     shadowColor: "#000",
@@ -153,22 +163,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     width: "100%",
     height: 160,
-  },
-  discountTag: {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    backgroundColor: "#E11D48",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    elevation: 4,
-  },
-  discountText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+   },
   topActions: {
     position: "absolute",
     top: 12,
@@ -194,7 +189,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    marginTop:7
+    marginTop: 7,
   },
   horizontalBar: {
     paddingBottom: 8,

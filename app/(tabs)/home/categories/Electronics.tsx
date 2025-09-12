@@ -53,11 +53,12 @@ function Electronics() {
         />
 
         {/* Stores Section */}
-        <StoresSection
-          storesData={storesData}
-          storesSectionTitle="Electronics Stores Near You"
-          selectedAddress={selectedAddress}
-        />
+<StoresSection 
+  storesData={storesData}
+  storesSectionTitle="Electronics Stores Near You"
+  selectedAddress={selectedAddress}
+  showNoStoresAnimation={true} // Add this if you want the animation when no stores are found
+/>
       </ScrollView>
     </SafeAreaView>
   );
