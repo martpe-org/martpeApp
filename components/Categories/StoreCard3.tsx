@@ -1,14 +1,11 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  Image,
-  Text,
-  TouchableOpacity,
-  SafeAreaView,
-} from "react-native";
+import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import {
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+import LikeButton from "../../components/common/likeButton";
 import ShareButton from "../../components/common/Share";
 import { getDistance } from "geolib";
 
@@ -18,12 +15,16 @@ interface StoreCard3Props {
   userLocation: { lat: number; lng: number };
 }
 
-const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
+const StoreCard3: React.FC<StoreCard3Props> = ({
+  storeData,
+  categoryFiltered,
+  userLocation,
+}) => {
   if (!storeData) return null;
 
   const {
     descriptor = {},
-
+    id,
     address = {},
     calculated_max_offer = {},
     geoLocation = {},
@@ -33,7 +34,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
   const { city = "" } = address;
   const bgImg = images?.[0] || symbol || "https://via.placeholder.com/400x200";
 
-  /** ---------- Distance & delivery time ---------- **/
+  /** ---------- Distance & delivery time (from your first file) ---------- **/
   const distanceKm = geoLocation?.lat
     ? Number(
         (
@@ -55,15 +56,13 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
       : `${Math.round(distanceKm / speed)} hr`;
 
   return (
-    <SafeAreaView style={styles.cardWrapper}>
+    <View style={styles.cardWrapper}>
       {/* Banner with gradient overlay */}
       <View style={styles.bannerContainer}>
         <TouchableOpacity
           onPress={() => {
             if (storeData.slug) {
-              router.push(
-                `/(tabs)/home/result/productListing/${storeData.slug}`
-              );
+              router.push(`/(tabs)/home/result/productListing/${storeData.slug}`);
             } else {
               console.warn("Store slug missing");
             }
@@ -74,6 +73,9 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
             style={styles.backgroundImage}
             resizeMode="cover"
           />
+
+
+
           {/* Floating discount badge */}
           {calculated_max_offer?.percent > 0 && (
             <View style={styles.discountTag}>
@@ -86,6 +88,16 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
 
         {/* Floating actions */}
         <View style={styles.topActions}>
+          <LikeButton
+            vendorId={id}
+            storeData={{
+              id,
+              name,
+              descriptor: { short_desc: "Electronics store" },
+              symbol,
+            }}
+            color="#E11D48"
+          />
           <ShareButton storeName={name} type="outlet" />
         </View>
       </View>
@@ -96,15 +108,11 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
           {name}
         </Text>
 
-        {/* Info Row */}
+        {/* ✅ Info Row pulled from other file */}
         <View style={[styles.infoContainer, styles.horizontalBar]}>
           <Text style={styles.separator}> • </Text>
 
-          <MaterialCommunityIcons
-            name="clock-time-four"
-            size={12}
-            color="#444"
-          />
+          <MaterialCommunityIcons name="clock-time-four" size={12} color="#444" />
           <Text style={styles.infoText}>{deliveryTime}</Text>
           <Text style={styles.separator}> • </Text>
 
@@ -120,7 +128,7 @@ const StoreCard3: React.FC<StoreCard3Props> = ({ storeData, userLocation }) => {
           </Text>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -128,8 +136,9 @@ export default StoreCard3;
 
 const styles = StyleSheet.create({
   cardWrapper: {
+    marginBottom: 20,
     marginHorizontal: 15,
-    borderRadius: 50,
+    borderRadius: 20,
     backgroundColor: "#fff",
     elevation: 8,
     shadowColor: "#000",
@@ -185,7 +194,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    marginTop: 7,
+    marginTop:7
   },
   horizontalBar: {
     paddingBottom: 8,
