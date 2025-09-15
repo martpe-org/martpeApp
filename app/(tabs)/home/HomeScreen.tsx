@@ -41,7 +41,7 @@ export default function HomeScreen() {
   // Import render functions
   const {
     renderCategoryItemCompact,
-    renderRestaurantItem,
+    renderRestaurantCarousel,
     renderStores,
     renderFoodCategories,
     renderGroceryCategories,
@@ -51,56 +51,7 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
- // Fetch home data using react-query with optimized caching
-  const {
-    data: homeData,
-    isLoading,
-    error,
-    refetch,
-    isRefetching,
-  } = useQuery({
-    queryKey: [
-      "homeData",
-      selectedDetails?.lat,
-      selectedDetails?.lng,
-      selectedDetails?.pincode,
-    ],
-    queryFn: async () => {
-      let lat = selectedDetails?.lat;
-      let lng = selectedDetails?.lng;
-      let pin = selectedDetails?.pincode;
-
-      if (!lat || !lng || !pin) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          throw new Error("Location permission denied");
-        }
-        const location = await Location.getCurrentPositionAsync({});
-        lat = location.coords.latitude;
-        lng = location.coords.longitude;
-
-        const [address] = await Location.reverseGeocodeAsync({
-          latitude: lat,
-          longitude: lng,
-        });
-        pin = address.postalCode || "";
-      }
-
-      return fetchHome(lat, lng, pin);
-    },
-    // Optimized caching configuration
-    staleTime: 1000 * 60 * 10, // Data stays fresh for 10 minutes (increased from 5)
-    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes (formerly cacheTime)
-    enabled: true,
-    retry: 1,
-    refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
-    refetchOnMount: false, // Don't refetch on component mount if data exists and is fresh
-    refetchOnReconnect: true, // Only refetch on network reconnect
-    // Use network-only for first load, then cache-first for subsequent loads
-    networkMode: 'online',
-  });
-
-    // Fetch home data using react-query with hardcoded values
+  // Fetch home data using react-query with optimized caching
   // const {
   //   data: homeData,
   //   isLoading,
@@ -110,21 +61,70 @@ export default function HomeScreen() {
   // } = useQuery({
   //   queryKey: [
   //     "homeData",
-  //     selectedDetails?.lat ?? 12.9716,
-  //     selectedDetails?.lng ?? 77.5946,
-  //     selectedDetails?.pincode ?? "560001",
+  //     selectedDetails?.lat,
+  //     selectedDetails?.lng,
+  //     selectedDetails?.pincode,
   //   ],
   //   queryFn: async () => {
-  //     const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
-  //     const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
-  //     const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+  //     let lat = selectedDetails?.lat;
+  //     let lng = selectedDetails?.lng;
+  //     let pin = selectedDetails?.pincode;
+
+  //     if (!lat || !lng || !pin) {
+  //       const { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         throw new Error("Location permission denied");
+  //       }
+  //       const location = await Location.getCurrentPositionAsync({});
+  //       lat = location.coords.latitude;
+  //       lng = location.coords.longitude;
+
+  //       const [address] = await Location.reverseGeocodeAsync({
+  //         latitude: lat,
+  //         longitude: lng,
+  //       });
+  //       pin = address.postalCode || "";
+  //     }
 
   //     return fetchHome(lat, lng, pin);
   //   },
-  //   staleTime: 1000 * 60 * 5, // 5 minutes
+  //   // Optimized caching configuration
+  //   staleTime: 1000 * 60 * 10, // Data stays fresh for 10 minutes (increased from 5)
+  //   gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes (formerly cacheTime)
   //   enabled: true,
   //   retry: 1,
+  //   refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
+  //   refetchOnMount: false, // Don't refetch on component mount if data exists and is fresh
+  //   refetchOnReconnect: true, // Only refetch on network reconnect
+  //   // Use network-only for first load, then cache-first for subsequent loads
+  //   networkMode: 'online',
   // });
+
+  // Temporarily disable fetching to avoid excessive API calls during testing
+  const {
+    data: homeData,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: [
+      "homeData",
+      selectedDetails?.lat ?? 12.9716,
+      selectedDetails?.lng ?? 77.5946,
+      selectedDetails?.pincode ?? "560001",
+    ],
+    queryFn: async () => {
+      const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
+      const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
+      const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+
+      return fetchHome(lat, lng, pin);
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: true,
+    retry: 1,
+  });
 
   // Animation value for "No Data" messages
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -219,16 +219,7 @@ export default function HomeScreen() {
               <View style={styles.sectionTitleContainer}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
               </View>
-              <FlatList
-                data={homeData.restaurants}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) =>
-                  `restaurant_${item.slug}_${index}`
-                }
-                contentContainerStyle={styles.nearbyList}
-                renderItem={renderRestaurantItem}
-              />
+              {renderRestaurantCarousel(homeData.restaurants)}
             </View>
           ) : (
             !isLoading && (

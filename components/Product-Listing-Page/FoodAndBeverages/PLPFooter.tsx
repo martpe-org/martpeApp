@@ -97,7 +97,6 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
         <Text style={{ marginHorizontal: 5, color: "#000" }}>
           Report an issue with the menu
         </Text>
-        <Image source={require("../../../assets/rightArrowRed.png")} />
         <MaterialCommunityIcons name="chevron-right" size={14} color="black" />
       </View>
     </View>

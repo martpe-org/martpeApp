@@ -405,7 +405,7 @@ const Results: FC = () => {
             onPress={() => handleTabChange(false)}
           >
             <Text style={[styles.tabText, !isItem && styles.activeTabText]}>
-              Restaurants ({allStores.length})
+              Outlets ({allStores.length})
             </Text>
           </TouchableOpacity>
         </View>

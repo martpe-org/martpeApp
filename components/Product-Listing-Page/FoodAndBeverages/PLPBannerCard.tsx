@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import {
-  FontAwesome,
   MaterialCommunityIcons,
   MaterialIcons,
   Ionicons,

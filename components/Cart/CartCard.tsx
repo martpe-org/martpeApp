@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { getDistance } from "geolib";
 import React, { useEffect, useState } from "react";
@@ -238,11 +238,8 @@ const CartCard: React.FC<CartCardProps> = ({
           {isRemoving ? (
             <Loader />
           ) : (
-            <FontAwesome
-              name="trash-o"
-              size={18}
-              color={authToken ? "red" : "#ccc"}
-            />
+                <MaterialCommunityIcons name="close" size={18} color="#050505" />
+
           )}
         </TouchableOpacity>
       </TouchableOpacity>

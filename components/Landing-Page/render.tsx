@@ -1,7 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   foodCategoryData,
@@ -12,6 +11,7 @@ import { styles } from "./renderStyles";
 import LikeButton from "../common/likeButton";
 import OfferCard3 from "../Categories/OfferCard3";
 import DiscountBadge from "../common/DiscountBadge"; // ✅ import
+import { FlatList } from "react-native-gesture-handler";
 
 interface renderProps {
   storeData: any;
@@ -64,7 +64,11 @@ export const normalizeStoreData = (storeData: any): NormalizedStore => {
     id: vendorIdString,
     slug: vendorIdString,
     descriptor: {
-      name: storeData?.descriptor?.name || "Mock Store",
+      name:
+        storeData?.descriptor?.name ||
+        storeData?.store_name ||
+        storeData?.name ||
+        "Unnamed Store",
       short_desc: storeData?.descriptor?.short_desc || "",
       description: storeData?.descriptor?.description || "",
       images: storeData?.descriptor?.images || [],
@@ -81,7 +85,11 @@ export const normalizeStoreData = (storeData: any): NormalizedStore => {
     distance_in_km: storeData?.distance_in_km || 1.2,
     avg_tts_in_h: storeData?.avg_tts_in_h || 0.5,
     store_sub_categories: storeData?.store_sub_categories || ["Mock Category"],
-    store_name: storeData?.store_name || "Mock Store",
+    store_name:
+      storeData?.store_name ||
+      storeData?.descriptor?.name ||
+      storeData?.name ||
+      "Unnamed Store",
     domain: storeData?.domain || "ONDC:retail",
     type: storeData?.type || "store",
   };
@@ -124,104 +132,137 @@ export const useRenderFunctions = () => {
     );
   };
 
-  // 🔹 Restaurants
-  const renderRestaurantItem = ({ item }: { item: Store2 }) => {
-    const normalized = normalizeStoreData(item);
-    const vendorIdString = normalized.slug;
+// inside useRenderFunctions (render.tsx)
+const RestaurantCarousel = ({ restaurants }: { restaurants: Store2[] }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const { width } = Dimensions.get("window");
+  const scrollInterval = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
-    return (
-      <TouchableOpacity
-        style={styles.restaurantCardCompact}
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/productListing/[id]",
-            params: { id: normalized.slug },
-          })
-        }
-      >
-        <View style={styles.restaurantImageContainerCompact}>
-          <Image
-            source={{
-              uri: normalized.symbol || "https://via.placeholder.com/120x80",
-            }}
-            style={styles.restaurantImageCompact}
-            resizeMode="cover"
-          />
-          <LinearGradient
-            colors={["rgba(255,107,53,0.1)", "rgba(255,152,48,0.05)"]}
-            style={styles.gradientOverlay}
-          />
+  // Auto-scroll effect
+  useEffect(() => {
+    if (restaurants?.length > 1) {
+      scrollInterval.current = setInterval(() => {
+        const nextIndex = (activeIndex + 1) % restaurants.length;
+        setActiveIndex(nextIndex);
+        flatListRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+      }, 2000); // Scroll every 2 seconds
+    }
 
-          {/* ❤️ Like button */}
-          <View style={styles.topActions}>
-            <LikeButton
-              vendorId={vendorIdString}
-              storeData={normalized}
-              color="#E11D48"
-            />
-          </View>
+    return () => {
+      if (scrollInterval.current) {
+        clearInterval(scrollInterval.current);
+      }
+    };
+  }, [activeIndex, restaurants]);
 
-          {/* 🔥 Offer badge (mocked 50%) */}
-          <DiscountBadge
-            percent={normalized.calculated_max_offer?.percent}
-            style={styles.restaurantOfferBadgeCompact}
-          />
+  if (!restaurants?.length) return null;
 
-          {normalized.avg_tts_in_h && (
-            <View style={styles.restaurantTimeBadgeCompact}>
-              <Ionicons name="time-outline" size={8} color="white" />
-              <Text style={styles.restaurantTimeTextCompact}>
-                {Math.round(normalized.avg_tts_in_h * 60)} min
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.restaurantInfoCompact}>
-          <Text style={styles.restaurantNameCompact} numberOfLines={1}>
-            {normalized.descriptor?.name ?? "Unknown Restaurant"}
-          </Text>
-          <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
-            {normalized.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
-          </Text>
-
-          <View style={styles.restaurantBottomRowCompact}>
-            <Text style={styles.restaurantDeliveryTimeCompact}>
-              {normalized.avg_tts_in_h
-                ? `${Math.round(normalized.avg_tts_in_h * 60)} mins`
-                : "30-40 mins"}
-            </Text>
-            <View style={styles.restaurantStatusCompact}>
-              <View
-                style={[
-                  styles.restaurantStatusDotCompact,
-                  {
-                    backgroundColor:
-                      normalized.status === "open" ? "#00C851" : "green",
-                  },
-                ]}
+  return (
+    <View>
+      <FlatList
+        ref={flatListRef}
+        data={restaurants}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => `restaurant-${item.slug}-${index}`}
+        renderItem={({ item }) => {
+          const normalized = normalizeStoreData(item);
+          return (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.restaurantCardCarousel, { width: width * 0.8 }]}
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/home/result/productListing/[id]",
+                  params: { id: normalized.slug },
+                })
+              }
+            >
+              {/* Background image */}
+              <Image
+                source={{
+                  uri:
+                    normalized.descriptor?.images?.[0] ||
+                    normalized.symbol ||
+                    "https://via.placeholder.com/300x180",
+                }}
+                style={styles.restaurantImageCarousel}
+                resizeMode="cover"
               />
-              <Text
-                style={[
-                  styles.restaurantStatusTextCompact,
-                  { color: "#00C851" },
-                ]}
-              >
-                Open
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+
+              {/* Gradient overlay */}
+              <LinearGradient
+                colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.8)"]}
+                style={styles.gradientOverlayCarousel}
+              />
+
+              {/* Text overlay */}
+              <View style={styles.restaurantInfoOverlay}>
+                <Text style={styles.restaurantNameOverlay} numberOfLines={1}>
+                  {normalized.descriptor?.name ?? "Restaurant"}
+                </Text>
+                <Text style={styles.restaurantCuisineOverlay} numberOfLines={1}>
+                  {normalized.store_sub_categories?.join(", ") ??
+                    "Multi Cuisine"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+        onMomentumScrollEnd={(ev) => {
+          const index = Math.round(
+            ev.nativeEvent.contentOffset.x / (width * 0.8)
+          );
+          setActiveIndex(index);
+        }}
+        getItemLayout={(data, index) => ({
+          length: width * 0.8,
+          offset: width * 0.8 * index,
+          index,
+        })}
+        snapToInterval={width * 0.8}
+        snapToAlignment="center"
+        decelerationRate="fast"
+      />
+
+      {/* Pagination dots */}
+      <View style={styles.carouselDotsContainer}>
+        {restaurants.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.carouselDot,
+              {
+                backgroundColor:
+                  activeIndex === index ? "#FF6B35" : "#ccc",
+              },
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const renderRestaurantCarousel = (restaurants: Store2[]) => {
+  if (!restaurants?.length) return null;
+  
+  return <RestaurantCarousel restaurants={restaurants} />;
+};
 
   // 🔹 Stores
   const renderStores = ({ item }: { item: Store2 }) => {
     const normalized = normalizeStoreData(item);
     const vendorIdString = normalized.slug;
 
-    const title = normalized.store_name || normalized.descriptor?.name || "Unnamed";
+    const title =
+      normalized.store_name || normalized.descriptor?.name || "Unnamed";
     const category =
       normalized.store_sub_categories?.join(", ") ||
       normalized.domain?.replace("ONDC:", "") ||
@@ -298,7 +339,13 @@ export const useRenderFunctions = () => {
   };
 
   // 🔹 Categories (unchanged)
-  const renderFoodCategories = ({ item, index }: { item: any; index: number }) => {
+  const renderFoodCategories = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => {
     if (index % 2 !== 0) return null;
     const nextItem = foodCategoryData[index + 1];
 
@@ -364,7 +411,7 @@ export const useRenderFunctions = () => {
     handleCategoryPress,
     renderCategoryItemCompact,
     renderOfferCard,
-    renderRestaurantItem,
+    renderRestaurantCarousel,
     renderStores,
     renderFoodCategories,
     renderGroceryCategories,

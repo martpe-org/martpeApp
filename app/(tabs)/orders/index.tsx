@@ -271,17 +271,32 @@
 
 // export default Orders;
 
+
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
+import { BackArrow } from '@/constants/icons/tabIcons'
+import { router } from 'expo-router'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const index = () => {
   return (
-    <View>
-      <Text>index</Text>
-    </View>
+<SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+  {/* Back Arrow at top-left */}
+  <BackArrow
+    onPress={() => router.back()}
+    style={{ position: "absolute", top: 30, left: 15 }}
+  />
+
+  {/* Centered Text */}
+  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    <Text style={{ fontSize: 22, color: "red", fontWeight: "bold" }}>
+      No orders yet
+    </Text>
+  </View>
+</SafeAreaView>
+
+
   )
 }
 
-export default index
-
-const styles = StyleSheet.create({})
+export default index;

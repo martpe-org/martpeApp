@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import { useRouter } from "expo-router";
 import ImageComp from "../../components/common/ImageComp";
@@ -110,7 +110,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
                     color="#0d5bc0"
                   />
                 ) : (
-                  <FontAwesome name="trash-o" size={18} color="#718096" />
+                <MaterialCommunityIcons name="close" size={18} color="#050505" />
                 )}
               </TouchableOpacity>
             </View>

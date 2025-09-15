@@ -11,9 +11,9 @@ interface Point {
 }
 
 interface GeoLocation {
-  lat: number;
-  lng: number;
-  point: Point;
+  lat?: number;
+  lng?: number;
+  point?: Point;
 }
 
 interface PLPBannerProps {
@@ -24,8 +24,8 @@ interface PLPBannerProps {
     name?: string;
   };
   storeSections: string;
-  geoLocation: GeoLocation;
-  userLocation: any;
+  geoLocation?: GeoLocation;
+  userLocation?: { lat?: number; lng?: number };
   searchbox?: boolean;
   userAddress: string;
   vendorId: string | string[];
@@ -39,31 +39,40 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
   userLocation,
   searchbox,
   userAddress,
-  vendorId, // ✅ Now using vendorId instead of productId
+  vendorId,
 }) => {
   const bgImg = descriptor?.images?.[0] || descriptor?.symbol;
-  // const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
-  // Calculating the distance and delivery time
-  const distance = Number(
-    (
+  // ✅ Default values if missing
+  const vendorLat = geoLocation?.lat ?? 0;
+  const vendorLng = geoLocation?.lng ?? 0;
+  const userLat = userLocation?.lat ?? 0;
+  const userLng = userLocation?.lng ?? 0;
+
+  let distance = 0;
+  try {
+    distance =
       getDistance(
-        { latitude: geoLocation?.lat, longitude: geoLocation?.lng },
-        { latitude: userLocation?.lat, longitude: userLocation?.lng }
-      ) / 1000
-    ).toFixed(1)
-  );
+        { latitude: vendorLat, longitude: vendorLng },
+        { latitude: userLat, longitude: userLng }
+      ) / 1000;
+  } catch (e) {
+    console.warn("⚠️ Could not calculate distance:", e);
+    distance = 0;
+  }
 
-  // Calculating delivery time
+  const formattedDistance = Number(distance.toFixed(1));
+
+  // ✅ Delivery time calculation
   const speed = 25;
   const deliveryTime =
-    distance / speed < 1
-      ? ((distance / speed) * 60).toFixed(0) + " min"
-      : (distance / speed).toFixed(0) + " hr";
+    formattedDistance / speed < 1
+      ? ((formattedDistance / speed) * 60).toFixed(0) + " min"
+      : (formattedDistance / speed).toFixed(0) + " hr";
 
   return (
     <View style={styles.bannerContainer}>
-      <Image source={{ uri: bgImg }} style={styles.backgroundImage} />
+      {bgImg && <Image source={{ uri: bgImg }} style={styles.backgroundImage} />}
       {/* back button */}
       <TouchableOpacity
         style={styles.backButton}
@@ -81,7 +90,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         description={storeSections}
         address={address}
         deliveryTime={deliveryTime}
-        distance={distance}
+        distance={formattedDistance}
         delivery="Free Delivery"
         userAddress={userAddress}
         vendorId={vendorId}

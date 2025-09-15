@@ -86,6 +86,59 @@ export const styles = StyleSheet.create({
   restaurantInfoCompact: {
     padding: 12, // Same as nearbyInfo padding
   },
+  restaurantCardCarousel: {
+  width: Dimensions.get("window").width * 0.8,
+  height: 180,
+  borderRadius: 16,
+  marginRight: 14,
+  overflow: "hidden",
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOpacity: 0.15,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+},
+restaurantImageCarousel: {
+  width: "100%",
+  height: "100%",
+  borderRadius: 16,
+},
+gradientOverlayCarousel: {
+  ...StyleSheet.absoluteFillObject,
+  borderRadius: 16,
+},
+restaurantInfoOverlay: {
+  position: "absolute",
+  bottom: 14,
+  left: 14,
+  right: 14,
+},
+restaurantNameOverlay: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#fff",
+  marginBottom: 4,
+  textShadowColor: "rgba(0,0,0,0.5)",
+  textShadowOffset: { width: 1, height: 1 },
+  textShadowRadius: 3,
+},
+restaurantCuisineOverlay: {
+  fontSize: 13,
+  color: "#ddd",
+},
+carouselDotsContainer: {
+  flexDirection: "row",
+  justifyContent: "center",
+  marginTop: 8,
+},
+carouselDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  marginHorizontal: 4,
+},
+
   restaurantNameCompact: {
     fontSize: 16, // Same as nearbyName
     fontWeight: "600",
@@ -157,7 +210,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     left: 10,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "red",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,

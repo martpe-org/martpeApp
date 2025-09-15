@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { FC } from "react";
 import {
@@ -70,7 +70,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   }
                 }}
               >
-                <FontAwesome name="trash-o" size={18} color="#718096" />
+                <MaterialCommunityIcons name="close" size={18} color="#050505" />
               </TouchableOpacity>
             </View>
 
@@ -192,7 +192,6 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "#e8ecf0",
   },
   cardContent: {
     flexDirection: "row",
