@@ -41,7 +41,7 @@ export default function HomeScreen() {
   // Import render functions
   const {
     renderCategoryItemCompact,
-    renderRestaurantCarousel,
+    renderRestaurantItem,
     renderStores,
     renderFoodCategories,
     renderGroceryCategories,
@@ -51,7 +51,7 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
-  // Fetch home data using react-query with optimized caching
+ // Fetch home data using react-query with optimized caching
   // const {
   //   data: homeData,
   //   isLoading,
@@ -100,7 +100,7 @@ export default function HomeScreen() {
   //   networkMode: 'online',
   // });
 
-  // Temporarily disable fetching to avoid excessive API calls during testing
+    // Fetch home data using react-query with hardcoded values
   const {
     data: homeData,
     isLoading,
@@ -219,7 +219,16 @@ export default function HomeScreen() {
               <View style={styles.sectionTitleContainer}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
               </View>
-              {renderRestaurantCarousel(homeData.restaurants)}
+              <FlatList
+                data={homeData.restaurants}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) =>
+                  `restaurant_${item.slug}_${index}`
+                }
+                contentContainerStyle={styles.nearbyList}
+                renderItem={renderRestaurantItem}
+              />
             </View>
           ) : (
             !isLoading && (
