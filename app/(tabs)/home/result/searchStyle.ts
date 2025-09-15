@@ -13,6 +13,59 @@ const { width } = Dimensions.get("window");
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
+   discountBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    backgroundColor: "#E11D48",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 2,
+    elevation: 3,
+  },
+  discountText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  
+  // Like button container (top-right)
+  likeButtonContainer: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 2,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
+  },
+  
+  // Product card discount badge
+  productDiscountBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#E11D48",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 1,
+  },
+  productDiscountText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  
+  // Store card wrapper for positioning
+  storeCardWrapper: {
+    position: "relative",
+    marginBottom: 12,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,4 +1,5 @@
 import AddToCart from "@/components/common/AddToCart";
+import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
@@ -17,7 +18,7 @@ const CARD_WIDTH = width * 0.46;
 interface PersonalCareCardProps {
   title: string;
   description: string;
-    productId: string | string[];
+  productId: string | string[];
 
   price: number;
   discount: number;
@@ -109,14 +110,11 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
       </View>
     );
   };
- const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
-  
-  return (
-    <View
-      style={styles.card}
 
-    >
+  return (
+    <View style={styles.card}>
       <View style={styles.imageContainer}>
         <ImageComp
           source={getImageSource()}
@@ -128,14 +126,21 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           loaderColor="#530633"
           loaderSize="small"
         />
-              <View style={styles.topActions}>
-        <LikeButton productId={uniqueProductId} color="#E11D48" />
-      </View>
+        <View style={styles.topActions}>
+          <LikeButton productId={uniqueProductId} color="#E11D48" />
+        </View>
+        {typeof discount === "number" && discount > 1 && (
+          <DiscountBadge
+            percent={Number(discount)}
+            style={{ top: 8, left: 8 }}
+          />
+        )}
       </View>
 
-      <TouchableOpacity style={styles.info}
-            onPress={handlePress}
-      activeOpacity={0.85}
+      <TouchableOpacity
+        style={styles.info}
+        onPress={handlePress}
+        activeOpacity={0.85}
       >
         <Text style={styles.title} numberOfLines={2}>
           {title}
@@ -173,7 +178,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
-    topActions: {
+  topActions: {
     position: "absolute",
     top: 12,
     right: 12,

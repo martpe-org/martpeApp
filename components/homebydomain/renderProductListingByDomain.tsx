@@ -40,16 +40,17 @@ export const renderProductListingByDomain = ({
 case "ONDC:RET11": // Food and Beverage
   return (
     <PLPFnB
-      catalog={allItems}
-      dropdownHeaders={dropdownHeaders}
+      catalog={allItems || []} // ✅ force fallback
+      dropdownHeaders={dropdownHeaders || []}
       vendorAddress={vendorData.address?.street || ""}
       street={vendorData.address?.locality || ""}
       fssaiLiscenseNo=""
       providerId={storeId}
-      searchString={searchString}
+      searchString={searchString || ""}
       storeName={storeName}
     />
   );
+
 
 
     case "ONDC:RET12": // Fashion

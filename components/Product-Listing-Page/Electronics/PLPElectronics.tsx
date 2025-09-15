@@ -123,18 +123,35 @@ const PLPElectronics: React.FC<PLPElectronicsProps> = ({
     });
   }, [catalog, activeCategory]);
 
- const transformItems = (items: CatalogItem[]) =>
-  items.map((item) => ({
-    ...item,
-    image:
-      item.descriptor?.images?.[0] ||
-      "https://via.placeholder.com/150?text=Electronics",
-    symbol: item.symbol || item.descriptor?.symbol || "",
-    slug: item.slug || item.id,
-    // ✅ Customization data is already in the interface, just ensure defaults
-    customizable: item.customizable || false,
-    directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [],
-  }));
+const transformItems = (items: CatalogItem[]) =>
+  items.map((item) => {
+    const value = item.price?.value || 0;
+    const max = item.price?.maximum_value || 0;
+
+    // ✅ Calculate discount percent
+    const offerPercent =
+      typeof item.price?.offerPercent === "number"
+        ? item.price.offerPercent
+        : max > 0
+        ? Math.round(((max - value) / max) * 100)
+        : 0;
+
+    return {
+      ...item,
+      image:
+        item.descriptor?.images?.[0] ||
+        "https://via.placeholder.com/150?text=Electronics",
+      symbol: item.symbol || item.descriptor?.symbol || "",
+      slug: item.slug || item.id,
+      customizable: item.customizable || false,
+      directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [],
+      price: {
+        ...item.price,
+        offerPercent, // ✅ Ensure discount is always available
+      },
+    };
+  });
+
 
 
   const transformedFilteredCatalog = useMemo(

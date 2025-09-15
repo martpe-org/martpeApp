@@ -1,7 +1,5 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { router, useLocalSearchParams } from "expo-router";
-import LottieView from "lottie-react-native";
+import {  useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -156,7 +154,7 @@ const PLP: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={[1]} // single container
+        data={[1]}
         renderItem={() => (
           <View>
             <Searchbox

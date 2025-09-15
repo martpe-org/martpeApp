@@ -76,51 +76,53 @@ const GroceryCardContainer: React.FC<GroceryCardContainerProps> = ({
 
   return (
     <View style={containerStyles.container}>
-      {displayedCatalog.map((item, index) => {
-        // ✅ Extract customization group IDs from the customizations array
-        const directlyLinkedCustomGroupIds = item.customizations?.map(
-          customization => customization.groupId || customization.group_id || customization._id || customization.id
-        ).filter(Boolean) || [];
+{displayedCatalog.map((item, index) => {
+  // ✅ Calculate discount if missing
+  const value = item.price?.value || 0;
+  const max = item.price?.maximum_value || 0;
 
-        // Debug logging for first few items
-        if (index < 3) {
-          console.log(`🔍 Item ${index + 1}:`, {
-            name: item.descriptor?.name,
-            images: item.descriptor?.images,
-            symbol: item.descriptor?.symbol,
-            directSymbol: item.symbol,
-            customizable: item.customizable,
-            customizations: item.customizations,
-            directlyLinkedCustomGroupIds,
-          });
-        }
+  const offerPercent =
+    typeof item.price?.offerPercent === "number"
+      ? item.price.offerPercent
+      : max > 0
+      ? Math.round(((max - value) / max) * 100)
+      : 0;
 
-        return (
-          <View
-            key={item.catalog_id || item.id}
-            style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
-          >
-            <GroceryCard
-              id={item.id}
-              itemName={item.descriptor?.name || "Unnamed Product"}
-              cost={item.price.value}
-              maxLimit={item.quantity?.maximum?.count}
-              providerId={item.store_id}
-              slug={item.slug || item.id}
-              catalogId={item.catalog_id}
-              symbol={item.descriptor?.symbol}
-              image={item.descriptor?.symbol}
-              weight={item.weight}
-              unit={item.unit}
-              originalPrice={item.price.maximum_value}
-              discount={item.price.offerPercent}
-              item={item}
-              customizable={item.customizable || false} // ✅ Use customizable from item
-              directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} 
-            />
-          </View>
-        );
-      })}
+  // ✅ Extract customization groups
+  const directlyLinkedCustomGroupIds =
+    item.customizations
+      ?.map(
+        (c) => c.groupId || c.group_id || c._id || c.id
+      )
+      .filter(Boolean) || [];
+
+  return (
+    <View
+      key={item.catalog_id || item.id}
+      style={{ marginRight: CARD_SPACING, marginBottom: CARD_SPACING }}
+    >
+      <GroceryCard
+        id={item.id}
+        itemName={item.descriptor?.name || "Unnamed Product"}
+        cost={value}
+        maxLimit={item.quantity?.maximum?.count}
+        providerId={item.store_id}
+        slug={item.slug || item.id}
+        catalogId={item.catalog_id}
+        symbol={item.descriptor?.symbol}
+        image={item.descriptor?.symbol}
+        weight={item.weight}
+        unit={item.unit}
+        originalPrice={max}
+        discount={offerPercent} // ✅ always passed
+        item={item}
+        customizable={item.customizable || false}
+        directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+      />
+    </View>
+  );
+})}
+
     </View>
   );
 };

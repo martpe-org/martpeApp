@@ -1,4 +1,6 @@
+import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
+import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -9,7 +11,6 @@ import {
   View,
 } from "react-native";
 import AddToCart from "../../common/AddToCart";
-import LikeButton from "@/components/common/likeButton";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -39,7 +40,6 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   id,
   itemName,
   cost,
-  maxLimit,
   providerId,
   slug,
   catalogId,
@@ -47,7 +47,6 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   unit = "piece",
   originalPrice,
   discount,
-  symbol,
   productId,
   image,
   onPress,
@@ -63,26 +62,21 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
-    if (item) {
-      if (item.store_id && item.store_id !== "unknown-store") {
-        return item.store_id;
-      }
+    if (item?.store_id && item.store_id !== "unknown-store") {
+      return item.store_id;
     }
     return catalogId || id || "default-store";
   };
 
   const storeId = resolveStoreId();
   const resolvedSlug = slug || id;
-  
-  // Convert productId to string if it's an array (same as ProductHeader)
+
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
-  
-  // Use the most reliable unique identifier available
-  // Priority: productId -> slug -> id
   const uniqueProductId = productIdString || slug || id;
 
   return (
     <View style={cardStyles.card}>
+      {/* Product Image */}
       <ImageComp
         source={image}
         imageStyle={cardStyles.image}
@@ -91,11 +85,19 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         loaderColor="#666"
         loaderSize="small"
       />
+
+      {/* ❤️ Like button */}
       <View style={cardStyles.topActions}>
         <LikeButton productId={uniqueProductId} color="#E11D48" />
       </View>
 
-      <TouchableOpacity 
+      {/* 🔥 Discount badge */}
+      {typeof discount === "number" && discount > 0 && (
+        <DiscountBadge percent={discount} style={{ top: 8, left: 8 }} />
+      )}
+
+      {/* Info Section */}
+      <TouchableOpacity
         style={cardStyles.info}
         onPress={handlePress}
         activeOpacity={0.8}
@@ -109,16 +111,15 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
         <View style={cardStyles.priceRow}>
           <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
-          {discount && originalPrice && (
+          {originalPrice && (
             <Text style={cardStyles.originalPrice}>
               ₹{originalPrice.toFixed(2)}
             </Text>
           )}
         </View>
-
-        {discount && <Text style={cardStyles.discount}>{discount}% off</Text>}
       </TouchableOpacity>
 
+      {/* Add to Cart */}
       <View style={cardStyles.cartWrapper}>
         <AddToCart
           storeId={storeId}
@@ -195,11 +196,6 @@ const cardStyles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: "line-through",
     color: "#777",
-  },
-  discount: {
-    fontSize: 12,
-    color: "#28a745",
-    marginTop: 2,
   },
   cartWrapper: {
     marginTop: 8,

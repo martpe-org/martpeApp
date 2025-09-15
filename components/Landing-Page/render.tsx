@@ -10,33 +10,83 @@ import {
 import { Store2 } from "../../hook/fetch-home-type";
 import { styles } from "./renderStyles";
 import LikeButton from "../common/likeButton";
+import OfferCard3 from "../Categories/OfferCard3";
+import DiscountBadge from "../common/DiscountBadge"; // ✅ import
 
-interface StoreCard3Props {
+interface renderProps {
   storeData: any;
   categoryFiltered: any[];
   userLocation: { lat: number; lng: number };
 }
 
-// ✅ Keep StoreCard3 minimal
-const StoreCard3: React.FC<StoreCard3Props> = ({ storeData }) => {
+const Render: React.FC<renderProps> = ({ storeData }) => {
   if (!storeData) return null;
 
-  const {
-    descriptor = {},
-    address = {},
-    calculated_max_offer = {},
-    geoLocation = {},
-  } = storeData;
+  const { descriptor = {} } = storeData;
 
   return (
     <View>
-      {/* Example usage – You can use render functions from useRenderFunctions */}
       <Text>{descriptor?.name ?? "Unnamed Store"}</Text>
     </View>
   );
 };
 
-// ✅ Hook with render functions
+// 🔹 Normalized store interface
+export interface NormalizedStore {
+  id: string;
+  slug: string;
+  descriptor: {
+    name: string;
+    short_desc?: string;
+    description?: string;
+    images?: string[];
+    symbol?: string;
+  };
+  symbol: string;
+  value?: number;
+  maxPrice?: number;
+  discount?: number;
+  calculated_max_offer: { percent: number };
+  status?: string;
+  distance_in_km?: number;
+  avg_tts_in_h?: number;
+  store_sub_categories?: string[];
+  store_name?: string;
+  domain?: string;
+  type?: string;
+}
+
+// 🔹 Force 50% OFF everywhere with mock data
+export const normalizeStoreData = (storeData: any): NormalizedStore => {
+  const vendorIdString = storeData?.slug || storeData?.id || "";
+
+  return {
+    id: vendorIdString,
+    slug: vendorIdString,
+    descriptor: {
+      name: storeData?.descriptor?.name || "Mock Store",
+      short_desc: storeData?.descriptor?.short_desc || "",
+      description: storeData?.descriptor?.description || "",
+      images: storeData?.descriptor?.images || [],
+      symbol: storeData?.descriptor?.symbol || "",
+    },
+    symbol: storeData?.symbol || "",
+    value: storeData?.value || 100,
+    maxPrice: storeData?.maxPrice || 200,
+    discount: 50, // ✅ always 50% off
+    calculated_max_offer: {
+      percent: 50, // ✅ always 50% off
+    },
+    status: storeData?.status || "open",
+    distance_in_km: storeData?.distance_in_km || 1.2,
+    avg_tts_in_h: storeData?.avg_tts_in_h || 0.5,
+    store_sub_categories: storeData?.store_sub_categories || ["Mock Category"],
+    store_name: storeData?.store_name || "Mock Store",
+    domain: storeData?.domain || "ONDC:retail",
+    type: storeData?.type || "store",
+  };
+};
+
 export const useRenderFunctions = () => {
   const router = useRouter();
 
@@ -63,190 +113,158 @@ export const useRenderFunctions = () => {
     </TouchableOpacity>
   );
 
-  // ✅ normalized store data
-  const normalizeStoreData = (storeData: any) => {
-    const vendorIdString = storeData?.slug || storeData?.id || "";
+  // 🔹 Special offers card
+  const renderOfferCard = ({ item }: { item: Store2 }) => {
+    const normalized = normalizeStoreData(item);
 
-    return {
-      id: vendorIdString,
-      slug: vendorIdString,
-      descriptor: {
-        name: storeData?.descriptor?.name || "Unknown Store",
-        short_desc: storeData?.descriptor?.short_desc || "",
-        description: storeData?.descriptor?.description || "",
-        images: storeData?.descriptor?.images || [],
-        symbol: storeData?.descriptor?.symbol || "",
-        ...storeData?.descriptor,
-      },
-      symbol: storeData?.symbol || "",
-      address: storeData?.address || {},
-      geoLocation: storeData?.geoLocation || {},
-      calculated_max_offer: storeData?.calculated_max_offer || {},
-      ...storeData,
-         id: vendorIdString,
-      slug: vendorIdString,
-    };
+    return (
+      <View style={{ marginRight: 16 }}>
+        <OfferCard3 storeData={normalized} />
+      </View>
+    );
   };
 
-const renderRestaurantItem = ({ item }: { item: Store2 }) => {
-  const vendorIdString = item?.slug || item?.id || "";
-  const normalizedStoreData = {
-    id: vendorIdString,
-    slug: vendorIdString,
-    descriptor: {
-      name: item?.name || "Unknown Restaurant",
-      short_desc: item?.descriptor?.short_desc || "",
-      description: item?.descriptor?.description || "",
-      images: item?.descriptor?.images || [],
-      symbol: item?.symbol || "",
-      ...item?.descriptor,
-    },
-    symbol: item?.symbol || "",
-    address: item?.address || {},
-    geoLocation: item?.geoLocation || {},
-    calculated_max_offer: item?.calculated_max_offer || {},
-    ...item,
-  };
+  // 🔹 Restaurants
+  const renderRestaurantItem = ({ item }: { item: Store2 }) => {
+    const normalized = normalizeStoreData(item);
+    const vendorIdString = normalized.slug;
 
-  return (
-    <TouchableOpacity
-      style={styles.restaurantCardCompact}
-      onPress={() =>
-        router.push({
-          pathname: "/(tabs)/home/result/productListing/[id]",
-          params: { id: item.slug },
-        })
-      }
-    >
-      <View style={styles.restaurantImageContainerCompact}>
-        <Image
-          source={{
-            uri: item.symbol || "https://via.placeholder.com/120x80",
-          }}
-          style={styles.restaurantImageCompact}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={["rgba(255,107,53,0.1)", "rgba(255,152,48,0.05)"]}
-          style={styles.gradientOverlay}
-        />
-
-        {/* ✅ Like Button added here */}
-        <View style={styles.topActions}>
-          <LikeButton
-            vendorId={vendorIdString}
-            storeData={normalizedStoreData}
-            color="#E11D48"
+    return (
+      <TouchableOpacity
+        style={styles.restaurantCardCompact}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/home/result/productListing/[id]",
+            params: { id: normalized.slug },
+          })
+        }
+      >
+        <View style={styles.restaurantImageContainerCompact}>
+          <Image
+            source={{
+              uri: normalized.symbol || "https://via.placeholder.com/120x80",
+            }}
+            style={styles.restaurantImageCompact}
+            resizeMode="cover"
           />
-        </View>
+          <LinearGradient
+            colors={["rgba(255,107,53,0.1)", "rgba(255,152,48,0.05)"]}
+            style={styles.gradientOverlay}
+          />
 
-        {item.offers?.length > 0 && (
-          <View style={styles.restaurantOfferBadgeCompact}>
-            <Text style={styles.restaurantOfferTextCompact}>
-              {item.maxStoreItemOfferPercent ?? "20"}% OFF
-            </Text>
-          </View>
-        )}
-        {item.avg_tts_in_h && (
-          <View style={styles.restaurantTimeBadgeCompact}>
-            <Ionicons name="time-outline" size={8} color="white" />
-            <Text style={styles.restaurantTimeTextCompact}>
-              {Math.round(item.avg_tts_in_h * 60)} min
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.restaurantInfoCompact}>
-        <Text style={styles.restaurantNameCompact} numberOfLines={1}>
-          {item.name ?? "Unknown Restaurant"}
-        </Text>
-        <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
-          {item.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
-        </Text>
-
-        <View style={styles.restaurantBottomRowCompact}>
-          <Text style={styles.restaurantDeliveryTimeCompact}>
-            {item.avg_tts_in_h
-              ? `${Math.round(item.avg_tts_in_h * 60)} mins`
-              : "30-40 mins"}
-          </Text>
-          <View style={styles.restaurantStatusCompact}>
-            <View
-              style={[
-                styles.restaurantStatusDotCompact,
-                { backgroundColor: item.status === "open" ? "#00C851" : "green" },
-              ]}
+          {/* ❤️ Like button */}
+          <View style={styles.topActions}>
+            <LikeButton
+              vendorId={vendorIdString}
+              storeData={normalized}
+              color="#E11D48"
             />
-            <Text
-              style={[
-                styles.restaurantStatusTextCompact,
-                { color: "#00C851" },
-              ]}
-            >
-              Open
+          </View>
+
+          {/* 🔥 Offer badge (mocked 50%) */}
+          <DiscountBadge
+            percent={normalized.calculated_max_offer?.percent}
+            style={styles.restaurantOfferBadgeCompact}
+          />
+
+          {normalized.avg_tts_in_h && (
+            <View style={styles.restaurantTimeBadgeCompact}>
+              <Ionicons name="time-outline" size={8} color="white" />
+              <Text style={styles.restaurantTimeTextCompact}>
+                {Math.round(normalized.avg_tts_in_h * 60)} min
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.restaurantInfoCompact}>
+          <Text style={styles.restaurantNameCompact} numberOfLines={1}>
+            {normalized.descriptor?.name ?? "Unknown Restaurant"}
+          </Text>
+          <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
+            {normalized.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
+          </Text>
+
+          <View style={styles.restaurantBottomRowCompact}>
+            <Text style={styles.restaurantDeliveryTimeCompact}>
+              {normalized.avg_tts_in_h
+                ? `${Math.round(normalized.avg_tts_in_h * 60)} mins`
+                : "30-40 mins"}
             </Text>
+            <View style={styles.restaurantStatusCompact}>
+              <View
+                style={[
+                  styles.restaurantStatusDotCompact,
+                  {
+                    backgroundColor:
+                      normalized.status === "open" ? "#00C851" : "green",
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.restaurantStatusTextCompact,
+                  { color: "#00C851" },
+                ]}
+              >
+                Open
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
-};
+      </TouchableOpacity>
+    );
+  };
 
-
+  // 🔹 Stores
   const renderStores = ({ item }: { item: Store2 }) => {
-    const vendorIdString = item?.slug || item?.id || "";
-    const normalizedStoreData = normalizeStoreData(item);
+    const normalized = normalizeStoreData(item);
+    const vendorIdString = normalized.slug;
 
-    const title = item.store_name || item.name || "Unnamed";
+    const title = normalized.store_name || normalized.descriptor?.name || "Unnamed";
     const category =
-      item.store_sub_categories?.join(", ") ||
-      item.domain?.replace("ONDC:", "") ||
-      (item.type === "restaurant" ? "Restaurant" : "Store");
+      normalized.store_sub_categories?.join(", ") ||
+      normalized.domain?.replace("ONDC:", "") ||
+      (normalized.type === "restaurant" ? "Restaurant" : "Store");
     const distance =
-      typeof item.distance_in_km === "number"
-        ? `${item.distance_in_km.toFixed(1)} km`
+      typeof normalized.distance_in_km === "number"
+        ? `${normalized.distance_in_km.toFixed(1)} km`
         : "";
 
     return (
-      <View
-        style={styles.nearbyCard}
-
-      >
+      <View style={styles.nearbyCard}>
         <View style={styles.nearbyImageContainer}>
           <Image
             source={{
-              uri: item.symbol || "https://via.placeholder.com/120x80",
+              uri: normalized.symbol || "https://via.placeholder.com/120x80",
             }}
             style={styles.nearbyImage}
             resizeMode="cover"
           />
 
-          {item.offers?.length > 0 && (
-            <View style={styles.offerBadge}>
-              <Text style={styles.offerBadgeText}>
-                UPTO {item.maxStoreItemOfferPercent ?? "50"}% OFF
-              </Text>
-            </View>
-          )}
+          {/* 🔥 Offer badge (mocked 50%) */}
+          <DiscountBadge
+            percent={normalized.calculated_max_offer?.percent}
+            style={styles.offerBadge}
+          />
 
-          {/* Floating actions */}
           <View style={styles.topActions}>
             <LikeButton
               vendorId={vendorIdString}
-              storeData={normalizedStoreData}
+              storeData={normalized}
               color="#E11D48"
             />
           </View>
         </View>
 
-        <TouchableOpacity style={styles.nearbyInfo}
-                onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/productListing/[id]",
-            params: { id: item.slug },
-          })
-        }
+        <TouchableOpacity
+          style={styles.nearbyInfo}
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/home/result/productListing/[id]",
+              params: { id: normalized.slug },
+            })
+          }
         >
           <Text style={styles.nearbyName} numberOfLines={1}>
             {title}
@@ -263,7 +281,10 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
           <View
             style={[
               styles.restaurantStatusDotCompact,
-              { backgroundColor: item.status === "open" ? "#00C851" : "green" },
+              {
+                backgroundColor:
+                  normalized.status === "open" ? "#00C851" : "green",
+              },
             ]}
           />
           <Text
@@ -276,6 +297,7 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
     );
   };
 
+  // 🔹 Categories (unchanged)
   const renderFoodCategories = ({ item, index }: { item: any; index: number }) => {
     if (index % 2 !== 0) return null;
     const nextItem = foodCategoryData[index + 1];
@@ -291,7 +313,9 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
         </TouchableOpacity>
         {nextItem && (
           <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/${nextItem.name}`)
+            }
             style={styles.categoryItem}
           >
             <Image source={{ uri: nextItem.image }} style={styles.categoryImage} />
@@ -323,7 +347,9 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
         </TouchableOpacity>
         {nextItem && (
           <TouchableOpacity
-            onPress={() => router.push(`/(tabs)/home/result/${nextItem.name}`)}
+            onPress={() =>
+              router.push(`/(tabs)/home/result/${nextItem.name}`)
+            }
             style={styles.categoryItem}
           >
             <Image source={{ uri: nextItem.image }} style={styles.categoryImage} />
@@ -337,6 +363,7 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
   return {
     handleCategoryPress,
     renderCategoryItemCompact,
+    renderOfferCard,
     renderRestaurantItem,
     renderStores,
     renderFoodCategories,
@@ -344,4 +371,4 @@ const renderRestaurantItem = ({ item }: { item: Store2 }) => {
   };
 };
 
-export default StoreCard3;
+export default Render;

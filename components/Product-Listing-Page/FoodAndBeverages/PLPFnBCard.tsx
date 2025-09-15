@@ -1,4 +1,6 @@
+import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
+import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -9,7 +11,6 @@ import {
   View,
 } from "react-native";
 import AddToCart from "../../common/AddToCart";
-import LikeButton from "@/components/common/likeButton";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -68,51 +69,93 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
       router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
     });
 
-  const resolveStoreId = (): string => {
+  const resolveStoreId = (): string | null => {
     if (providerId && providerId !== "unknown-store") return providerId;
-    if (item) {
-      if (item.store_id && item.store_id !== "unknown-store") {
-        return item.store_id;
-      }
+    if (item?.store_id && item.store_id !== "unknown-store") {
+      return item.store_id;
     }
-    return catalogId || id || "default-store";
+    return null;
   };
 
-  const storeId = resolveStoreId();
+  const safeStoreId = resolveStoreId();
   const resolvedSlug = slug || id;
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  const uniqueProductId = productIdString || slug || id;
 
-  // ✅ F&B specific styling based on veg/non-veg
+  // ✅ AddToCart Renderer
+  const renderAddToCart = () => {
+    if (!safeStoreId) {
+      return (
+        <View style={cardStyles.cartWrapper}>
+          <Text style={cardStyles.errorText}>Store ID missing</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={cardStyles.cartWrapper}>
+        <AddToCart
+          price={cost || 0}
+          storeId={safeStoreId}
+          slug={resolvedSlug}
+          catalogId={catalogId}
+          productName={itemName}
+          customizable={customizable}
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+        />
+      </View>
+    );
+  };
+
+  // ✅ Veg/Non-Veg border color
   const getBorderColor = () => {
     if (veg) return "#22c55e";
     if (non_veg) return "#ef4444";
     return "#f0f0f0";
   };
-  const productIdString = Array.isArray(productId) ? productId[0] : productId;
-  const uniqueProductId = productIdString || slug || id;
-
 
   return (
-    <View >
+    <View>
       <View style={[cardStyles.card, { borderColor: getBorderColor() }]}>
         {/* ✅ Veg/Non-Veg Indicator */}
         <View style={cardStyles.dietIndicator}>
-          {veg && <View style={[cardStyles.dietDot, { backgroundColor: "#22c55e" }]} />}
-          {non_veg && <View style={[cardStyles.dietDot, { backgroundColor: "#ef4444" }]} />}
+          {veg && (
+            <View
+              style={[cardStyles.dietDot, { backgroundColor: "#22c55e" }]}
+            />
+          )}
+          {non_veg && (
+            <View
+              style={[cardStyles.dietDot, { backgroundColor: "#ef4444" }]}
+            />
+          )}
         </View>
 
         <ImageComp
           source={image || symbol}
           imageStyle={cardStyles.image}
           resizeMode="cover"
-        fallbackSource={{ uri: "https://picsum.photos/200/300" }}
-        loaderColor="#666"
-        loaderSize="small"
+          fallbackSource={{ uri: "https://picsum.photos/200/300" }}
+          loaderColor="#666"
+          loaderSize="small"
         />
-              <View style={cardStyles.topActions}>
-        <LikeButton productId={uniqueProductId} color="#E11D48" />
-      </View>
-        <TouchableOpacity style={cardStyles.info}
-        onPress={handlePress} activeOpacity={0.8}
+
+        <View style={cardStyles.topActions}>
+          <LikeButton productId={uniqueProductId} color="#E11D48" />
+        </View>
+
+        {/* 🔥 Discount Badge */}
+        {typeof discount === "number" && discount > 1 && (
+          <DiscountBadge
+            percent={Number(discount)}
+            style={{ top: 8, left: 8 }}
+          />
+        )}
+
+        <TouchableOpacity
+          style={cardStyles.info}
+          onPress={handlePress}
+          activeOpacity={0.8}
         >
           <Text style={cardStyles.name} numberOfLines={2}>
             {itemName}
@@ -121,11 +164,9 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             {weight} / {unit}
           </Text>
 
-          {/* ✅ Spice Level Indicator */}
+          {/* ✅ Spice Level */}
           {spiceLevel && (
-            <Text style={cardStyles.spiceLevel}>
-              🌶️ {spiceLevel}
-            </Text>
+            <Text style={cardStyles.spiceLevel}>🌶️ {spiceLevel}</Text>
           )}
 
           <View style={cardStyles.priceRow}>
@@ -142,17 +183,8 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           )}
         </TouchableOpacity>
 
-        {/* ✅ AddToCart Component */}
-        <View style={cardStyles.cartWrapper}>
-          <AddToCart
-            itemId={id}
-            slug={resolvedSlug}
-            storeId={storeId}
-            maxLimit={maxLimit}
-            customizable={customizable}
-            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-          />
-        </View>
+        {/* ✅ AddToCart */}
+        {renderAddToCart()}
       </View>
     </View>
   );
@@ -174,7 +206,7 @@ const cardStyles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
   },
-    topActions: {
+  topActions: {
     position: "absolute",
     top: 12,
     right: 12,
@@ -246,5 +278,11 @@ const cardStyles = StyleSheet.create({
   },
   cartWrapper: {
     marginTop: 8,
+  },
+  errorText: {
+    fontSize: 10,
+    color: "#ff6b6b",
+    textAlign: "center",
+    fontWeight: "500",
   },
 });

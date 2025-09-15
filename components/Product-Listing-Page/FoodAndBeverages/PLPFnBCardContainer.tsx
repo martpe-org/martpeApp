@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { View, StyleSheet, Dimensions, Text, Animated } from "react-native";
+import { View, StyleSheet, Text, Animated } from "react-native";
 import PLPFnBCard from "./PLPFnBCard";
 
 export interface FnBCatalogItem {
@@ -44,19 +44,16 @@ export interface FnBCatalogItem {
 }
 
 interface PLPFnBCardContainerProps {
-  catalog: FnBCatalogItem[];
+  catalog?: FnBCatalogItem[]; // ✅ made optional
   selectedCategory?: string;
   searchString: string;
   storeId: string;
   storeName: string;
-  // ✅ F&B specific filters
   vegFilter?: "All" | "Veg" | "Non-Veg";
 }
 
-const CARD_SPACING = Dimensions.get("window").width * 0.03;
-
 const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
-  catalog,
+  catalog = [], // ✅ fallback to empty array
   selectedCategory,
   searchString,
   vegFilter = "All",
@@ -73,7 +70,9 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     if (!selectedCategory || selectedCategory === "All") {
       return vegFilteredCatalog;
     }
-    return vegFilteredCatalog.filter((item) => item.category_id === selectedCategory);
+    return vegFilteredCatalog.filter(
+      (item) => item.category_id === selectedCategory
+    );
   }, [vegFilteredCatalog, selectedCategory]);
 
   // ✅ Apply search filter
@@ -86,40 +85,30 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     });
   }, [filteredCatalog, searchString]);
 
-  if (
-    selectedCategory &&
-    selectedCategory !== "All" &&
-    displayedCatalog.length === 0
-  ) {
-    return <NoItemsDisplay category={selectedCategory} />;
+  // ✅ If no items at all
+  if ((displayedCatalog || []).length === 0) {
+    return (
+      <NoItemsDisplay category={selectedCategory || "this category"} />
+    );
   }
 
   return (
     <View style={containerStyles.container}>
-      {displayedCatalog.map((item, index) => {
-        // ✅ Extract customization group IDs from the customizations array
-        const directlyLinkedCustomGroupIds = item.customizations?.map(
-          customization => customization.groupId || 
-                          customization.group_id || 
-                          customization._id || 
-                          customization.id
-        ).filter(Boolean) || [];
-
-        // Debug logging for first few items
-        if (index < 3) {
-          console.log(`🍽️ F&B Item ${index + 1}:`, {
-            name: item.descriptor?.name,
-            veg: item.veg,
-            non_veg: item.non_veg,
-            images: item.descriptor?.images,
-            customizable: item.customizable,
-            directlyLinkedCustomGroupIds,
-          });
-        }
+      {(displayedCatalog || []).map((item, index) => {
+        const directlyLinkedCustomGroupIds =
+          item.customizations
+            ?.map(
+              (customization) =>
+                customization.groupId ||
+                customization.group_id ||
+                customization._id ||
+                customization.id
+            )
+            .filter(Boolean) || [];
 
         return (
           <PLPFnBCard
-            key={item.id}
+            key={item.id || index}
             id={item.id}
             itemName={item.descriptor?.name || "Unnamed Item"}
             cost={item.price?.value || 0}
@@ -136,7 +125,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
             item={item}
             customizable={item.customizable}
             directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-            // ✅ F&B specific props
             veg={item.veg}
             non_veg={item.non_veg}
             spiceLevel={item.spiceLevel}
@@ -147,7 +135,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   );
 };
 
-// ✅ Animated "No Items" Component (same as grocery)
+// ✅ Animated "No Items" Component
 const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim = useRef(new Animated.Value(0.8)).current;

@@ -117,31 +117,23 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   selectedCategory = "All",
   storeId,
 }) => {
-  // Filter catalog based on selected category
   const getFilteredCatalog = (): CatalogItem[] => {
-    if (
-      !selectedCategory ||
-      selectedCategory === "All" ||
-      selectedCategory === "Home & Decor"
-    ) {
+    if (!selectedCategory || selectedCategory === "All" || selectedCategory === "Home & Decor") {
       return catalog;
     }
 
-    const category = String(selectedCategory);
-
+    const category = String(selectedCategory).toLowerCase();
     return catalog.filter((item) => {
       const itemName = item?.descriptor?.name?.toLowerCase() || "";
       const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
       const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
 
-      const match = (text: string, keyword: string | RegExp) => {
-        if (typeof keyword === "string") {
-          return new RegExp(`\\b${keyword}\\b`, "i").test(text);
-        }
-        return keyword.test(text);
-      };
+      const match = (text: string, keyword: string | RegExp) =>
+        typeof keyword === "string"
+          ? new RegExp(`\\b${keyword}\\b`, "i").test(text)
+          : keyword.test(text);
 
-      switch (category.toLowerCase()) {
+      switch (category) {
         case "furniture":
           return (
             match(itemName, "furniture") ||
@@ -150,7 +142,6 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemName, "sofa") ||
             match(itemDesc, "furniture")
           );
-
         case "furnishing":
           return (
             match(itemName, "curtain") ||
@@ -159,7 +150,6 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemName, "pillow") ||
             match(itemDesc, "furnishing")
           );
-
         case "cooking":
           return (
             match(itemName, "kitchen") ||
@@ -169,8 +159,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemDesc, "cooking") ||
             match(itemDesc, "dining")
           );
-
-        case "Garden":
+        case "garden":
           return (
             match(itemName, "garden") ||
             match(itemName, "outdoor") ||
@@ -179,7 +168,6 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             match(itemDesc, "garden") ||
             match(itemDesc, "outdoor")
           );
-
         default:
           return (
             match(itemName, category) ||
@@ -207,21 +195,29 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
         const desc = item?.descriptor?.long_desc || "";
         const value = item?.price?.value || 0;
         const maxPrice = item?.price?.maximum_value || 0;
+
+        // ✅ Normalize discount into number
         const discount =
-          item?.price?.offer_percent ||
-          (maxPrice ? (((maxPrice - value) / maxPrice) * 100).toFixed(0) : 0);
+          typeof item?.price?.offer_percent === "number"
+            ? item.price.offer_percent
+            : maxPrice && value
+            ? Math.round(((maxPrice - value) / maxPrice) * 100)
+            : 0;
+
         const image =
-          item?.descriptor?.symbol || item?.descriptor?.images?.[0] || "";
+          item?.descriptor?.images?.[0] ||
+          item?.descriptor?.symbol ||
+          "https://via.placeholder.com/185?text=Fashion";
 
         const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
 
-        // ✅ Extract customization group IDs
-        const directlyLinkedCustomGroupIds = item.directlyLinkedCustomGroupIds || 
-          item.customizations?.map(
-            customization => customization.groupId || customization.group_id || customization._id || customization.id
-          ).filter(Boolean) || [];
+        const directlyLinkedCustomGroupIds =
+          item.directlyLinkedCustomGroupIds ||
+          (item.customizations?.map(
+            (c) => c.groupId || c.group_id || c._id || c.id
+          ).filter(Boolean) as string[]) ||
+          [];
 
-        // Existing storeId resolution logic
         const resolveStoreId = (): string | undefined => {
           if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
             return item.provider.store_id;
@@ -238,13 +234,7 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
           return undefined;
         };
 
-        const safeStoreId = resolveStoreId();
-
-        if (!safeStoreId) {
-          console.warn(
-            `⚠️ PLPCardContainer: Missing storeId for product ${item.id} (${name})`
-          );
-        }
+        const safeStoreId = resolveStoreId() || "unknown-store";
 
         return (
           <FashionCard
@@ -259,14 +249,15 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
             catalogId={item.catalog_id}
             storeId={safeStoreId}
             slug={item.slug}
-            customizable={item.customizable || false} // ✅ Add customizable flag
-            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Add customization groups
+            customizable={item.customizable || false}
+            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
           />
         );
       })}
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

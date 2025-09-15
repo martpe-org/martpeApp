@@ -4,6 +4,7 @@ import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
 import Loader from "./Loader";
+import { ActivityIndicator } from "react-native-paper";
 
 interface DynamicButtonProps {
   storeId: string;
@@ -71,7 +72,7 @@ const DynamicButton: React.FC<DynamicButtonProps> = ({
 
   const getButtonContent = () => {
     if (loading) {
-      return <Loader />;
+      return <ActivityIndicator size={20} color="white" />;
     }
     if (customizable && directlyLinkedCustomGroupIds.length > 0) {
       return (

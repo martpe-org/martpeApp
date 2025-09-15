@@ -18,7 +18,7 @@ interface PLPFnBProps {
 }
 
 const PLPFnB: FC<PLPFnBProps> = ({
-  catalog,
+  catalog = [], // ✅ fallback to empty array
   dropdownHeaders,
   vendorAddress,
   street,
@@ -31,43 +31,34 @@ const PLPFnB: FC<PLPFnBProps> = ({
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   // ✅ Get unique categories from catalog
-  const availableCategories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(catalog.map((item) => item.category_id).filter(Boolean))
-    );
-    return ["All", ...uniqueCategories];
-  }, [catalog]);
+const availableCategories = useMemo(() => {
+  if (!catalog || catalog.length === 0) return ["All"]; // ✅ safe guard
+  const uniqueCategories = Array.from(
+    new Set(catalog.map((item) => item.category_id).filter(Boolean))
+  );
+  return ["All", ...uniqueCategories];
+}, [catalog]);
 
-  // ✅ Convert ComponentCatalogItem to FnBCatalogItem format
-  const fnbCatalog = useMemo(() => {
-    return catalog.map(item => ({
-      ...item,
-      catalog_id: item.catalog_id || "",
-      store_id: item.store_id || providerId,
-      weight: "1 serving", // Default for F&B
-      unit: "plate", // Default for F&B
-    }));
-  }, [catalog, providerId]);
+
+const fnbCatalog = useMemo(() => {
+  if (!catalog) return [];
+  return catalog.map(item => ({
+    ...item,
+    catalog_id: item.catalog_id || "",
+    store_id: item.store_id || providerId,
+    weight: "1 serving",
+    unit: "plate",
+  }));
+}, [catalog, providerId]);
+
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* ✅ Veg/Non-Veg Filter Tabs */}
-      <HeaderTabs 
-        filter={vegFilter} 
-        setFilter={setVegFilter}
-        vegCount={catalog.filter(item => item.veg).length}
-        nonVegCount={catalog.filter(item => item.non_veg).length}
-      />
-
-      {/* ✅ Category Navigation */}
-      {availableCategories.length > 1 && (
-        <HorizontalNavbar
-          navbarTitles={availableCategories}
-          onFilterSelect={setSelectedCategory}
-          activeCategory={selectedCategory}
-          domainColor="#f14343" // F&B theme color
-        />
-      )}
+<HeaderTabs
+  buttonTitles={["All", "Veg", "Non-Veg"]}
+  onFilterChange={(tab) => setVegFilter(tab as "All" | "Veg" | "Non-Veg")}
+/>
 
       {/* ✅ F&B Card Container */}
       <PLPFnBCardContainer

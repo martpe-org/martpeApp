@@ -1,9 +1,10 @@
+import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
+import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import { FC } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AddToCart from "../../common/AddToCart";
-import LikeButton from "@/components/common/likeButton";
 
 interface FashionCardProps {
   itemName: string;
@@ -18,9 +19,8 @@ interface FashionCardProps {
   storeId?: string;
   slug?: string;
   onPress?: () => void;
-
   customizable?: boolean;
-  directlyLinkedCustomGroupIds?: string[]; // ✅ add
+  directlyLinkedCustomGroupIds?: string[];
 }
 
 const FashionCard: FC<FashionCardProps> = ({
@@ -87,9 +87,20 @@ const FashionCard: FC<FashionCardProps> = ({
           loaderColor="#666"
           loaderSize="small"
         />
+
+        {/* ❤️ Like button */}
         <View style={styles.topActions}>
           <LikeButton productId={uniqueProductId} color="#E11D48" />
         </View>
+
+        {/* 🔥 Offer badge (reused from OfferCard3) */}
+        {typeof discount === "number" && discount > 1 && (
+          <DiscountBadge
+            percent={Number(discount)}
+            style={{ top: 8, left: 8 }}
+          />
+        )}
+
         <TouchableOpacity
           style={styles.fashionCardContent}
           onPress={handlePress}
@@ -116,12 +127,6 @@ const FashionCard: FC<FashionCardProps> = ({
                 <Text style={styles.strikedOffText}>₹{maxPrice}</Text>
               )}
             </Text>
-            {typeof discount === "number" && discount > 1 && (
-              <Text style={styles.fashionCardDiscount}>
-                {"  "}
-                {discount}% Off
-              </Text>
-            )}
           </View>
         </TouchableOpacity>
       </View>

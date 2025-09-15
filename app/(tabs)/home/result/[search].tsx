@@ -15,6 +15,7 @@ import useDeliveryStore from "../../../../components/address/deliveryAddressStor
 import AddToCart from "../../../../components/common/AddToCart";
 import ImageComp from "../../../../components/common/ImageComp";
 import Loader from "../../../../components/common/Loader";
+import LikeButton from "../../../../components/common/likeButton";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
 
 // Import search functions and types
@@ -24,6 +25,7 @@ import { ProductSearchResult } from "../../../search/search-products-type";
 import { searchStores } from "../../../search/search-stores";
 import { StoreSearchResult } from "../../../search/search-stores-type";
 import { styles } from "./searchStyle";
+
 interface SearchInput {
   lat: number;
   lon: number;
@@ -31,6 +33,7 @@ interface SearchInput {
   query: string;
   domain: string;
 }
+
 interface FoodDetailsState {
   images: string;
   long_desc: string;
@@ -172,7 +175,6 @@ const Results: FC = () => {
     setIsItem(itemTab);
   }, []);
 
-
   // Product Card Component
   const ProductCard: FC<{
     item: [string, ProductSearchResult[]];
@@ -202,9 +204,8 @@ const Results: FC = () => {
                 {store.name}
               </Text>
               <Text style={styles.storeMetrics}>
-                <Text>★ {store.rating || "4.2"} • </Text>
                 <Text>
-                  {Math.round((firstProduct.tts_in_h || 1) * 60)}min •{" "}
+                  {Math.round((firstProduct.tts_in_h || 1) * 60)}min • {" "}
                 </Text>
                 <Text>{firstProduct.distance_in_km.toFixed(1)}km</Text>
               </Text>
@@ -223,88 +224,118 @@ const Results: FC = () => {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(product, index) => `${product.slug}-${index}`}
           contentContainerStyle={styles.productsContainer}
-          renderItem={({ item: product }) => (
-            <TouchableOpacity
-              style={styles.productCard}
-              onPress={() =>
-                router.push(
-                  `/(tabs)/home/result/productDetails/${product.slug}`
-                )
-              }
-            >
-              <ImageComp
-                source={{
-                  uri: product.symbol || "https://via.placeholder.com/120",
-                }}
-                imageStyle={styles.productImage}
-                resizeMode="cover"
-              />
-
-              <View style={styles.productInfo}>
-                {domainName === "F&B" && <VegIndicator />}
-                <Text style={styles.productName} numberOfLines={2}>
-                  {product.name}
-                </Text>
-
-                <View style={styles.priceRow}>
-                  <Text style={styles.price}>₹{product.price.value}</Text>
-                  {product.price.offerPercent && (
-                    <Text style={styles.originalPrice}>
-                      ₹{product.price.maximum_value}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.actionRow}>
-                  {/* ✅ Use AddToCart component for all products */}
-                  <AddToCart
-                    storeId={product.store_id}
-                    slug={product.slug}
-                    catalogId={product.catalog_id}
-                    price={product.price?.value || 0}
-                    productName={product.name} // ✅ Add product name
-                    customizable={product.customizable} // ✅ Add customizable flag
-                    directlyLinkedCustomGroupIds={
-                      product.directlyLinkedCustomGroupIds || []
-                    } // ✅ Add customization groups
+          renderItem={({ item: product }) => {
+            const productId = Array.isArray(product.slug) ? product.slug[0] : product.slug;
+            const discountPercent = product.price.offerPercent || 0;
+            
+            return (
+              <View
+                style={styles.productCard}
+              >
+                {/* Product Image with overlays */}
+                <View style={{ position: 'relative' }}>
+                  <ImageComp
+                    source={{
+                      uri: product.symbol || "https://via.placeholder.com/120",
+                    }}
+                    imageStyle={styles.productImage}
+                    resizeMode="cover"
                   />
-
-
+                  
+                  {/* Discount Badge */}
+                  {discountPercent > 0 && (
+                    <View style={styles.productDiscountBadge}>
+                      <Text style={styles.productDiscountText}>
+                        {Math.ceil(discountPercent)}% OFF
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Like Button */}
+                  <View style={styles.likeButtonContainer}>
+                    <LikeButton productId={productId} color="#E11D48" />
+                  </View>
                 </View>
+
+                <TouchableOpacity style={styles.productInfo}
+                                onPress={() =>
+                  router.push(
+                    `/(tabs)/home/result/productDetails/${product.slug}`
+                  )
+                }
+                >
+                  {domainName === "F&B" && <VegIndicator />}
+                  <Text style={styles.productName} numberOfLines={2}>
+                    {product.name}
+                  </Text>
+
+                  <View style={styles.priceRow}>
+                    <Text style={styles.price}>₹{product.price.value}</Text>
+                    {product.price.offerPercent && (
+                      <Text style={styles.originalPrice}>
+                        ₹{product.price.maximum_value}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.actionRow}>
+                    <AddToCart
+                      storeId={product.store_id}
+                      slug={product.slug}
+                      catalogId={product.catalog_id}
+                      price={product.price?.value || 0}
+                      productName={product.name}
+                      customizable={product.customizable}
+                      directlyLinkedCustomGroupIds={
+                        product.directlyLinkedCustomGroupIds || []
+                      }
+                    />
+                  </View>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          )}
+            );
+          }}
         />
       </View>
     );
   };
 
   // Store Card Component
-  const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => (
-    <TouchableOpacity
-      onPress={() =>
-        router.push(`/(tabs)/home/result/productListing/${store.slug}`)
-      }
-      style={styles.storeCard}
-    >
-      <ImageComp
-        source={{
-          uri: store.symbol || "https://via.placeholder.com/60",
-        }}
-        imageStyle={styles.storeCardImage}
-        resizeMode="cover"
-      />
-      <View style={styles.storeCardInfo}>
-        <Text style={styles.storeCardName}>{store.name}</Text>
-        <Text style={styles.storeCardDetails}>
-          <Text>{store.distance_in_km.toFixed(1)}km</Text>
-        </Text>
-        <Text style={styles.storeCardAddress} numberOfLines={1}>
-          {store.address.city}
-        </Text>
+  const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => {
+    const storeId = Array.isArray(store.slug) ? store.slug[0] : store.slug;
+    
+    return (
+      <View style={styles.storeCardWrapper}>
+        <TouchableOpacity
+          onPress={() =>
+            router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+          }
+          style={styles.storeCard}
+        >
+          <ImageComp
+            source={{
+              uri: store.symbol || "https://via.placeholder.com/60",
+            }}
+            imageStyle={styles.storeCardImage}
+            resizeMode="cover"
+          />
+          <View style={styles.storeCardInfo}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Text style={styles.storeCardName} numberOfLines={1}>
+                {store.name}
+              </Text>
+            </View>
+            <Text style={styles.storeCardDetails}>
+              <Text>{store.distance_in_km.toFixed(1)}km</Text>
+            </Text>
+            <Text style={styles.storeCardAddress} numberOfLines={1}>
+              {store.address.city}
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
   const currentError = isItem ? productsError : storesError;
