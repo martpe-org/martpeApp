@@ -1,7 +1,4 @@
 import { FetchHomeType } from "./fetch-home-type";
-// import Constants from "expo-constants";
-
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchHome = async (
   lat: number,
@@ -17,8 +14,6 @@ export const fetchHome = async (
     const url = `${process.env.EXPO_PUBLIC_API_URL}/home?lat=${encodeURIComponent(
       lat
     )}&lon=${encodeURIComponent(lon)}&pincode=${encodeURIComponent(pincode)}`;
-
-    console.log(`🌐 FETCHHOME: lat=${lat} lon=${lon} pincode=${pincode}`);
 
     const res = await fetch(url, {
       method: "GET",

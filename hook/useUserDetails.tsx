@@ -58,16 +58,21 @@ const useUserDetails = () => {
     }
   };
 
-  const saveUserDetails = async (details: UserDetails) => {
-    try {
-      await setAsyncStorageItem("userDetails", JSON.stringify(details));
-      setUserDetails(details);
-      setIsAuthenticated(true);
-      console.log("User details saved successfully:", details);
-    } catch (error) {
-      console.error("Error saving user details:", error);
+const saveUserDetails = async (details: UserDetails) => {
+  try {
+    await setAsyncStorageItem("userDetails", JSON.stringify(details));
+    // ✅ Also save plain auth-token for payment flow
+    if (details.accessToken) {
+      await setAsyncStorageItem("auth-token", details.accessToken);
     }
-  };
+    setUserDetails(details);
+    setIsAuthenticated(true);
+    console.log("User details saved successfully:", details);
+  } catch (error) {
+    console.error("Error saving user details:", error);
+  }
+};
+
 
   const getUserDetails = async (): Promise<UserDetails | null> => {
     try {

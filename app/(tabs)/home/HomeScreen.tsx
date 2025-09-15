@@ -38,9 +38,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
 
-  // Import render functions
+  // Import render functions including the new offers carousel
   const {
     renderCategoryItemCompact,
+    renderOffersCarousel,
     renderRestaurantItem,
     renderStores,
     renderFoodCategories,
@@ -51,6 +52,7 @@ export default function HomeScreen() {
     loadDeliveryDetails();
   }, []);
 
+  
  // Fetch home data using react-query with optimized caching
   // const {
   //   data: homeData,
@@ -100,7 +102,8 @@ export default function HomeScreen() {
   //   networkMode: 'online',
   // });
 
-    // Fetch home data using react-query with hardcoded values
+  // Fetch home data using react-query with hardcoded values
+ 
   const {
     data: homeData,
     isLoading,
@@ -209,6 +212,13 @@ export default function HomeScreen() {
               >
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* NEW: Offers Carousel Section - Above restaurants, no heading */}
+          {Array.isArray(homeData?.offers) && homeData.offers.length > 0 && (
+            <View style={[styles.section, { paddingTop: 20 }]}>
+              {renderOffersCarousel(homeData.offers)}
             </View>
           )}
 

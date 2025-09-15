@@ -127,8 +127,9 @@ const CheckoutContent: React.FC<CheckoutContentProps> = ({
     setPaymentLoading(true);
 
     try {
-      const authToken = await getAsyncStorageItem("auth-token");
-      if (!authToken) throw new Error("Please login to continue");
+ const authToken = userDetails?.accessToken;
+if (!authToken) throw new Error("Please login to continue");
+
 
       const referralId = await getAsyncStorageItem("referralId").catch(() => null);
 
