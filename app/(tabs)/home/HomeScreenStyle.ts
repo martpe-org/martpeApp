@@ -2,8 +2,7 @@ import { Dimensions, StyleSheet } from "react-native";
 
 const windowWidth = Dimensions.get("window").width;
 
-export 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#7c5462",
@@ -13,16 +12,15 @@ const styles = StyleSheet.create({
   },
   redSection: {
     backgroundColor: "#ff3c41",
-    paddingTop: 30,
     paddingHorizontal: 16,
     paddingBottom: 10,
   },
   catList: {
     marginTop: 5,
+    paddingHorizontal: 8, // Add horizontal padding
   },
   whiteSection: {
     backgroundColor: "#f5f2f2",
-    flex: 1,
     paddingHorizontal: 16,
     paddingTop: 20,
   },
@@ -59,15 +57,17 @@ const styles = StyleSheet.create({
   },
   categoryList: {
     alignItems: "center",
+    paddingHorizontal: 8, // Add padding to prevent overflow
   },
   categoryItem: {
     margin: 5,
     flexDirection: "column",
     alignItems: "center",
+    maxWidth: windowWidth * 0.25, // Constrain width
   },
   categoryImage: {
-    width: windowWidth * 0.2,
-    height: windowWidth * 0.24,
+    width: windowWidth * 0.18, // Slightly smaller to fit better
+    height: windowWidth * 0.22, // Adjust height proportionally
     resizeMode: "contain",
   },
   categoryName: {
@@ -76,7 +76,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     textAlign: "center",
+    flexWrap: "wrap", // Allow text wrapping
+    maxWidth: windowWidth * 0.2, // Constrain text width
   },
+
   // Two Column Grid Styles
   twoColumnGrid: {
     flexDirection: "row",
@@ -113,15 +116,17 @@ const styles = StyleSheet.create({
     color: "#333",
     textAlign: "center",
   },
+
   // Personal Care Section
   personalCareContainer: {
     flexDirection: "row",
-    paddingLeft: 1,
+    paddingHorizontal: 8, // Change from paddingLeft: 1
   },
   personalCareCard: {
     marginRight: 12,
     alignItems: "center",
     marginTop: 10,
+    maxWidth: 90, // Constrain card width
   },
   personalCareImageContainer: {
     width: 80,
@@ -149,20 +154,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
     maxWidth: 80,
+    flexWrap: "wrap", // Allow text wrapping
   },
+
   // Home & Decor Section
   homeDecorContainer: {
     flexDirection: "row",
-    paddingLeft: 16,
+    paddingHorizontal: 8, // Change from paddingLeft: 16
   },
   homeDecorCard: {
     marginRight: 12,
     alignItems: "center",
     marginTop: 14,
+    maxWidth: 180, // Constrain card width
   },
   homeDecorImageContainer: {
-    width: 200,
-    height: 200,
+    width: 160, // Reduced from 200
+    height: 160, // Reduced from 200
     backgroundColor: "#ffffff",
     borderRadius: 12,
     justifyContent: "center",
@@ -176,8 +184,9 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   homeDecorImage: {
-    width: 200,
-    height: 150,
+    width: 140, // Reduced from 200
+    height: 120, // Reduced from 150
+    resizeMode: "contain", // Add resizeMode
   },
   homeDecorTitle: {
     fontSize: 12,
@@ -185,7 +194,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
     maxWidth: 90,
+    flexWrap: "wrap", // Allow text wrapping
   },
+
   // Footer Section
   footerContainer: {
     backgroundColor: "#FFFFFF",
@@ -274,7 +285,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   nearbyList: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 8, // Add horizontal padding
     paddingVertical: 8,
   },
   errorContainer: {
@@ -284,6 +295,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftColor: "#f44336",
+    marginHorizontal: 16, // Add horizontal margin
   },
   errorText: {
     color: "#c62828",

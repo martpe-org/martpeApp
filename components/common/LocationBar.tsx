@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Entypo, FontAwesome6 } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface DeliveryDetails {
   addressId: string;
@@ -21,6 +22,7 @@ interface LocationBarProps {
 
 export default function LocationBar({ selectedDetails, onPress }: LocationBarProps) {
   return (
+    <SafeAreaView style={{flex:1}}>
     <TouchableOpacity style={styles.locationRow} onPress={onPress}>
       <FontAwesome6
         name="location-pin-lock"
@@ -35,6 +37,7 @@ export default function LocationBar({ selectedDetails, onPress }: LocationBarPro
       </Text>
       <Entypo name="chevron-down" size={18} color="white" />
     </TouchableOpacity>
+</SafeAreaView>
   );
 }
 
@@ -42,6 +45,7 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop:5
   },
   deliveryTxt: {
     color: "white",

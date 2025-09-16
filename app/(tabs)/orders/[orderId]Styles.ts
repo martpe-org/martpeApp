@@ -8,12 +8,10 @@ export const styles = StyleSheet.create({
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
     backgroundColor: "#fff",
     elevation: 2,
-    marginTop:10
   },
   backButton: {
     marginRight: 12,
