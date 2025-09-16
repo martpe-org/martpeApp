@@ -1,302 +1,137 @@
-// import React, { useRef, useState } from "react";
-// import {
-//   View,
-//   StyleSheet,
-//   Text,
-//   TouchableOpacity,
-//   ActivityIndicator,
-// } from "react-native";
-// import { FlashList } from "@shopify/flash-list";
-// import { BackArrow } from "../../../constants/icons/commonIcons";
-// import { useRouter } from "expo-router";
-// import { widthPercentageToDP } from "react-native-responsive-screen";
-// import LottieView from "lottie-react-native";
-// import { useOrderStore } from "../../../state/useOrderStore";
-// import OrderCard from "../../../components/OrderStatus/OrderCard";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  TouchableOpacity,
+} from "react-native";
+import { OrdersListWrapper } from "@/components/order-comp/OrdersListWrapper";
+import { FetchOrdersListItemType } from "@/components/order/fetch-orders-list-type";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fetchOrderList } from "@/components/order/fetch-orders-list";
+import Loader from "@/components/common/Loader";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
-// type OrderStatus = "live" | "delivered" | "cancelled";
+export default function OrdersScreen() {
+  const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-// const Orders = () => {
-//   const router = useRouter();
-//   const animation = useRef(null);
-//   const [filter, setFilter] = useState<OrderStatus>("live");
-//   const [isLoading, setIsLoading] = useState(true);
-//   const allOrders = useOrderStore((state) => state.allOrders);
+  const router = useRouter();
 
-//   // Filter orders safely
-//   const filteredOrders = React.useMemo(() => {
-//     try {
-//       if (!Array.isArray(allOrders)) return [];
-      
-//       return allOrders.filter((order) => {
-//         if (!order?.order_status) return false;
-        
-//         const status = order.order_status.toLowerCase();
-        
-//         switch (filter) {
-//           case "delivered":
-//             return status === "completed";
-//           case "cancelled":
-//             return status === "cancelled";
-//           default: // "live"
-//             return status !== "completed" && status !== "cancelled";
-//         }
-//       }).reverse(); // Newest first
-//     } catch (error) {
-//       console.error("Error filtering orders:", error);
-//       return [];
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }, [allOrders, filter]);
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const authToken = await AsyncStorage.getItem("auth-token");
+        if (!authToken) {
+          setError("Authentication required. Please log in again.");
+          setLoading(false);
+          return;
+        }
 
-//   // Loading state
-//   if (isLoading) {
-//     return (
-//       <View style={styles.loadingContainer}>
-//         <ActivityIndicator size="large" color="#FF5151" />
-//       </View>
-//     );
-//   }
+        const response = await fetchOrderList(authToken, "1", "10");
+        if (!response) throw new Error("No response from server");
 
-//   // Empty state
-//   if (!allOrders || allOrders.length === 0) {
-//     return (
-//       <View style={styles.emptyContainer}>
-//         <View style={styles.emptyHeader}>
-//         </View>
+        setInitialOrders(response.orders);
+        setTotal(response.count);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+        setError("Failed to load orders");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-//         <View style={styles.animationContainer}>
-//           <LottieView
-//             autoPlay
-//             ref={animation}
-//             style={styles.lottie}
-//             source={require("../../../assets/lottiefiles/empty_orders.json")}
-//           />
-//         </View>
+    loadOrders();
+  }, []);
 
-//         <View style={styles.emptyTextContainer}>
-//           <Text style={styles.emptyText}>No Orders found!</Text>
-//         </View>
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <View style={styles.centered}>
+          <Loader />
+          <Text style={styles.loadingText}>Loading orders...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-//         <TouchableOpacity
-//           onPress={() => router.push("../(tabs)/home")}
-//           style={styles.shoppingButton}
-//         >
-//           <Text style={styles.shoppingButtonText}>Start Shopping</Text>
-//         </TouchableOpacity>
-//       </View>
-//     );
-//   }
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorSubtext}>Please try again later</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-//   // Filter empty state
-//   const getEmptyFilterMessage = () => {
-//     switch (filter) {
-//       case "cancelled":
-//         return "You haven't cancelled any orders yet :)";
-//       case "delivered":
-//         return "Looking forward to your first delivery!";
-//       default:
-//         return "No live orders?\nBrowse our products and fill your cart today!";
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.header}>
-//         <View style={styles.title}>
-//           <BackArrow onPress={router.back} />
-//           <Text style={styles.titleText}>Your Order(s)</Text>
-//         </View>
-        
-//         <View style={styles.filters}>
-//           {(["live", "delivered", "cancelled"] as OrderStatus[]).map((f) => (
-//             <TouchableOpacity
-//               key={f}
-//               style={[
-//                 styles.filter,
-//                 filter === f && styles.activeFilter,
-//               ]}
-//               onPress={() => setFilter(f)}
-//             >
-//               <Text style={[styles.text, filter === f && styles.activeText]}>
-//                 {f.toUpperCase()}
-//               </Text>
-//             </TouchableOpacity>
-//           ))}
-//         </View>
-//       </View>
-
-//       {filteredOrders.length === 0 ? (
-//         <View style={styles.noOrdersContainer}>
-//           <Text style={styles.noOrdersText}>{getEmptyFilterMessage()}</Text>
-//         </View>
-//       ) : (
-//         <FlashList
-//           data={filteredOrders}
-//           renderItem={({ item }) => <OrderCard order={item} />}
-//           estimatedItemSize={83}
-//           keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
-//           contentContainerStyle={styles.listContent}
-//         />
-//       )}
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#e9ecef",
-//     paddingTop: 120,
-//   },
-//   loadingContainer: {
-//     flex: 1,
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   emptyContainer: {
-//     flex: 1,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     backgroundColor: "#fff",
-//     paddingBottom: 30,
-//   },
-//   emptyHeader: {
-//     backgroundColor: "#fff",
-//     width: widthPercentageToDP(100),
-//     alignItems: "center",
-//     paddingVertical: 20,
-//     borderBottomWidth: 1,
-//     borderColor: "#eee",
-//   },
-//   emptyHeaderText: {
-//     fontSize: 30,
-//     fontWeight: "bold",
-//     color: "#000",
-//   },
-//   animationContainer: {
-//     backgroundColor: "#fff",
-//     alignItems: "center",
-//     justifyContent: "center",
-//     flex: 1,
-//   },
-//   lottie: {
-//     width: widthPercentageToDP("90"),
-//     backgroundColor: "#fff",
-//   },
-//   emptyTextContainer: {
-//     height: 50,
-//     alignItems: "center",
-//   },
-//   emptyText: {
-//     color: "#909095",
-//     fontWeight: "600",
-//     fontSize: 20,
-//   },
-//   shoppingButton: {
-//     backgroundColor: "#e73434",
-//     width: widthPercentageToDP("90"),
-//     paddingHorizontal: 20,
-//     paddingVertical: 10,
-//     borderRadius: 50,
-//     alignItems: "center",
-//   },
-//   shoppingButtonText: {
-//     color: "#fff",
-//     fontWeight: "600",
-//     fontSize: 20,
-//   },
-//   title: {
-//     backgroundColor: "white",
-//     paddingHorizontal: 20,
-//     paddingTop: 15,
-//     paddingBottom: 10,
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 20,
-//   },
-//   titleText: {
-//     fontSize: 22,
-//     fontWeight: "bold",
-//   },
-//   header: {
-//     position: "absolute",
-//     top: 0,
-//     width: "100%",
-//     zIndex: 100,
-//     backgroundColor: "white",
-//   },
-//   filters: {
-//     flexDirection: "row",
-//     justifyContent: "center",
-//     alignItems: "center",
-//     backgroundColor: "rgba(255, 81, 81, 0.15)",
-//     margin: 12,
-//     borderRadius: 10,
-//   },
-//   filter: {
-//     flex: 1,
-//     padding: 10,
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   activeFilter: {
-//     backgroundColor: "#FF5151",
-//     borderRadius: 10,
-//   },
-//   activeText: {
-//     color: "white",
-//   },
-//   text: {
-//     fontSize: 12,
-//     letterSpacing: 1,
-//     fontWeight: "500",
-//     color: "black",
-//   },
-//   noOrdersContainer: {
-//     flex: 1,
-//     justifyContent: "center",
-//     padding: 40,
-//   },
-//   noOrdersText: {
-//     fontSize: 18,
-//     fontWeight: "500",
-//     textAlign: "center",
-//   },
-//   listContent: {
-//     paddingBottom: 20,
-//   },
-// });
-
-// export default Orders;
-
-
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { BackArrow } from '@/constants/icons/tabIcons'
-import { router } from 'expo-router'
-import { SafeAreaView } from 'react-native-safe-area-context'
-
-const index = () => {
   return (
-<SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-  {/* Back Arrow at top-left */}
-  <BackArrow
-    onPress={() => router.back()}
-    style={{ position: "absolute", top: 30, left: 15 }}
-  />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-  {/* Centered Text */}
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text style={{ fontSize: 22, color: "red", fontWeight: "bold" }}>
-      No orders yet
-    </Text>
-  </View>
-</SafeAreaView>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={22} color="#111827" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>My Orders</Text>
+          <Text style={styles.headerSubtitle}>
+            {total} order{total !== 1 ? "s" : ""}
+          </Text>
+        </View>
+      </View>
 
-
-  )
+      {/* Orders List */}
+      <OrdersListWrapper orders={initialOrders} pageSize={10} total={total} />
+    </SafeAreaView>
+  );
 }
 
-export default index;
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 12, fontSize: 16, color: "#6b7280" },
+  errorText: { fontSize: 18, fontWeight: "600", color: "#dc2626", marginBottom: 6 },
+  errorSubtext: { fontSize: 14, color: "#6b7280", marginBottom: 12 },
+  retryBtn: {
+    backgroundColor: "#ef4444",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryText: { color: "#fff", fontWeight: "600" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    backgroundColor: "#fff",
+    elevation: 2,
+    marginTop: 10
+  },
+  backButton: {
+    marginRight: 12,
+    padding: 6,
+    borderRadius: 50,
+    backgroundColor: "#f9fafb",
+  },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
+  headerSubtitle: { fontSize: 13, color: "#6b7280" },
+});

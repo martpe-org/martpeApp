@@ -168,7 +168,7 @@ interface FulfillmentHistory {
       code: string;
     };
   };
-  '@ondc/org/provider_name': string;
+  "@ondc/org/provider_name": string;
   tracking: boolean;
 }
 
@@ -234,6 +234,7 @@ export interface OrderItem {
   unit_price: number;
   total_price: number;
   unit_max_price: number;
+  variant_info?: string;
   total_max_price: number;
   parent_item_id?: string;
   dynamicId?: string;

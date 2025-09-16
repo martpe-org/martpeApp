@@ -75,9 +75,7 @@ const CartItems: React.FC<CartItemsProps> = ({
               defaultSource={{
                 uri: "https://via.placeholder.com/50?text=IMG",
               }}
-              onError={() =>
-                console.warn("Failed to load image:", productImage)
-              }
+
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage]}>

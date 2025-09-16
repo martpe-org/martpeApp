@@ -103,6 +103,12 @@ const Profile = () => {
             <Text style={styles.gridText}>Contact us</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={styles.gridButton}
+            onPress={() => router.push("/(tabs)/account/Referral")}
+          >
+            <Text style={styles.gridText}>Referral</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.gridButton, styles.logoutButton]}
             onPress={handleLogout}
           >
