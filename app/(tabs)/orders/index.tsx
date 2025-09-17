@@ -1,22 +1,24 @@
+import Loader from "@/components/common/Loader";
+import { OrdersListWrapper } from "@/components/order-comp/OrdersListWrapper";
+import { fetchOrderList } from "@/components/order/fetch-orders-list";
+import { FetchOrdersListItemType } from "@/components/order/fetch-orders-list-type";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   SafeAreaView,
   StatusBar,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { OrdersListWrapper } from "@/components/order-comp/OrdersListWrapper";
-import { FetchOrdersListItemType } from "@/components/order/fetch-orders-list-type";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchOrderList } from "@/components/order/fetch-orders-list";
-import Loader from "@/components/common/Loader";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function OrdersScreen() {
-  const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>([]);
+  const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>(
+    []
+  );
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,10 @@ export default function OrdersScreen() {
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorSubtext}>Please try again later</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.retryBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.retryBtn}
+          >
             <Text style={styles.retryText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -107,7 +112,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 12, fontSize: 16, color: "#6b7280" },
-  errorText: { fontSize: 18, fontWeight: "600", color: "#dc2626", marginBottom: 6 },
+  errorText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#dc2626",
+    marginBottom: 6,
+  },
   errorSubtext: { fontSize: 14, color: "#6b7280", marginBottom: 12 },
   retryBtn: {
     backgroundColor: "#ef4444",

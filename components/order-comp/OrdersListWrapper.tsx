@@ -1,16 +1,15 @@
-import React, { useCallback, useMemo } from 'react';
-import { 
-  FlatList, 
-  View, 
-  Text, 
-  ActivityIndicator, 
-  StyleSheet, 
-  RefreshControl 
-} from 'react-native';
-import { FetchOrdersListItemType } from '../order/fetch-orders-list-type';
-import useGetMoreOrders from '@/state/useGetMoreOrders';
-import { AllOrderDetailsCard } from './AllOrderDetailCard';
-
+import useGetMoreOrders from "@/state/useGetMoreOrders";
+import React, { useCallback, useMemo } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { FetchOrdersListItemType } from "../order/fetch-orders-list-type";
+import { AllOrderDetailsCard } from "./AllOrderDetailCard";
 
 interface Props {
   orders: FetchOrdersListItemType[];
@@ -19,13 +18,13 @@ interface Props {
 }
 
 export function OrdersListWrapper({ orders, pageSize, total }: Props) {
-  const { 
-    data, 
-    fetchNextPage, 
-    isFetchingNextPage, 
-    hasNextPage, 
+  const {
+    data,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
     refetch,
-    isRefetching 
+    isRefetching,
   } = useGetMoreOrders(orders, {
     pageSize,
     total,
@@ -42,9 +41,12 @@ export function OrdersListWrapper({ orders, pageSize, total }: Props) {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const renderOrder = useCallback(({ item }: { item: FetchOrdersListItemType }) => (
-    <AllOrderDetailsCard order={item} />
-  ), []);
+  const renderOrder = useCallback(
+    ({ item }: { item: FetchOrdersListItemType }) => (
+      <AllOrderDetailsCard order={item} />
+    ),
+    []
+  );
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -57,13 +59,19 @@ export function OrdersListWrapper({ orders, pageSize, total }: Props) {
     );
   }, [isFetchingNextPage]);
 
-  const renderEmpty = useCallback(() => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No orders to display</Text>
-    </View>
-  ), []);
+  const renderEmpty = useCallback(
+    () => (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No orders to display</Text>
+      </View>
+    ),
+    []
+  );
 
-  const keyExtractor = useCallback((item: FetchOrdersListItemType) => item._id, []);
+  const keyExtractor = useCallback(
+    (item: FetchOrdersListItemType) => item._id,
+    []
+  );
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -84,7 +92,7 @@ export function OrdersListWrapper({ orders, pageSize, total }: Props) {
         <RefreshControl
           refreshing={isRefetching}
           onRefresh={handleRefresh}
-          colors={['#ef4444']}
+          colors={["#ef4444"]}
           tintColor="#ef4444"
         />
       }
@@ -99,26 +107,26 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   footerLoader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 20,
   },
   loadingText: {
     marginLeft: 10,
-    color: '#6b7280',
+    color: "#6b7280",
     fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 40,
   },
   emptyText: {
     fontSize: 16,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
   },
   separator: {
     height: 12,

@@ -1,47 +1,47 @@
-import React, { useState } from 'react';
+import { useCart } from "@/hook/CartProvider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { reOrder } from '../order/Reorder';
-import { useCart } from '@/hook/CartProvider';
-
+  StyleSheet,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+import { reOrder } from "../order/Reorder";
 
 interface Props {
   orderId: string;
   storeId: string;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  style?: any;
+  variant?: "default" | "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
+  style?: ViewStyle;
 }
 
-export function ReorderButton({ 
-  orderId, 
-  storeId, 
-  variant = 'outline',
-  size = 'sm',
-  style 
+export function ReorderButton({
+  orderId,
+  storeId,
+  variant = "outline",
+  size = "sm",
+  style,
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
-const cart = useCart(); 
-const reorderCartState = cart((state) => state.reorder);
+  const cart = useCart();
+  const reorderCartState = cart((state) => state.reorder);
   const router = useRouter();
 
   const handleReorder = async () => {
     setIsLoading(true);
 
     try {
-      // Get auth token from AsyncStorage
-      const authToken = await AsyncStorage.getItem('auth-token');
-      
+      const authToken = await AsyncStorage.getItem("auth-token");
+
       if (!authToken) {
-        Alert.alert('Error', 'Authentication required. Please login again.');
-        router.push('/home/HomeScreen');
+        Alert.alert("Error", "Authentication required. Please login again.");
+        router.push("/home/HomeScreen");
         return;
       }
 
@@ -49,54 +49,45 @@ const reorderCartState = cart((state) => state.reorder);
 
       if (data && data.length > 0) {
         reorderCartState(data);
-        Alert.alert(
-          'Success',
-          'Items added to cart successfully!',
-          [
-            {
-              text: 'Continue Shopping',
-              style: 'cancel',
-            },
-            {
-              text: 'View Cart',
-              onPress: () => router.push('/cart'),
-            },
-          ]
-        );
+        // ✅ Navigate directly instead of showing alert
+        router.push("/cart");
       } else {
-        Alert.alert('Error', 'No items found to reorder or something went wrong!');
+        Alert.alert(
+          "Error",
+          "No items found to reorder or something went wrong!"
+        );
       }
     } catch (error) {
-      console.error('Reorder error:', error);
-      Alert.alert('Error', 'Failed to reorder. Please try again.');
+      console.error("Reorder error:", error);
+      Alert.alert("Error", "Failed to reorder. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getButtonStyle = () => {
-    const baseStyle = [styles.button];
-    
+  const getButtonStyle = (): (ViewStyle | TextStyle)[] => {
+    const baseStyle: (ViewStyle | TextStyle)[] = [styles.button];
+
     switch (variant) {
-      case 'default':
+      case "default":
         baseStyle.push(styles.defaultButton);
         break;
-      case 'outline':
+      case "outline":
         baseStyle.push(styles.outlineButton);
         break;
-      case 'ghost':
+      case "ghost":
         baseStyle.push(styles.ghostButton);
         break;
     }
 
     switch (size) {
-      case 'sm':
+      case "sm":
         baseStyle.push(styles.smallButton);
         break;
-      case 'md':
+      case "md":
         baseStyle.push(styles.mediumButton);
         break;
-      case 'lg':
+      case "lg":
         baseStyle.push(styles.largeButton);
         break;
     }
@@ -105,32 +96,34 @@ const reorderCartState = cart((state) => state.reorder);
       baseStyle.push(styles.disabledButton);
     }
 
+    if (style) baseStyle.push(style);
+
     return baseStyle;
   };
 
-  const getTextStyle = () => {
-    const baseStyle = [styles.buttonText];
+  const getTextStyle = (): (TextStyle | ViewStyle)[] => {
+    const baseStyle: (TextStyle | ViewStyle)[] = [styles.buttonText];
 
     switch (variant) {
-      case 'default':
+      case "default":
         baseStyle.push(styles.defaultText);
         break;
-      case 'outline':
+      case "outline":
         baseStyle.push(styles.outlineText);
         break;
-      case 'ghost':
+      case "ghost":
         baseStyle.push(styles.ghostText);
         break;
     }
 
     switch (size) {
-      case 'sm':
+      case "sm":
         baseStyle.push(styles.smallText);
         break;
-      case 'md':
+      case "md":
         baseStyle.push(styles.mediumText);
         break;
-      case 'lg':
+      case "lg":
         baseStyle.push(styles.largeText);
         break;
     }
@@ -140,13 +133,13 @@ const reorderCartState = cart((state) => state.reorder);
 
   return (
     <TouchableOpacity
-      style={[...getButtonStyle(), style]}
+      style={getButtonStyle()}
       onPress={handleReorder}
       disabled={isLoading}
       activeOpacity={0.7}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color="#ffffff" />
+        <ActivityIndicator size="small" color="#fff" />
       ) : (
         <Text style={getTextStyle()}>Reorder</Text>
       )}
@@ -156,57 +149,62 @@ const reorderCartState = cart((state) => state.reorder);
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
-  
+
   // Variant styles
   defaultButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
   },
   outlineButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
     borderWidth: 1,
-    borderColor: '#ef4444',
+    borderColor: "#ef4444",
   },
   ghostButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
-  
+
   // Size styles
   smallButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    minWidth: 70,
+    minWidth: 80,
   },
   mediumButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    minWidth: 80,
+    paddingVertical: 10,
+    minWidth: 100,
   },
   largeButton: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    minWidth: 100,
+    paddingVertical: 14,
+    minWidth: 120,
   },
-  
+
   // Text styles
   buttonText: {
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   defaultText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   outlineText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   ghostText: {
-    color: '#ef4444',
+    color: "#ef4444",
   },
-  
+
   // Size text styles
   smallText: {
     fontSize: 12,
@@ -217,8 +215,8 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: 16,
   },
-  
-  // State styles
+
+  // Disabled state
   disabledButton: {
     opacity: 0.6,
   },

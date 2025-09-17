@@ -129,8 +129,8 @@ const ProductDetails: FC = () => {
     router.push("/search");
   };
 
-  // Render functions
-  const renderHeader = () => (
+ const renderHeader = () => (
+  <SafeAreaView style={styles.safeHeader}>
     <View style={styles.headerContainer}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back-outline" size={20} color="black" />
@@ -139,7 +139,9 @@ const ProductDetails: FC = () => {
         <Search onPress={handleSearchPress} />
       </View>
     </View>
-  );
+  </SafeAreaView>
+);
+
 
   const renderError = () => (
     <SafeAreaView style={styles.container}>

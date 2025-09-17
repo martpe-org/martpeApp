@@ -22,7 +22,7 @@ export default function Layout() {
           offsetBottom={60}
         >
           <Slot />
-          <StatusBar style="dark" hidden={false} translucent={false} />
+          <StatusBar style="dark" hidden={false}/>
         </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

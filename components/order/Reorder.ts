@@ -13,7 +13,7 @@ export const reOrder = async (
       throw new Error("API base URL is not defined");
     }
 
-    const url = `${BACKEND_BASE_URL}/v1/reorder`;
+    const url = `${BACKEND_BASE_URL}/reorder`;
 
     const response = await fetch(url, {
       method: "POST",

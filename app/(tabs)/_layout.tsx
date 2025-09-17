@@ -36,7 +36,6 @@ export default function TabsLayout() {
 
   const hideTabBar = useHideTabBarStore((state) => state.hideTabBar);
 
-  // 🎨 Martpe Colors
   const activeTabColor = "#ff3c41";
   const inactiveTabColor = "#060606";
   const backgroundColor = "#ffffff";
@@ -44,7 +43,7 @@ export default function TabsLayout() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
       {/* ✅ White background with dark icons for StatusBar */}
-      <StatusBar style="dark" backgroundColor={backgroundColor} />
+      <StatusBar style="dark"  />
 
       <Tabs
         screenOptions={{

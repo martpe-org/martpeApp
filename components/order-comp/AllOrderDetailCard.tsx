@@ -1,10 +1,11 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import ImageComp from "@/components/common/ImageComp";
+import { FetchOrdersListItemType } from "@/components/order/fetch-orders-list-type";
 import { format } from "@formkit/tempo";
 import { useRouter } from "expo-router";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ReorderButton } from "./ReorderButton";
-import { FetchOrdersListItemType } from "../order/fetch-orders-list-type";
-import ImageComp from "../common/ImageComp";
+
 
 interface Props {
   order: FetchOrdersListItemType;

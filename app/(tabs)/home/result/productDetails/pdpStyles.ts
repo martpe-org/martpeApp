@@ -7,26 +7,26 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f7f3f3",
   },
+  safeHeader: {
+    backgroundColor: "#fff", // keep consistent with header
+  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
     paddingHorizontal: 10,
-    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    paddingVertical: 8, // ✅ changed from marginTop
   },
-
   backButton: {
     padding: 6,
-    marginTop: 14,
     marginRight: 8,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
   },
 
   searchWrapper: {
-    flex: 1,
+    flexGrow: 1,
   },
   scrollView: {
     flex: 1,
