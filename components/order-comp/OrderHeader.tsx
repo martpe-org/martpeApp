@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
+import ImageComp from "@/components/common/ImageComp";
+import { FetchOrderDetailType } from "@/components/order/fetch-order-detail-type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { FetchOrderDetailType } from "@/components/order/fetch-order-detail-type";
-import ImageComp from "@/components/common/ImageComp";
-import { CreateIssueForm } from "./CreateIssueForm";
+import React, { useState } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
 import CancelButton from "../order/Cancel/CancelButton";
+import CreateIssueForm from "../issue/CreateIssueForm";
+import { ScrollView } from "react-native-gesture-handler";
+import { styles } from './OrderHeaderStyles'
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface OrderHeaderProps {
   orderDetail: FetchOrderDetailType;
@@ -19,7 +22,6 @@ interface OrderHeaderProps {
 export default function OrderHeader({
   orderDetail,
   onRefresh,
-  onCancel,
   refreshing,
   formattedOrderDate,
   formattedDeliveryDate,
@@ -129,7 +131,7 @@ export default function OrderHeader({
   return (
     <>
       {/* Store Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <TouchableOpacity
           style={styles.storeInfo}
           onPress={handleStorePress}
@@ -157,7 +159,7 @@ export default function OrderHeader({
           <Ionicons name="help-circle-outline" size={24} color="#6b7280" />
           <Text style={styles.helpText}>Help</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       {/* Order Info */}
       <View style={styles.orderInfoSection}>
@@ -219,12 +221,12 @@ export default function OrderHeader({
           </TouchableOpacity>
 
           {orderDetail.cancellable ? (
-<CancelButton 
-  orderId={orderDetail._id} 
-  onCancelled={onRefresh}
-  isCancelled={orderDetail.status.toLowerCase() === "cancelled"}
-  cancellable={orderDetail.cancellable}
-/>          ) : (
+            <CancelButton
+              orderId={orderDetail._id}
+              onCancelled={onRefresh}
+              isCancelled={orderDetail.status.toLowerCase() === "cancelled"}
+              cancellable={orderDetail.cancellable}
+            />) : (
             <View style={{ flex: 1, alignItems: "center", marginTop: 8 }}>
               <Text
                 style={{ color: "#050404", fontSize: 13, textAlign: "center" }}
@@ -245,177 +247,58 @@ export default function OrderHeader({
       </View>
 
       {/* Help Modal */}
-      <Modal
-        visible={showHelpModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={closeHelpModal}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Report an Issue</Text>
-            <TouchableOpacity
-              onPress={closeHelpModal}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
-          {/* <CreateIssueForm
-            data={orderDetail} 
-            onClose={closeHelpModal} 
-          /> */}
+<Modal
+  visible={showHelpModal}
+  animationType="fade"
+  transparent
+  onRequestClose={closeHelpModal}
+>
+  <View style={styles.modalOverlay}>
+    <TouchableOpacity
+      style={styles.modalBackdrop}
+      activeOpacity={1}
+      onPress={closeHelpModal}
+    />
+
+    <View style={styles.modernModalContainer}>
+      {/* Header */}
+      <View style={styles.modernModalHeader}>
+        <View style={styles.headerIconContainer}>
+          <Ionicons name="alert-circle-outline" size={24} color="#070708" />
         </View>
-      </Modal>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.modernModalTitle}>Report an Issue</Text>
+          <Text style={styles.modernModalSubtitle}>
+            We are here to help resolve any problems
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={closeHelpModal}
+          style={styles.modernCloseButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close" size={22} color="#6b7280" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.modalDivider} />
+
+      {/* Scrollable Form Content */}
+      <ScrollView
+        style={styles.modernModalContent}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <CreateIssueForm data={orderDetail} onClose={closeHelpModal} />
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
+
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    backgroundColor: "#fff",
-    padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  storeInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  storeLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  storeDetails: {
-    flex: 1,
-  },
-  storeName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  storeAddress: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 2,
-  },
-  viewStoreText: {
-    fontSize: 12,
-    color: "#3b82f6",
-    fontWeight: "500",
-  },
-  helpButton: {
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  helpText: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  orderInfoSection: {
-    backgroundColor: "#fff",
-    padding: 16,
-    marginBottom: 8,
-  },
-  orderNumber: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  orderDate: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 4,
-  },
-  deliveryDate: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 16,
-  },
-  statusContainer: {
-    marginBottom: 16,
-  },
-  statusItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  statusLabel: {
-    fontSize: 14,
-    color: "#374151",
-    marginRight: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  refreshButton: {
-    backgroundColor: "#ef4444",
-  },
-  refreshButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#ef4444",
-  },
-  cancelButtonText: {
-    color: "#ef4444",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  closeButton: {
-    padding: 4,
-  },
-});
+

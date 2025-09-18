@@ -1,15 +1,21 @@
 export const uploadOnPresignedURLAction = async (url: string, fileUri: string, mimeType: string) => {
   try {
-    // Fetch the file from the local URI and convert to Blob
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    // Create FormData for file upload
+    const formData = new FormData();
+    
+    // For React Native, we need to format the file object properly
+    const fileObject = {
+      uri: fileUri,
+      type: mimeType,
+      name: fileUri.split('/').pop() || 'image.jpg',
+    } as any;
 
-    // Upload to presigned URL
+    // Upload directly to presigned URL using fetch with the file
     const uploadRes = await fetch(url, {
       method: "PUT",
-      body: blob,
+      body: fileObject,
       headers: {
-        "Content-Type": mimeType, // e.g., "image/jpeg" or "image/png"
+        "Content-Type": mimeType,
       },
     });
 

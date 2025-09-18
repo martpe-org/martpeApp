@@ -5,8 +5,6 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ReorderButton } from "./ReorderButton";
-
-
 interface Props {
   order: FetchOrdersListItemType;
 }
@@ -72,6 +70,21 @@ export function AllOrderDetailsCard({ order }: Props) {
     });
   };
 
+  // Helper function to get valid image source
+  const getImageSource = () => {
+    const symbol = order.store?.symbol;
+    
+    // Check if symbol exists and is a valid string
+    if (symbol && typeof symbol === 'string' && symbol.trim() !== '') {
+      // Ensure it's a valid URL
+      if (symbol.startsWith('http://') || symbol.startsWith('https://')) {
+        return { uri: symbol.trim() };
+      }
+    }
+    
+    return null; // Let ImageComp handle fallback
+  };
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -83,17 +96,20 @@ export function AllOrderDetailsCard({ order }: Props) {
         <View style={styles.storeInfo}>
           <View style={styles.logoContainer}>
             <ImageComp
-              source={{ uri: order.store.symbol }}
+              source={getImageSource()}
               imageStyle={styles.storeLogo}
               fallbackSource={{
-                uri: "https://via.placeholder.com/100?text=Store",
+                uri: "https://via.placeholder.com/44x44/e5e7eb/6b7280?text=Store",
               }}
+              resizeMode="cover"
+              loaderColor="#6b7280"
+              loaderSize="small"
             />
           </View>
 
           <View style={styles.storeDetails}>
             <Text style={styles.storeName} numberOfLines={1}>
-              {order.store.name}
+              {order.store?.name || 'Store'}
             </Text>
             <Text style={styles.orderNumber}>Order #{order.orderno}</Text>
           </View>
@@ -187,10 +203,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     marginRight: 10,
+    backgroundColor: "#f3f4f6", // Added background color for better fallback
   },
   storeLogo: {
-    width: "100%",
-    height: "100%",
+    width: 44, // Fixed dimensions instead of percentage
+    height: 44,
+    borderRadius: 8,
   },
   storeDetails: { flex: 1 },
   storeName: { fontSize: 15, fontWeight: "600", color: "#111827" },
