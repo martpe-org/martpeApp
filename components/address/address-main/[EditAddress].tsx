@@ -1,23 +1,23 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Platform,
-  ActivityIndicator,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Header from "../../components/address/AddressHeader";
+import useUserDetails from '../../../hook/useUserDetails';
+import Header from "../AddressHeader";
+import { fetchAddress } from "../fetchAddress";
+import Type from "../type";
+import { updateAddress } from "../updateAddress";
 import { InputField } from "./AddNewAddress";
-import { fetchAddress } from "../../components/address/fetchAddress";
-import { updateAddress } from "../../components/address/updateAddress";
-import { useLocalSearchParams, router } from "expo-router";
-import Type from "../../components/address/type";
-import useUserDetails from '../../hook/useUserDetails';
 
 
 interface AddressType {
@@ -39,7 +39,7 @@ type AddressInput = Omit<AddressType, '_id'>;
 const EditAddress: React.FC = () => {
   const { addressId } = useLocalSearchParams();
   const { userDetails, isLoading: authLoading, isAuthenticated } = useUserDetails();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting] = useState(false);
@@ -99,7 +99,7 @@ const EditAddress: React.FC = () => {
         pincode: rest.pincode,
         building: rest.building || ""
       };
-      
+
       setAddressInput(formatted);
       setOriginalAddress(formatted);
     } catch (e) {
@@ -151,11 +151,11 @@ const EditAddress: React.FC = () => {
 
   const hasChanges = (): boolean => {
     if (!originalAddress) return true;
-    
+
     const fieldsToCompare: (keyof AddressInput)[] = [
       'type', 'name', 'phone', 'houseNo', 'street', 'city', 'state', 'pincode', 'building'
     ];
-    
+
     return fieldsToCompare.some(
       field => addressInput[field] !== originalAddress[field]
     );
@@ -189,7 +189,7 @@ const EditAddress: React.FC = () => {
         addressInput.pincode,
         addressInput.building
       );
-      
+
       if (result) {
         Alert.alert("Success", "Address updated successfully!", [
           { text: "OK", onPress: () => router.back() },
@@ -200,7 +200,7 @@ const EditAddress: React.FC = () => {
     } catch (e: any) {
       console.error("Update error:", e);
       Alert.alert(
-        "Update Failed", 
+        "Update Failed",
         e.message || "Failed to update address. Please try again.",
         [
           { text: "OK" }
@@ -214,7 +214,7 @@ const EditAddress: React.FC = () => {
 
   const handleTypeChange = (value: string) => {
     let apiValue: AddressInput["type"];
-    
+
     switch (value) {
       case "Home":
         apiValue = "Home";
@@ -230,7 +230,7 @@ const EditAddress: React.FC = () => {
         apiValue = "Other";
         break;
     }
-    
+
     setAddressInput((prev) => ({ ...prev, type: apiValue }));
   };
 
@@ -244,83 +244,83 @@ const EditAddress: React.FC = () => {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Header title="Edit Address" />
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Address Type</Text>
-            <Type 
-              saveAs={handleTypeChange} 
-             // initialValue={getDisplayType(addressInput.type)}
+            <Type
+              saveAs={handleTypeChange}
+            // initialValue={getDisplayType(addressInput.type)}
             />
           </View>
 
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Personal Details</Text>
-            <InputField 
-              placeholder="Full Name" 
-              value={addressInput.name} 
-              onChangeText={(v) => handleInputChange("name", v)} 
-              required 
+            <InputField
+              placeholder="Full Name"
+              value={addressInput.name}
+              onChangeText={(v) => handleInputChange("name", v)}
+              required
             />
-            <InputField 
-              placeholder="Phone Number" 
-              value={addressInput.phone} 
-              onChangeText={(v) => handleInputChange("phone", v)} 
-              keyboardType="phone-pad" 
-              required 
+            <InputField
+              placeholder="Phone Number"
+              value={addressInput.phone}
+              onChangeText={(v) => handleInputChange("phone", v)}
+              keyboardType="phone-pad"
+              required
             />
           </View>
 
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Address Details</Text>
-            <InputField 
-              placeholder="House/Flat No." 
-              value={addressInput.houseNo} 
-              onChangeText={(v) => handleInputChange("houseNo", v)} 
-              required 
+            <InputField
+              placeholder="House/Flat No."
+              value={addressInput.houseNo}
+              onChangeText={(v) => handleInputChange("houseNo", v)}
+              required
             />
-            <InputField 
-              placeholder="Street" 
-              value={addressInput.street} 
-              onChangeText={(v) => handleInputChange("street", v)} 
-              required 
+            <InputField
+              placeholder="Street"
+              value={addressInput.street}
+              onChangeText={(v) => handleInputChange("street", v)}
+              required
             />
-            <InputField 
-              placeholder="Building (Optional)" 
-              value={addressInput.building || ""} 
-              onChangeText={(v) => handleInputChange("building", v)} 
+            <InputField
+              placeholder="Building (Optional)"
+              value={addressInput.building || ""}
+              onChangeText={(v) => handleInputChange("building", v)}
             />
-            <InputField 
-              placeholder="City" 
-              value={addressInput.city} 
-              onChangeText={(v) => handleInputChange("city", v)} 
-              required 
+            <InputField
+              placeholder="City"
+              value={addressInput.city}
+              onChangeText={(v) => handleInputChange("city", v)}
+              required
             />
-            <InputField 
-              placeholder="State" 
-              value={addressInput.state} 
-              onChangeText={(v) => handleInputChange("state", v)} 
-              required 
+            <InputField
+              placeholder="State"
+              value={addressInput.state}
+              onChangeText={(v) => handleInputChange("state", v)}
+              required
             />
-            <InputField 
-              placeholder="Pincode" 
-              value={addressInput.pincode} 
-              onChangeText={(v) => handleInputChange("pincode", v)} 
-              keyboardType="numeric" 
-              required 
+            <InputField
+              placeholder="Pincode"
+              value={addressInput.pincode}
+              onChangeText={(v) => handleInputChange("pincode", v)}
+              keyboardType="numeric"
+              required
             />
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
               disabled={isDeleting || isSaving}
             >

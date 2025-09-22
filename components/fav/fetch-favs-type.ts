@@ -1,5 +1,5 @@
-import { ProductSearchResult } from "../../app/search/search-products-type";
-import { StoreSearchResult } from "../../app/search/search-stores-type";
+import { ProductSearchResult } from "../search/search-products-type";
+import { StoreSearchResult } from "../search/search-stores-type";
 
 export interface FetchFavsResponseType {
   products: ProductSearchResult[];

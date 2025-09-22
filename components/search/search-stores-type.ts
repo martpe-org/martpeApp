@@ -5,6 +5,7 @@ export interface SearchStoresResponseType {
 
 export interface StoreSearchResult {
   symbol: string;
+  length:number;
   orderTimings?: OrderTiming[];
   rating?: number;
   store_sub_categories?: string[];
@@ -39,13 +40,6 @@ export interface OrderTiming {
     gte: string;
     lte: string;
   };
-}
-
-export interface OrderTiming {
-  time_to: string;
-  time_from: string;
-  type: string;
-  day: number;
 }
 
 export interface Address {

@@ -1,25 +1,25 @@
 // AddNewAddress.tsx
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
+import * as Location from "expo-location";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Location from "expo-location";
-import Header from "../../components/address/AddressHeader";
-import { createAddress } from "../../components/address/createAddress";
-import useUserDetails from "../../hook/useUserDetails";
-import { router } from "expo-router";
-import Type from "../../components/address/type";
-import axios from "axios";
+import useUserDetails from "../../../hook/useUserDetails";
+import Header from "../AddressHeader";
+import { createAddress } from "../createAddress";
+import Type from "../type";
 
 interface AddressInput {
   type: "Home" | "Work" | "FriendsAndFamily" | "Other";

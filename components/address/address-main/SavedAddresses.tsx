@@ -10,12 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Header from "../../components/address/AddressHeader";
-import { deleteAddress } from "../../components/address/deleteAddress";
-import useDeliveryStore from "../../components/address/deliveryAddressStore";
-import Loader from "../../components/common/Loader";
-import ShareButton from "../../components/common/Share";
-import useUserDetails from "../../hook/useUserDetails";
+import useUserDetails from "../../../hook/useUserDetails";
+import Loader from "../../common/Loader";
+import ShareButton from "../../common/Share";
+import Header from "../AddressHeader";
+import { deleteAddress } from "../deleteAddress";
+import useDeliveryStore from "../deliveryAddressStore";
 interface AddressType {
   id: string;
   type: "Home" | "Work" | "FriendsAndFamily" | "Other";
@@ -252,11 +252,9 @@ const SavedAddresses: React.FC = () => {
               return 0;
             })
             .map((address) => {
-              const fullAddress = `${
-                address.houseNo ? address.houseNo + ", " : ""
-              }${address.street ? address.street + ", " : ""}${
-                address.building ? address.building + ", " : ""
-              }${address.city}, ${address.state}, ${address.pincode}`;
+              const fullAddress = `${address.houseNo ? address.houseNo + ", " : ""
+                }${address.street ? address.street + ", " : ""}${address.building ? address.building + ", " : ""
+                }${address.city}, ${address.state}, ${address.pincode}`;
 
               return (
                 <SavedAddressCard
