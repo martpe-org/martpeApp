@@ -1,13 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
+// HomeScreen.tsx
 import { useQuery } from "@tanstack/react-query";
-import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -28,9 +26,12 @@ import {
 } from "../../../constants/categories";
 import { fetchHome } from "../../../hook/fetch-home-data";
 import { styles } from "./HomeScreenStyle";
+
 // Import the new components
-import LocationBar from "../../../components/common/LocationBar";
 import Search from "../../../components/common/Search";
+import LocationBar from "@/components/common/LocationBar";
+import CategorySection from "@/components/Landing-Page/CategorySection";
+import FooterSection from "@/components/Landing-Page/FooterSection";
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -50,60 +51,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadDeliveryDetails();
-  }, []);
+  });
 
-  
- // Fetch home data using react-query with optimized caching
-  // const {
-  //   data: homeData,
-  //   isLoading,
-  //   error,
-  //   refetch,
-  //   isRefetching,
-  // } = useQuery({
-  //   queryKey: [
-  //     "homeData",
-  //     selectedDetails?.lat,
-  //     selectedDetails?.lng,
-  //     selectedDetails?.pincode,
-  //   ],
-  //   queryFn: async () => {
-  //     let lat = selectedDetails?.lat;
-  //     let lng = selectedDetails?.lng;
-  //     let pin = selectedDetails?.pincode;
-
-  //     if (!lat || !lng || !pin) {
-  //       const { status } = await Location.requestForegroundPermissionsAsync();
-  //       if (status !== "granted") {
-  //         throw new Error("Location permission denied");
-  //       }
-  //       const location = await Location.getCurrentPositionAsync({});
-  //       lat = location.coords.latitude;
-  //       lng = location.coords.longitude;
-
-  //       const [address] = await Location.reverseGeocodeAsync({
-  //         latitude: lat,
-  //         longitude: lng,
-  //       });
-  //       pin = address.postalCode || "";
-  //     }
-
-  //     return fetchHome(lat, lng, pin);
-  //   },
-  //   // Optimized caching configuration
-  //   staleTime: 1000 * 60 * 10, // Data stays fresh for 10 minutes (increased from 5)
-  //   gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes (formerly cacheTime)
-  //   enabled: true,
-  //   retry: 1,
-  //   refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
-  //   refetchOnMount: false, // Don't refetch on component mount if data exists and is fresh
-  //   refetchOnReconnect: true, // Only refetch on network reconnect
-  //   // Use network-only for first load, then cache-first for subsequent loads
-  //   networkMode: 'online',
-  // });
-
-  // Fetch home data using react-query with hardcoded values
- 
+  // Optimized fetch home data using react-query with better caching
   const {
     data: homeData,
     isLoading,
@@ -121,12 +71,18 @@ export default function HomeScreen() {
       const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
       const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
       const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
-
       return fetchHome(lat, lng, pin);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    // Optimized caching configuration
+    staleTime: 1000 * 60 * 10, // 10 minutes - data stays fresh longer
+    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache longer (was cacheTime in v4)
     enabled: true,
     retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch when app comes to foreground
+    refetchOnMount: false, // Don't refetch on component mount if cache is fresh
+    refetchOnReconnect: true, // Only refetch on network reconnect
+    // Use initialData if you have any default data
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
   });
 
   // Animation value for "No Data" messages
@@ -144,7 +100,7 @@ export default function HomeScreen() {
         fadeAnim.setValue(0);
       }
     }
-  }, [homeData]);
+  }, [homeData, fadeAnim]);
 
   const handleLocationPress = () => {
     router.push("/address/SavedAddresses");
@@ -162,15 +118,9 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+        style={styles.scrollContainer}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching || isLoading}
-            onRefresh={onRefresh}
-            colors={["#4324f0"]} // Android spinner color
-            tintColor="#4e3cf2" // iOS spinner color
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
       >
         {/* Red header */}
@@ -179,7 +129,6 @@ export default function HomeScreen() {
             selectedDetails={selectedDetails}
             onPress={handleLocationPress}
           />
-
           <Search onPress={handleSearchPress} />
           <FlatList
             data={categoryData}
@@ -217,42 +166,29 @@ export default function HomeScreen() {
 
           {/* NEW: Offers Carousel Section - Above restaurants, no heading */}
           {Array.isArray(homeData?.offers) && homeData.offers.length > 0 && (
-            <View style={[styles.section, { paddingTop: 10 }]}>
-              {renderOffersCarousel(homeData.offers)}
-            </View>
+            <View>{renderOffersCarousel(homeData.offers)}</View>
           )}
 
           {/* Restaurants */}
           {Array.isArray(homeData?.restaurants) &&
-          homeData.restaurants.length > 0 ? (
+            homeData.restaurants.length > 0 ? (
             <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
               </View>
               <FlatList
                 data={homeData.restaurants}
                 horizontal
+                keyExtractor={(item, index) => `restaurant_${item.slug}_${index}`}
                 showsHorizontalScrollIndicator={false}
-                keyExtractor={(item, index) =>
-                  `restaurant_${item.slug}_${index}`
-                }
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderRestaurantItem}
               />
             </View>
           ) : (
             !isLoading && (
-              <Animated.View
-                style={{
-                  opacity: fadeAnim,
-                  alignItems: "center",
-                  marginVertical: 20,
-                }}
-              >
-                <Ionicons name="restaurant-outline" size={40} color="#999" />
-                <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
-                  No restaurants found in your area
-                </Text>
+              <Animated.View style={{ opacity: fadeAnim }}>
+                <Text>No restaurants found in your area</Text>
               </Animated.View>
             )
           )}
@@ -260,31 +196,22 @@ export default function HomeScreen() {
           {/* Stores */}
           {Array.isArray(homeData?.stores) && homeData.stores.length > 0 ? (
             <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Stores Near You</Text>
               </View>
               <FlatList
                 data={homeData.stores}
                 horizontal
-                showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) => `store_${item.slug}_${index}`}
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.nearbyList}
                 renderItem={renderStores}
               />
             </View>
           ) : (
             !isLoading && (
-              <Animated.View
-                style={{
-                  opacity: fadeAnim,
-                  alignItems: "center",
-                  marginVertical: 20,
-                }}
-              >
-                <Ionicons name="storefront-outline" size={40} color="#999" />
-                <Text style={{ fontSize: 16, color: "#555", marginTop: 8 }}>
-                  No stores found in your area
-                </Text>
+              <Animated.View style={{ opacity: fadeAnim }}>
+                <Text>No stores found in your area</Text>
               </Animated.View>
             )
           )}
@@ -293,9 +220,7 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
               <View style={styles.headerLine} />
-              <Text style={styles.sectionTitleCentered}>
-                Explore Food Categories
-              </Text>
+              <Text style={styles.sectionTitleCentered}>Explore Food Categories</Text>
               <View style={styles.headerLine} />
             </View>
             <FlatList
@@ -331,207 +256,33 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Fashion Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Shop for Fashion</Text>
-            </View>
-            <View style={styles.twoColumnGrid}>
-              {fashionCategoryData.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.gridCard,
-                    index % 2 === 0
-                      ? styles.gridCardLeft
-                      : styles.gridCardRight,
-                  ]}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/(tabs)/home/result/[search]",
-                      params: {
-                        search: item.name,
-                      },
-                    });
-                  }}
-                >
-                  <Image
-                    source={{ uri: item.image }}
-                    style={styles.gridCardImage}
-                    resizeMode="cover"
-                  />
-                  <Text style={styles.gridCardLabel}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          {/* Category Sections using the new component */}
+          <CategorySection
+            title="Shop for Fashion"
+            data={fashionCategoryData}
+            containerStyle="twoColumn"
+          />
 
-          {/* Personal Care Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderWithLine}>
-              <View style={styles.headerLine} />
-              <Text style={styles.sectionTitleCentered}>Personal Care</Text>
-              <View style={styles.headerLine} />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.personalCareContainer}>
-                {personalCareCategoryData.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.personalCareCard}
-                    onPress={() => {
-                      router.push({
-                        pathname: "/(tabs)/home/result/[search]",
-                        params: {
-                          search: item.name,
-                        },
-                      });
-                    }}
-                  >
-                    <View style={styles.personalCareImageContainer}>
-                      <Image
-                        source={{ uri: item.image }}
-                        style={styles.personalCareImage}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <Text style={styles.personalCareTitle}>{item.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+          <CategorySection
+            title="Personal Care"
+            data={personalCareCategoryData}
+            containerStyle="personalCare"
+          />
 
-          {/* Electronics Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Search for Electronics</Text>
-            </View>
-            <View style={styles.twoColumnGrid}>
-              {electronicsCategoryData.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.gridCard,
-                    index % 2 === 0
-                      ? styles.gridCardLeft
-                      : styles.gridCardRight,
-                  ]}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/(tabs)/home/result/[search]",
-                      params: {
-                        search: item.name,
-                      },
-                    });
-                  }}
-                >
-                  <Image
-                    source={{ uri: item.image }}
-                    style={styles.gridCardImage}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.gridCardLabel}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <CategorySection
+            title="Search for Electronics"
+            data={electronicsCategoryData}
+            containerStyle="twoColumn"
+          />
 
-          {/* Home & Decor Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderWithLine}>
-              <View style={styles.headerLine} />
-              <Text style={styles.sectionTitleCentered}>Home & Decor</Text>
-              <View style={styles.headerLine} />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.homeDecorContainer}>
-                {homeAndDecorCategoryData.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.homeDecorCard}
-                    onPress={() => {
-                      router.push({
-                        pathname: "/(tabs)/home/result/[search]",
-                        params: {
-                          search: item.name,
-                        },
-                      });
-                    }}
-                  >
-                    <View style={styles.homeDecorImageContainer}>
-                      <Image
-                        source={{ uri: item.image }}
-                        style={styles.homeDecorImage}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <Text style={styles.homeDecorTitle}>{item.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+          <CategorySection
+            title="Home & Decor"
+            data={homeAndDecorCategoryData}
+            containerStyle="homeDecor"
+          />
 
           {/* Footer Section */}
-          <View style={styles.footerContainer}>
-            {/* Header */}
-            <View style={styles.headerContainer}>
-              <Text style={styles.headerTitle}>
-                Only all-in-one marketplace
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                with <Text style={styles.greenText}>zero platform fees!</Text>
-              </Text>
-            </View>
-
-            {/* Main Image */}
-            <View style={styles.imageContainer}>
-              <Image
-                source={require("../../../assets/tabs/footer.webp")}
-                style={styles.mainImage}
-                resizeMode="cover"
-              />
-            </View>
-
-            {/* Feature Cards */}
-            <View style={styles.cardsContainer}>
-              <View style={styles.cardRow}>
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>Zero Platform</Text>
-                  <Text style={styles.cardTitle}>Fees</Text>
-                  <Text style={styles.cardDescription}>
-                    Enjoy shopping without any additional fees.
-                  </Text>
-                </View>
-
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>6 Categories</Text>
-                  <Text style={styles.cardDescription}>
-                    Currently offering grocery, food, interior, electronics,
-                    personal care, and home decor.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardRow}>
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>5 Lakh+ Sellers</Text>
-                  <Text style={styles.cardDescription}>
-                    Items curated from over 5 lakh sellers across India.
-                  </Text>
-                </View>
-
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>Monetize Your</Text>
-                  <Text style={styles.cardTitle}>Experience</Text>
-                  <Text style={styles.cardDescription}>
-                    Turn your shopping into rewarding experiences.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
+          <FooterSection />
         </View>
       </ScrollView>
     </SafeAreaView>

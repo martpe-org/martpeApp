@@ -15,14 +15,34 @@ import LikeButton from "../common/likeButton";
 import OfferBadge from "../common/OfferBadge";
 import OfferCard3 from "../Categories/OfferCard3";
 
+
 interface RestaurantCardProps {
   item: Store2;
 }
+
 
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
   const router = useRouter();
   const normalized = normalizeStoreData(item);
   const vendorIdString = normalized.slug;
+
+  // Extract location from Store2 interface
+  const getLocationText = (storeData: Store2) => {
+    const { address } = storeData;
+    if (address.locality && address.city) {
+      return `${address.locality}, ${address.city}`;
+    } else if (address.locality) {
+      return address.locality;
+    } else if (address.city) {
+      return address.city;
+    } else if (address.street) {
+      return address.street;
+    } else if (address.name) {
+      return address.name;
+    }
+    return "Location not available";
+  };
+
 
   return (
     <View style={styles.restaurantCardCompact}>
@@ -39,6 +59,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
           style={styles.gradientOverlay}
         />
 
+
         {/* Like button */}
         <View style={styles.topActions}>
           <LikeButton
@@ -48,11 +69,13 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
           />
         </View>
 
+
         {/* Offer badge */}
         <OfferBadge
           offers={normalized.offers}
           maxStoreItemOfferPercent={normalized.maxStoreItemOfferPercent}
         />
+
 
         {normalized.avg_tts_in_h && (
           <View style={styles.restaurantTimeBadgeCompact}>
@@ -64,6 +87,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
         )}
       </View>
 
+
       <TouchableOpacity
         style={styles.restaurantInfoCompact}
         onPress={() =>
@@ -74,18 +98,27 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
         }
       >
         <Text style={styles.restaurantNameCompact} numberOfLines={1}>
-          {normalized.descriptor?.name ?? "Unknown Restaurant"}
-        </Text>
+          {normalized.descriptor?.name ?? "Unknown Restaurant"}        </Text>
         <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
           {normalized.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
         </Text>
+        {/* Restaurant Location using Store2 address */}
+        <View style={styles.restaurantLocationContainer}>
+          <Ionicons name="location-outline" size={10} color="#080303" marginBottom="5" />
+          <Text style={styles.restaurantLocationCompact} numberOfLines={1}>
+            {getLocationText(item)}
+          </Text>
+        </View>
 
         <View style={styles.restaurantBottomRowCompact}>
-          <Text style={styles.restaurantDeliveryTimeCompact}>
-            {normalized.avg_tts_in_h
-              ? `${Math.round(normalized.avg_tts_in_h * 60)} mins`
-              : "30-40 mins"}
-          </Text>
+          <View style={styles.restaurantLeftColumnCompact}>
+            <Text style={styles.restaurantDeliveryTimeCompact}>
+              {normalized.avg_tts_in_h
+                ? `${Math.round(normalized.avg_tts_in_h * 60)} mins`
+                : "30-40 mins"}
+            </Text>
+
+          </View>
           <View style={styles.restaurantStatusCompact}>
             <View
               style={[
@@ -111,8 +144,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
   );
 };
 
+
 export const OfferCard: React.FC<RestaurantCardProps> = ({ item }) => {
   const normalized = normalizeStoreData(item);
+
 
   return (
     <View style={{ marginRight: 16 }}>
@@ -120,6 +155,7 @@ export const OfferCard: React.FC<RestaurantCardProps> = ({ item }) => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   restaurantCardCompact: {
@@ -204,18 +240,35 @@ const styles = StyleSheet.create({
   },
   restaurantBottomRowCompact: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+  },
+  restaurantLeftColumnCompact: {
+    flex: 1,
+    marginRight: 8,
   },
   restaurantDeliveryTimeCompact: {
     fontSize: 12,
     color: "#FF9130",
     fontWeight: "500",
+    marginBottom: 4,
+  },
+  restaurantLocationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  restaurantLocationCompact: {
+    fontSize: 11,
+    color: "#070707",
+    fontWeight: "400",
+    marginLeft: 4,
+    flex: 1,
+    marginBottom: 5
   },
   restaurantStatusCompact: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: 8,
     marginBottom: 4,
   },
   restaurantStatusDotCompact: {

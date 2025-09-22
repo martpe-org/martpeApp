@@ -108,7 +108,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
             lineHeight: 14,
             color: "#848080",
           }}
-          numberOfLines={1}
+          numberOfLines={3}
           ellipsizeMode="tail"
         >
           {address}

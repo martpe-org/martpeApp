@@ -10,12 +10,12 @@ import {
   processPayment,
   showPaymentSuccessAlert,
   showPaymentErrorAlert,
-  getErrorMessage,
   validatePaymentPayload,
   InitCartPayload,
 } from "./paymentUtils";
 import { SelectData } from "./select/select-cart-type";
 import { CartItemType, FetchCartStore, FetchCartType } from "@/app/(tabs)/cart/fetch-carts-type";
+import { getErrorMessage } from "@/utility/CheckoutUtils";
 
 interface CheckoutContentProps {
   data: SelectData;

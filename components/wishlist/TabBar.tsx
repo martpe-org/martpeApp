@@ -1,20 +1,11 @@
 import React, { FC, useState, useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  Dimensions,
-  TouchableOpacity,
-  Animated,
-} from "react-native";
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
+const CONTAINER_WIDTH = width * 0.6;
+const TAB_WIDTH = CONTAINER_WIDTH / 2;
 
-const tabOptions = [
-  { id: 1, title: "Items" },
-  { id: 2, title: "Stores" },
-];
-
-export type WishlistTab = "Items" | "Outlets";
+export type WishlistTab = "Items" | "Stores";
 
 interface TabBarProps {
   selectTab: (tab: WishlistTab) => void;
@@ -23,75 +14,41 @@ interface TabBarProps {
   outletsCount?: number;
 }
 
-const TabBar: FC<TabBarProps> = ({ selectTab }) => {
-  const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
+const tabOptions = [
+  { id: 1, title: "Items" },
+  { id: 2, title: "Stores" },
+];
 
-  // Animated value for sliding
+const TabBar: FC<TabBarProps> = ({ selectedTab: propSelectedTab = "Items", selectTab, itemsCount = 0, outletsCount = 0 }) => {
+  const [internalSelectedTab, setInternalSelectedTab] = useState<WishlistTab>("Items");
+  const selectedTab = propSelectedTab || internalSelectedTab;
+
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const handleTab = (tab: WishlistTab, index: number) => {
-    setSelectedTab(tab);
-    selectTab(tab);
-
-    // Animate the sliding indicator
+  useEffect(() => {
+    const index = selectedTab === "Items" ? 0 : 1;
     Animated.spring(slideAnim, {
-      toValue: index * (width * 0.3), // half of container width
+      toValue: index * TAB_WIDTH,
       useNativeDriver: true,
     }).start();
+  }, [selectedTab]);
+
+  const handleTab = (tab: WishlistTab, index: number) => {
+    if (!propSelectedTab) setInternalSelectedTab(tab);
+    selectTab(tab);
   };
 
   return (
-    <View
-      style={{
-        width,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <View
-        style={{
-          width: width * 0.6,
-          flexDirection: "row",
-          justifyContent: "space-around",
-          alignItems: "center",
-          paddingVertical: 10,
-          borderRadius: 50,
-          backgroundColor: "rgba(255, 81, 81, 0.15)",
-          position: "relative",
-        }}
-      >
-        {/* Sliding Indicator */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            left: 0,
-            width: width * 0.3,
-            height: "100%",
-            backgroundColor: "#FF5151",
-            borderRadius: 50,
-            transform: [{ translateX: slideAnim }],
-          }}
-        />
+    <View style={styles.wrapper}>
+      <View style={styles.tabContainer}>
+        <Animated.View style={[styles.slider, { transform: [{ translateX: slideAnim }] }]} />
 
         {tabOptions.map((tab, index) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              paddingVertical: 10,
-            }}
-            onPress={() => handleTab(tab.title as WishlistTab, index)}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: selectedTab === tab.title ? "white" : "black",
-              }}
-            >
+          <TouchableOpacity key={tab.id} style={styles.tab} onPress={() => handleTab(tab.title as WishlistTab, index)} activeOpacity={0.8}>
+            <Text style={[styles.tabText, selectedTab === tab.title && styles.tabTextActive]}>
               {tab.title}
+              {tab.title === "Items" && itemsCount > 0 && ` (${itemsCount})`}
+              {tab.title === "Stores" && outletsCount > 0 && ` (${outletsCount})`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -99,5 +56,43 @@ const TabBar: FC<TabBarProps> = ({ selectTab }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 6,
+  },
+  tabContainer: {
+    width: CONTAINER_WIDTH,
+    height: 40,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 81, 81, 0.15)",
+    flexDirection: "row",
+    overflow: "hidden",
+    position: "relative",
+  },
+  slider: {
+    position: "absolute",
+    left: 0,
+    width: TAB_WIDTH,
+    height: "100%",
+    backgroundColor: "#FF5151",
+    borderRadius: 50,
+  },
+  tab: {
+    width: TAB_WIDTH,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000",
+  },
+  tabTextActive: {
+    color: "#fff",
+  },
+});
 
 export default TabBar;

@@ -120,7 +120,7 @@ const PLP: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>
-          {getErrorMessage(error as Error)}
+          {getErrorMessage(error)}
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Tap to retry</Text>
@@ -167,7 +167,6 @@ const PLP: React.FC = () => {
               descriptor={vendorData.descriptor}
               storeSections={storeCategories}
               geoLocation={vendorData.geoLocation}
-              userLocation={selectedDetails}
               userAddress={selectedDetails?.fullAddress ?? ""}
               vendorId={vendorSlug}
             />

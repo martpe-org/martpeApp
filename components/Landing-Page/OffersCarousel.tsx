@@ -59,25 +59,25 @@ const OffersCarousel: React.FC<OffersCarouselProps> = ({ offers }) => {
         }
         renderItem={({ item }) => {
           return (
-<TouchableOpacity
-  activeOpacity={0.85}
-  style={[styles.restaurantCardCarousel, { width: width * 0.85 }]}
-  onPress={() => {
-    // Normalize the store just like in StoreCard
-    const normalized = normalizeStoreData(item.store || item);
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.restaurantCardCarousel, { width: width * 0.85 }]}
+              onPress={() => {
+                // Normalize the store just like in StoreCard
+                const normalized = normalizeStoreData(item.store || item);
 
-    const storeSlug = normalized?.slug;
-    if (!storeSlug) {
-      console.warn("Offer missing valid store slug:", item);
-      return;
-    }
+                const storeSlug = normalized?.slug;
+                if (!storeSlug) {
+                  console.warn("Offer missing valid store slug:", item);
+                  return;
+                }
 
-    router.push({
-      pathname: "/(tabs)/home/result/productListing/[id]",
-      params: { id: storeSlug },
-    });
-  }}
->
+                router.push({
+                  pathname: "/(tabs)/home/result/productListing/[id]",
+                  params: { id: storeSlug },
+                });
+              }}
+            >
               {/* Background image */}
               <Image
                 source={{
