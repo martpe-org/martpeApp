@@ -3,7 +3,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
-import Loader from "./Loader";
 import { ActivityIndicator } from "react-native-paper";
 
 interface DynamicButtonProps {

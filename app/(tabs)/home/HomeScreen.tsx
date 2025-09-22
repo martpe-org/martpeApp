@@ -217,7 +217,7 @@ export default function HomeScreen() {
 
           {/* NEW: Offers Carousel Section - Above restaurants, no heading */}
           {Array.isArray(homeData?.offers) && homeData.offers.length > 0 && (
-            <View style={[styles.section, { paddingTop: 20 }]}>
+            <View style={[styles.section, { paddingTop: 10 }]}>
               {renderOffersCarousel(homeData.offers)}
             </View>
           )}

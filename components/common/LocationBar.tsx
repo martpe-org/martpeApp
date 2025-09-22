@@ -28,7 +28,7 @@ export default function LocationBar({ selectedDetails, onPress }: LocationBarPro
         name="location-pin-lock"
         size={18}
         color="white"
-        style={{ marginRight: 16 }}
+        style={{     marginLeft: -14, marginRight:24}}
       />
       <Text style={styles.deliveryTxt}>Home -</Text>
       <Text style={styles.locationTxt} numberOfLines={1}>
@@ -45,13 +45,13 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop:5
+    padding:9
   },
   deliveryTxt: {
     color: "white",
     fontSize: 14,
     marginHorizontal: 6,
-    marginLeft: -12,
+    marginLeft: -19,
   },
   locationTxt: {
     color: "white",

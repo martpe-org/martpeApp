@@ -271,11 +271,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
 
   if (!customizationData) {
     return (
-      <View style={styles.errorContainer}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
-        </TouchableOpacity>
-      </View>
+<View></View>
     );
   }
 

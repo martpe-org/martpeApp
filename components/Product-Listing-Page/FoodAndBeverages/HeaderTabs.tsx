@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 
 interface HeaderTabsProps {
   buttonTitles: string[];
@@ -43,13 +43,13 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({
             )}
             {title === "Non-Veg" && (
               <MaterialCommunityIcons
-                name="triangle-outline"
+                name="circle-box-outline"
                 size={16}
                 color={isActive ? "#fff" : "red"}
                 style={{ marginRight: 4 }}
               />
             )}
-            
+
             <Text
               style={[
                 styles.tabText,

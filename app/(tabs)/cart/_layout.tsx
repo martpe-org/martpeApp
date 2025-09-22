@@ -3,13 +3,21 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
+import { ToastProvider } from "react-native-toast-notifications";
 
 export default function Layout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <Slot />
-        <StatusBar style="dark" hidden={false}  />
+        <ToastProvider
+          placement="top"
+          duration={3000}
+          animationType="slide-in"
+          offset={50} // optional
+        >
+          <Slot />
+        </ToastProvider>
+        <StatusBar style="dark" hidden={false} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

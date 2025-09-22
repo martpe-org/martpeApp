@@ -41,29 +41,16 @@ const AddToCart: FC<AddToCartProps> = ({
   }, [cartItem]);
 
   const handleAddSuccess = () => {
-    console.log("🛒 AddToCart attempt:", {
-      slug,
-      catalogId,
-      storeId,
-      price,
-    });
+
 
     if (
       !storeId ||
       storeId === "unknown-store" ||
       storeId === "default-provider"
     ) {
-      console.error("❌ AddToCart failed: invalid storeId", {
-        slug,
-        catalogId,
-        storeId,
-      });
+
     } else {
-      console.log("✅ Item successfully added to cart:", {
-        slug,
-        catalogId,
-        storeId,
-      });
+
     }
     setShowAddButton(false);
   };

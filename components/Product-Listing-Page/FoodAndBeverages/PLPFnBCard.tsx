@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AddToCart from "../../common/AddToCart";
 
 const { width } = Dimensions.get("window");
@@ -107,30 +108,9 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     );
   };
 
-  // ✅ Veg/Non-Veg border color
-  const getBorderColor = () => {
-    if (veg) return "#22c55e";
-    if (non_veg) return "#ef4444";
-    return "#f0f0f0";
-  };
-
   return (
     <View>
-      <View style={[cardStyles.card, { borderColor: getBorderColor() }]}>
-        {/* ✅ Veg/Non-Veg Indicator */}
-        <View style={cardStyles.dietIndicator}>
-          {veg && (
-            <View
-              style={[cardStyles.dietDot, { backgroundColor: "#22c55e" }]}
-            />
-          )}
-          {non_veg && (
-            <View
-              style={[cardStyles.dietDot, { backgroundColor: "#ef4444" }]}
-            />
-          )}
-        </View>
-
+      <View style={cardStyles.card}>
         <ImageComp
           source={image || symbol}
           imageStyle={cardStyles.image}
@@ -146,10 +126,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
 
         {/* 🔥 Discount Badge */}
         {typeof discount === "number" && discount > 1 && (
-          <DiscountBadge
-            percent={Number(discount)}
-            style={{ top: 8, left: 8 }}
-          />
+          <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
         )}
 
         <TouchableOpacity
@@ -157,9 +134,28 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           onPress={handlePress}
           activeOpacity={0.8}
         >
-          <Text style={cardStyles.name} numberOfLines={2}>
-            {itemName}
-          </Text>
+          <View style={cardStyles.nameRow}>
+            {veg && (
+              <MaterialCommunityIcons
+                name="circle-box-outline"
+                size={16}
+                color="green"
+                style={{ marginRight: 4 }}
+              />
+            )}
+            {non_veg && (
+              <MaterialCommunityIcons
+                name="circle-box-outline"
+                size={16}
+                color="red"
+                style={{ marginRight: 4 }}
+              />
+            )}
+            <Text style={cardStyles.name} numberOfLines={2}>
+              {itemName}
+            </Text>
+          </View>
+
           <Text style={cardStyles.weight}>
             {weight} / {unit}
           </Text>
@@ -204,7 +200,6 @@ const cardStyles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
-    borderWidth: 1,
   },
   topActions: {
     position: "absolute",
@@ -217,19 +212,6 @@ const cardStyles = StyleSheet.create({
     padding: 6,
     elevation: 3,
   },
-  dietIndicator: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 1,
-  },
-  dietDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
   image: {
     width: "100%",
     height: 140,
@@ -240,11 +222,16 @@ const cardStyles = StyleSheet.create({
   info: {
     flexGrow: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
   name: {
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 2,
     color: "#333",
+    flexShrink: 1,
   },
   weight: {
     fontSize: 12,
