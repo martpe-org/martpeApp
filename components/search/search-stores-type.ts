@@ -1,3 +1,5 @@
+import { StoreCardOfferType } from "@/hook/fetch-home-type";
+
 export interface SearchStoresResponseType {
   total: number;
   results: StoreSearchResult[];
@@ -5,8 +7,8 @@ export interface SearchStoresResponseType {
 
 export interface StoreSearchResult {
   symbol: string;
-  length:number;
   orderTimings?: OrderTiming[];
+  pages:string;
   rating?: number;
   store_sub_categories?: string[];
   type: string;
@@ -14,6 +16,7 @@ export interface StoreSearchResult {
   holidays?: any[];
   avg_tts_in_h?: number;
   status_timestamp: string;
+  offers?: StoreCardOfferType[];
   slug: string;
   images?: string[];
   address: Address;
@@ -33,13 +36,11 @@ export interface StoreSearchResult {
   distance_in_km: number;
   maxStoreItemOfferPercent?: number;
 }
-
 export interface OrderTiming {
+  time_to: string;
+  time_from: string;
+  type: string;
   day: number;
-  time_range: {
-    gte: string;
-    lte: string;
-  };
 }
 
 export interface Address {

@@ -97,18 +97,6 @@ const AddNewAddress: React.FC = () => {
     setAddressInput((prevInput) => ({ ...prevInput, [field]: value }));
   };
 
-  const assignFromResponse = (typeName: string, details: any): string => {
-    let value = "";
-    if (details?.address_components) {
-      details.address_components.forEach((component: any) => {
-        if (component.types.includes(typeName)) {
-          value += component.long_name + " ";
-        }
-      });
-    }
-    return value.trim();
-  };
-
   const validateInputs = (): boolean => {
     const errors: string[] = [];
 

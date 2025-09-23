@@ -1,8 +1,45 @@
 export interface SearchProductsResponseType {
-  total: number;
-  results: ProductSearchResult[];
-  aggregations: ProductSearchAggregations;
+  after_key?: {
+    store_id: string;
+  };
+  buckets: StoreBucket[];
 }
+
+export interface StoreBucket {
+  key: {
+    store_id: string;
+  };
+  doc_count: number;
+  store_info: StoreInfo;
+  top_products: ProductsGrouped;
+}
+
+export interface StoreInfo {
+  hits: Hits;
+}
+
+export interface Hits {
+  hits: Hit[];
+}
+
+export interface Hit {
+  _id: string;
+  _source: {
+    store: Store;
+  };
+}
+
+export interface ProductsGrouped {
+  hits: {
+    hits: { _source: ProductSearchResult }[];
+  };
+}
+
+// export interface SearchProductsResponseType {
+//   total: number;
+//   results: ProductSearchResult[];
+//   aggregations: ProductSearchAggregations;
+// }
 
 export interface ProductSearchResult {
   symbol: string;

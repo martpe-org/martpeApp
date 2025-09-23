@@ -1,10 +1,8 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { router, useGlobalSearchParams } from "expo-router";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,16 +13,14 @@ import useDeliveryStore from "../../../../components/address/deliveryAddressStor
 import Loader from "../../../../components/common/Loader";
 import FoodDetailsComponent from "../../../../components/ProductDetails/FoodDetails";
 
-// Import search functions and types
 import { SafeAreaView } from "react-native-safe-area-context";
-import { searchProducts } from "../../../../components/search/search-products";
-import { ProductSearchResult } from "../../../../components/search/search-products-type";
-import { searchStores } from "../../../../components/search/search-stores";
-import { StoreSearchResult } from "../../../../components/search/search-stores-type";
-import { styles } from "./searchStyle";
-import ProductCard from "@/components/search/ProductCard";
-import StoreCard from "@/components/search/StoreCard";
 
+import { useQuery } from "@tanstack/react-query";
+import { searchProducts } from "../../../../components/search/search-products";
+import { searchStores } from "../../../../components/search/search-stores";
+import { styles } from "@/components/search-comp/searchStyle";
+import ProductResultsWrapper from "@/components/search-comp/ProductResultsWrapper";
+import StoreResultsWrapper from "@/components/search-comp/StoreResultsWrapper";
 
 interface SearchInput {
   lat: number;
@@ -49,22 +45,14 @@ interface FoodDetailsState {
   discount: number;
 }
 
-// Helper function to group products by store
-const groupByStoreId = (catalogs: ProductSearchResult[]) => {
-  return catalogs?.reduce((acc, product) => {
-    const storeId = product.store_id;
-    if (!acc[storeId]) acc[storeId] = [];
-    acc[storeId].push(product);
-    return acc;
-  }, {} as Record<string, ProductSearchResult[]>);
-};
-
 const Results: FC = () => {
-  const [isItem, setIsItem] = useState(true);
-  const { search, domainData } = useGlobalSearchParams<{
-    search: string;
-    domainData: string;
-  }>();
+const { search, domainData, tab } = useGlobalSearchParams<{
+  search: string;
+  domainData: string;
+  tab?: string;
+}>();
+
+const [isItem, setIsItem] = useState(tab !== "stores"); 
 
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
@@ -109,56 +97,58 @@ const Results: FC = () => {
     [selectedDetails, search, domainData]
   );
 
-  // Products query
-  const {
-    data: productsData,
-    isLoading: isLoadingProducts,
-    error: productsError,
-    refetch: refetchProducts,
-  } = useQuery({
-    queryKey: ["searchProducts", searchInput],
-    queryFn: () => searchProducts(searchInput),
-    enabled:
-      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && isItem,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const pageSize = 10;
 
-  // Stores query
-  const {
-    data: storesData,
-    isLoading: isLoadingStores,
-    error: storesError,
-    refetch: refetchStores,
-  } = useQuery({
-    queryKey: ["searchStores", searchInput],
-    queryFn: () => searchStores(searchInput),
-    enabled:
-      !!search && !!selectedDetails?.lat && !!selectedDetails?.lng && !isItem,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
 
-  // Process data
-  const allProducts = productsData?.results || [];
-  const allStores = storesData?.results || [];
+const {
+  data: initialProductsData,
+  isLoading: isLoadingProducts,
+  error: productsError,
+} = useQuery({
+  queryKey: ["searchProductsInitial", searchInput],
+  queryFn: () =>
+    searchProducts({
+      ...searchInput,
+      groupbystore: true,
+      size: pageSize,
+    }),
+  enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
+  staleTime: 5 * 60 * 1000,
+  cacheTime: 30 * 60 * 1000,
+  keepPreviousData: true,   // 👈 prevent clearing when remounting
+});
 
-  // Group products by store
-  const productsByStore = useMemo(
-    () => groupByStoreId(allProducts),
-    [allProducts]
-  );
-  const storeEntries = useMemo(
-    () => Object.entries(productsByStore),
-    [productsByStore]
-  );
+
+const {
+  data: initialStoresData,
+  isLoading: isLoadingStores,
+  error: storesError,
+} = useQuery({
+  queryKey: ["searchStoresInitial", searchInput],
+  queryFn: () =>
+    searchStores({
+      ...searchInput,
+      size: pageSize,
+    }),
+  enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
+  staleTime: 5 * 60 * 1000,
+  cacheTime: 30 * 60 * 1000,
+  keepPreviousData: true,       // ✅ don’t clear results while refetching
+  refetchOnWindowFocus: false,  // ✅ don’t reset on focus
+  refetchOnMount: false,        // ✅ don’t reset on remount
+});
+
 
   // Handle tab change
-  const handleTabChange = useCallback((itemTab: boolean) => {
-    setIsItem(itemTab);
-  }, []);
+const handleTabChange = useCallback((itemTab: boolean) => {
+  setIsItem(itemTab);
+  // Update URL param so navigation remembers it
+  router.setParams({ tab: itemTab ? "items" : "stores" });
+}, []);
+
 
   const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
   const currentError = isItem ? productsError : storesError;
-  const currentData = isItem ? storeEntries : allStores;
 
   if (currentIsLoading) return <Loader />;
 
@@ -170,13 +160,18 @@ const Results: FC = () => {
         </Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => (isItem ? refetchProducts() : refetchStores())}
+          onPress={() => window.location.reload()}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
+  const totalItems =
+    initialProductsData?.buckets?.reduce(
+      (sum, bucket) => sum + (bucket?.doc_count || 0),
+      0
+    ) || 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -210,56 +205,59 @@ const Results: FC = () => {
           <Feather name="search" size={20} color="#888" />
         </TouchableOpacity>
 
+        <Text style={styles.resultsTitle}>Showing Results for {search}</Text>
+
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, isItem && styles.activeTab]}
             onPress={() => handleTabChange(true)}
           >
             <Text style={[styles.tabText, isItem && styles.activeTabText]}>
-              ITEMS ({allProducts.length})
+              ITEMS ({totalItems})
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.tab, !isItem && styles.activeTab]}
             onPress={() => handleTabChange(false)}
           >
             <Text style={[styles.tabText, !isItem && styles.activeTabText]}>
-              Outlets ({allStores.length})
+              {domainData === "ONDC:RET11" ? "Restaurants" : "Stores"} ({initialStoresData?.total || 0})
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Content */}
-      <FlatList
-        data={currentData as StoreSearchResult}
-        keyExtractor={(item, index) => {
-          if (isItem) {
-            // For products: item is [storeId, products[]]
-            return (item as [string, ProductSearchResult[]])[0];
-          } else {
-            // For stores: item is StoreSearchResult with string slug
-            const store = item as StoreSearchResult;
-            return store.slug || `store-${index}`;
-          }
-        }}
-        renderItem={({ item }) =>
-          isItem ? (
-            <ProductCard item={item as ProductSearchResult[]} />
-          ) : (
-            <StoreCard item={item as StoreSearchResult} />
-          )
-        }
-        ListHeaderComponent={() => (
-          <Text style={styles.resultsTitle}>Showing Results for {search}</Text>
+      <View style={styles.contentContainer}>
+        {isItem ? (
+<ProductResultsWrapper
+  initialData={initialProductsData?.buckets || []}
+  pageSize={pageSize}
+  searchParams={{
+    query: search || "",
+    lat: searchInput.lat,
+    lon: searchInput.lon,
+    pincode: searchInput.pincode,
+    domain: searchInput.domain,
+  }}
+/>
+
+        ) : (
+          <StoreResultsWrapper
+            initialData={initialStoresData?.results || []}
+            total={initialStoresData?.total || 0}
+            pageSize={pageSize}
+            searchParams={{
+              query: search || "",
+              lat: searchInput.lat,
+              lon: searchInput.lon,
+              pincode: searchInput.pincode,
+              domain: searchInput.domain,
+            }}
+          />
         )}
-        ListEmptyComponent={() => (
-          <Text style={styles.noResultsText}>
-            No {isItem ? "items" : "stores"} found
-          </Text>
-        )}
-        contentContainerStyle={styles.contentContainer}
-      />
+      </View>
 
       <BottomSheet
         ref={bottomSheetRef}

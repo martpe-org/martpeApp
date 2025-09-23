@@ -282,7 +282,7 @@ const SavedAddresses: React.FC = () => {
       <View style={styles.footerContainer}>
         <TouchableOpacity
           onPress={() => {
-            router.push("/address/AddNewAddress");
+            router.push("./AddNewAddress");
           }}
           style={styles.addAddressButton}
           activeOpacity={0.8}

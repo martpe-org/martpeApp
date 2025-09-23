@@ -1,4 +1,4 @@
-import { SearchStoresResponseType } from './search-stores-type';
+import { SearchStoresResponseType } from "./search-stores-type";
 
 export const searchStores = async (input: {
   lat: number;
@@ -11,33 +11,44 @@ export const searchStores = async (input: {
   size?: number;
   quicksearch?: string;
 }) => {
-
-
   try {
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_API_URL}/search/stores?query=${input.query}&lat=${
-        input.lat
-      }&lon=${input.lon}&pincode=${input.pincode}${
-        input.domain ? `&domain=${input.domain?.replace('ONDC:', '')}` : ''
-      }${input.page ? `&page=${input.page}` : ''}${
-        input.category ? `&category=${input.category}` : ''
-      }${input.size ? `&size=${input.size}` : ''}${
-        input.quicksearch ? `&quicksearch=${input.quicksearch}` : ''
-      }`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    const queryParams: string[] = [];
+
+    queryParams.push(`query=${encodeURIComponent(input.query)}`);
+    queryParams.push(`lat=${input.lat}`);
+    queryParams.push(`lon=${input.lon}`);
+    queryParams.push(`pincode=${input.pincode}`);
+
+    if (input.domain)
+      queryParams.push(`domain=${encodeURIComponent(input.domain.replace("ONDC:", ""))}`);
+    if (input.page) queryParams.push(`page=${input.page}`);
+    if (input.category) queryParams.push(`category=${encodeURIComponent(input.category)}`);
+    if (input.size) queryParams.push(`size=${input.size}`);
+    if (input.quicksearch)
+      queryParams.push(`quicksearch=${encodeURIComponent(input.quicksearch)}`);
+
+    const queryString = queryParams.join("&");
+
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/search/stores?${queryString}`;
+    console.log("👉 searchStores url:", url);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!res.ok) {
-      throw new Error();
+      const errorText = await res.text();
+      console.log("❌ search stores failed:", res.status, errorText);
+      throw new Error(errorText || "Failed to fetch search stores");
     }
 
-    return (await res.json()) as SearchStoresResponseType;
+    const data = (await res.json()) as SearchStoresResponseType;
+    return data;
   } catch (error) {
+    console.log("⚠️ Search stores error:", error);
     return null;
   }
 };
