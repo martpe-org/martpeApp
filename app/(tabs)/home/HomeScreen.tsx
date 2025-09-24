@@ -282,7 +282,7 @@ export default function HomeScreen() {
           />
 
           {/* Footer Section */}
-          <FooterSection />
+          <FooterSection/>
         </View>
       </ScrollView>
     </SafeAreaView>

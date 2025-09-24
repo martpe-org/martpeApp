@@ -207,7 +207,7 @@ const SavedAddresses: React.FC = () => {
 
   // Show loading while checking authentication
   if (authLoading || isLoading) {
-    return <Loader />;
+    return <Loader/>;
   }
 
   return (

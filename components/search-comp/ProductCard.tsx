@@ -31,34 +31,34 @@ const getDomainName = (domain: string): string => {
 
 // Function to determine veg/non-veg status
 const getVegStatus = (product: ProductSearchResult) => {
-  // Use diet_type field from the interface
   if (product.diet_type) {
     const dietType = product.diet_type.toLowerCase();
-    
-    // Check for non-veg first to avoid conflicts
-    const nonVeg = dietType.includes('non-veg') || dietType.includes('non_veg') || dietType.includes('meat') || dietType.includes('chicken') || dietType.includes('mutton') || dietType.includes('fish');
-    
-    // Only mark as veg if it's explicitly veg AND not non-veg
-    const veg = (dietType.includes('veg') || dietType.includes('vegetarian')) && !nonVeg;
-    
+
+    const nonVeg =
+      dietType.includes("non-veg") ||
+      dietType.includes("non_veg") ||
+      dietType.includes("meat") ||
+      dietType.includes("chicken") ||
+      dietType.includes("mutton") ||
+      dietType.includes("fish");
+
+    const veg =
+      (dietType.includes("veg") || dietType.includes("vegetarian")) && !nonVeg;
+
     return { veg, nonVeg };
   }
-  
-  // Fallback: check if it's F&B domain (only show indicators for food items)
+
   const domain = getDomainName(product.domain || "");
   if (domain === "F&B") {
-    // Default to veg for F&B items if no diet_type is specified
     return { veg: true, nonVeg: false };
   }
-  
+
   return { veg: false, nonVeg: false };
 };
 
-// Product Card Component - Updated to match screenshot design
 const ProductCard: FC<{
   item: [string, ProductSearchResult[]];
 }> = ({ item: [storeId, products] }) => {
-  
   if (!products || products.length === 0) {
     return (
       <View style={styles.card}>
@@ -67,7 +67,7 @@ const ProductCard: FC<{
     );
   }
 
-  const firstProduct = products[0];  
+  const firstProduct = products[0];
   if (!firstProduct) {
     return (
       <View style={styles.card}>
@@ -76,14 +76,12 @@ const ProductCard: FC<{
     );
   }
 
-  // Handle missing store data
   const store = firstProduct.store || {
     name: "Unknown Store",
     symbol: "",
     slug: storeId,
-    address: { street: "Address not available" }
+    address: { street: "Address not available" },
   };
-
 
   return (
     <View style={styles.card}>
@@ -93,7 +91,7 @@ const ProductCard: FC<{
           style={styles.storeInfo}
           onPress={() => {
             if (store.slug) {
-              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`);
             }
           }}
         >
@@ -112,11 +110,10 @@ const ProductCard: FC<{
           </View>
         </TouchableOpacity>
 
-        {/* Visit Store Button */}
         <TouchableOpacity
           onPress={() => {
             if (store.slug) {
-              router.push(`/(tabs)/home/result/productListing/${store.slug}`)
+              router.push(`/(tabs)/home/result/productListing/${store.slug}`);
             }
           }}
           style={styles.visitStoreButton}
@@ -131,26 +128,30 @@ const ProductCard: FC<{
           data={products}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(product, index) => `${product.slug || product.catalog_id || index}`}
+          keyExtractor={(product, index) =>
+            `${product.slug || product.catalog_id || index}`
+          }
           contentContainerStyle={styles.productsContainer}
-          renderItem={({ item: product, index }) => {            
-            const productId = Array.isArray(product.slug) ? product.slug[0] : (product.slug || product.catalog_id);
+          renderItem={({ item: product }) => {
+            const productId = Array.isArray(product.slug)
+              ? product.slug[0]
+              : product.slug || product.catalog_id;
             const discountPercent = product.price?.offerPercent || 0;
             const { veg, nonVeg } = getVegStatus(product);
 
             return (
               <View style={styles.productCard}>
-                {/* Product Image with overlays */}
-                <View style={{ position: 'relative' }}>
+                {/* Image Section */}
+                <View style={{ position: "relative" }}>
                   <ImageComp
                     source={{
-                      uri: product.symbol || "https://via.placeholder.com/120",
+                      uri:
+                        product.symbol || "https://via.placeholder.com/120",
                     }}
                     imageStyle={styles.productImage}
                     resizeMode="cover"
                   />
 
-                  {/* Discount Badge */}
                   {discountPercent > 0 && (
                     <View style={styles.productDiscountBadge}>
                       <Text style={styles.productDiscountText}>
@@ -159,13 +160,13 @@ const ProductCard: FC<{
                     </View>
                   )}
 
-                  {/* Like Button */}
                   <View style={styles.likeButtonContainer}>
                     <LikeButton productId={productId} color="#E11D48" />
                   </View>
                 </View>
 
-                <TouchableOpacity 
+                {/* Info + Add to Cart */}
+                <TouchableOpacity
                   style={styles.productInfo}
                   onPress={() => {
                     if (product.slug) {
@@ -175,7 +176,6 @@ const ProductCard: FC<{
                     }
                   }}
                 >
-                  {/* Product Name with Veg/Non-veg indicator */}
                   <View style={styles.nameRow}>
                     {veg && (
                       <MaterialCommunityIcons
@@ -199,12 +199,15 @@ const ProductCard: FC<{
                   </View>
 
                   <View style={styles.priceRow}>
-                    <Text style={styles.price}>₹{product.price?.value || 0}</Text>
-                    {product.price?.maximum_value && product.price.maximum_value > product.price.value && (
-                      <Text style={styles.originalPrice}>
-                        ₹{product.price.maximum_value}
-                      </Text>
-                    )}
+                    <Text style={styles.price}>
+                      ₹{product.price?.value || 0}
+                    </Text>
+                    {product.price?.maximum_value &&
+                      product.price.maximum_value > product.price.value && (
+                        <Text style={styles.originalPrice}>
+                          ₹{product.price.maximum_value}
+                        </Text>
+                      )}
                   </View>
 
                   <View style={styles.actionRow}>
@@ -295,33 +298,68 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: "#fff",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#eee",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   productImage: {
     width: "100%",
-    height: 120,
+    height: 90,
     backgroundColor: "#f0f0f0",
+  },
+  productInfo: {
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 8,
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  productName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#333",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    justifyContent: "center",
+  },
+  price: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "green",
+  },
+  originalPrice: {
+    fontSize: 12,
+    color: "#999",
+    textDecorationLine: "line-through",
+    marginLeft: 6,
+  },
+  actionRow: {
+    marginTop: "auto",
+    width: "100%",
   },
   productDiscountBadge: {
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "red",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: "#2ecc71",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
     zIndex: 1,
   },
   productDiscountText: {
     color: "#fff",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 0.2,
   },
   likeButtonContainer: {
     position: "absolute",
@@ -332,42 +370,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 6,
     elevation: 3,
-  },
-  productInfo: {
-    padding: 12,
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    lineHeight: 18,
-    flex: 1,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  price: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#333",
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: "#999",
-    textDecorationLine: "line-through",
-    marginLeft: 6,
-  },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
 

@@ -31,21 +31,21 @@ interface CategoryRowProps {
   item: any;
   index: number;
 }
-  const getLocationText = (storeData: Store2) => {
-    const { address } = storeData;
-    if (address.locality && address.city) {
-      return `${address.locality}, ${address.city}`;
-    } else if (address.locality) {
-      return address.locality;
-    } else if (address.city) {
-      return address.city;
-    } else if (address.street) {
-      return address.street;
-    } else if (address.name) {
-      return address.name;
-    }
-    return "Location not available";
-  };
+const getLocationText = (storeData: Store2) => {
+  const { address } = storeData;
+  if (address.locality && address.city) {
+    return `${address.locality}, ${address.city}`;
+  } else if (address.locality) {
+    return address.locality;
+  } else if (address.city) {
+    return address.city;
+  } else if (address.street) {
+    return address.street;
+  } else if (address.name) {
+    return address.name;
+  }
+  return "Location not available";
+};
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -89,7 +89,6 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
           />
         </View>
       </View>
-
       <TouchableOpacity
         style={styles.nearbyInfo}
         onPress={() =>
@@ -105,9 +104,9 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
         <Text style={styles.nearbyCategory} numberOfLines={1}>
           {category}
         </Text>
-                      {/* Restaurant Location using Store2 address */}
+        {/* Restaurant Location using Store2 address */}
         <View style={styles.restaurantLocationContainer}>
-          <Ionicons name="location-outline" size={10} color="#222" marginBottom="5"/>
+          <Ionicons name="location-outline" size={10} color="#222" marginBottom="5" />
           <Text style={styles.restaurantLocationCompact} numberOfLines={1}>
             {getLocationText(item)}
           </Text>
@@ -138,9 +137,9 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
   );
 };
 
-export const CategoryItemCompact: React.FC<CategoryItemProps> = ({ 
-  item, 
-  index 
+export const CategoryItemCompact: React.FC<CategoryItemProps> = ({
+  item,
+  index
 }) => {
   const router = useRouter();
 
@@ -241,7 +240,7 @@ const styles = StyleSheet.create({
     width: 200,
     overflow: "hidden",
   },
-    restaurantLocationContainer: {
+  restaurantLocationContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 2,
@@ -252,7 +251,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginLeft: 4,
     flex: 1,
-    marginBottom:5
+    marginBottom: 5
   },
   nearbyImageContainer: {
     position: "relative",
@@ -313,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  
+
   // Category styles
   categoryRow: {
     margin: 5,
@@ -337,7 +336,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  
+
   // Compact category styles
   catCardCompact: {
     alignItems: "center",
