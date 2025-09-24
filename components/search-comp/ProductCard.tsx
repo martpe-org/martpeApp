@@ -165,7 +165,7 @@ const ProductCard: FC<{
                   </View>
                 </View>
 
-                {/* Info + Add to Cart */}
+                {/* Info + Price + Add to Cart */}
                 <TouchableOpacity
                   style={styles.productInfo}
                   onPress={() => {
@@ -198,19 +198,20 @@ const ProductCard: FC<{
                     </Text>
                   </View>
 
-                  <View style={styles.priceRow}>
-                    <Text style={styles.price}>
-                      ₹{product.price?.value || 0}
-                    </Text>
-                    {product.price?.maximum_value &&
-                      product.price.maximum_value > product.price.value && (
-                        <Text style={styles.originalPrice}>
-                          ₹{product.price.maximum_value}
-                        </Text>
-                      )}
-                  </View>
+                  {/* Price + AddToCart Row */}
+                  <View style={styles.priceCartRow}>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.price}>
+                        ₹{product.price?.value || 0}
+                      </Text>
+                      {product.price?.maximum_value &&
+                        product.price.maximum_value > product.price.value && (
+                          <Text style={styles.originalPrice}>
+                            ₹{product.price.maximum_value}
+                          </Text>
+                        )}
+                    </View>
 
-                  <View style={styles.actionRow}>
                     <AddToCart
                       storeId={product.store_id || storeId}
                       slug={product.slug || product.catalog_id}
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   productCard: {
-    width: width * 0.38,
+    width: width * 0.42,
     marginRight: 12,
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -325,31 +326,35 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#333",
   },
+  priceCartRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 6,
+    marginRight:4
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-    justifyContent: "center",
   },
   price: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "bold",
     color: "green",
+    
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#999",
     textDecorationLine: "line-through",
     marginLeft: 6,
-  },
-  actionRow: {
-    marginTop: "auto",
-    width: "100%",
+        marginRight:4
+
   },
   productDiscountBadge: {
     position: "absolute",
     top: 8,
-    left: 8,
+    left: 6,
     backgroundColor: "#2ecc71",
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
   },
   productDiscountText: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
   },
   likeButtonContainer: {

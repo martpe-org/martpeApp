@@ -83,13 +83,29 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
-  // ✅ AddToCart Renderer
+  // ✅ AddToCart Renderer with ADD+ logic
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
         <View style={cardStyles.cartWrapper}>
           <Text style={cardStyles.errorText}>Store ID missing</Text>
         </View>
+      );
+    }
+
+    if (customizable && directlyLinkedCustomGroupIds?.length > 0) {
+      return (
+        <TouchableOpacity
+          style={cardStyles.addButton}
+          onPress={() =>
+            router.push(
+              `/(tabs)/home/result/productDetails/${resolvedSlug}?storeId=${safeStoreId}`
+            )
+          }
+          activeOpacity={0.8}
+        >
+          <Text style={cardStyles.addButtonText}>ADD+</Text>
+        </TouchableOpacity>
       );
     }
 
@@ -271,5 +287,19 @@ const cardStyles = StyleSheet.create({
     color: "#ff6b6b",
     textAlign: "center",
     fontWeight: "500",
+  },
+  addButton: {
+    marginTop: 8,
+    backgroundColor: "#FB3E44",
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#fff",
+    textTransform: "uppercase",
   },
 });

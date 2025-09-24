@@ -237,21 +237,22 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
         const safeStoreId = resolveStoreId() || "unknown-store";
 
         return (
-          <FashionCard
-            key={uniqueKey}
-            itemName={name}
-            desc={desc}
-            value={value}
-            maxPrice={maxPrice}
-            discount={discount}
-            image={image}
-            id={item.id}
-            catalogId={item.catalog_id}
-            storeId={safeStoreId}
-            slug={item.slug}
-            customizable={item.customizable || false}
-            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-          />
+<FashionCard
+  key={uniqueKey}
+  itemName={name}
+  desc={desc}
+  value={value}
+  maxPrice={maxPrice}
+  discount={discount}
+  image={image}
+  id={item.id}
+  catalogId={item.catalog_id}
+  storeId={safeStoreId}
+  slug={item.slug}
+  customizable={item.customizable || false}
+  directlyLinkedCustomGroupIds={item.directlyLinkedCustomGroupIds || []}
+/>
+
         );
       })}
     </View>

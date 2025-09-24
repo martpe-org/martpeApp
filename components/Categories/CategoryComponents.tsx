@@ -16,6 +16,7 @@ import OfferCard3 from "../../components/Categories/OfferCard3";
 import StoreCard3 from "../../components/Categories/StoreCard3";
 import Search from "../../components/common/Search";
 import { styles } from "./cat";
+import { SafeAreaView } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 interface CategoryData {
@@ -50,7 +51,7 @@ interface StoreData {
 export const CategoryHeader: React.FC<{
   onSearchPress: () => void;
 }> = ({ onSearchPress }) => (
-  <View style={styles.headerContainer}>
+  <SafeAreaView style={styles.headerContainer}>
     <TouchableOpacity
       onPress={() => router.back()}
       style={styles.backButton}
@@ -60,7 +61,7 @@ export const CategoryHeader: React.FC<{
     <View style={styles.searchWrapper}>
       <Search onPress={onSearchPress} />
     </View>
-  </View>
+  </SafeAreaView>
 );
 
 // ✅ Shared Offers Carousel Component

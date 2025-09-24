@@ -36,7 +36,7 @@ const FashionCard: FC<FashionCardProps> = ({
   storeId,
   slug,
   onPress,
-  customizable = false, // ✅ default
+  customizable = false,
   directlyLinkedCustomGroupIds = [],
 }) => {
   const handlePress =
@@ -44,35 +44,11 @@ const FashionCard: FC<FashionCardProps> = ({
     (() => {
       router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
     });
+
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
-
-  const renderAddToCart = () => {
-    if (!safeStoreId) {
-      return (
-        <View style={styles.addToCartContainer}>
-          <Text style={styles.errorText}>Store ID missing</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.addToCartContainer}>
-        <AddToCart
-          price={value || 0}
-          storeId={safeStoreId}
-          slug={slug || id}
-          catalogId={catalogId}
-          productName={itemName} // ✅ Product name
-          customizable={customizable} // ✅ Customizable flag
-          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds} // ✅ Customization groups
-        />
-      </View>
-    );
-  };
-
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
-
   const uniqueProductId = productIdString || slug || id;
+
   return (
     <View style={styles.fashionCard}>
       {/* Card Clickable Content */}
@@ -93,12 +69,9 @@ const FashionCard: FC<FashionCardProps> = ({
           <LikeButton productId={uniqueProductId} color="#E11D48" />
         </View>
 
-        {/* 🔥 Offer badge (reused from OfferCard3) */}
+        {/* 🔥 Offer badge */}
         {typeof discount === "number" && discount > 1 && (
-          <DiscountBadge
-            percent={Number(discount)}
-            style={{ top: 8, left: 8 }}
-          />
+          <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
         )}
 
         <TouchableOpacity
@@ -106,23 +79,16 @@ const FashionCard: FC<FashionCardProps> = ({
           onPress={handlePress}
           activeOpacity={0.8}
         >
-          <Text
-            style={styles.fashionCardTitle}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <Text style={styles.fashionCardTitle} numberOfLines={1}>
             {itemName}
           </Text>
-          <Text
-            style={styles.fashionCardDescription}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <Text style={styles.fashionCardDescription} numberOfLines={1}>
             {desc}
           </Text>
+
           <View style={{ flexDirection: "row", marginTop: 3 }}>
             <Text style={styles.fashionCardPrice}>
-              <Text style={{ fontSize: 16 }}>₹{value}</Text>{" "}
+              <Text style={{ fontSize: 16, color: "green" }}>₹{value}</Text>{" "}
               {maxPrice && (
                 <Text style={styles.strikedOffText}>₹{maxPrice}</Text>
               )}
@@ -132,7 +98,23 @@ const FashionCard: FC<FashionCardProps> = ({
       </View>
 
       {/* Add to Cart Button */}
-      {renderAddToCart()}
+      {safeStoreId ? (
+        <View style={styles.addToCartContainer}>
+          <AddToCart
+            price={value || 0}
+            storeId={safeStoreId}
+            slug={slug || id}
+            catalogId={catalogId}
+            productName={itemName}
+            customizable={customizable}
+            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+          />
+        </View>
+      ) : (
+        <View style={styles.addToCartContainer}>
+          <Text style={styles.errorText}>Store ID missing</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -186,7 +168,6 @@ const styles = StyleSheet.create({
   strikedOffText: {
     color: "#746F6F",
     textDecorationLine: "line-through",
-    textDecorationStyle: "solid",
     fontWeight: "400",
   },
   fashionCardDiscount: {

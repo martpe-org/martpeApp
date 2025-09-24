@@ -1,16 +1,15 @@
-/* cat.css */
 import { Dimensions, StyleSheet } from "react-native";
 
 const screenWidth = Dimensions.get("window").width;
 
 export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flexGrow: 1, backgroundColor: "#fff" },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: "#fff",
   },
@@ -23,7 +22,7 @@ export const styles = StyleSheet.create({
     marginVertical: 15,
     paddingHorizontal: 10,
   },
-  backButton: { marginRight: 12, padding: 4, marginTop: -9 },
+  backButton: { marginRight: 12, padding: 4, marginTop: -20 },
   searchWrapper: { flex: 1, marginTop: -20 },
   subCategory: {
     alignItems: "center",
