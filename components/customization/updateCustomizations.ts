@@ -1,28 +1,44 @@
-// import Constants from 'expo-constants';
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
+import { getAsyncStorageItem } from "../../utility/asyncStorage";
+import { SelectedCustomizationType } from "../user/fetch-user-type";
 
-
-export const updateCustomizations = async (
+export async function updateCartItemCustomizationsAction(
   cartItemId: string,
-  customizations: any[],
-  authToken: string
-) => {
-  if (!authToken) return false;
-
+  qty: number,
+  product_slug: string,
+  product_price: any,
+  selected_customizations: SelectedCustomizationType[]
+) {
   try {
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/cart/items/${cartItemId}/customizations`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ customizations }),
-    });
+    // ✅ get auth token from AsyncStorage
+    const authToken = await getAsyncStorageItem("auth-token");
 
-    if (!res.ok) throw new Error(`Failed to update customizations: ${res.status}`);
-    return true;
-  } catch (error) {
-    console.error("updateCustomizations error:", error);
-    return false;
+    const response = await fetch(
+      `${process.env.EXPO_PUBLIC_API_URL}/carts/update-item`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cartItemId,
+          qty,
+          product_slug,
+          product_price,
+          selected_customizations,
+          update_target: "customization", // required by backend
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error("updateCartItemCustomizationsAction failed:", response.status);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error("updateCartItemCustomizationsAction error:", e);
+    return { success: false };
   }
-};
+}

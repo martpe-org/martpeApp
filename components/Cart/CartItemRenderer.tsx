@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { useToast } from "react-native-toast-notifications";
+import { Ionicons } from "@expo/vector-icons";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import ChangeQtyButton from "./ChangeQtyButton";
+import CustomizationGroupForCart from "../customization/CustomizationGroupForCart";
 
 interface CartItemRendererProps {
   item: CartItemType;
@@ -15,6 +17,7 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
   onQtyChange,
 }) => {
   const toast = useToast();
+  const [showCustomization, setShowCustomization] = useState(false);
 
   if (!item || !item._id) return null;
 
@@ -45,6 +48,19 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
     });
     onQtyChange(item._id, newQty);
   };
+
+  const handleEditCustomization = () => {
+    setShowCustomization(true);
+  };
+
+  const handleCustomizationUpdate = () => {
+    // Refresh the cart or trigger a re-render
+    // This could be handled by the parent component
+    toast.show("Customizations updated", { type: "success" });
+  };
+
+  const isCustomizable = item.product?.customizable;
+  const hasCustomGroupIds = item.product?.directlyLinkedCustomGroupIds?.length > 0;
 
   return (
     <View style={[styles.item, !isAvailable && styles.unavailableItem]}>
@@ -107,7 +123,35 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
           productPrice={unitPrice}
           onQtyChange={handleQtyChange}
         />
+        
+        {/* Edit Button for Customizable Items */}
+        {isCustomizable && hasCustomGroupIds && isAvailable && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditCustomization}
+          >
+            <Ionicons name="create-outline" size={16} color="#f14343" />
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Customization Modal for Cart Items */}
+      {isCustomizable && hasCustomGroupIds && (
+        <CustomizationGroupForCart
+          cartItemId={item._id}
+          productSlug={item.product?.slug || ""}
+          storeId={item.store_id}
+          catalogId={item.product?._id || ""}
+          productPrice={unitPrice}
+          directlyLinkedCustomGroupIds={item.product?.directlyLinkedCustomGroupIds || []}
+          existingCustomizations={item.customizations || []}
+          visible={showCustomization}
+          onClose={() => setShowCustomization(false)}
+          onUpdateSuccess={handleCustomizationUpdate}
+          productName={productName}
+        />
+      )}
     </View>
   );
 };
@@ -213,6 +257,23 @@ const styles = StyleSheet.create({
   qtyContainer: {
     justifyContent: "center",
     alignItems: "flex-end",
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF2F0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: "#f14343",
+  },
+  editButtonText: {
+    color: "#f14343",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 4,
   },
 });
 

@@ -11,7 +11,7 @@ import {
 import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
-import CustomizationGroup from "../ProductDetails/CustomizationGroup";
+import CustomizationGroup from "../customization/CustomizationGroup";
 
 interface Props {
   cartItemId: string;

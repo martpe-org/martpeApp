@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  View,
 } from 'react-native';
-import { useCartStore } from '../../state/useCartStore';
-import useUserDetails from '../../hook/useUserDetails';
 import { useToast } from 'react-native-toast-notifications';
-import { fetchProductCustomizations } from '../customization/fetch-product-customizations';
-import WrapperSheet from './WrapperSheet';
+import useUserDetails from '../../hook/useUserDetails';
+import { useCartStore } from '../../state/useCartStore';
 import Loader from '../common/Loader';
+import { fetchProductCustomizations } from './fetch-product-customizations';
+import WrapperSheet from './WrapperSheet';
 
 interface CustomizationGroupProps {
   productSlug: string;
@@ -66,10 +64,10 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       try {
         setLoading(true);
         const data = await fetchProductCustomizations(productSlug);
-        
+
         if (data) {
           setCustomizationData(data);
-          
+
           // Set default options
           const groupIdDefaultOptionMap: SelectedOptionsType = {};
           directlyLinkedCustomGroupIds.forEach((gid) => {
@@ -226,7 +224,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       );
 
       if (success) {
-        toast.show('Item added to cart successfully!', { type: 'success' });
         onAddSuccess();
         onClose();
       } else {
@@ -263,7 +260,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Loader/>
+        <Loader />
         <Text style={styles.loadingText}>Loading customizations...</Text>
       </View>
     );
@@ -271,7 +268,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
 
   if (!customizationData) {
     return (
-<View></View>
+      <View></View>
     );
   }
 

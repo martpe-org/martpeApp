@@ -1,19 +1,3 @@
-// export interface FetchProductCustomizationsResponseType {
-//   _id: string;
-//   product_id: string;
-//   __v: number;
-//   all_cg_ids: string[];
-//   all_ci_ids: string[];
-//   // cg_CG1: CgCg1;
-//   // cg_CG2: CgCg2;
-//   // cg_CG4: CgCg4;
-//   createdAt: string;
-//   product_slug: string;
-//   updatedAt: string;
-//   vendor_id: string;
-//   id: string;
-// }
-
 export interface CustomGroupType {
   name: string;
   type: string;

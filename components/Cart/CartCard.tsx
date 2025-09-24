@@ -83,14 +83,21 @@ const CartCard: React.FC<CartCardProps> = ({
   const cartTotal = Math.max(0, cartSubtotal - discount);
 
   // Sync offer selection to store
-  useEffect(() => {
-    if (appliedOfferId) {
-      updateCartOffer(id, appliedOfferId, discount, cartTotal);
-    } else {
-      clearCartOffer(id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedOfferId, cartSubtotal, discount, cartTotal, id]);
+useEffect(() => {
+  const existing = appliedOffers[id];
+  if (
+    appliedOfferId &&
+    (!existing ||
+      existing.offerId !== appliedOfferId ||
+      existing.discount !== discount ||
+      existing.cartTotal !== cartTotal)
+  ) {
+    updateCartOffer(id, appliedOfferId, discount, cartTotal);
+  } else if (!appliedOfferId && existing) {
+    clearCartOffer(id);
+  }
+}, [appliedOfferId, discount, cartTotal, id, appliedOffers]);
+
 
   // Early return if invalid data
   if (!id || !store?._id) return null;

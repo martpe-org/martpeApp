@@ -2,7 +2,7 @@ import React, { FC, useEffect, useState } from "react";
 import { View } from "react-native";
 import { useCartStore } from "../../state/useCartStore";
 import ChangeQtyButton from "../Cart/ChangeQtyButton";
-import CustomizationGroup from "../ProductDetails/CustomizationGroup";
+import CustomizationGroup from "../customization/CustomizationGroup";
 import DynamicButton from "./DynamicButton";
 
 interface AddToCartProps {
