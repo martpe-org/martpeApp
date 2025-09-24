@@ -16,10 +16,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import useUserDetails from "../../../hook/useUserDetails";
-import Header from "../AddressHeader";
-import { createAddress } from "../createAddress";
-import Type from "../type";
+import Header from "../../components/address/AddressHeader";
+import { createAddress } from "../../components/address/createAddress";
+import Type from "../../components/address/type";
+import useUserDetails from "../../hook/useUserDetails";
 
 interface AddressInput {
   type: "Home" | "Work" | "FriendsAndFamily" | "Other";

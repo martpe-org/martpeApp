@@ -15,13 +15,13 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import Svg, { Path } from "react-native-svg";
-import { Colors, Fonts } from "../../../theme";
+import { Colors, Fonts } from "../../theme";
 import {
   getAsyncStorageItem,
   setAsyncStorageItem,
-} from "../../../utility/asyncStorage";
-import useDeliveryStore from "../../address/deliveryAddressStore";
-import ImageComp from "../../common/ImageComp";
+} from "../../utility/asyncStorage";
+import useDeliveryStore from "../../components/address/deliveryAddressStore";
+import ImageComp from "../../components/common/ImageComp";
 import { fetchSearchSuggesstions } from "@/components/search/fetch-suggest";
 import { SuggestionsType } from "@/components/search/fetch-suggest-type";
 

@@ -10,12 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import useUserDetails from "../../../hook/useUserDetails";
-import Loader from "../../common/Loader";
-import ShareButton from "../../common/Share";
-import Header from "../AddressHeader";
-import { deleteAddress } from "../deleteAddress";
-import useDeliveryStore from "../deliveryAddressStore";
+import Header from "../../components/address/AddressHeader";
+import { deleteAddress } from "../../components/address/deleteAddress";
+import useDeliveryStore from "../../components/address/deliveryAddressStore";
+import Loader from "../../components/common/Loader";
+import ShareButton from "../../components/common/Share";
+import useUserDetails from "../../hook/useUserDetails";
 interface AddressType {
   id: string;
   type: "Home" | "Work" | "FriendsAndFamily" | "Other";
@@ -39,12 +39,6 @@ const fetchAddress = async (
   authToken: string
 ): Promise<AddressType[] | null> => {
   try {
-    console.log(
-      "Fetching addresses with token:",
-      authToken ? "Token present" : "No token"
-    );
-    console.log("API URL:", `${process.env.EXPO_PUBLIC_API_URL}/users/address`);
-
     const response = await fetch(
       `${process.env.EXPO_PUBLIC_API_URL}/users/address`,
       {
@@ -56,10 +50,6 @@ const fetchAddress = async (
         cache: "no-cache",
       }
     );
-
-    console.log("Response status:", response.status);
-    console.log("Response ok:", response.ok);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.log("Fetch address failed:", response.status, errorText);
@@ -67,10 +57,8 @@ const fetchAddress = async (
     }
 
     const data = await response.json();
-    console.log("Fetched address data:", data);
     return data;
   } catch (error) {
-    console.error("Fetch address error:", error);
     return null;
   }
 };

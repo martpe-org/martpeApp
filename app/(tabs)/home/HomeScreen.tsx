@@ -107,7 +107,7 @@ export default function HomeScreen() {
   };
 
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("/search/search");
   };
 
   // Pull-to-refresh handler - forces fresh data

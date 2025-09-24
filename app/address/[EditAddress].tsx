@@ -12,11 +12,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import useUserDetails from '../../../hook/useUserDetails';
-import Header from "../AddressHeader";
-import { fetchAddress } from "../fetchAddress";
-import Type from "../type";
-import { updateAddress } from "../updateAddress";
+import Header from "../../components/address/AddressHeader";
+import { fetchAddress } from "../../components/address/fetchAddress";
+import Type from "../../components/address/type";
+import { updateAddress } from "../../components/address/updateAddress";
+import useUserDetails from '../../hook/useUserDetails';
 import { InputField } from "./AddNewAddress";
 
 
