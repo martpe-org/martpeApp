@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   Modal,
   SafeAreaView,
   ActivityIndicator,
@@ -30,6 +29,7 @@ interface WrapperSheetForCartProps {
   hasChildGroups: boolean;
   showUpdateButton: boolean;
   updating: boolean;
+  totalPrice: number; // ✅ added totalPrice prop
 }
 
 const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
@@ -49,48 +49,36 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
   hasChildGroups,
   showUpdateButton,
   updating,
+  totalPrice,
 }) => {
   const renderVegIcon = (dietType: string) => {
-    if (dietType === 'veg') {
-      return (
-        <View style={[styles.dietIcon, { borderColor: '#4CAF50' }]}>
-          <View style={[styles.dietDot, { backgroundColor: '#4CAF50' }]} />
-        </View>
-      );
-    } else {
-      return (
-        <View style={[styles.dietIcon, { borderColor: '#F44336' }]}>
-          <View style={[styles.dietDot, { backgroundColor: '#F44336' }]} />
-        </View>
-      );
-    }
+    const color = dietType === 'veg' ? '#4CAF50' : '#F44336';
+    return (
+      <View style={[styles.dietIcon, { borderColor: color }]}>
+        <View style={[styles.dietDot, { backgroundColor: color }]} />
+      </View>
+    );
   };
 
   const renderOption = (groupId: string, optionId: string, group: any) => {
     const option = group[`ci_${optionId}`];
     const isMultiSelect = Number(group.config.max) > 1;
     const isSelected = selectedOptions[groupId]?.find(o => o.optionId === optionId);
-    const isDisabled = !isSelected && 
-      selectedOptions[groupId]?.length >= Number(group.config.max) && 
+    const isDisabled = !isSelected &&
+      selectedOptions[groupId]?.length >= Number(group.config.max) &&
       isMultiSelect;
 
     return (
       <TouchableOpacity
         key={optionId}
-        style={[
-          styles.optionContainer,
-          isSelected && styles.optionSelected,
-          isDisabled && styles.optionDisabled,
-        ]}
+        style={[styles.optionContainer, isSelected && styles.optionSelected, isDisabled && styles.optionDisabled]}
         onPress={() => !isDisabled && onOptionChange(groupId, optionId, option.name)}
         disabled={isDisabled}
       >
         <View style={styles.optionContent}>
           <View style={styles.optionLeft}>
             {renderVegIcon(option.diet_type)}
-            <Text style={[styles.optionName, isDisabled && styles.disabledText]}>
-              {option.name}
-            </Text>
+            <Text style={[styles.optionName, isDisabled && styles.disabledText]}>{option.name}</Text>
           </View>
           <View style={styles.optionRight}>
             <Text style={[styles.optionPrice, isDisabled && styles.disabledText]}>
@@ -98,21 +86,11 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             </Text>
             <View style={styles.selectionIndicator}>
               {isMultiSelect ? (
-                <View style={[
-                  styles.checkbox,
-                  isSelected && styles.checkboxSelected,
-                  isDisabled && styles.checkboxDisabled,
-                ]}>
-                  {isSelected && (
-                    <Ionicons name="checkmark" size={16} color="#fff" />
-                  )}
+                <View style={[styles.checkbox, isSelected && styles.checkboxSelected, isDisabled && styles.checkboxDisabled]}>
+                  {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
                 </View>
               ) : (
-                <View style={[
-                  styles.radio,
-                  isSelected && styles.radioSelected,
-                  isDisabled && styles.radioDisabled,
-                ]}>
+                <View style={[styles.radio, isSelected && styles.radioSelected, isDisabled && styles.radioDisabled]}>
                   {isSelected && <View style={styles.radioDot} />}
                 </View>
               )}
@@ -135,14 +113,10 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
         <View style={styles.groupHeader}>
           <View style={styles.groupTitleContainer}>
             <Text style={styles.groupTitle}>
-              {group.name}
-              {isRequired && <Text style={styles.required}> *</Text>}
+              {group.name}{isRequired && <Text style={styles.required}> *</Text>}
             </Text>
             {selectedOptions[groupId]?.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => onClearGroup(groupId)}
-              >
+              <TouchableOpacity style={styles.clearButton} onPress={() => onClearGroup(groupId)}>
                 <Text style={styles.clearButtonText}>Clear</Text>
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
@@ -154,30 +128,19 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             </Text>
           )}
         </View>
-
         <View style={styles.optionsContainer}>
-          {group.options.map((optionId: string) => 
-            renderOption(groupId, optionId, group)
-          )}
+          {group.options.map((optionId: string) => renderOption(groupId, optionId, group))}
         </View>
       </View>
     );
   };
 
   const selectedOptionsText = selectedOptions && Object.values(selectedOptions).length
-    ? `Selected: ${Object.values(selectedOptions)
-        .flat()
-        .map((o) => o.name)
-        .join(', ')}`
+    ? `Selected: ${Object.values(selectedOptions).flat().map((o) => o.name).join(', ')}`
     : 'No options selected';
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -185,69 +148,42 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             <Ionicons name="close" size={24} color="#666" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            {productName && (
-              <Text style={styles.productName} numberOfLines={1}>
-                {productName}
-              </Text>
-            )}
+            {productName && <Text style={styles.productName} numberOfLines={1}>{productName}</Text>}
             <Text style={styles.headerTitle}>Edit your customizations</Text>
           </View>
         </View>
 
         {/* Content */}
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          {/* Back button */}
           {step > 0 && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onPrevious}
-              disabled={step === 0}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={onPrevious} disabled={step === 0}>
               <Ionicons name="chevron-back" size={20} color="#f14343" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
-
-          {/* Groups */}
           {currentGroupIds.map(renderGroup)}
-
-          {/* Continue button */}
           {hasChildGroups && (
             <TouchableOpacity
-              style={[
-                styles.continueButton,
-                isNextDisabled() && styles.continueButtonDisabled,
-              ]}
+              style={[styles.continueButton, isNextDisabled() && styles.continueButtonDisabled]}
               onPress={onNext}
               disabled={isNextDisabled()}
             >
-              <Text style={[
-                styles.continueButtonText,
-                isNextDisabled() && styles.continueButtonTextDisabled,
-              ]}>
+              <Text style={[styles.continueButtonText, isNextDisabled() && styles.continueButtonTextDisabled]}>
                 Continue
               </Text>
-              <Ionicons 
-                name="chevron-forward" 
-                size={20} 
-                color={isNextDisabled() ? "#999" : "#fff"} 
-              />
+              <Ionicons name="chevron-forward" size={20} color={isNextDisabled() ? "#999" : "#fff"} />
             </TouchableOpacity>
           )}
         </ScrollView>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.selectedText} numberOfLines={2}>
-            {selectedOptionsText}
-          </Text>
+          <Text style={styles.selectedText} numberOfLines={2}>{selectedOptionsText}</Text>
+          <Text style={styles.totalPrice}>Total: ₹{totalPrice.toFixed(2)}</Text> {/* ✅ live total price */}
           
           {showUpdateButton && (
             <TouchableOpacity
-              style={[
-                styles.updateCartButton,
-                isNextDisabled() && styles.updateCartButtonDisabled,
-              ]}
+              style={[styles.updateCartButton, isNextDisabled() && styles.updateCartButtonDisabled]}
               onPress={onUpdateCart}
               disabled={isNextDisabled() || updating}
             >

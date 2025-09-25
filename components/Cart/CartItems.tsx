@@ -7,6 +7,20 @@ import Loader from "../common/Loader";
 import CartItemRenderer from "./CartItemRenderer";
 import CartCheckoutButton from "./CartCheckoutButton";
 
+// ✅ Safe number conversion helper
+const toNumber = (v: any): number => {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const parsed = Number(v);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  if (v && typeof v === "object") {
+    if ("value" in v) return toNumber((v as any).value);
+    if ("amount" in v) return toNumber((v as any).amount);
+  }
+  return 0;
+};
+
 interface CartItemsProps {
   cartId: string;
   storeSlug: string;
@@ -38,7 +52,14 @@ const CartItems: React.FC<CartItemsProps> = ({
     // Optimistic local state update
     setLocalItems((prev) =>
       prev.map((p) =>
-        p._id === itemId ? { ...p, qty: newQty } : p
+        p._id === itemId
+          ? {
+              ...p,
+              qty: newQty,
+              total_price:
+                toNumber(p.unit_price ?? p.product?.price) * newQty,
+            }
+          : p
       )
     );
     onCartChange?.();
@@ -48,14 +69,17 @@ const CartItems: React.FC<CartItemsProps> = ({
     <CartItemRenderer item={item} onQtyChange={handleQtyChange} />
   );
 
-  // Calculate totals from local state
-  const { totalItems } = useMemo(() => {
+  // ✅ Calculate totals safely, using total_price if available
+  const { totalCost, totalItems } = useMemo(() => {
     if (!localItems?.length) return { totalCost: 0, totalItems: 0 };
 
     return localItems.reduce(
       (acc, item) => {
-        const qty = item.qty || 1;
-        const itemTotal = (item.unit_price || 0) * qty;
+        const qty = Math.max(1, toNumber(item.qty));
+        const unitPrice = toNumber(
+          item.total_price !== undefined ? item.total_price / qty : item.unit_price ?? item.product?.price
+        );
+        const itemTotal = unitPrice * qty;
         acc.totalCost += itemTotal;
         acc.totalItems += qty;
         return acc;
@@ -99,15 +123,14 @@ const CartItems: React.FC<CartItemsProps> = ({
         contentContainerStyle={styles.listContainer}
       />
 
-{/* Checkout Button */}
-<CartCheckoutButton
-  cartId={cartId}
-  storeId={storeId}
-  items={localItems} // 🔄 pass ALL items
-  isStoreOpen={isStoreOpen}
-/>
-
-
+      {/* Checkout Button */}
+      <CartCheckoutButton
+        cartId={cartId}
+        storeId={storeId}
+        items={localItems} // 🔄 pass ALL items
+        isStoreOpen={isStoreOpen}
+        cartTotal={totalCost} // pass the updated total
+      />
     </View>
   );
 };

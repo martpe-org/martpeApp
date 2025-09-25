@@ -7,6 +7,20 @@ import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import ChangeQtyButton from "./ChangeQtyButton";
 import CustomizationGroupForCart from "../customization/CustomizationGroupForCart";
 
+// ✅ Safe number conversion helper
+const toNumber = (v: any): number => {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const parsed = Number(v);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  if (v && typeof v === "object") {
+    if ("value" in v) return toNumber((v as any).value);
+    if ("amount" in v) return toNumber((v as any).amount);
+  }
+  return 0;
+};
+
 interface CartItemRendererProps {
   item: CartItemType;
   onQtyChange: (itemId: string, newQty: number) => void;
@@ -23,12 +37,18 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
 
   const productName = item.product?.name || "Unknown Product";
   const productImage = item.product?.symbol;
-  const unitPrice = item.unit_price || 0;
-  const totalPrice = unitPrice * (item.qty || 1);
   const isAvailable = item.product?.instock;
 
-  const formatCurrency = (amt: number) =>
-    `₹${amt.toFixed(2).replace(/\.?0+$/, "")}`;
+  const unitPrice = toNumber(item.product?.price ?? item.product?.price?.value);
+  const qty = Math.max(1, toNumber(item.qty));
+
+  // ✅ Use item.total_price if available, else fallback to unitPrice * qty
+  const totalPrice = toNumber(item.total_price ?? unitPrice * qty);
+
+  const formatCurrency = (amt: number | string | null | undefined) => {
+    const n = toNumber(amt);
+    return `₹${n.toFixed(2).replace(/\.?0+$/, "")}`;
+  };
 
   const handleProductPress = () => {
     if (item.product?.slug) {
@@ -41,11 +61,6 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
   };
 
   const handleQtyChange = (newQty: number) => {
-    console.log("Quantity changed:", {
-      itemId: item._id,
-      newQty,
-      unitPrice,
-    });
     onQtyChange(item._id, newQty);
   };
 
@@ -54,8 +69,6 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
   };
 
   const handleCustomizationUpdate = () => {
-    // Refresh the cart or trigger a re-render
-    // This could be handled by the parent component
     toast.show("Customizations updated", { type: "success" });
   };
 
@@ -123,8 +136,7 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
           productPrice={unitPrice}
           onQtyChange={handleQtyChange}
         />
-        
-        {/* Edit Button for Customizable Items */}
+
         {isCustomizable && hasCustomGroupIds && isAvailable && (
           <TouchableOpacity
             style={styles.editButton}
@@ -136,7 +148,7 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
         )}
       </View>
 
-      {/* Customization Modal for Cart Items */}
+      {/* Customization Modal */}
       {isCustomizable && hasCustomGroupIds && (
         <CustomizationGroupForCart
           cartItemId={item._id}

@@ -1,149 +1,23 @@
-import { fetchCarts } from "@/app/(tabs)/cart/fetch-carts";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// useCartStore.ts
 import { create } from "zustand";
 import { addToCartAction } from "../components/Cart/api/addToCart";
 import { removeCart } from "../components/Cart/api/removeCart";
 import { removeCartItems as removeCartItemsApi } from "../components/Cart/api/removeCartItems";
-import { updateQty } from "../components/Cart/api/updateQty";
+import { updateQty as updateQtyApi } from "../components/Cart/api/updateQty";
 
-interface CartItem {
-  _id: string;
-  qty: number;
-  slug: string;
-  unit_price: number;
-  unit_max_price: number;
-  total_price: number;
-  total_max_price: number;
-  product?: {
-    name?: string;
-    symbol?: string;
-    quantity?: number;
-    instock?: boolean;
-  };
-}
-
-interface AppliedOffer {
-  offerId: string;
-  discount: number;
-  total: number;
-}
-
-interface Cart {
-  store: { _id: string };
-  cart_items: CartItem[];
-}
-
-interface CartState {
-  allCarts: Cart[];
-  appliedOffers: Record<string, AppliedOffer>;
-  setAllCarts: (carts: Cart[] | any[]) => void; // ✅ Allow any[] for TanStack Query data
-  loadCartFromStorage: () => Promise<void>;
-  syncCartFromApi: (authToken: string | null) => Promise<void>;
-  addItem: (
-    storeId: string,
-    slug: string,
-    catalogId: string,
-    quantity: number,
-    customizable: boolean,
-    customizations: any[],
-    authToken: string | null
-  ) => Promise<boolean>;
-  updateQty: (
-    cartItemId: string,
-    qty: number,
-    authToken: string | null
-  ) => Promise<boolean>;
-  removeCartItems: (
-    itemIds: string[],
-    authToken: string | null
-  ) => Promise<boolean>;
-  removeCart: (storeId: string, authToken: string | null) => Promise<boolean>;
-
-  /** 🆕 Offer actions */
-  updateCartOffer: (
-    cartId: string,
-    offerId: string,
-    discount: number,
-    total: number
-  ) => void;
-  clearCartOffer: (cartId: string) => void;
-}
-
-const CART_STORAGE_KEY = "user_cart";
-
-const sanitizeCartItems = (
-  items: (CartItem | undefined | null)[]
-): CartItem[] => items.filter((item): item is CartItem => !!item && !!item._id);
-
-const sanitizeCarts = (carts: Cart[]): Cart[] =>
-  carts
-    .filter((cart) => !!cart && !!cart.store?._id)
-    .map((cart) => ({
-      ...cart,
-      cart_items: sanitizeCartItems(cart.cart_items || []),
-    }))
-    .filter((cart) => cart.cart_items.length > 0);
-
-// ✅ Transform TanStack Query data to Zustand format
-const transformToZustandFormat = (carts: any[]): Cart[] => {
-  if (!Array.isArray(carts)) return [];
-  
-  return carts.map(cart => ({
-    store: { 
-      _id: cart.store?._id || cart.store_id || cart._id 
-    },
-    cart_items: (cart.cart_items || []).map((item: any) => ({
-      _id: item._id,
-      qty: item.qty || 1,
-      slug: item.slug || item.product_slug || '',
-      unit_price: item.unit_price || 0,
-      unit_max_price: item.unit_max_price || 0,
-      total_price: item.total_price || 0,
-      total_max_price: item.total_max_price || 0,
-      product: {
-        name: item.product?.name || item.product_slug || '',
-        symbol: item.product?.symbol || '',
-        quantity: item.qty || 1,
-        instock: item.product?.instock !== false,
-      }
-    }))
-  })).filter(cart => cart.cart_items.length > 0);
-};
-
-const saveCartToStorage = async (carts: Cart[]) => {
-  try {
-    await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(carts));
-  } catch (error) {
-    console.error("Failed to save cart:", error);
-  }
-};
-
-const loadCartFromStorage = async (): Promise<Cart[]> => {
-  try {
-    const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
-    return stored ? sanitizeCarts(JSON.parse(stored)) : [];
-  } catch (error) {
-    console.error("Failed to load cart:", error);
-    return [];
-  }
-};
+import { fetchCarts } from "@/app/(tabs)/cart/fetch-carts";
+import { CartItem, CartState } from "./cart-init/cartTypes";
+import { loadCartFromStorage, sanitizeCartItems, sanitizeCarts, saveCartToStorage, transformToZustandFormat } from "./cart-init/cartHelpers";
 
 export const useCartStore = create<CartState>((set, get) => ({
   allCarts: [],
   appliedOffers: {},
 
   setAllCarts: (carts) => {
-    let sanitized: Cart[];
-    
-    // ✅ Check if it's TanStack Query data format
-    if (Array.isArray(carts) && carts.length > 0 && carts[0].cartItemsCount !== undefined) {
-      // This is TanStack Query format, transform it
-      sanitized = transformToZustandFormat(carts);
-    } else {
-      // This is already in Zustand format
-      sanitized = sanitizeCarts(carts || []);
-    }
-    
+    const sanitized = Array.isArray(carts) && carts[0]?.cartItemsCount !== undefined
+      ? transformToZustandFormat(carts)
+      : sanitizeCarts(carts || []);
     set({ allCarts: sanitized });
     saveCartToStorage(sanitized);
   },
@@ -157,79 +31,47 @@ export const useCartStore = create<CartState>((set, get) => ({
     if (!authToken) return;
     try {
       const carts = await fetchCarts(authToken);
-      if (carts) {
-        const transformed = transformToZustandFormat(carts);
-        set({ allCarts: transformed });
-        saveCartToStorage(transformed);
-      }
+      if (!carts) return;
+      const transformed = transformToZustandFormat(carts);
+      set({ allCarts: transformed });
+      saveCartToStorage(transformed);
     } catch (err) {
       console.error("syncCartFromApi error:", err);
     }
   },
 
-  addItem: async (
-    storeId,
-    slug,
-    catalogId,
-    quantity,
-    customizable,
-    customizations,
-    authToken
-  ) => {
+  addItem: async (storeId, slug, catalogId, quantity, customizable, customizations, authToken) => {
     if (!authToken) return false;
-
-    const input = {
-      store_id: storeId,
-      slug,
-      catalog_id: catalogId,
-      qty: quantity,
-      customizable,
-      customizations,
-    };
-
     try {
-      const { success, data } = await addToCartAction(input, authToken);
+      const { success, data } = await addToCartAction({ store_id: storeId, slug, catalog_id: catalogId, qty: quantity, customizable, customizations }, authToken);
+      if (!success || !data) return false;
 
-      if (success && data) {
-        set((state) => {
-          const updatedCarts = [...state.allCarts];
-          const cartIndex = updatedCarts.findIndex(
-            (c) => c.store._id === storeId
-          );
+      set((state) => {
+        const updatedCarts = [...state.allCarts];
+        const cartIndex = updatedCarts.findIndex(c => c.store._id === storeId);
 
-          const newItem: CartItem = {
-            _id: data._id,
-            qty: data.qty,
-            slug: data.product_slug,
-            unit_price: data.unit_price,
-            unit_max_price: data.unit_max_price,
-            total_price: data.total_price,
-            total_max_price: data.total_max_price,
-            product: {
-              name: data.product_slug,
-              quantity: data.qty,
-              instock: true,
-            },
-          };
+        const newItem: CartItem = {
+          _id: data._id,
+          qty: data.qty,
+          slug: data.product_slug,
+          unit_price: data.unit_price,
+          unit_max_price: data.unit_max_price,
+          total_price: data.total_price,
+          total_max_price: data.total_max_price,
+          product: { name: data.product_slug, quantity: data.qty, instock: true },
+        };
 
-          if (cartIndex >= 0) {
-            updatedCarts[cartIndex] = {
-              ...updatedCarts[cartIndex],
-              cart_items: [...updatedCarts[cartIndex].cart_items, newItem],
-            };
-          } else {
-            updatedCarts.push({
-              store: { _id: storeId },
-              cart_items: [newItem],
-            });
-          }
+        if (cartIndex >= 0) {
+          updatedCarts[cartIndex].cart_items.push(newItem);
+        } else {
+          updatedCarts.push({ store: { _id: storeId }, cart_items: [newItem] });
+        }
 
-          saveCartToStorage(updatedCarts);
-          return { allCarts: sanitizeCarts(updatedCarts) };
-        });
-      }
+        saveCartToStorage(updatedCarts);
+        return { allCarts: sanitizeCarts(updatedCarts) };
+      });
 
-      return success;
+      return true;
     } catch (error) {
       console.error("addItem error:", error);
       return false;
@@ -237,25 +79,18 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQty: async (cartItemId, qty, authToken) => {
-    if (!authToken || !cartItemId) return false;
-    if (qty < 0) return false;
-
+    if (!authToken || !cartItemId || qty < 0) return false;
     try {
-      const success = await updateQty(cartItemId, qty, authToken);
+      const success = await updateQtyApi(cartItemId, qty, authToken);
       if (!success) return false;
 
       set((state) => {
-        const updatedCarts = state.allCarts.map((cart) => ({
+        const updatedCarts = state.allCarts.map(cart => ({
           ...cart,
           cart_items: sanitizeCartItems(
-            cart.cart_items.map((item) =>
+            cart.cart_items.map(item =>
               item._id === cartItemId
-                ? {
-                    ...item,
-                    qty,
-                    total_price: item.unit_price * qty,
-                    total_max_price: item.unit_max_price * qty,
-                  }
+                ? { ...item, qty, total_price: item.unit_price * qty, total_max_price: item.unit_max_price * qty }
                 : item
             )
           ),
@@ -274,19 +109,15 @@ export const useCartStore = create<CartState>((set, get) => ({
   removeCartItems: async (itemIds, authToken) => {
     if (!authToken || !itemIds?.length) return false;
     const prevState = get().allCarts;
-
     try {
       set((state) => {
-        const updatedCarts = state.allCarts.map((cart) => ({
+        const updatedCarts = state.allCarts.map(cart => ({
           ...cart,
-          cart_items: sanitizeCartItems(
-            cart.cart_items.filter((item) => !itemIds.includes(item._id))
-          ),
+          cart_items: sanitizeCartItems(cart.cart_items.filter(item => !itemIds.includes(item._id))),
         }));
         saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
       });
-
       const success = await removeCartItemsApi(itemIds, authToken);
       if (!success) set({ allCarts: prevState });
       return success;
@@ -300,16 +131,12 @@ export const useCartStore = create<CartState>((set, get) => ({
   removeCart: async (storeId, authToken) => {
     if (!authToken || !storeId) return false;
     const prevState = get().allCarts;
-
     try {
       set((state) => {
-        const updatedCarts = state.allCarts.filter(
-          (cart) => cart.store._id !== storeId
-        );
+        const updatedCarts = state.allCarts.filter(cart => cart.store._id !== storeId);
         saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
       });
-
       const success = await removeCart(storeId, authToken);
       if (!success) set({ allCarts: prevState });
       return success;
@@ -320,14 +147,11 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  /** 🆕 Offer actions */
   updateCartOffer: (cartId, offerId, discount, total) =>
     set((state) => ({
-      appliedOffers: {
-        ...state.appliedOffers,
-        [cartId]: { offerId, discount, total },
-      },
+      appliedOffers: { ...state.appliedOffers, [cartId]: { offerId, discount, total } },
     })),
+
   clearCartOffer: (cartId) =>
     set((state) => {
       const next = { ...state.appliedOffers };

@@ -1,6 +1,7 @@
+import { ApiErrorResponseType } from "@/common-types";
 import { FetchCartType } from "./fetch-carts-type";
 
-export const fetchCarts = async (authToken: string) => {
+export const fetchCarts = async (authToken: string): Promise<FetchCartType[] | null> => {
   try {
     const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/carts`, {
       method: "GET",
@@ -9,13 +10,17 @@ export const fetchCarts = async (authToken: string) => {
         "Content-Type": "application/json",
       },
     });
+
     if (!res.ok) {
-      const data = await res.json();
-      throw new Error();
+      const errorData: ApiErrorResponseType = await res.json();
+      console.log("Fetch carts failed", res.status, errorData);
+      throw new Error(errorData?.message || "Failed to fetch carts");
     }
 
-    return (await res.json()) as FetchCartType[];
-  } catch (error) {
+    const data: FetchCartType[] = await res.json();
+    return data;
+  } catch (error: any) {
+    console.log("Fetch carts error:", error.message || error);
     return null;
   }
 };

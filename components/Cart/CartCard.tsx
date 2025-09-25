@@ -45,11 +45,15 @@ const CartCard: React.FC<CartCardProps> = ({
   // ✅ Only available items (instock) will be used for totals/checkout
   const availableItems = validItems.filter((item) => item.product?.instock);
 
-  // Calculate prices & discount using only available items
-  const cartSubtotal = availableItems.reduce(
-    (sum, item) => sum + (item.total_price || 0),
-    0
-  );
+const cartSubtotal = availableItems.reduce((sum, item) => {
+  const price = Number(item.total_price ?? item.product.price?.value ?? 0);
+  const qty = Number(item.qty ?? 1);
+  if (isNaN(price) || isNaN(qty)) {
+    console.warn("Invalid price or quantity for item:", item);
+    return sum;
+  }
+  return sum + price * qty;
+}, 0);
 
   const offer = store?.offers?.find((o) => o.offer_id === appliedOfferId);
 
@@ -82,21 +86,25 @@ const CartCard: React.FC<CartCardProps> = ({
   const discount = Math.max(0, Math.min(computedDiscount, cartSubtotal));
   const cartTotal = Math.max(0, cartSubtotal - discount);
 
-  // Sync offer selection to store
 useEffect(() => {
   const existing = appliedOffers[id];
-  if (
+
+  // Only update if appliedOfferId changed or totals changed
+  const shouldUpdate =
     appliedOfferId &&
     (!existing ||
       existing.offerId !== appliedOfferId ||
       existing.discount !== discount ||
-      existing.cartTotal !== cartTotal)
-  ) {
-    updateCartOffer(id, appliedOfferId, discount, cartTotal);
+      existing.total !== cartSubtotal);
+
+  if (shouldUpdate) {
+    updateCartOffer(id, appliedOfferId, discount, cartSubtotal);
   } else if (!appliedOfferId && existing) {
     clearCartOffer(id);
   }
-}, [appliedOfferId, discount, cartTotal, id, appliedOffers]);
+  // removed appliedOffers from dependencies to avoid loop
+}, [appliedOfferId, discount, cartSubtotal, id]);
+
 
 
   // Early return if invalid data
