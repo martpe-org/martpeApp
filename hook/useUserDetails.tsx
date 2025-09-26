@@ -45,9 +45,7 @@ const useUserDetails = () => {
         const parsedDetails = JSON.parse(details) as UserDetails;
         setUserDetails(parsedDetails);
         setIsAuthenticated(true);
-        console.log("User details loaded from storage:", parsedDetails);
       } else {
-        console.log("No user details found in storage");
         setIsAuthenticated(false);
       }
     } catch (error) {
@@ -58,21 +56,15 @@ const useUserDetails = () => {
     }
   };
 
-const saveUserDetails = async (details: UserDetails) => {
-  try {
-    await setAsyncStorageItem("userDetails", JSON.stringify(details));
-    // ✅ Also save plain auth-token for payment flow
-    if (details.accessToken) {
-      await setAsyncStorageItem("auth-token", details.accessToken);
+  const saveUserDetails = async (details: UserDetails) => {
+    try {
+      await setAsyncStorageItem("userDetails", JSON.stringify(details));
+      setUserDetails(details);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error("Error saving user details:", error);
     }
-    setUserDetails(details);
-    setIsAuthenticated(true);
-    console.log("User details saved successfully:", details);
-  } catch (error) {
-    console.error("Error saving user details:", error);
-  }
-};
-
+  };
 
   const getUserDetails = async (): Promise<UserDetails | null> => {
     try {
@@ -114,9 +106,7 @@ const saveUserDetails = async (details: UserDetails) => {
       if (details) {
         const parsedDetails = JSON.parse(details) as DeliveryDetails;
         setDeliveryDetails(parsedDetails);
-        console.log("Delivery details loaded from storage:", parsedDetails);
       } else {
-        console.log("No delivery details found in storage"); // ✅ Always logs this
       }
     } catch (error) {
       console.error("Error initializing delivery details:", error);
@@ -127,7 +117,6 @@ const saveUserDetails = async (details: UserDetails) => {
     try {
       await setAsyncStorageItem("deliveryDetails", JSON.stringify(details));
       setDeliveryDetails(details);
-      console.log("Delivery details saved successfully:", details);
     } catch (error) {
       console.error("Error saving delivery details:", error);
     }

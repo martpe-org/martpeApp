@@ -5,7 +5,6 @@ import {
   Modal,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -254,7 +253,7 @@ const WrapperSheet: React.FC<WrapperSheetProps> = ({
               {adding ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.addToCartButtonText}>Add to Cart</Text>
+                <Text style={styles.addToCartButtonText}>Add</Text>
               )}
             </TouchableOpacity>
           )}

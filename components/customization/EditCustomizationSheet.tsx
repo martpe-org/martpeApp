@@ -1,18 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
+  ActivityIndicator,
   Modal,
   SafeAreaView,
-  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SelectedOptionsType } from './CustomizationGroup';
-import { styles } from './WrapperSheetForCartStyles';
+import { SelectedOptionsType } from './EditCustomization';
+import { styles } from './WrapperSheetStyles'; // Reusing the same styles
+import Loader from '../common/Loader';
 
-interface WrapperSheetForCartProps {
+interface EditCustomizationSheetProps {
   visible: boolean;
   onClose: () => void;
   productName?: string;
@@ -24,15 +25,14 @@ interface WrapperSheetForCartProps {
   onClearGroup: (groupId: string) => void;
   onPrevious: () => void;
   onNext: () => void;
-  onUpdateCart: () => void;
+  onUpdateCustomizations: () => void;
   isNextDisabled: () => boolean;
   hasChildGroups: boolean;
   showUpdateButton: boolean;
   updating: boolean;
-  totalPrice: number; // ✅ added totalPrice prop
 }
 
-const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
+const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
   visible,
   onClose,
   productName,
@@ -44,20 +44,26 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
   onClearGroup,
   onPrevious,
   onNext,
-  onUpdateCart,
+  onUpdateCustomizations,
   isNextDisabled,
   hasChildGroups,
   showUpdateButton,
   updating,
-  totalPrice,
 }) => {
   const renderVegIcon = (dietType: string) => {
-    const color = dietType === 'veg' ? '#4CAF50' : '#F44336';
-    return (
-      <View style={[styles.dietIcon, { borderColor: color }]}>
-        <View style={[styles.dietDot, { backgroundColor: color }]} />
-      </View>
-    );
+    if (dietType === 'veg') {
+      return (
+        <View style={[styles.dietIcon, { borderColor: '#4CAF50' }]}>
+          <View style={[styles.dietDot, { backgroundColor: '#4CAF50' }]} />
+        </View>
+      );
+    } else {
+      return (
+        <View style={[styles.dietIcon, { borderColor: '#F44336' }]}>
+          <View style={[styles.dietDot, { backgroundColor: '#F44336' }]} />
+        </View>
+      );
+    }
   };
 
   const renderOption = (groupId: string, optionId: string, group: any) => {
@@ -71,14 +77,20 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
     return (
       <TouchableOpacity
         key={optionId}
-        style={[styles.optionContainer, isSelected && styles.optionSelected, isDisabled && styles.optionDisabled]}
+        style={[
+          styles.optionContainer,
+          isSelected && styles.optionSelected,
+          isDisabled && styles.optionDisabled,
+        ]}
         onPress={() => !isDisabled && onOptionChange(groupId, optionId, option.name)}
         disabled={isDisabled}
       >
         <View style={styles.optionContent}>
           <View style={styles.optionLeft}>
             {renderVegIcon(option.diet_type)}
-            <Text style={[styles.optionName, isDisabled && styles.disabledText]}>{option.name}</Text>
+            <Text style={[styles.optionName, isDisabled && styles.disabledText]}>
+              {option.name}
+            </Text>
           </View>
           <View style={styles.optionRight}>
             <Text style={[styles.optionPrice, isDisabled && styles.disabledText]}>
@@ -86,11 +98,21 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             </Text>
             <View style={styles.selectionIndicator}>
               {isMultiSelect ? (
-                <View style={[styles.checkbox, isSelected && styles.checkboxSelected, isDisabled && styles.checkboxDisabled]}>
-                  {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+                <View style={[
+                  styles.checkbox,
+                  isSelected && styles.checkboxSelected,
+                  isDisabled && styles.checkboxDisabled,
+                ]}>
+                  {isSelected && (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
                 </View>
               ) : (
-                <View style={[styles.radio, isSelected && styles.radioSelected, isDisabled && styles.radioDisabled]}>
+                <View style={[
+                  styles.radio,
+                  isSelected && styles.radioSelected,
+                  isDisabled && styles.radioDisabled,
+                ]}>
                   {isSelected && <View style={styles.radioDot} />}
                 </View>
               )}
@@ -113,10 +135,14 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
         <View style={styles.groupHeader}>
           <View style={styles.groupTitleContainer}>
             <Text style={styles.groupTitle}>
-              {group.name}{isRequired && <Text style={styles.required}> *</Text>}
+              {group.name}
+              {isRequired && <Text style={styles.required}> *</Text>}
             </Text>
             {selectedOptions[groupId]?.length > 0 && (
-              <TouchableOpacity style={styles.clearButton} onPress={() => onClearGroup(groupId)}>
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => onClearGroup(groupId)}
+              >
                 <Text style={styles.clearButtonText}>Clear</Text>
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
@@ -128,19 +154,30 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             </Text>
           )}
         </View>
+
         <View style={styles.optionsContainer}>
-          {group.options.map((optionId: string) => renderOption(groupId, optionId, group))}
+          {group.options.map((optionId: string) =>
+            renderOption(groupId, optionId, group)
+          )}
         </View>
       </View>
     );
   };
 
   const selectedOptionsText = selectedOptions && Object.values(selectedOptions).length
-    ? `Selected: ${Object.values(selectedOptions).flat().map((o) => o.name).join(', ')}`
+    ? `Selected: ${Object.values(selectedOptions)
+      .flat()
+      .map((o) => o.name)
+      .join(', ')}`
     : 'No options selected';
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -148,52 +185,76 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
             <Ionicons name="close" size={24} color="#666" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            {productName && <Text style={styles.productName} numberOfLines={1}>{productName}</Text>}
-            <Text style={styles.headerTitle}>Edit your customizations</Text>
+            {productName && (
+              <Text style={styles.productName} numberOfLines={1}>
+                {productName}
+              </Text>
+            )}
+            <Text style={styles.headerTitle}>Edit customization</Text>
           </View>
         </View>
 
         {/* Content */}
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          {/* Back button */}
           {step > 0 && (
-            <TouchableOpacity style={styles.backButton} onPress={onPrevious} disabled={step === 0}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onPrevious}
+              disabled={step === 0}
+            >
               <Ionicons name="chevron-back" size={20} color="#f14343" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
+
+          {/* Groups */}
           {currentGroupIds.map(renderGroup)}
+
+          {/* Continue button */}
           {hasChildGroups && (
             <TouchableOpacity
-              style={[styles.continueButton, isNextDisabled() && styles.continueButtonDisabled]}
+              style={[
+                styles.continueButton,
+                isNextDisabled() && styles.continueButtonDisabled,
+              ]}
               onPress={onNext}
               disabled={isNextDisabled()}
             >
-              <Text style={[styles.continueButtonText, isNextDisabled() && styles.continueButtonTextDisabled]}>
+              <Text style={[
+                styles.continueButtonText,
+                isNextDisabled() && styles.continueButtonTextDisabled,
+              ]}>
                 Continue
               </Text>
-              <Ionicons name="chevron-forward" size={20} color={isNextDisabled() ? "#999" : "#fff"} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={isNextDisabled() ? "#999" : "#fff"}
+              />
             </TouchableOpacity>
           )}
         </ScrollView>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.selectedText} numberOfLines={2}>{selectedOptionsText}</Text>
-          <Text style={styles.totalPrice}>Total: ₹{totalPrice.toFixed(2)}</Text> {/* ✅ live total price */}
-          
+          <Text style={styles.selectedText} numberOfLines={2}>
+            {selectedOptionsText}
+          </Text>
+
           {showUpdateButton && (
             <TouchableOpacity
-              style={[styles.updateCartButton, isNextDisabled() && styles.updateCartButtonDisabled]}
-              onPress={onUpdateCart}
+              style={[
+                styles.addToCartButton,
+                isNextDisabled() && styles.addToCartButtonDisabled,
+              ]}
+              onPress={onUpdateCustomizations}
               disabled={isNextDisabled() || updating}
             >
               {updating ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#fff" />
-                  <Text style={styles.loadingText}>Updating...</Text>
-                </View>
+                <Loader/>
               ) : (
-                <Text style={styles.updateCartButtonText}>Update Cart</Text>
+                <Text style={styles.addToCartButtonText}>Update Customization</Text>
               )}
             </TouchableOpacity>
           )}
@@ -203,6 +264,4 @@ const WrapperSheetForCart: React.FC<WrapperSheetForCartProps> = ({
   );
 };
 
-
-
-export default WrapperSheetForCart;
+export default EditCustomizationSheet;

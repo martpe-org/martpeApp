@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   CartItemType,
@@ -23,12 +23,12 @@ const CartCard: React.FC<CartCardProps> = ({
   items,
   onCartChange,
 }) => {
-  const { updateCartOffer, clearCartOffer, appliedOffers } = useCartStore();
-
+  const { updateCartOffer, clearCartOffer, appliedOffers, syncCartFromApi } = useCartStore();
   const [validItems, setValidItems] = useState<CartItemType[]>([]);
   const [appliedOfferId, setAppliedOfferId] = useState<string>("");
   const [offersOpen, setOffersOpen] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(true);
+  const [localItems, setLocalItems] = useState<CartItemType[]>([]);
 
   // Restore previously applied offer (if any) for this cart
   useEffect(() => {
@@ -36,32 +36,50 @@ const CartCard: React.FC<CartCardProps> = ({
     if (existing) setAppliedOfferId(existing);
   }, [id, appliedOffers]);
 
-  // Filter items with valid IDs
+  // Filter items with valid IDs and sync local state
   useEffect(() => {
     const filtered = items?.filter((item) => item && item._id) || [];
     setValidItems(filtered);
+    setLocalItems(filtered);
   }, [items]);
 
-  // ✅ Only available items (instock) will be used for totals/checkout
-  const availableItems = validItems.filter((item) => item.product?.instock);
+  // Handle real-time cart updates
+  const handleCartChange = async () => {
+    onCartChange?.();
+    // Small delay to allow for state updates, then sync prices
+    setTimeout(async () => {
+      const { userDetails } = await import("../../hook/useUserDetails");
+      const authToken = userDetails?.()?.userDetails?.accessToken;
+      if (authToken) {
+        await syncCartFromApi(authToken);
+      }
+    }, 300);
+  };
 
-const cartSubtotal = availableItems.reduce((sum, item) => {
-  const price = Number(item.total_price ?? item.product.price?.value ?? 0);
-  const qty = Number(item.qty ?? 1);
-  if (isNaN(price) || isNaN(qty)) {
-    console.warn("Invalid price or quantity for item:", item);
-    return sum;
-  }
-  return sum + price * qty;
-}, 0);
+  // Only available items (instock) will be used for totals/checkout
+  const availableItems = useMemo(
+    () => localItems.filter((item) => item.product?.instock),
+    [localItems]
+  );
 
-  const offer = store?.offers?.find((o) => o.offer_id === appliedOfferId);
+  // Calculate subtotal using the most up-to-date prices
+  const cartSubtotal = useMemo(() => {
+    return availableItems.reduce((sum, item) => {
+      // Use total_price if available, otherwise calculate from unit_price * qty
+      const itemTotal = item.total_price || (item.unit_price * (item.qty || 1));
+      return sum + itemTotal;
+    }, 0);
+  }, [availableItems]);
 
-  const qualifierMin = Number(offer?.qualifier?.min_value ?? 0);
-  const meetsMin = cartSubtotal >= qualifierMin;
+  // Calculate discount
+  const computedDiscount = useMemo(() => {
+    if (!appliedOfferId) return 0;
+    const offer = store?.offers?.find((o) => o.offer_id === appliedOfferId);
+    if (!offer) return 0;
 
-  let computedDiscount = 0;
-  if (offer && meetsMin) {
+    const qualifierMin = Number(offer?.qualifier?.min_value ?? 0);
+    if (cartSubtotal < qualifierMin) return 0;
+
     const valueType = offer?.benefit?.value_type;
     const rawPercent = Number(
       (offer as any)?.benefit?.value ?? (offer as any)?.benefit?.percent ?? 0
@@ -69,43 +87,64 @@ const cartSubtotal = availableItems.reduce((sum, item) => {
     const rawFlat = Number(
       (offer as any)?.benefit?.value ?? (offer as any)?.benefit?.value_cap ?? 0
     );
-    if (valueType === "percentage") {
-      const cap = Number(
-        (offer as any)?.benefit?.value_cap ?? Number.POSITIVE_INFINITY
-      );
-      const pctDiscount = (cartSubtotal * rawPercent) / 100;
-      computedDiscount = Math.min(
-        pctDiscount,
-        Number.isFinite(cap) ? cap : pctDiscount
-      );
-    } else {
-      computedDiscount = rawFlat;
-    }
-  }
 
-  const discount = Math.max(0, Math.min(computedDiscount, cartSubtotal));
+    if (valueType === "percentage") {
+      const cap = Number((offer as any)?.benefit?.value_cap ?? Infinity);
+      return Math.min((cartSubtotal * rawPercent) / 100, cap);
+    } else {
+      return rawFlat;
+    }
+  }, [appliedOfferId, cartSubtotal, store?.offers]);
+
+  const discount = Math.min(computedDiscount, cartSubtotal);
   const cartTotal = Math.max(0, cartSubtotal - discount);
 
-useEffect(() => {
-  const existing = appliedOffers[id];
+  // Sync offer selection to store (only if values actually changed)
+  const prevOfferRef = useRef<{ appliedOfferId: string; discount: number; cartTotal: number }>({
+    appliedOfferId: "",
+    discount: 0,
+    cartTotal: 0,
+  });
 
-  // Only update if appliedOfferId changed or totals changed
-  const shouldUpdate =
-    appliedOfferId &&
-    (!existing ||
-      existing.offerId !== appliedOfferId ||
-      existing.discount !== discount ||
-      existing.total !== cartSubtotal);
+  useEffect(() => {
+    const prev = prevOfferRef.current;
 
-  if (shouldUpdate) {
-    updateCartOffer(id, appliedOfferId, discount, cartSubtotal);
-  } else if (!appliedOfferId && existing) {
-    clearCartOffer(id);
-  }
-  // removed appliedOffers from dependencies to avoid loop
-}, [appliedOfferId, discount, cartSubtotal, id]);
+    if (
+      appliedOfferId !== prev.appliedOfferId ||
+      Math.abs(discount - prev.discount) > 0.01 ||
+      Math.abs(cartTotal - prev.cartTotal) > 0.01
+    ) {
+      if (appliedOfferId) {
+        updateCartOffer(id, appliedOfferId, discount, cartTotal);
+      } else {
+        clearCartOffer(id);
+      }
 
+      prevOfferRef.current = { appliedOfferId, discount, cartTotal };
+    }
+  }, [appliedOfferId, discount, cartTotal, id, updateCartOffer, clearCartOffer]);
 
+  // Handle item quantity changes with optimistic updates
+  const handleItemChange = (itemId: string, newQty: number) => {
+    // Optimistic local update
+    setLocalItems(prev => 
+      prev.map(item => {
+        if (item._id === itemId) {
+          const updatedItem = { 
+            ...item, 
+            qty: newQty,
+            total_price: (item.unit_price || 0) * newQty,
+            total_max_price: (item.unit_max_price || item.unit_price || 0) * newQty
+          };
+          return updatedItem;
+        }
+        return item;
+      }).filter(item => item.qty > 0) // Remove items with qty 0
+    );
+    
+    // Trigger the actual cart update
+    handleCartChange();
+  };
 
   // Early return if invalid data
   if (!id || !store?._id) return null;
@@ -119,11 +158,11 @@ useEffect(() => {
       _id: item._id,
       qty: item.qty,
       unit_price: item.unit_price,
-      total_price: item.total_price,
+      total_price: item.total_price || (item.unit_price * item.qty),
       store_id: item.store_id,
       product: item.product,
     })),
-    cart_items: validItems, // keep all items for UI display
+    cart_items: localItems, // keep all items for UI display
     cartItemsCount: availableItems.length,
     cartTotalPrice: cartTotal,
     updatedAt: new Date().toISOString(),
@@ -138,8 +177,8 @@ useEffect(() => {
       {/* Store Header */}
       <CartStoreHeader
         store={store}
-        validItems={validItems}
-        onCartChange={onCartChange}
+        validItems={localItems}
+        onCartChange={handleCartChange}
         onStoreStatusChange={handleStoreStatusChange}
       />
 
@@ -149,9 +188,10 @@ useEffect(() => {
           cartId={id}
           storeId={store._id}
           storeSlug={store.slug}
-          items={validItems} // show all items, including unavailable
+          items={localItems} // show all items, including unavailable
           isStoreOpen={isStoreOpen}
-          onCartChange={onCartChange}
+          onCartChange={handleCartChange}
+          onItemChange={handleItemChange}
         />
       ) : (
         <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
@@ -162,7 +202,14 @@ useEffect(() => {
         <View style={styles.offersContainer}>
           <CartOfferBtn
             appliedOfferId={appliedOfferId}
-            applyOffer={setAppliedOfferId}
+            applyOffer={(offerId) => {
+              setAppliedOfferId(offerId);
+              if (offerId) {
+                updateCartOffer(id, offerId, discount, cartTotal);
+              } else {
+                clearCartOffer(id);
+              }
+            }}
             cart={cartWithOffers}
             offersOpen={offersOpen}
             setOffersOpen={setOffersOpen}
@@ -172,6 +219,10 @@ useEffect(() => {
 
       {/* Totals */}
       <View style={styles.totalsContainer}>
+        <View style={styles.subtotalRow}>
+          <Text style={styles.subtotalLabel}>Subtotal</Text>
+          <Text style={styles.subtotalAmount}>₹{cartSubtotal.toFixed(2)}</Text>
+        </View>
         {!!discount && (
           <View style={styles.discountRow}>
             <Text style={styles.discountLabel}>
@@ -211,11 +262,28 @@ const styles = StyleSheet.create({
   },
   totalsContainer: {
     marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  subtotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  subtotalLabel: {
+    fontSize: 14,
+    color: "#4A5568",
+  },
+  subtotalAmount: {
+    fontSize: 14,
+    color: "#4A5568",
+    fontWeight: "500",
   },
   discountRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
+    marginBottom: 4,
   },
   discountLabel: {
     fontSize: 14,
@@ -228,15 +296,20 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 6,
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
   },
   totalLabel: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A202C",
   },
   totalAmount: {
     fontSize: 16,
     fontWeight: "700",
+    color: "#2F855A",
   },
 });
 

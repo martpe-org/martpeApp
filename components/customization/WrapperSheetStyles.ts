@@ -219,7 +219,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   addToCartButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: 'red',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',

@@ -1,92 +1,67 @@
 import { FlashList } from "@shopify/flash-list";
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import useUserDetails from "../../hook/useUserDetails";
 import Loader from "../common/Loader";
 import CartItemRenderer from "./CartItemRenderer";
 import CartCheckoutButton from "./CartCheckoutButton";
-
-// ✅ Safe number conversion helper
-const toNumber = (v: any): number => {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string") {
-    const parsed = Number(v);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  if (v && typeof v === "object") {
-    if ("value" in v) return toNumber((v as any).value);
-    if ("amount" in v) return toNumber((v as any).amount);
-  }
-  return 0;
-};
+import { useCartStore } from "../../state/useCartStore";
 
 interface CartItemsProps {
   cartId: string;
   storeSlug: string;
   storeId: string;
-  items: CartItemType[];
   isStoreOpen?: boolean;
   onCartChange?: () => void;
+  onItemChange?: (itemId: string, newQty: number) => void;
 }
 
 const CartItems: React.FC<CartItemsProps> = ({
   cartId,
   storeId,
   storeSlug,
-  items,
   isStoreOpen = true,
   onCartChange,
+  onItemChange,
 }) => {
   const { isLoading: userLoading } = useUserDetails();
-  const [localItems, setLocalItems] = useState<CartItemType[]>([]);
 
-  // Keep local state in sync when parent items change
-  useEffect(() => {
-    if (items?.length) {
-      setLocalItems(items);
-    }
-  }, [items]);
+  // 🔑 Directly pull items from Zustand
+  const cart = useCartStore((state) => state.getCartByStoreId(storeId));
+  const items = cart?.cart_items || [];
 
   const handleQtyChange = (itemId: string, newQty: number) => {
-    // Optimistic local state update
-    setLocalItems((prev) =>
-      prev.map((p) =>
-        p._id === itemId
-          ? {
-              ...p,
-              qty: newQty,
-              total_price:
-                toNumber(p.unit_price ?? p.product?.price) * newQty,
-            }
-          : p
-      )
-    );
+    // Notify parent components if needed
     onCartChange?.();
+    onItemChange?.(itemId, newQty);
   };
 
   const renderCartItem = ({ item }: { item: CartItemType }) => (
     <CartItemRenderer item={item} onQtyChange={handleQtyChange} />
   );
 
-  // ✅ Calculate totals safely, using total_price if available
-  const { totalCost, totalItems } = useMemo(() => {
-    if (!localItems?.length) return { totalCost: 0, totalItems: 0 };
+  // Calculate totals from Zustand state
+  const { totalItems, totalCost } = useMemo(() => {
+    if (!items?.length) return { totalCost: 0, totalItems: 0 };
 
-    return localItems.reduce(
+    return items.reduce(
       (acc, item) => {
-        const qty = Math.max(1, toNumber(item.qty));
-        const unitPrice = toNumber(
-          item.total_price !== undefined ? item.total_price / qty : item.unit_price ?? item.product?.price
-        );
-        const itemTotal = unitPrice * qty;
+        const qty = item.qty || 1;
+        const itemTotal = item.total_price || (item.unit_price || 0) * qty;
         acc.totalCost += itemTotal;
         acc.totalItems += qty;
         return acc;
       },
       { totalCost: 0, totalItems: 0 }
     );
-  }, [localItems]);
+  }, [items]);
+
+  // Only show available items for checkout
+  const availableItems = useMemo(
+    () => items.filter((item) => item.product?.instock),
+    [items]
+  );
 
   if (userLoading) {
     return (
@@ -97,7 +72,7 @@ const CartItems: React.FC<CartItemsProps> = ({
     );
   }
 
-  if (!localItems?.length) {
+  if (!items?.length) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyText}>Your cart is empty</Text>
@@ -109,27 +84,32 @@ const CartItems: React.FC<CartItemsProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Text style={styles.header}>
-        Items ({localItems.length}, {totalItems} total)
-      </Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>
+          Items ({items.length}, {totalItems} total)
+        </Text>
+        <Text style={styles.headerSubtext}>
+          Total: ₹{totalCost.toFixed(2)}
+        </Text>
+      </View>
 
       {/* Items List */}
       <FlashList
-        data={localItems}
+        data={items}
         renderItem={renderCartItem}
         keyExtractor={(item) => item._id || `item-${Math.random()}`}
-        estimatedItemSize={100}
+        estimatedItemSize={120}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
+        extraData={[items.length, totalItems, totalCost]}
       />
 
       {/* Checkout Button */}
       <CartCheckoutButton
         cartId={cartId}
         storeId={storeId}
-        items={localItems} // 🔄 pass ALL items
+        items={availableItems} // Only pass available items for checkout
         isStoreOpen={isStoreOpen}
-        cartTotal={totalCost} // pass the updated total
       />
     </View>
   );
@@ -166,11 +146,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    margin: 16,
+    marginBottom: 8,
+  },
   header: {
     fontSize: 16,
     fontWeight: "bold",
-    margin: 16,
     color: "#1A202C",
+  },
+  headerSubtext: {
+    fontSize: 14,
+    color: "#4A5568",
+    fontWeight: "600",
   },
   listContainer: {
     paddingHorizontal: 8,

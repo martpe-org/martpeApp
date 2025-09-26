@@ -1,12 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useToast } from 'react-native-toast-notifications';
 import useUserDetails from '../../hook/useUserDetails';
-import { useCartStore } from '../../state/useCartStore';
 import Loader from '../common/Loader';
 import { fetchProductCustomizations } from './fetch-product-customizations';
 import WrapperSheet from './WrapperSheet';
@@ -16,10 +11,10 @@ interface CustomizationGroupProps {
   storeId: string;
   catalogId: string;
   productPrice: number;
-  directlyLinkedCustomGroupIds: string[];
+  directlyLinkedCustomGroupIds?: string[];
   visible: boolean;
   onClose: () => void;
-  onAddSuccess: () => void;
+  onAddSuccess: (customizations: any[]) => void; // ✅ now passes customizations back
   productName?: string;
 }
 
@@ -36,7 +31,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   storeId,
   catalogId,
   productPrice,
-  directlyLinkedCustomGroupIds,
+  directlyLinkedCustomGroupIds = [],
   visible,
   onClose,
   onAddSuccess,
@@ -46,15 +41,12 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsType>({});
-  const [history, setHistory] = useState<{
-    groups: string[];
-    selectedOptions: SelectedOptionsType;
-  }[]>([{ groups: directlyLinkedCustomGroupIds, selectedOptions: {} }]);
+  const [history, setHistory] = useState<{ groups: string[]; selectedOptions: SelectedOptionsType; }[]>([
+    { groups: directlyLinkedCustomGroupIds, selectedOptions: {} },
+  ]);
   const [step, setStep] = useState(0);
-  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds);
+  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds || []);
 
-  const { addItem } = useCartStore();
-  const { userDetails } = useUserDetails();
   const toast = useToast();
 
   useEffect(() => {
@@ -106,7 +98,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       if (!currentGroup) return;
 
       if (Number(currentGroup.config.max) > 1) {
-        // Multi-select logic
         setSelectedOptions((prev) => ({
           ...prev,
           [groupId]: prev[groupId]
@@ -116,7 +107,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
             : [{ groupId, optionId, name }],
         }));
       } else {
-        // Single-select logic
         setSelectedOptions((prev) => ({
           ...prev,
           [groupId]: [{ groupId, optionId, name }],
@@ -138,7 +128,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   const handleNext = () => {
     if (!customizationData) return;
 
-    // Get all child group IDs from selected options
     const childGroupIds = new Set<string>();
     currentGroupIds.forEach((groupId) => {
       const selectedGroupOptions = selectedOptions[groupId] || [];
@@ -154,7 +143,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       const newGroupIds = Array.from(childGroupIds);
       setCurrentGroupIds(newGroupIds);
 
-      // Set default options for new groups
       const groupIdDefaultOptionMap: SelectedOptionsType = {};
       newGroupIds.forEach((gid) => {
         const group = customizationData[`cg_${gid}`];
@@ -177,32 +165,23 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
         }));
       }
 
-      setHistory((prev) => [
-        ...prev,
-        { groups: newGroupIds, selectedOptions: { ...selectedOptions } },
-      ]);
+      setHistory((prev) => [...prev, { groups: newGroupIds, selectedOptions: { ...selectedOptions } }]);
       setStep((prevStep) => prevStep + 1);
     }
   };
 
   const isNextDisabled = useCallback(() => {
     if (!customizationData) return true;
-
     return currentGroupIds.some((groupId) => {
       const group = customizationData[`cg_${groupId}`];
       if (!group) return true;
-
       const selectedCount = selectedOptions[groupId]?.length || 0;
       return selectedCount < Number(group.config.min);
     });
   }, [customizationData, currentGroupIds, selectedOptions]);
 
-  const handleAddToCart = async () => {
-    if (!userDetails?.accessToken) {
-      toast.show('Please login to continue', { type: 'danger' });
-      return;
-    }
-
+  // ✅ Now only returns customizations, not adding item
+  const handleAddToCart = () => {
     try {
       setAdding(true);
       const cartPayload = Object.entries(selectedOptions).flatMap(([groupId, options]) =>
@@ -213,25 +192,11 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
         }))
       );
 
-      const success = await addItem(
-        storeId,
-        productSlug,
-        catalogId,
-        1,
-        true,
-        cartPayload,
-        userDetails.accessToken
-      );
-
-      if (success) {
-        onAddSuccess();
-        onClose();
-      } else {
-        toast.show('Failed to add item to cart', { type: 'danger' });
-      }
+      onAddSuccess(cartPayload);
+      onClose();
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.show('Error adding to cart', { type: 'danger' });
+      console.error('Error preparing customizations:', error);
+      toast.show('Error preparing customizations', { type: 'danger' });
     } finally {
       setAdding(false);
     }
@@ -245,9 +210,9 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
     });
   };
 
-  const hasChildGroups = currentGroupIds.some((groupId) => {
+  const hasChildGroups = (currentGroupIds || []).some((groupId) => {
     const group = customizationData?.[`cg_${groupId}`];
-    if (!group) return false;
+    if (!group || !Array.isArray(group.options)) return false;
 
     return group.options.some((optionId: string) => {
       const option = group[`ci_${optionId}`];
@@ -257,20 +222,8 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
 
   const showAddButton = !hasChildGroups || (step !== 0 && step === history.length - 1);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Loader />
-        <Text style={styles.loadingText}>Loading customizations...</Text>
-      </View>
-    );
-  }
-
-  if (!customizationData) {
-    return (
-      <View></View>
-    );
-  }
+  if (loading) return <Loader />;
+  if (!customizationData) return <View />;
 
   return (
     <WrapperSheet
@@ -295,17 +248,6 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

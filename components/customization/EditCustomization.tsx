@@ -1,23 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useToast } from 'react-native-toast-notifications';
-import { fetchProductCustomizations } from '../customization/fetch-product-customizations';
+import useUserDetails from '../../hook/useUserDetails';
+import { useCartStore } from '../../state/useCartStore';
 import Loader from '../common/Loader';
-import WrapperSheetForCart from './WrapperSheetForCart';
+import { fetchProductCustomizations } from './fetch-product-customizations';
 import { updateCartItemCustomizationsAction } from './updateCustomizations';
+import EditCustomizationSheet from './EditCustomizationSheet';
 
-interface CustomizationGroupForCartProps {
+
+interface EditCustomizationProps {
   cartItemId: string;
   productSlug: string;
   storeId: string;
   catalogId: string;
   productPrice: number;
-  directlyLinkedCustomGroupIds: string[];
-  existingCustomizations?: any[];
+  currentQty: number;
+  directlyLinkedCustomGroupIds?: string[];
   visible: boolean;
   onClose: () => void;
   onUpdateSuccess: () => void;
   productName?: string;
+  existingCustomizations?: any[];
 }
 
 export type SelectedOptionsType = {
@@ -28,75 +36,107 @@ export type SelectedOptionsType = {
   }[];
 };
 
-const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
+const EditCustomization: React.FC<EditCustomizationProps> = ({
   cartItemId,
   productSlug,
   storeId,
   catalogId,
   productPrice,
-  directlyLinkedCustomGroupIds,
-  existingCustomizations = [],
+  currentQty,
+  directlyLinkedCustomGroupIds = [],
   visible,
   onClose,
   onUpdateSuccess,
   productName,
+  existingCustomizations = [],
 }) => {
   const [customizationData, setCustomizationData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsType>({});
-  const [history, setHistory] = useState<{ groups: string[]; selectedOptions: SelectedOptionsType }[]>([
-    { groups: directlyLinkedCustomGroupIds, selectedOptions: {} },
-  ]);
+  const [history, setHistory] = useState<{
+    groups: string[];
+    selectedOptions: SelectedOptionsType;
+  }[]>([{ groups: directlyLinkedCustomGroupIds, selectedOptions: {} }]);
   const [step, setStep] = useState(0);
-  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds);
+  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds || []);
 
+  const { syncCartFromApi } = useCartStore();
+  const { userDetails } = useUserDetails();
   const toast = useToast();
 
-  // Convert existing customizations to selectedOptions format
-  const convertExistingCustomizations = useCallback((customizations: any[]) => {
-    const converted: SelectedOptionsType = {};
-    customizations.forEach((customization) => {
-      if (customization.groupId && customization.optionId && customization.name) {
-        const groupId = customization.groupId.replace('cg_', '');
-        if (!converted[groupId]) converted[groupId] = [];
-        converted[groupId].push({
-          groupId,
-          optionId: customization.optionId.replace('ci_', ''),
-          name: customization.name,
-        });
+  // Load existing customizations into selected options format
+  const loadExistingCustomizations = useCallback((data: Record<string, any>) => {
+    if (!existingCustomizations?.length) return;
+
+    const existingOptions: SelectedOptionsType = {};
+    
+    existingCustomizations.forEach((customization) => {
+      // Extract group ID and option ID from the customization
+      const groupId = customization.groupId?.replace('cg_', '') || '';
+      const optionId = customization.optionId?.replace('ci_', '') || '';
+      
+      if (groupId && optionId) {
+        const group = data[`cg_${groupId}`];
+        if (group) {
+          const option = group[`ci_${optionId}`];
+          if (option) {
+            if (!existingOptions[groupId]) {
+              existingOptions[groupId] = [];
+            }
+            existingOptions[groupId].push({
+              groupId,
+              optionId,
+              name: option.name || customization.name,
+            });
+          }
+        }
       }
     });
-    return converted;
-  }, []);
 
-  // Fetch customizations
+    if (Object.keys(existingOptions).length > 0) {
+      setSelectedOptions(existingOptions);
+    }
+  }, [existingCustomizations]);
+
   useEffect(() => {
     const fetchCustomizations = async () => {
       if (!visible || !productSlug) return;
+
       try {
         setLoading(true);
         const data = await fetchProductCustomizations(productSlug);
+
         if (data) {
           setCustomizationData(data);
 
-          if (existingCustomizations.length > 0) {
-            setSelectedOptions(convertExistingCustomizations(existingCustomizations));
-          } else {
-            // Set default options if no existing
-            const groupIdDefaultOptionMap: SelectedOptionsType = {};
-            directlyLinkedCustomGroupIds.forEach((gid) => {
-              const group = data[`cg_${gid}`];
-              if (group) {
-                group.options.forEach((optionId: string) => {
-                  const option = group[`ci_${optionId}`];
-                  if (option.isDefaultOption) {
-                    groupIdDefaultOptionMap[gid] = [{ groupId: gid, optionId, name: option.name }];
-                  }
-                });
-              }
-            });
-            if (Object.keys(groupIdDefaultOptionMap).length > 0) setSelectedOptions(groupIdDefaultOptionMap);
+          // Load existing customizations first
+          loadExistingCustomizations(data);
+
+          // Then set default options for any missing groups
+          const groupIdDefaultOptionMap: SelectedOptionsType = {};
+          directlyLinkedCustomGroupIds.forEach((gid) => {
+            // Skip if we already have selections for this group from existing customizations
+            if (selectedOptions[gid]?.length > 0) return;
+
+            const group = data[`cg_${gid}`];
+            if (group) {
+              group.options.forEach((optionId: string) => {
+                const option = group[`ci_${optionId}`];
+                if (option.isDefaultOption) {
+                  groupIdDefaultOptionMap[gid] = [
+                    { groupId: gid, optionId, name: option.name },
+                  ];
+                }
+              });
+            }
+          });
+
+          if (Object.keys(groupIdDefaultOptionMap).length > 0) {
+            setSelectedOptions((prev) => ({
+              ...prev,
+              ...groupIdDefaultOptionMap,
+            }));
           }
           setStep(0);
         }
@@ -109,9 +149,8 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
     };
 
     fetchCustomizations();
-  }, [visible, productSlug, existingCustomizations, convertExistingCustomizations, directlyLinkedCustomGroupIds]);
+  }, [visible, productSlug, directlyLinkedCustomGroupIds, loadExistingCustomizations]);
 
-  // Option change handler
   const handleOptionChange = useCallback(
     (groupId: string, optionId: string, name: string) => {
       const currentGroup = customizationData?.[`cg_${groupId}`];
@@ -128,31 +167,37 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
             : [{ groupId, optionId, name }],
         }));
       } else {
-        // Single-select
-        setSelectedOptions((prev) => ({ ...prev, [groupId]: [{ groupId, optionId, name }] }));
+        // Single-select logic
+        setSelectedOptions((prev) => ({
+          ...prev,
+          [groupId]: [{ groupId, optionId, name }],
+        }));
       }
     },
     [customizationData]
   );
 
-  // Previous/Next step
   const handlePrevious = () => {
     if (step > 0) {
       const previousState = history[step - 1];
       setCurrentGroupIds(previousState.groups);
       setSelectedOptions(previousState.selectedOptions);
-      setStep((prev) => prev - 1);
+      setStep((prevStep) => prevStep - 1);
     }
   };
 
   const handleNext = () => {
     if (!customizationData) return;
+
+    // Get all child group IDs from selected options
     const childGroupIds = new Set<string>();
     currentGroupIds.forEach((groupId) => {
       const selectedGroupOptions = selectedOptions[groupId] || [];
       selectedGroupOptions.forEach((option) => {
         const optionData = customizationData[`cg_${groupId}`][`ci_${option.optionId}`];
-        optionData?.child_group_ids?.forEach((id: string) => childGroupIds.add(id));
+        if (optionData?.child_group_ids) {
+          optionData.child_group_ids.forEach((id: string) => childGroupIds.add(id));
+        }
       });
     });
 
@@ -160,53 +205,60 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
       const newGroupIds = Array.from(childGroupIds);
       setCurrentGroupIds(newGroupIds);
 
+      // Set default options for new groups
       const groupIdDefaultOptionMap: SelectedOptionsType = {};
       newGroupIds.forEach((gid) => {
         const group = customizationData[`cg_${gid}`];
         if (group) {
           group.options.forEach((optionId: string) => {
             const option = group[`ci_${optionId}`];
-            if (option.isDefaultOption) groupIdDefaultOptionMap[gid] = [{ groupId: gid, optionId, name: option.name }];
+            if (option.isDefaultOption) {
+              groupIdDefaultOptionMap[gid] = [
+                { groupId: gid, optionId, name: option.name },
+              ];
+            }
           });
         }
       });
+
       if (Object.keys(groupIdDefaultOptionMap).length > 0) {
-        setSelectedOptions((prev) => ({ ...prev, ...groupIdDefaultOptionMap }));
+        setSelectedOptions((prev) => ({
+          ...prev,
+          ...groupIdDefaultOptionMap,
+        }));
       }
 
-      setHistory((prev) => [...prev, { groups: newGroupIds, selectedOptions: { ...selectedOptions } }]);
-      setStep((prev) => prev + 1);
+      setHistory((prev) => [
+        ...prev,
+        { groups: newGroupIds, selectedOptions: { ...selectedOptions } },
+      ]);
+      setStep((prevStep) => prevStep + 1);
     }
   };
 
   const isNextDisabled = useCallback(() => {
     if (!customizationData) return true;
+
     return currentGroupIds.some((groupId) => {
       const group = customizationData[`cg_${groupId}`];
       if (!group) return true;
+
       const selectedCount = selectedOptions[groupId]?.length || 0;
       return selectedCount < Number(group.config.min);
     });
   }, [customizationData, currentGroupIds, selectedOptions]);
 
-  // Total price calculation
-  const calculateTotalPrice = useCallback(() => {
-    if (!customizationData) return productPrice || 0;
-    let total = productPrice || 0;
-    Object.entries(selectedOptions).forEach(([groupId, options]) => {
-      options.forEach((option) => {
-        const optionData = customizationData[`cg_${groupId}`][`ci_${option.optionId}`];
-        if (optionData?.price?.value) total += Number(optionData.price.value);
-      });
-    });
-    return total;
-  }, [selectedOptions, customizationData, productPrice]);
-
-  // Update customizations
   const handleUpdateCustomizations = async () => {
+    if (!userDetails?.accessToken) {
+      toast.show('Please login to continue', { type: 'danger' });
+      return;
+    }
+
     try {
       setUpdating(true);
-      const customizationPayload = Object.entries(selectedOptions).flatMap(([groupId, options]) =>
+      
+      // Format customizations for the API
+      const formattedCustomizations = Object.entries(selectedOptions).flatMap(([groupId, options]) =>
         options.map((option) => ({
           groupId: `cg_${groupId}`,
           optionId: `ci_${option.optionId}`,
@@ -214,18 +266,20 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
         }))
       );
 
-      const result = await updateCartItemCustomizationsAction(
+      const { success } = await updateCartItemCustomizationsAction(
         cartItemId,
-        1,
+        currentQty,
         productSlug,
         productPrice,
-        customizationPayload
+        formattedCustomizations
       );
 
-      if (result.success) {
+      if (success) {
+        // Sync cart data from API to get updated prices
+        await syncCartFromApi(userDetails.accessToken);
+        toast.show('Customizations updated successfully', { type: 'success' });
         onUpdateSuccess();
         onClose();
-        toast.show('Customizations updated successfully', { type: 'success' });
       } else {
         toast.show('Failed to update customizations', { type: 'danger' });
       }
@@ -245,26 +299,31 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
     });
   };
 
-  const hasChildGroups = currentGroupIds.some((groupId) => {
+  const hasChildGroups = (currentGroupIds || []).some((groupId) => {
     const group = customizationData?.[`cg_${groupId}`];
-    return group?.options.some((optionId: string) => group[`ci_${optionId}`]?.child_group_ids?.length > 0);
+    if (!group || !Array.isArray(group.options)) return false;
+
+    return group.options.some((optionId: string) => {
+      const option = group[`ci_${optionId}`];
+      return option?.child_group_ids && option.child_group_ids.length > 0;
+    });
   });
 
   const showUpdateButton = !hasChildGroups || (step !== 0 && step === history.length - 1);
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
         <Loader />
-        <Text style={styles.loadingText}>Loading customizations...</Text>
-      </View>
+  
     );
   }
 
-  if (!customizationData) return <View />;
+  if (!customizationData) {
+    return <View></View>;
+  }
 
   return (
-    <WrapperSheetForCart
+    <EditCustomizationSheet
       visible={visible}
       onClose={onClose}
       productName={productName}
@@ -276,19 +335,13 @@ const CustomizationGroupForCart: React.FC<CustomizationGroupForCartProps> = ({
       onClearGroup={handleClearGroup}
       onPrevious={handlePrevious}
       onNext={handleNext}
-      onUpdateCart={handleUpdateCustomizations}
+      onUpdateCustomizations={handleUpdateCustomizations}
       isNextDisabled={isNextDisabled}
       hasChildGroups={hasChildGroups}
       showUpdateButton={showUpdateButton}
       updating={updating}
-      totalPrice={calculateTotalPrice()} // ✅ pass total price
     />
   );
 };
 
-const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
-});
-
-export default CustomizationGroupForCart;
+export default EditCustomization;

@@ -1,7 +1,6 @@
 import { removeCartItems } from "@/components/Cart/api/removeCartItems";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
@@ -12,6 +11,9 @@ import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
 import CustomizationGroup from "../customization/CustomizationGroup";
+import EditCustomization from "../customization/EditCustomization";
+import { Ionicons } from "@expo/vector-icons";
+import Loader from "../common/Loader";
 
 interface Props {
   cartItemId: string;
@@ -37,9 +39,10 @@ const ChangeQtyButton: React.FC<Props> = ({
   customizable = false,
   customGroupIds = [],
   productPrice,
+  productName,
   onQtyChange,
 }) => {
-  const { updateQty } = useCartStore();
+  const { updateQty, getCartItem } = useCartStore();
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const toast = useToast();
@@ -48,6 +51,10 @@ const ChangeQtyButton: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [repeatDialog, setRepeatDialog] = useState(false);
   const [customizationModal, setCustomizationModal] = useState(false);
+  const [editCustomizationModal, setEditCustomizationModal] = useState(false);
+
+  // Get cart item data from store
+  const cartItem = getCartItem(cartItemId);
 
   useEffect(() => {
     setCount(qty);
@@ -63,76 +70,103 @@ const ChangeQtyButton: React.FC<Props> = ({
     try {
       if (newQty === 0) {
         const success = await removeCartItems([cartItemId], authToken);
-        if (success) {
-          setCount(0);
-          onQtyChange?.(0);
-        } else {
+        if (!success) {
           toast.show("Failed to remove item", { type: "danger" });
         }
       } else {
         const success = await updateQty(cartItemId, newQty, authToken);
-        if (success) {
-          setCount(newQty);
-          onQtyChange?.(newQty);
-        } else {
+        if (!success) {
           toast.show("Failed to update quantity", { type: "danger" });
-          setCount(qty);
         }
       }
     } catch (err) {
       console.error("Error updating qty:", err);
       toast.show("Error updating cart", { type: "danger" });
-      setCount(qty);
     } finally {
       setLoading(false);
     }
   };
 
-  const increment = () => {
-    if (max && count >= max) {
-      toast.show("Max quantity reached", { type: "warning" });
-      return;
-    }
-    if (customizable) {
-      setRepeatDialog(true);
-    } else {
-      handleUpdate(count + 1);
-    }
-  };
+const increment = () => {
+  if (customizable && customGroupIds.length > 0) {
+    setRepeatDialog(true);
+  } else {
+    handleUpdate(count + 1);
+  }
+};
+
 
   const decrement = () => {
     if (count > 1) handleUpdate(count - 1);
     else handleUpdate(0);
   };
 
+  // Repeat previous customization - just increase quantity
   const handleRepeatCustomization = () => {
     setRepeatDialog(false);
     handleUpdate(count + 1);
   };
 
+  // Add new customized item - this will create a new cart item via Zustand
   const handleNewCustomization = () => {
     setRepeatDialog(false);
     setCustomizationModal(true);
   };
 
+  const handleEditCustomization = () => {
+    if (customizable && customGroupIds.length > 0) {
+      setEditCustomizationModal(true);
+    } else {
+      toast.show("This item doesn't have customizable options", {
+        type: "warning",
+      });
+    }
+  };
+
+  // ✅ New customized item → Zustand handles UI refresh
+  const handleCustomizationSuccess = () => {
+    setCustomizationModal(false);
+    toast.show("New customized item added to cart", { type: "success" });
+  };
+
+  // ✅ Edited customization → Zustand updates item
+  const handleEditSuccess = () => {
+    setEditCustomizationModal(false);
+    toast.show("Item customization updated", { type: "success" });
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" color="#f14343" />
+        <Loader />
       </View>
     );
   }
 
   return (
     <>
-      <View style={styles.container}>
-        <TouchableOpacity onPress={decrement} disabled={loading}>
-          <Text style={styles.sign}>-</Text>
-        </TouchableOpacity>
-        <Text style={styles.qty}>{count}</Text>
-        <TouchableOpacity onPress={increment} disabled={loading || !instock}>
-          <Text style={styles.sign}>+</Text>
-        </TouchableOpacity>
+      <View style={styles.mainContainer}>
+        {/* Quantity Controls */}
+        <View style={styles.container}>
+          <TouchableOpacity onPress={decrement} disabled={loading}>
+            <Text style={styles.sign}>-</Text>
+          </TouchableOpacity>
+          <Text style={styles.qty}>{count}</Text>
+          <TouchableOpacity onPress={increment} disabled={loading || !instock}>
+            <Text style={styles.sign}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Edit Customization Button */}
+        {customizable && customGroupIds.length > 0 && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditCustomization}
+          >
+            <Ionicons name="create-outline" size={16} color="#f14343" />
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Repeat Customization Dialog */}
@@ -145,14 +179,18 @@ const ChangeQtyButton: React.FC<Props> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.dialogContainer}>
             <Text style={styles.dialogTitle}>
-              Repeat previous customization?
+              Add another item with customization?
+            </Text>
+            <Text style={styles.dialogSubtitle}>
+              "Repeat" will use the same customizations. "I will choose" will let
+              you create a new customized item.
             </Text>
             <View style={styles.dialogButtons}>
               <TouchableOpacity
                 style={[styles.dialogButton, styles.outlineButton]}
                 onPress={handleNewCustomization}
               >
-                <Text style={styles.outlineButtonText}>Ill choose</Text>
+                <Text style={styles.outlineButtonText}>I will choose</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dialogButton, styles.primaryButton]}
@@ -165,22 +203,40 @@ const ChangeQtyButton: React.FC<Props> = ({
         </View>
       </Modal>
 
-      {/* Customization Modal */}
-      <Modal
-        visible={customizationModal}
-        animationType="slide"
-        onRequestClose={() => setCustomizationModal(false)}
-      >
+      {/* Add New Customization Modal */}
+      {customizationModal && (
         <CustomizationGroup
-          customizable={true}
-          customGroup={customGroupIds}
-          vendorId={storeId || ""}
-          price={productPrice || 0}
-          itemId={catalogId || ""}
-          maxLimit={max || 5}
-          closeFilter={() => setCustomizationModal(false)}
+          productSlug={cartItem?.slug || ""}
+          storeId={storeId || ""}
+          catalogId={catalogId || ""}
+          productPrice={cartItem?.product?.price || productPrice || 0}
+          directlyLinkedCustomGroupIds={customGroupIds}
+          visible={customizationModal}
+          onClose={() => setCustomizationModal(false)}
+          onAddSuccess={handleCustomizationSuccess}
+          productName={productName}
         />
-      </Modal>
+      )}
+
+      {/* Edit Customization Modal */}
+      {editCustomizationModal && cartItem && (
+        <EditCustomization
+          cartItemId={cartItemId}
+          productSlug={cartItem.slug}
+          storeId={storeId || cartItem.store_id}
+          catalogId={catalogId || ""}
+          productPrice={
+            cartItem.product?.price || productPrice || cartItem.unit_price
+          }
+          currentQty={count}
+          directlyLinkedCustomGroupIds={customGroupIds}
+          visible={editCustomizationModal}
+          onClose={() => setEditCustomizationModal(false)}
+          onUpdateSuccess={handleEditSuccess}
+          productName={productName || cartItem.product?.name}
+          existingCustomizations={cartItem.selected_customizations || []}
+        />
+      )}
     </>
   );
 };
@@ -188,6 +244,11 @@ const ChangeQtyButton: React.FC<Props> = ({
 export default ChangeQtyButton;
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8,
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -197,6 +258,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: "#fff",
+    marginTop: 10,
   },
   sign: {
     fontSize: 18,
@@ -209,6 +271,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
     color: "#f14343",
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF2F0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#f14343",
+  },
+  editButtonText: {
+    color: "#f14343",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -226,8 +304,15 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 20,
+    marginBottom: 8,
     textAlign: "center",
+  },
+  dialogSubtitle: {
+    fontSize: 13,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 18,
   },
   dialogButtons: {
     gap: 12,
