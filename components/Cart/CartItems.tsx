@@ -88,9 +88,6 @@ const CartItems: React.FC<CartItemsProps> = ({
         <Text style={styles.header}>
           Items ({items.length}, {totalItems} total)
         </Text>
-        <Text style={styles.headerSubtext}>
-          Total: ₹{totalCost.toFixed(2)}
-        </Text>
       </View>
 
       {/* Items List */}

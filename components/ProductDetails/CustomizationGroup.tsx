@@ -1,19 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+import { useCartStore } from '../../state/useCartStore';
+import useUserDetails from '../../hook/useUserDetails';
 import { useToast } from 'react-native-toast-notifications';
-import Loader from '../common/Loader';
-import { fetchProductCustomizations } from './fetch-product-customizations';
+import { fetchProductCustomizations } from '../customization/fetch-product-customizations';
 import WrapperSheet from './WrapperSheet';
+import Loader from '../common/Loader';
 
 interface CustomizationGroupProps {
   productSlug: string;
   storeId: string;
   catalogId: string;
   productPrice: number;
-  directlyLinkedCustomGroupIds?: string[];
+  directlyLinkedCustomGroupIds: string[];
   visible: boolean;
   onClose: () => void;
-  onAddSuccess: (customizations: any[]) => void; // ✅ now passes customizations back
+  onAddSuccess: () => void;
   productName?: string;
 }
 
@@ -30,7 +36,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   storeId,
   catalogId,
   productPrice,
-  directlyLinkedCustomGroupIds = [],
+  directlyLinkedCustomGroupIds,
   visible,
   onClose,
   onAddSuccess,
@@ -40,12 +46,15 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsType>({});
-  const [history, setHistory] = useState<{ groups: string[]; selectedOptions: SelectedOptionsType; }[]>([
-    { groups: directlyLinkedCustomGroupIds, selectedOptions: {} },
-  ]);
+  const [history, setHistory] = useState<{
+    groups: string[];
+    selectedOptions: SelectedOptionsType;
+  }[]>([{ groups: directlyLinkedCustomGroupIds, selectedOptions: {} }]);
   const [step, setStep] = useState(0);
-  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds || []);
+  const [currentGroupIds, setCurrentGroupIds] = useState<string[]>(directlyLinkedCustomGroupIds);
 
+  const { addItem } = useCartStore();
+  const { userDetails } = useUserDetails();
   const toast = useToast();
 
   useEffect(() => {
@@ -55,10 +64,10 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       try {
         setLoading(true);
         const data = await fetchProductCustomizations(productSlug);
-
+        
         if (data) {
           setCustomizationData(data);
-
+          
           // Set default options
           const groupIdDefaultOptionMap: SelectedOptionsType = {};
           directlyLinkedCustomGroupIds.forEach((gid) => {
@@ -97,6 +106,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       if (!currentGroup) return;
 
       if (Number(currentGroup.config.max) > 1) {
+        // Multi-select logic
         setSelectedOptions((prev) => ({
           ...prev,
           [groupId]: prev[groupId]
@@ -106,6 +116,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
             : [{ groupId, optionId, name }],
         }));
       } else {
+        // Single-select logic
         setSelectedOptions((prev) => ({
           ...prev,
           [groupId]: [{ groupId, optionId, name }],
@@ -127,6 +138,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   const handleNext = () => {
     if (!customizationData) return;
 
+    // Get all child group IDs from selected options
     const childGroupIds = new Set<string>();
     currentGroupIds.forEach((groupId) => {
       const selectedGroupOptions = selectedOptions[groupId] || [];
@@ -142,6 +154,7 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
       const newGroupIds = Array.from(childGroupIds);
       setCurrentGroupIds(newGroupIds);
 
+      // Set default options for new groups
       const groupIdDefaultOptionMap: SelectedOptionsType = {};
       newGroupIds.forEach((gid) => {
         const group = customizationData[`cg_${gid}`];
@@ -164,23 +177,32 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
         }));
       }
 
-      setHistory((prev) => [...prev, { groups: newGroupIds, selectedOptions: { ...selectedOptions } }]);
+      setHistory((prev) => [
+        ...prev,
+        { groups: newGroupIds, selectedOptions: { ...selectedOptions } },
+      ]);
       setStep((prevStep) => prevStep + 1);
     }
   };
 
   const isNextDisabled = useCallback(() => {
     if (!customizationData) return true;
+
     return currentGroupIds.some((groupId) => {
       const group = customizationData[`cg_${groupId}`];
       if (!group) return true;
+
       const selectedCount = selectedOptions[groupId]?.length || 0;
       return selectedCount < Number(group.config.min);
     });
   }, [customizationData, currentGroupIds, selectedOptions]);
 
-  // ✅ Now only returns customizations, not adding item
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!userDetails?.accessToken) {
+      toast.show('Please login to continue', { type: 'danger' });
+      return;
+    }
+
     try {
       setAdding(true);
       const cartPayload = Object.entries(selectedOptions).flatMap(([groupId, options]) =>
@@ -191,11 +213,26 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
         }))
       );
 
-      onAddSuccess(cartPayload);
-      onClose();
+      const success = await addItem(
+        storeId,
+        productSlug,
+        catalogId,
+        1,
+        true,
+        cartPayload,
+        userDetails.accessToken
+      );
+
+      if (success) {
+        toast.show('Item added to cart successfully!', { type: 'success' });
+        onAddSuccess();
+        onClose();
+      } else {
+        toast.show('Failed to add item to cart', { type: 'danger' });
+      }
     } catch (error) {
-      console.error('Error preparing customizations:', error);
-      toast.show('Error preparing customizations', { type: 'danger' });
+      console.error('Error adding to cart:', error);
+      toast.show('Error adding to cart', { type: 'danger' });
     } finally {
       setAdding(false);
     }
@@ -209,9 +246,9 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
     });
   };
 
-  const hasChildGroups = (currentGroupIds || []).some((groupId) => {
+  const hasChildGroups = currentGroupIds.some((groupId) => {
     const group = customizationData?.[`cg_${groupId}`];
-    if (!group || !Array.isArray(group.options)) return false;
+    if (!group) return false;
 
     return group.options.some((optionId: string) => {
       const option = group[`ci_${optionId}`];
@@ -221,8 +258,20 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
 
   const showAddButton = !hasChildGroups || (step !== 0 && step === history.length - 1);
 
-  if (loading) return <Loader />;
-  if (!customizationData) return <View />;
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Loader/>
+        <Text style={styles.loadingText}>Loading customizations...</Text>
+      </View>
+    );
+  }
+
+  if (!customizationData) {
+    return (
+<View></View>
+    );
+  }
 
   return (
     <WrapperSheet
@@ -245,5 +294,43 @@ const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
     />
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#f14343',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 export default CustomizationGroup;

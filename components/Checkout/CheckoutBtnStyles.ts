@@ -15,11 +15,11 @@ export const styles = StyleSheet.create({
 
   // Checkout Button
   checkoutBtn: {
-    backgroundColor: "#00BC66",
+    backgroundColor: "red",
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    shadowColor: "#00BC66",
+    shadowColor: "black",
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,

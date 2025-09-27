@@ -34,15 +34,13 @@ const ChangeQtyButton: React.FC<Props> = ({
   qty,
   catalogId,
   storeId,
-  max,
   instock = true,
   customizable = false,
   customGroupIds = [],
   productPrice,
   productName,
-  onQtyChange,
 }) => {
-  const { updateQty, getCartItem } = useCartStore();
+  const { updateQty, getCartItem, addItem } = useCartStore();
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const toast = useToast();
@@ -87,14 +85,13 @@ const ChangeQtyButton: React.FC<Props> = ({
     }
   };
 
-const increment = () => {
-  if (customizable && customGroupIds.length > 0) {
-    setRepeatDialog(true);
-  } else {
-    handleUpdate(count + 1);
-  }
-};
-
+  const increment = () => {
+    if (customizable && customGroupIds.length > 0) {
+      setRepeatDialog(true);
+    } else {
+      handleUpdate(count + 1);
+    }
+  };
 
   const decrement = () => {
     if (count > 1) handleUpdate(count - 1);
@@ -123,10 +120,43 @@ const increment = () => {
     }
   };
 
-  // ✅ New customized item → Zustand handles UI refresh
-  const handleCustomizationSuccess = () => {
-    setCustomizationModal(false);
-    toast.show("New customized item added to cart", { type: "success" });
+  // ✅ New customized item → Add to cart via addItem
+  const handleCustomizationSuccess = async (customizations: any[]) => {
+    if (!authToken) {
+      toast.show("Please login to continue", { type: "danger" });
+      return;
+    }
+
+    if (!storeId || !cartItem?.slug) {
+      console.error("Missing required data:", { storeId, slug: cartItem?.slug, catalogId });
+      toast.show("Missing required data to add item", { type: "danger" });
+      return;
+    }
+
+    // Use catalogId from props, or fallback to a default if needed
+    const finalCatalogId = catalogId || "default-catalog";
+
+    try {
+      const success = await addItem(
+        storeId,
+        cartItem.slug,
+        finalCatalogId,
+        1, // Always add 1 new item
+        true, // customizable
+        customizations,
+        authToken
+      );
+
+      if (success) {
+        setCustomizationModal(false);
+        toast.show("New customized item added to cart", { type: "success" });
+      } else {
+        toast.show("Failed to add customized item", { type: "danger" });
+      }
+    } catch (error) {
+      console.error("Error adding customized item:", error);
+      toast.show("Error adding customized item", { type: "danger" });
+    }
   };
 
   // ✅ Edited customization → Zustand updates item

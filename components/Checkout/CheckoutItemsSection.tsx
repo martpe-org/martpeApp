@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   itemTotal: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#00BC66",
+    color: "red",
   },
 });
 
