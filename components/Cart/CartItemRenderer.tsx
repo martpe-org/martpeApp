@@ -127,7 +127,7 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
           </View>
 
           <Text style={[styles.total, !isAvailable && styles.unavailablePrice]}>
-            Total (after customization): {formatCurrency(totalPrice)}
+            Total: {formatCurrency(totalPrice)}
           </Text>
         </View>
       </View>

@@ -13,7 +13,7 @@ interface CustomizationGroupProps {
   directlyLinkedCustomGroupIds?: string[];
   visible: boolean;
   onClose: () => void;
-  onAddSuccess: (customizations: any[]) => void; // ✅ now passes customizations back
+  onAddSuccess: (customizations: any[]) => void;
   productName?: string;
 }
 
@@ -27,9 +27,6 @@ export type SelectedOptionsType = {
 
 const CustomizationGroup: React.FC<CustomizationGroupProps> = ({
   productSlug,
-  storeId,
-  catalogId,
-  productPrice,
   directlyLinkedCustomGroupIds = [],
   visible,
   onClose,

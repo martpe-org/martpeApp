@@ -5,6 +5,9 @@ import {
   setAsyncStorageItem,
 } from "../../utility/asyncStorage";
 
+// Optional: simple deepEqual for objects
+const deepEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+
 export interface DeliveryDetails {
   addressId: string;
   city: string;
@@ -30,13 +33,17 @@ const DELIVERY_STORAGE_KEY = "selectedDeliveryAddress";
 const useDeliveryStore = create<DeliveryStore>((set, get) => ({
   selectedDetails: null,
 
-  // Add/Update delivery details and save to AsyncStorage
   addDeliveryDetail: async (details: DeliveryDetails) => {
     try {
-      // Save to AsyncStorage
-      await setAsyncStorageItem(DELIVERY_STORAGE_KEY, JSON.stringify(details));
+      const prev = get().selectedDetails;
 
-      // Update Zustand store
+      // ✅ Prevent unnecessary writes if nothing changed
+      if (prev && deepEqual(prev, details)) {
+        console.log("Delivery details unchanged, skipping save");
+        return;
+      }
+
+      await setAsyncStorageItem(DELIVERY_STORAGE_KEY, JSON.stringify(details));
       set({ selectedDetails: details });
 
       console.log("Delivery details saved to AsyncStorage:", details);
@@ -45,32 +52,30 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
     }
   },
 
-  // Remove delivery details from both store and AsyncStorage
   removeDeliveryDetail: async () => {
     try {
       await removeAsyncStorageItem(DELIVERY_STORAGE_KEY);
       set({ selectedDetails: null });
       console.log("Delivery details removed from AsyncStorage");
     } catch (error) {
-      console.error(
-        "Error removing delivery details from AsyncStorage:",
-        error
-      );
+      console.error("Error removing delivery details from AsyncStorage:", error);
     }
   },
 
-  // Load delivery details from AsyncStorage
   loadDeliveryDetails: async () => {
     try {
       const storedDetails = await getAsyncStorageItem(DELIVERY_STORAGE_KEY);
 
       if (storedDetails && typeof storedDetails === "string") {
         const parsedDetails = JSON.parse(storedDetails) as DeliveryDetails;
-        set({ selectedDetails: parsedDetails });
-        console.log(
-          "Delivery details loaded from AsyncStorage:",
-          parsedDetails
-        );
+
+        const prev = get().selectedDetails;
+        if (!deepEqual(prev, parsedDetails)) {
+          set({ selectedDetails: parsedDetails });
+          console.log("Delivery details loaded from AsyncStorage:", parsedDetails);
+        } else {
+          console.log("Delivery details unchanged, skipping update");
+        }
       } else {
         console.log("No delivery details found in AsyncStorage");
         set({ selectedDetails: null });
@@ -81,7 +86,6 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
     }
   },
 
-  // Clear delivery details (same as remove but different semantic meaning)
   clearDeliveryDetails: async () => {
     const { removeDeliveryDetail } = get();
     await removeDeliveryDetail();

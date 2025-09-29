@@ -3,7 +3,7 @@ import { FetchHomeType } from "./fetch-home-type";
 export const fetchHome = async (lat: number, lon: number, pincode: string) => {
   try {
     const res = await fetch(
-      `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/v1/home?lat=${lat}&lon=${lon}&pincode=${pincode}`,
+      `${process.env.EXPO_PUBLIC_API_URL}/home?lat=${lat}&lon=${lon}&pincode=${pincode}`,
       {
         method: "GET",
         headers: {

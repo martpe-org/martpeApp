@@ -3,7 +3,6 @@ import { OrdersListWrapper } from "@/components/order-comp/OrdersListWrapper";
 import { fetchOrderList } from "@/components/order/fetch-orders-list";
 import { FetchOrdersListItemType } from "@/components/order/fetch-orders-list-type";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import useUserDetails from "@/hook/useUserDetails"; // ✅ use existing hook
 
 export default function OrdersScreen() {
   const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>(
@@ -24,11 +24,12 @@ export default function OrdersScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+  const { userDetails } = useUserDetails(); // ✅ get auth details
+  const authToken = userDetails?.accessToken;
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const authToken = await AsyncStorage.getItem("auth-token");
         if (!authToken) {
           setError("Authentication required. Please log in again.");
           setLoading(false);
@@ -49,7 +50,7 @@ export default function OrdersScreen() {
     };
 
     loadOrders();
-  }, []);
+  }, [authToken]);
 
   if (loading) {
     return (

@@ -1,19 +1,16 @@
-import { removeCartItems } from "@/components/Cart/api/removeCartItems";
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useToast } from "react-native-toast-notifications";
+
+import { removeCartItems } from "@/components/Cart/api/removeCartItems";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
+import Loader from "../common/Loader";
 import CustomizationGroup from "../customization/CustomizationGroup";
 import EditCustomization from "../customization/EditCustomization";
-import { Ionicons } from "@expo/vector-icons";
-import Loader from "../common/Loader";
+import RepeatCustomizationDialog from "../customization/RepeatCustomizationDialog";
+
 
 interface Props {
   cartItemId: string;
@@ -51,7 +48,6 @@ const ChangeQtyButton: React.FC<Props> = ({
   const [customizationModal, setCustomizationModal] = useState(false);
   const [editCustomizationModal, setEditCustomizationModal] = useState(false);
 
-  // Get cart item data from store
   const cartItem = getCartItem(cartItemId);
 
   useEffect(() => {
@@ -68,14 +64,10 @@ const ChangeQtyButton: React.FC<Props> = ({
     try {
       if (newQty === 0) {
         const success = await removeCartItems([cartItemId], authToken);
-        if (!success) {
-          toast.show("Failed to remove item", { type: "danger" });
-        }
+        if (!success) toast.show("Failed to remove item", { type: "danger" });
       } else {
         const success = await updateQty(cartItemId, newQty, authToken);
-        if (!success) {
-          toast.show("Failed to update quantity", { type: "danger" });
-        }
+        if (!success) toast.show("Failed to update quantity", { type: "danger" });
       }
     } catch (err) {
       console.error("Error updating qty:", err);
@@ -86,11 +78,8 @@ const ChangeQtyButton: React.FC<Props> = ({
   };
 
   const increment = () => {
-    if (customizable && customGroupIds.length > 0) {
-      setRepeatDialog(true);
-    } else {
-      handleUpdate(count + 1);
-    }
+    if (customizable && customGroupIds.length > 0) setRepeatDialog(true);
+    else handleUpdate(count + 1);
   };
 
   const decrement = () => {
@@ -98,13 +87,11 @@ const ChangeQtyButton: React.FC<Props> = ({
     else handleUpdate(0);
   };
 
-  // Repeat previous customization - just increase quantity
   const handleRepeatCustomization = () => {
     setRepeatDialog(false);
     handleUpdate(count + 1);
   };
 
-  // Add new customized item - this will create a new cart item via Zustand
   const handleNewCustomization = () => {
     setRepeatDialog(false);
     setCustomizationModal(true);
@@ -114,13 +101,10 @@ const ChangeQtyButton: React.FC<Props> = ({
     if (customizable && customGroupIds.length > 0) {
       setEditCustomizationModal(true);
     } else {
-      toast.show("This item doesn't have customizable options", {
-        type: "warning",
-      });
+      toast.show("This item doesn't have customizable options", { type: "warning" });
     }
   };
 
-  // ✅ New customized item → Add to cart via addItem
   const handleCustomizationSuccess = async (customizations: any[]) => {
     if (!authToken) {
       toast.show("Please login to continue", { type: "danger" });
@@ -133,7 +117,6 @@ const ChangeQtyButton: React.FC<Props> = ({
       return;
     }
 
-    // Use catalogId from props, or fallback to a default if needed
     const finalCatalogId = catalogId || "default-catalog";
 
     try {
@@ -141,8 +124,8 @@ const ChangeQtyButton: React.FC<Props> = ({
         storeId,
         cartItem.slug,
         finalCatalogId,
-        1, // Always add 1 new item
-        true, // customizable
+        1,
+        true,
         customizations,
         authToken
       );
@@ -159,7 +142,6 @@ const ChangeQtyButton: React.FC<Props> = ({
     }
   };
 
-  // ✅ Edited customization → Zustand updates item
   const handleEditSuccess = () => {
     setEditCustomizationModal(false);
     toast.show("Item customization updated", { type: "success" });
@@ -176,7 +158,6 @@ const ChangeQtyButton: React.FC<Props> = ({
   return (
     <>
       <View style={styles.mainContainer}>
-        {/* Quantity Controls */}
         <View style={styles.container}>
           <TouchableOpacity onPress={decrement} disabled={loading}>
             <Text style={styles.sign}>-</Text>
@@ -187,53 +168,21 @@ const ChangeQtyButton: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Edit Customization Button */}
         {customizable && customGroupIds.length > 0 && (
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEditCustomization}
-          >
+          <TouchableOpacity style={styles.editButton} onPress={handleEditCustomization}>
             <Ionicons name="create-outline" size={16} color="#f14343" />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Repeat Customization Dialog */}
-      <Modal
+      <RepeatCustomizationDialog
         visible={repeatDialog}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setRepeatDialog(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.dialogContainer}>
-            <Text style={styles.dialogTitle}>
-              Add another item with customization?
-            </Text>
-            <Text style={styles.dialogSubtitle}>
-              "Repeat" will use the same customizations. "I will choose" will let
-              you create a new customized item.
-            </Text>
-            <View style={styles.dialogButtons}>
-              <TouchableOpacity
-                style={[styles.dialogButton, styles.outlineButton]}
-                onPress={handleNewCustomization}
-              >
-                <Text style={styles.outlineButtonText}>I will choose</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogButton, styles.primaryButton]}
-                onPress={handleRepeatCustomization}
-              >
-                <Text style={styles.primaryButtonText}>Repeat</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setRepeatDialog(false)}
+        onRepeat={handleRepeatCustomization}
+        onChooseNew={handleNewCustomization}
+      />
 
-      {/* Add New Customization Modal */}
       {customizationModal && (
         <CustomizationGroup
           productSlug={cartItem?.slug || ""}
@@ -248,16 +197,13 @@ const ChangeQtyButton: React.FC<Props> = ({
         />
       )}
 
-      {/* Edit Customization Modal */}
       {editCustomizationModal && cartItem && (
         <EditCustomization
           cartItemId={cartItemId}
           productSlug={cartItem.slug}
           storeId={storeId || cartItem.store_id}
           catalogId={catalogId || ""}
-          productPrice={
-            cartItem.product?.price || productPrice || cartItem.unit_price
-          }
+          productPrice={cartItem.product?.price || productPrice || cartItem.unit_price}
           currentQty={count}
           directlyLinkedCustomGroupIds={customGroupIds}
           visible={editCustomizationModal}
@@ -317,56 +263,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     marginLeft: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dialogContainer: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 20,
-    minWidth: 280,
-  },
-  dialogTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  dialogSubtitle: {
-    fontSize: 13,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  dialogButtons: {
-    gap: 12,
-  },
-  dialogButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  outlineButton: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#F8383F",
-  },
-  primaryButton: {
-    backgroundColor: "#F8383F",
-  },
-  outlineButtonText: {
-    color: "#F8383F",
-    fontWeight: "600",
-  },
-  primaryButtonText: {
-    color: "white",
-    fontWeight: "600",
   },
 });
