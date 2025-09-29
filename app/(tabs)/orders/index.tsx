@@ -13,24 +13,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import useUserDetails from "@/hook/useUserDetails"; // ✅ use existing hook
+import useUserDetails from "@/hook/useUserDetails";
 
 export default function OrdersScreen() {
-  const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>(
-    []
-  );
+  const [initialOrders, setInitialOrders] = useState<FetchOrdersListItemType[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-  const { userDetails } = useUserDetails(); // ✅ get auth details
-  const authToken = userDetails?.accessToken;
+  const {  authToken, isLoading: userLoading, isAuthenticated } = useUserDetails();
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        if (!authToken) {
+        // wait until user details are loaded
+        if (userLoading) return;
+
+        if (!isAuthenticated || !authToken) {
           setError("Authentication required. Please log in again.");
           setLoading(false);
           return;
@@ -50,9 +50,9 @@ export default function OrdersScreen() {
     };
 
     loadOrders();
-  }, [authToken]);
+  }, [authToken, userLoading, isAuthenticated]);
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -104,10 +104,16 @@ export default function OrdersScreen() {
       </View>
 
       {/* Orders List */}
-      <OrdersListWrapper orders={initialOrders} pageSize={10} total={total} />
+<OrdersListWrapper
+  orders={initialOrders}
+  pageSize={10}
+  total={total}
+  authToken={authToken}   // 👈 pass it
+/>
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },

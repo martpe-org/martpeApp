@@ -15,9 +15,10 @@ interface Props {
   orders: FetchOrdersListItemType[];
   pageSize: number;
   total: number;
+  authToken: string | null;   // 👈 add this
 }
 
-export function OrdersListWrapper({ orders, pageSize, total }: Props) {
+export function OrdersListWrapper({ orders, pageSize, total, authToken }: Props) {
   const {
     data,
     fetchNextPage,
@@ -29,6 +30,7 @@ export function OrdersListWrapper({ orders, pageSize, total }: Props) {
     pageSize,
     total,
   });
+
 
   // Flatten all pages data
   const flattenedOrders = useMemo(() => {

@@ -4,9 +4,9 @@ import OrderedItems from "@/components/order-comp/OrderedItems";
 import OrderHeader from "@/components/order-comp/OrderHeader";
 import { fetchOrderDetail } from "@/components/order/fetch-order-detail";
 import { FetchOrderDetailType } from "@/components/order/fetch-order-detail-type";
+import useUserDetails from "@/hook/useUserDetails";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "@formkit/tempo";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -20,14 +20,15 @@ import {
   View,
 } from "react-native";
 
+
 export default function OrderDetails() {
   const params = useLocalSearchParams();
   const orderId = params.orderId as string;
   const router = useRouter();
 
-  const [orderDetail, setOrderDetail] = useState<FetchOrderDetailType | null>(
-    null
-  );
+  const { authToken } = useUserDetails();  // 👈 grab token here
+
+  const [orderDetail, setOrderDetail] = useState<FetchOrderDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -39,18 +40,13 @@ export default function OrderDetails() {
         setLoading(true);
       }
 
-      // Get auth token from AsyncStorage
-      const authToken = await AsyncStorage.getItem("auth-token");
       if (!authToken) {
         Alert.alert("Error", "Authentication required. Please login again.");
         return;
       }
 
       const detail = await fetchOrderDetail(authToken, orderId);
-
-      if (!detail) {
-        throw new Error("Failed to fetch order details");
-      }
+      if (!detail) throw new Error("Failed to fetch order details");
 
       setOrderDetail(detail);
     } catch (error) {
@@ -63,10 +59,11 @@ export default function OrderDetails() {
   };
 
   useEffect(() => {
-    if (orderId) {
+    if (orderId && authToken) {
       loadOrderDetail();
     }
-  }, [orderId]);
+  }, [orderId, authToken]);  // 👈 run when token becomes available
+
 
   const handleRefresh = () => {
     loadOrderDetail(true);

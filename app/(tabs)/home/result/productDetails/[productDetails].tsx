@@ -126,7 +126,7 @@ const ProductDetails: FC = () => {
     fetchData();
   }, [fetchData]);
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("/search/search");
   };
 
  const renderHeader = () => (

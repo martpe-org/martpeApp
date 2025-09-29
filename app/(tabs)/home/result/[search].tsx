@@ -46,13 +46,13 @@ interface FoodDetailsState {
 }
 
 const Results: FC = () => {
-const { search, domainData, tab } = useGlobalSearchParams<{
-  search: string;
-  domainData: string;
-  tab?: string;
-}>();
+  const { search, domainData, tab } = useGlobalSearchParams<{
+    search: string;
+    domainData: string;
+    tab?: string;
+  }>();
 
-const [isItem, setIsItem] = useState(tab !== "stores"); 
+  const [isItem, setIsItem] = useState(tab !== "stores");
 
   const selectedDetails = useDeliveryStore((state) => state.selectedDetails);
 
@@ -100,51 +100,51 @@ const [isItem, setIsItem] = useState(tab !== "stores");
   const pageSize = 10;
 
 
-const {
-  data: initialProductsData,
-  isLoading: isLoadingProducts,
-  error: productsError,
-} = useQuery({
-  queryKey: ["searchProductsInitial", searchInput],
-  queryFn: () =>
-    searchProducts({
-      ...searchInput,
-      groupbystore: true,
-      size: pageSize,
-    }),
-  enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
-  staleTime: 5 * 60 * 1000,
-  cacheTime: 30 * 60 * 1000,
-  keepPreviousData: true,   // 👈 prevent clearing when remounting
-});
+  const {
+    data: initialProductsData,
+    isLoading: isLoadingProducts,
+    error: productsError,
+  } = useQuery({
+    queryKey: ["searchProductsInitial", searchInput],
+    queryFn: () =>
+      searchProducts({
+        ...searchInput,
+        groupbystore: true,
+        size: pageSize,
+      }),
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
+    keepPreviousData: true,   // 👈 prevent clearing when remounting
+  });
 
 
-const {
-  data: initialStoresData,
-  isLoading: isLoadingStores,
-  error: storesError,
-} = useQuery({
-  queryKey: ["searchStoresInitial", searchInput],
-  queryFn: () =>
-    searchStores({
-      ...searchInput,
-      size: pageSize,
-    }),
-  enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
-  staleTime: 5 * 60 * 1000,
-  cacheTime: 30 * 60 * 1000,
-  keepPreviousData: true,       // ✅ don’t clear results while refetching
-  refetchOnWindowFocus: false,  // ✅ don’t reset on focus
-  refetchOnMount: false,        // ✅ don’t reset on remount
-});
+  const {
+    data: initialStoresData,
+    isLoading: isLoadingStores,
+    error: storesError,
+  } = useQuery({
+    queryKey: ["searchStoresInitial", searchInput],
+    queryFn: () =>
+      searchStores({
+        ...searchInput,
+        size: pageSize,
+      }),
+    enabled: !!search && !!selectedDetails?.lat && !!selectedDetails?.lng,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
+    keepPreviousData: true,       // ✅ don’t clear results while refetching
+    refetchOnWindowFocus: false,  // ✅ don’t reset on focus
+    refetchOnMount: false,        // ✅ don’t reset on remount
+  });
 
 
   // Handle tab change
-const handleTabChange = useCallback((itemTab: boolean) => {
-  setIsItem(itemTab);
-  // Update URL param so navigation remembers it
-  router.setParams({ tab: itemTab ? "items" : "stores" });
-}, []);
+  const handleTabChange = useCallback((itemTab: boolean) => {
+    setIsItem(itemTab);
+    // Update URL param so navigation remembers it
+    router.setParams({ tab: itemTab ? "items" : "stores" });
+  }, []);
 
 
   const currentIsLoading = isItem ? isLoadingProducts : isLoadingStores;
@@ -190,7 +190,7 @@ const handleTabChange = useCallback((itemTab: boolean) => {
         <TouchableOpacity
           onPress={() =>
             router.push({
-              pathname: "/search",
+              pathname: "/search/search",
               params: { domain: domainData },
             })
           }
@@ -231,17 +231,17 @@ const handleTabChange = useCallback((itemTab: boolean) => {
       {/* Content */}
       <View style={styles.contentContainer}>
         {isItem ? (
-<ProductResultsWrapper
-  initialData={initialProductsData?.buckets || []}
-  pageSize={pageSize}
-  searchParams={{
-    query: search || "",
-    lat: searchInput.lat,
-    lon: searchInput.lon,
-    pincode: searchInput.pincode,
-    domain: searchInput.domain,
-  }}
-/>
+          <ProductResultsWrapper
+            initialData={initialProductsData?.buckets || []}
+            pageSize={pageSize}
+            searchParams={{
+              query: search || "",
+              lat: searchInput.lat,
+              lon: searchInput.lon,
+              pincode: searchInput.pincode,
+              domain: searchInput.domain,
+            }}
+          />
 
         ) : (
           <StoreResultsWrapper
