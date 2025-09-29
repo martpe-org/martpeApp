@@ -164,11 +164,9 @@ if (!authToken) throw new Error("Please login to continue");
         showPaymentSuccessAlert(paymentResult.orderId);
         setRetryCount(0);
       } else {
-        throw new Error(paymentResult.error || "Payment failed");
       }
     } catch (error: any) {
       const errorMessage = getErrorMessage(error);
-      console.error("Payment error:", errorMessage);
 
       showPaymentErrorAlert(
         errorMessage,

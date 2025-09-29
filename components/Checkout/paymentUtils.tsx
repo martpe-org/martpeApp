@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { router } from "expo-router";
 
 const RAZORPAY_KEY_ID =
-  process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_28OLg2dI6uOgm3";
+  process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_iSUOdYDOHOoxbf";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface InitCartPayload {
@@ -29,12 +29,23 @@ export interface InitCartPayload {
 export interface PaymentData {
   id: string;
   amount: number;
+  amount_due: number;
+  amount_paid: number;
+  attempts: number;
+  created_at: number;
   currency: string;
+  entity: string;
   notes?: {
     orderId?: string;
     storeId?: string;
     userId?: string;
+    addressId?: string;
+    oninitId?: string;
+    orderno?: string;
   };
+  offer_id: string | null;
+  receipt: string;
+  status: string;
 }
 
 export interface PaymentOptions {
@@ -83,11 +94,13 @@ const initializePayment = async (
       throw new Error(result?.error?.message || `HTTP ${response.status}`);
     }
 
-    if (!result?.id) {
+    // ✅ FIX: Check for result.data.id instead of result.id
+    if (!result?.data?.id) {
       throw new Error("Invalid payment response - missing order ID");
     }
 
-    return { success: true, data: result };
+    // ✅ FIX: Return the nested data object
+    return { success: true, data: result.data };
   } catch (error: any) {
     console.error("Payment initialization failed:", error);
     console.warn("InitCart error details:", error);
@@ -95,9 +108,6 @@ const initializePayment = async (
   }
 };
 
-/**
- * Open Razorpay Checkout
- */
 const processRazorpayPayment = async (
   paymentData: PaymentData,
   storeName: string,
@@ -110,35 +120,37 @@ const processRazorpayPayment = async (
 ): Promise<PaymentResult> => {
   try {
     if (!RAZORPAY_KEY_ID) throw new Error("Razorpay key not configured");
-
-    const userName =
-      [userDetails.firstName, userDetails.lastName].filter(Boolean).join(" ") ||
-      "Customer";
-
     const options = {
       key: RAZORPAY_KEY_ID,
-      amount: paymentData.amount,
-      currency: paymentData.currency || "INR",
+      amount: result?.data?.amount,
+      currency: result?.data?.currency,
       name: "Martpe",
-      description: `Payment for ${storeName} - Order #${
-        paymentData.notes?.orderId || paymentData.id
-      }`,
-      order_id: paymentData.id,
+      description: `Payment for ${result?.data?.notes?.storeName || "Order"} - Order #${result?.data?.notes?.orderId}`,
+      order_id: result?.data?.id,
       prefill: {
-        name: userName,
-        email: userDetails.email || "",
-        contact: userDetails.phoneNumber || "",
+        name: "harish",
+        email: "test@example.com",
+        contact: "7358301523",
       },
-      theme: { color: "#00BC66" },
-      retry: { enabled: true, max_count: 3 },
+      theme: {
+        color: "#00BC66",
+      },
+      retry: {
+        enabled: true,
+        max_count: 3,
+      },
       modal: {
-        ondismiss: () => console.warn("Razorpay modal dismissed"),
+        ondismiss: () => {
+          console.warn("Payment popup closed by user");
+        },
       },
     };
 
+
+    // Debugging log
     console.log("Opening Razorpay with options:", {
       ...options,
-      key: "***hidden***",
+      key: "***hidden***", // hide key in logs
     });
 
     const result = await RazorpayCheckout.open(options);
@@ -151,10 +163,26 @@ const processRazorpayPayment = async (
     };
   } catch (error: any) {
     console.error("Razorpay payment failed:", error);
-    console.warn("Razorpay error details:", error);
-    return { success: false, error: error.message || "Payment failed" };
+
+    // Handle cancelled payments specifically
+    if (
+      error?.error?.reason === "payment_cancelled" ||
+      error?.description?.includes("cancelled")
+    ) {
+      return {
+        success: false,
+        error: "Payment was cancelled by you. Please try again.",
+      };
+    }
+
+    // Default fallback for other Razorpay errors
+    return {
+      success: false,
+      error: error?.error?.description || error?.message || "Payment failed",
+    };
   }
 };
+
 
 /**
  * Main entry for checkout
@@ -206,7 +234,6 @@ export const showPaymentErrorAlert = (
       text: "OK",
       style: "cancel",
       onPress: () => {
-        if (storeId) router.push(`/(tabs)/cart?storeid=${storeId}`);
       },
     },
   ];
