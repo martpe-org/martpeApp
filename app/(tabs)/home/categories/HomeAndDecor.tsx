@@ -41,7 +41,7 @@ function Interior() {
   }
 
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("/search/search");
   };
 
   return (

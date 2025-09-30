@@ -17,11 +17,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({
 }) => {
   return (
     <View style={styles.totalsContainer}>
-      {/* Subtotal */}
-      <View style={styles.subtotalRow}>
-        <Text style={styles.subtotalLabel}>Subtotal</Text>
-        <Text style={styles.subtotalAmount}>₹{subtotal.toFixed(2)}</Text>
-      </View>
+  
 
       {/* Discount */}
       {!!discount && (
@@ -35,7 +31,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({
 
       {/* Total */}
       <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalLabel}>Subtotal</Text>
         <Text style={styles.totalAmount}>₹{total.toFixed(2)}</Text>
       </View>
     </View>
@@ -44,25 +40,11 @@ const CartTotals: React.FC<CartTotalsProps> = ({
 
 const styles = StyleSheet.create({
   totalsContainer: {
-    marginTop: 8,
-    paddingTop: 8,
+padding:10,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
   },
-  subtotalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  subtotalLabel: {
-    fontSize: 14,
-    color: "#4A5568",
-  },
-  subtotalAmount: {
-    fontSize: 14,
-    color: "#4A5568",
-    fontWeight: "500",
-  },
+
   discountRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -92,7 +74,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 16,
     fontWeight: "700",
-    color: "red",
+    color: "black",
   },
 });
 

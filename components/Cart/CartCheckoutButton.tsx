@@ -17,23 +17,14 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
   isStoreOpen = true,
 }) => {
   const hasItems = items && items.length > 0;
-  
+
   // FIXED: Only check for unavailable items among items that exist
   const availableItems = items.filter((item) => item.product?.instock === true);
   const unavailableItems = items.filter((item) => item.product?.instock === false);
-  
+
   const hasUnavailableItems = unavailableItems.length > 0;
   const hasAvailableItems = availableItems.length > 0;
 
-  console.log('Checkout button logic:', {
-    hasItems,
-    isStoreOpen,
-    totalItems: items.length,
-    availableItems: availableItems.length,
-    unavailableItems: unavailableItems.length,
-    hasUnavailableItems,
-    hasAvailableItems
-  });
 
   // Early returns with proper messages
   if (!hasItems) {
@@ -99,16 +90,17 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
           Checkout ({availableItems.length} item{availableItems.length !== 1 ? 's' : ''})
         </Text>
       </TouchableOpacity>
+      <Text style={{ color: "#777", fontSize: 12, alignSelf: "center", padding: 4 }}>Taxes & shipping calculated at checkout</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    flex: 1
   },
   checkout: {
-    backgroundColor: "#f14343",
+    backgroundColor: "#fa7d7d",
     padding: 14,
     borderRadius: 12,
     alignItems: "center",

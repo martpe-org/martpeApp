@@ -5,8 +5,8 @@ import useDeliveryStore from "../../../../components/address/deliveryAddressStor
 import Loader from "../../../../components/common/Loader";
 import { electronicsCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
-import { styles } from "@/components/Categories/cat";
 import { CategoryHeader, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
+import { styles } from "@/components/Categories/cat";
 
 
 function Electronics() {
@@ -31,7 +31,7 @@ function Electronics() {
   }
 
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("/search/search");
   };
 
   return (
@@ -53,12 +53,12 @@ function Electronics() {
         />
 
         {/* Stores Section */}
-<StoresSection 
-  storesData={storesData}
-  storesSectionTitle="Electronics Stores Near You"
-  selectedAddress={selectedAddress}
-  showNoStoresAnimation={true} // Add this if you want the animation when no stores are found
-/>
+        <StoresSection
+          storesData={storesData}
+          storesSectionTitle="Electronics Stores Near You"
+          selectedAddress={selectedAddress}
+          showNoStoresAnimation={true} // Add this if you want the animation when no stores are found
+        />
       </ScrollView>
     </SafeAreaView>
   );

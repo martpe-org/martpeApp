@@ -4,6 +4,19 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)', // Semi-transparent background
+  justifyContent: 'flex-end', // Align modal at the bottom
+},
+modalContainer: {
+  height: '70%', // 60% of screen height
+  backgroundColor: '#f5f5f5',
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+  overflow: 'hidden',
+},
+
   header: {
     backgroundColor: '#fff',
     paddingHorizontal: 16,

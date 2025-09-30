@@ -175,92 +175,105 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={true} // Make background transparent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            {productName && (
-              <Text style={styles.productName} numberOfLines={1}>
-                {productName}
-              </Text>
-            )}
-            <Text style={styles.headerTitle}>Edit customization</Text>
-          </View>
-        </View>
+      {/* Semi-transparent overlay */}
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        {/* Modal container with 60% height */}
+        <View style={{
+          height: '70%',
+          backgroundColor: '#f5f5f5',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          overflow: 'hidden',
+        }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <View style={styles.headerContent}>
+                {productName && (
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {productName}
+                  </Text>
+                )}
+                <Text style={styles.headerTitle}>Edit customization</Text>
+              </View>
+            </View>
 
-        {/* Content */}
-        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          {/* Back button */}
-          {step > 0 && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onPrevious}
-              disabled={step === 0}
-            >
-              <Ionicons name="chevron-back" size={20} color="#f14343" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Groups */}
-          {currentGroupIds.map(renderGroup)}
-
-          {/* Continue button */}
-          {hasChildGroups && (
-            <TouchableOpacity
-              style={[
-                styles.continueButton,
-                isNextDisabled() && styles.continueButtonDisabled,
-              ]}
-              onPress={onNext}
-              disabled={isNextDisabled()}
-            >
-              <Text style={[
-                styles.continueButtonText,
-                isNextDisabled() && styles.continueButtonTextDisabled,
-              ]}>
-                Continue
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={isNextDisabled() ? "#999" : "#fff"}
-              />
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.selectedText} numberOfLines={2}>
-            {selectedOptionsText}
-          </Text>
-
-          {showUpdateButton && (
-            <TouchableOpacity
-              style={[
-                styles.addToCartButton,
-                isNextDisabled() && styles.addToCartButtonDisabled,
-              ]}
-              onPress={onUpdateCustomizations}
-              disabled={isNextDisabled() || updating}
-            >
-              {updating ? (
-                <Loader/>
-              ) : (
-                <Text style={styles.addToCartButtonText}>Update Customization</Text>
+            {/* Content */}
+            <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+              {/* Back button */}
+              {step > 0 && (
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={onPrevious}
+                  disabled={step === 0}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#f14343" />
+                  <Text style={styles.backButtonText}>Back</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
-          )}
+
+              {/* Groups */}
+              {currentGroupIds.map(renderGroup)}
+
+              {/* Continue button */}
+              {hasChildGroups && (
+                <TouchableOpacity
+                  style={[
+                    styles.continueButton,
+                    isNextDisabled() && styles.continueButtonDisabled,
+                  ]}
+                  onPress={onNext}
+                  disabled={isNextDisabled()}
+                >
+                  <Text style={[
+                    styles.continueButtonText,
+                    isNextDisabled() && styles.continueButtonTextDisabled,
+                  ]}>
+                    Continue
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={isNextDisabled() ? "#999" : "#fff"}
+                  />
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.selectedText} numberOfLines={2}>
+                {selectedOptionsText}
+              </Text>
+
+              {showUpdateButton && (
+                <TouchableOpacity
+                  style={[
+                    styles.addToCartButton,
+                    isNextDisabled() && styles.addToCartButtonDisabled,
+                  ]}
+                  onPress={onUpdateCustomizations}
+                  disabled={isNextDisabled() || updating}
+                >
+                  {updating ? (
+                    <Loader />
+                  ) : (
+                    <Text style={styles.addToCartButtonText}>Update Customization</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </SafeAreaView>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
+
   );
 };
 

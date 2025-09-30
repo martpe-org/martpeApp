@@ -7,6 +7,7 @@ import Loader from "../common/Loader";
 import CartItemRenderer from "./CartItemRenderer";
 import CartCheckoutButton from "./CartCheckoutButton";
 import { useCartStore } from "../../state/useCartStore";
+import CartTotals from "./CartTotals";
 
 interface CartItemsProps {
   cartId: string;
@@ -15,6 +16,10 @@ interface CartItemsProps {
   isStoreOpen?: boolean;
   onCartChange?: () => void;
   onItemChange?: (itemId: string, newQty: number) => void;
+  cartSubtotal: number;
+  discount: number;
+  cartTotal: number;
+  appliedOfferId?: string;
 }
 
 const CartItems: React.FC<CartItemsProps> = ({
@@ -24,7 +29,12 @@ const CartItems: React.FC<CartItemsProps> = ({
   isStoreOpen = true,
   onCartChange,
   onItemChange,
+  cartSubtotal,
+  discount,
+  cartTotal,
+  appliedOfferId,
 }) => {
+
   const { isLoading: userLoading } = useUserDetails();
 
   // 🔑 Directly pull items from Zustand
@@ -83,12 +93,7 @@ const CartItems: React.FC<CartItemsProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.header}>
-          Items ({items.length}, {totalItems} total)
-        </Text>
-      </View>
+
 
       {/* Items List */}
       <FlashList
@@ -100,7 +105,13 @@ const CartItems: React.FC<CartItemsProps> = ({
         contentContainerStyle={styles.listContainer}
         extraData={[items.length, totalItems, totalCost]}
       />
-
+      {/* Totals */}
+      <CartTotals
+        subtotal={cartSubtotal}
+        discount={discount}
+        total={cartTotal}
+        appliedOfferId={appliedOfferId}
+      />
       {/* Checkout Button */}
       <CartCheckoutButton
         cartId={cartId}
@@ -143,25 +154,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-  headerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    margin: 16,
-    marginBottom: 8,
-  },
-  header: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1A202C",
-  },
-  headerSubtext: {
-    fontSize: 14,
-    color: "#4A5568",
-    fontWeight: "600",
-  },
+
   listContainer: {
-    paddingHorizontal: 8,
   },
 });
 

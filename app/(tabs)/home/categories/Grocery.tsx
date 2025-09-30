@@ -31,7 +31,7 @@ function Grocery() {
   }
 
   const handleSearchPress = () => {
-    router.push("/search");
+    router.push("/search/search");
   };
 
   return (

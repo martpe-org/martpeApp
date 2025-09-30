@@ -174,92 +174,99 @@ const WrapperSheet: React.FC<WrapperSheetProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={true} // Make background transparent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            {productName && (
-              <Text style={styles.productName} numberOfLines={1}>
-                {productName}
-              </Text>
-            )}
-            <Text style={styles.headerTitle}>Customize your product</Text>
-          </View>
-        </View>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <SafeAreaView style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <View style={styles.headerContent}>
+                {productName && (
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {productName}
+                  </Text>
+                )}
+                <Text style={styles.headerTitle}>Customize your product</Text>
+              </View>
+            </View>
 
-        {/* Content */}
-        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          {/* Back button */}
-          {step > 0 && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onPrevious}
-              disabled={step === 0}
-            >
-              <Ionicons name="chevron-back" size={20} color="#f14343" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Groups */}
-          {currentGroupIds.map(renderGroup)}
-
-          {/* Continue button */}
-          {hasChildGroups && (
-            <TouchableOpacity
-              style={[
-                styles.continueButton,
-                isNextDisabled() && styles.continueButtonDisabled,
-              ]}
-              onPress={onNext}
-              disabled={isNextDisabled()}
-            >
-              <Text style={[
-                styles.continueButtonText,
-                isNextDisabled() && styles.continueButtonTextDisabled,
-              ]}>
-                Continue
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={isNextDisabled() ? "#999" : "#fff"}
-              />
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.selectedText} numberOfLines={2}>
-            {selectedOptionsText}
-          </Text>
-
-          {showAddButton && (
-            <TouchableOpacity
-              style={[
-                styles.addToCartButton,
-                isNextDisabled() && styles.addToCartButtonDisabled,
-              ]}
-              onPress={onAddToCart}
-              disabled={isNextDisabled() || adding}
-            >
-              {adding ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.addToCartButtonText}>Add</Text>
+            {/* Scrollable Content */}
+            <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+              {/* Back button */}
+              {step > 0 && (
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={onPrevious}
+                  disabled={step === 0}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#f14343" />
+                  <Text style={styles.backButtonText}>Back</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
-          )}
+
+              {/* Groups */}
+              {currentGroupIds.map(renderGroup)}
+
+              {/* Continue button */}
+              {hasChildGroups && (
+                <TouchableOpacity
+                  style={[
+                    styles.continueButton,
+                    isNextDisabled() && styles.continueButtonDisabled,
+                  ]}
+                  onPress={onNext}
+                  disabled={isNextDisabled()}
+                >
+                  <Text
+                    style={[
+                      styles.continueButtonText,
+                      isNextDisabled() && styles.continueButtonTextDisabled,
+                    ]}
+                  >
+                    Continue
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={isNextDisabled() ? '#999' : '#fff'}
+                  />
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.selectedText} numberOfLines={2}>
+                {selectedOptionsText}
+              </Text>
+
+              {showAddButton && (
+                <TouchableOpacity
+                  style={[
+                    styles.addToCartButton,
+                    isNextDisabled() && styles.addToCartButtonDisabled,
+                  ]}
+                  onPress={onAddToCart}
+                  disabled={isNextDisabled() || adding}
+                >
+                  {adding ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.addToCartButtonText}>Add</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </SafeAreaView>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
+
   );
 };
 

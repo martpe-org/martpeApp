@@ -1,11 +1,10 @@
 import { StyleSheet } from "react-native";
+
 export const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 12,
-    marginHorizontal: 8,
-    marginVertical: 4,
+    width: "100%",
+    padding: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
@@ -22,12 +21,12 @@ export const styles = StyleSheet.create({
     opacity: 0.7,
   },
   imageContainer: {
-    marginRight: 12,
+    marginRight: 16,
     position: "relative",
   },
   image: {
-    width: 80,
-    height: 100,
+    width: 60,
+    height: 70,
     borderRadius: 8,
     backgroundColor: "#f0f0f0",
   },
@@ -37,6 +36,7 @@ export const styles = StyleSheet.create({
   placeholderImage: {
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#E5E7EB",
   },
   placeholderText: {
     fontSize: 12,
@@ -63,70 +63,122 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
   },
-  detailsContainer: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  nameAndPriceContainer: {
     flex: 1,
-    marginBottom: 8,
+    marginLeft: -5,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
   },
   name: {
-    fontWeight: "700",
+    fontWeight: "bold",
     fontSize: 14,
     color: "#1A202C",
+    flex: 1,
   },
   unavailableName: {
     color: "#718096",
   },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  originalPrice: {
+    fontSize: 13,
+    color: "#718096",
+    textDecorationLine: "line-through",
+  },
+  discountedPrice: {
+    fontSize: 13,
+    color: "#1a6d38ff",
+    fontWeight: "600",
+  },
+  singlePrice: {
+    fontSize: 13,
+    color: "#24a352ff",
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  controlsContainer: {
+    alignItems: "flex-end",
+  },
+  quantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 6,
+    backgroundColor: "#fff",
+  },
+  quantityButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    minWidth: 20,
+    textAlign: "center",
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF2F0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#f14343",
+    marginTop: 8,
+  },
+  editButtonText: {
+    color: "#f14343",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 4,
+  },
   unavailableLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#E53E3E",
     fontWeight: "500",
     marginBottom: 4,
   },
   customizationsContainer: {
-    marginBottom: 6,
-    paddingVertical: 2,
+    paddingVertical: 3,
   },
   customizationsLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#4A5568",
     fontWeight: "600",
     marginBottom: 2,
   },
   customizationText: {
-    fontSize: 10,
+    fontSize: 11,
     color: "#718096",
     lineHeight: 14,
   },
-  moreCustomizationsText: {
-    fontSize: 10,
-    color: "#A0AEC0",
-    fontStyle: "italic",
-  },
-  priceContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  dietBox: {
+    width: 14,
+    height: 14,
+    borderWidth: 1.5,
+    borderRadius: 2,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 2,
+    marginRight: 8,
   },
-  price: {
-    color: "#4A5568",
-    fontSize: 12,
-  },
-  unavailablePrice: {
-    color: "#A0AEC0",
-  },
-  total: {
-    fontWeight: "600",
-    fontSize: 13,
-    color: "#2F855A",
-  },
-  quantity: {
-    fontSize: 12,
-    color: "#718096",
-    fontWeight: "500",
-  },
-  controlsRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
+  dietDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });

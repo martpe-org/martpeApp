@@ -5,8 +5,6 @@ import CartItems from "./CartItems";
 import CartOfferBtn from "./CartOfferBtn";
 import CartStoreHeader from "./CartStoreHeader";
 import { useCartCardLogic } from "./CartCardLogic";
-import CartTotals from "./CartTotals";
-
 interface CartCardProps {
   id: string;
   store: FetchCartStore;
@@ -53,9 +51,14 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
           isStoreOpen={isStoreOpen}
           onCartChange={handleCartChange}
           onItemChange={handleItemChange}
+          cartSubtotal={cartSubtotal}
+          discount={discount}
+          cartTotal={cartTotal}
+          appliedOfferId={appliedOfferId}
         />
+
       ) : (
-        <Text style={styles.errorText}>⚠️ Unable to load cart items</Text>
+        <Text style={styles.errorText}>âš ï¸ Unable to load cart items</Text>
       )}
 
       {/* Offers */}
@@ -71,13 +74,6 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
         </View>
       )}
 
-      {/* Totals */}
-      <CartTotals
-        subtotal={cartSubtotal}
-        discount={discount}
-        total={cartTotal}
-        appliedOfferId={appliedOfferId}
-      />
     </View>
   );
 };
@@ -85,13 +81,13 @@ const CartCard: React.FC<CartCardProps> = ({ id, store, items, onCartChange }) =
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 16,
+    borderRadius: 16,
+    marginHorizontal: 4,
     marginVertical: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   errorText: {
@@ -100,7 +96,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   offersContainer: {
-    marginTop: 12,
+    marginTop: 8,
   },
 });
 

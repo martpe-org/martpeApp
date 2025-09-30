@@ -130,17 +130,23 @@ useFocusEffect(
     return null;
   }, [isFetchingNextPage, hasNextPage]);
 
-  const renderItem = useCallback(({ item }: { item: StoreBucket }) => {
-    const storeData = item.store_info?.hits?.hits?.[0]?._source?.store;
-    const storeId = item.key.store_id;
-    const products = item.top_products.hits.hits.map(hit => ({
-      ...hit._source,
-      store: storeData,
-    }));
-    return <ProductCard item={[storeId, products]} />;
-  }, []);
+const renderItem = useCallback(({ item }: { item: StoreBucket }) => {
+  const storeData = item.store_info?.hits?.hits?.[0]?._source?.store;
+  const storeId = item.key?.store_id; // optional chaining
+  if (!storeId) return null; // skip invalid items
 
-  const keyExtractor = useCallback((item: StoreBucket) => item.key.store_id, []);
+  const products = item.top_products.hits.hits.map(hit => ({
+    ...hit._source,
+    store: storeData,
+  }));
+  return <ProductCard item={[storeId, products]} />;
+}, []);
+
+const keyExtractor = useCallback(
+  (item: StoreBucket, index: number) => item.key?.store_id || String(index),
+  []
+);
+
 
   if (!allProducts.length) {
     return (

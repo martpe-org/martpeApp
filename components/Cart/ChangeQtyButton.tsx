@@ -11,7 +11,6 @@ import CustomizationGroup from "../customization/CustomizationGroup";
 import EditCustomization from "../customization/EditCustomization";
 import RepeatCustomizationDialog from "../customization/RepeatCustomizationDialog";
 
-
 interface Props {
   cartItemId: string;
   qty: number;
@@ -149,8 +148,8 @@ const ChangeQtyButton: React.FC<Props> = ({
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Loader />
+      <View style={styles.loaderContainer}>
+        <Loader size="small" />
       </View>
     );
   }
@@ -158,19 +157,27 @@ const ChangeQtyButton: React.FC<Props> = ({
   return (
     <>
       <View style={styles.mainContainer}>
-        <View style={styles.container}>
-          <TouchableOpacity onPress={decrement} disabled={loading}>
-            <Text style={styles.sign}>-</Text>
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity 
+            style={styles.quantityButton} 
+            onPress={decrement} 
+            disabled={loading}
+          >
+            <Text style={styles.quantitySign}>-</Text>
           </TouchableOpacity>
-          <Text style={styles.qty}>{count}</Text>
-          <TouchableOpacity onPress={increment} disabled={loading || !instock}>
-            <Text style={styles.sign}>+</Text>
+          <Text style={styles.quantityText}>{count}</Text>
+          <TouchableOpacity 
+            style={styles.quantityButton} 
+            onPress={increment} 
+            disabled={loading || !instock}
+          >
+            <Text style={styles.quantitySign}>+</Text>
           </TouchableOpacity>
         </View>
 
         {customizable && customGroupIds.length > 0 && (
           <TouchableOpacity style={styles.editButton} onPress={handleEditCustomization}>
-            <Ionicons name="create-outline" size={16} color="#f14343" />
+            <Ionicons name="create-outline" size={14} color="#f14343" />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         )}
@@ -223,30 +230,41 @@ const styles = StyleSheet.create({
   mainContainer: {
     flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
-  container: {
+  loaderContainer: {
+    width: 80,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#D1D5DB",
     borderRadius: 6,
+    backgroundColor: "#fff",
+    height: 32,
+  },
+  quantityButton: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: "#fff",
-    marginTop: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 32,
   },
-  sign: {
-    fontSize: 18,
-    paddingHorizontal: 6,
-    color: "#f14343",
+  quantitySign: {
+    fontSize: 16,
+    color: "red",
+    fontWeight: "500",
+  },
+  quantityText: {
+    fontSize: 14,
     fontWeight: "600",
-  },
-  qty: {
+    color: "red",
     minWidth: 24,
     textAlign: "center",
-    fontWeight: "600",
-    color: "#f14343",
   },
   editButton: {
     flexDirection: "row",
@@ -257,10 +275,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: "#f14343",
+    height: 24,
   },
   editButtonText: {
     color: "#f14343",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     marginLeft: 4,
   },
