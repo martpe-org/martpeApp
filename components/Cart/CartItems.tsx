@@ -93,8 +93,6 @@ const CartItems: React.FC<CartItemsProps> = ({
 
   return (
     <View style={styles.container}>
-
-
       {/* Items List */}
       <FlashList
         data={items}
@@ -105,20 +103,22 @@ const CartItems: React.FC<CartItemsProps> = ({
         contentContainerStyle={styles.listContainer}
         extraData={[items.length, totalItems, totalCost]}
       />
-      {/* Totals */}
-      <CartTotals
-        subtotal={cartSubtotal}
-        discount={discount}
-        total={cartTotal}
-        appliedOfferId={appliedOfferId}
-      />
-      {/* Checkout Button */}
-      <CartCheckoutButton
-        cartId={cartId}
-        storeId={storeId}
-        items={availableItems} // Only pass available items for checkout
-        isStoreOpen={isStoreOpen}
-      />
+      
+      {/* Totals and Checkout - Remove gap between them */}
+      <View style={styles.footerContainer}>
+        <CartTotals
+          subtotal={cartSubtotal}
+          discount={discount}
+          total={cartTotal}
+          appliedOfferId={appliedOfferId}
+        />
+        <CartCheckoutButton
+          cartId={cartId}
+          storeId={storeId}
+          items={availableItems} // Only pass available items for checkout
+          isStoreOpen={isStoreOpen}
+        />
+      </View>
     </View>
   );
 };
@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#F7FAFC",
-    paddingHorizontal: 20,
   },
   loadingText: {
     marginTop: 12,
@@ -154,8 +153,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-
   listContainer: {
+    paddingBottom: 0, // Ensure no padding at bottom of list
+  },
+  footerContainer: {
+    // Remove any gaps between totals and checkout button
+    gap: 0,
+    marginTop: 0,
+    paddingTop: 0,
   },
 });
 

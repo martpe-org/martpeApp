@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 

@@ -1,83 +1,56 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
-import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface CartCheckoutButtonProps {
-  cartId: string;
-  storeId: string;
-  items: CartItemType[];
-  isStoreOpen?: boolean; // true = store is open
+  onPress: () => void;
+  disabled?: boolean;
+  warning?: boolean;
 }
 
 const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
-  cartId,
-  storeId,
-  items,
-  isStoreOpen = true,
+  onPress,
+  disabled = false,
+  warning = false,
 }) => {
-  const hasItems = items && items.length > 0;
-
-  // FIXED: Only check for unavailable items among items that exist
-  const availableItems = items.filter((item) => item.product?.instock === true);
-  const unavailableItems = items.filter((item) => item.product?.instock === false);
-
-  const hasUnavailableItems = unavailableItems.length > 0;
-  const hasAvailableItems = availableItems.length > 0;
-
-
-  // Early returns with proper messages
-  if (!hasItems) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.disabledButton}>
-          <Text style={styles.disabledText}>No items in cart</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!isStoreOpen) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.disabledButton}>
-          <Text style={styles.disabledText}>Store is closed. Checkout unavailable.</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // If there are unavailable items but also available items
-  if (hasUnavailableItems && hasAvailableItems) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.warningButton}>
-          <Text style={styles.warningText}>
-            {unavailableItems.length} item(s) unavailable. Remove them to checkout.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // If ALL items are unavailable
-  if (hasUnavailableItems && !hasAvailableItems) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.disabledButton}>
-          <Text style={styles.disabledText}>All items unavailable. Cannot checkout.</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // All good - show checkout button
   const handlePress = () => {
-    router.push({
-      pathname: "/(tabs)/cart/[checkout]",
-      params: { checkout: cartId, storeId },
-    });
+    if (!disabled) {
+      onPress();
+    }
   };
+
+  if (disabled) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.disabledButton}>
+          <Text style={styles.disabledText}>Continue to checkout</Text>
+        </View>
+        <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
+      </View>
+    );
+  }
+
+  if (warning) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.warningButton}
+          onPress={handlePress}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            <MaterialCommunityIcons
+              name={"alert-circle-outline"}
+              size={20}
+              color={"#856404"}
+            />
+            <Text style={styles.warningText}>Continue to checkout</Text>
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -86,11 +59,18 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
         onPress={handlePress}
         activeOpacity={0.8}
       >
-        <Text style={styles.checkoutText}>
-          Checkout ({availableItems.length} item{availableItems.length !== 1 ? 's' : ''})
-        </Text>
+        <View style={styles.buttonContent}>
+          <MaterialCommunityIcons
+            name={"cart-outline"}
+            size={20}
+            color={"white"}
+          />
+          <Text style={styles.checkoutText}>
+            Continue to checkout
+          </Text>
+        </View>
       </TouchableOpacity>
-      <Text style={{ color: "#777", fontSize: 12, alignSelf: "center", padding: 4 }}>Taxes & shipping calculated at checkout</Text>
+      <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
     </View>
   );
 };
@@ -100,8 +80,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   checkout: {
-    backgroundColor: "#fa7d7d",
+    backgroundColor: "#f86d6d",
     padding: 14,
+    margin: 6,
     borderRadius: 12,
     alignItems: "center",
     shadowColor: "#f14343",
@@ -110,26 +91,34 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
   checkoutText: {
     color: "#fff",
-    fontWeight: "700",
     fontSize: 16,
+    fontWeight: "600",
   },
   disabledButton: {
     backgroundColor: "#e5e5e5",
     padding: 14,
+    margin: 6,
     borderRadius: 12,
     alignItems: "center",
   },
   disabledText: {
     color: "#666",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
   },
   warningButton: {
     backgroundColor: "#fff3cd",
     padding: 14,
+    margin: 6,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
@@ -138,7 +127,14 @@ const styles = StyleSheet.create({
   warningText: {
     color: "#856404",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 16,
+    textAlign: "center",
+  },
+  footerText: {
+    color: "#777",
+    fontSize: 12,
+    alignSelf: "center",
+    padding: 4,
     textAlign: "center",
   },
 });
