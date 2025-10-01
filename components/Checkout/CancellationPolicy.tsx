@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CancellationPolicyProps {
   isCancellable: boolean;
@@ -13,14 +14,14 @@ export const CancellationPolicy: React.FC<CancellationPolicyProps> = ({
     : "This order cannot be cancelled once it is shipped by the seller.";
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.titleContainer}>
         <Text style={styles.title}>CANCELLATION POLICY</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.value}>{message}</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -34,16 +35,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: "white",
+    backgroundColor: "#f0ffff",
     borderBottomStartRadius: 10,
     borderBottomEndRadius: 10,
     padding: 15,
-    marginHorizontal: 15,
   },
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderColor: "#E0E0E0",

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface BillBreakup {
   title?: string;
@@ -79,7 +80,7 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Bill Summary</Text>
 
       <View style={styles.priceContainer}>
@@ -130,7 +131,7 @@ export const BillSummary: React.FC<BillSummaryProps> = ({
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -147,7 +148,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginVertical: 8,
   },
   title: {
     fontSize: 18,
@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   priceContainer: {
-    gap: 12,
   },
   row: {
     flexDirection: "row",

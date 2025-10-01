@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, } from "@expo/vector-icons";
 import Loader from "../common/Loader";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CheckoutActionsProps {
   hasOutOfStockItems: boolean;
@@ -21,12 +22,12 @@ export const CheckoutActions: React.FC<CheckoutActionsProps> = ({
   if (hasOutOfStockItems) return null;
 
   return (
-    <View style={styles.paymentSection}>
+    <SafeAreaView style={styles.paymentSection}>
       <TouchableOpacity
         style={[
           styles.paymentBtn,
           (!selectedFulfillmentId || paymentLoading) &&
-            styles.paymentBtnDisabled,
+          styles.paymentBtnDisabled,
         ]}
         onPress={onPayment}
         disabled={!selectedFulfillmentId || paymentLoading}
@@ -40,26 +41,24 @@ export const CheckoutActions: React.FC<CheckoutActionsProps> = ({
         ) : (
           <View style={styles.paymentContainer}>
             <Text style={styles.paymentBtnText}>
-              Pay ₹{totalAmount}
+              Proceed to payment
             </Text>
-            <MaterialIcons name="lock" size={20} color="#ffffff" />
+            <Ionicons name="arrow-forward-outline" size={16} color="white" />
           </View>
         )}
       </TouchableOpacity>
-      <Text style={styles.secureText}>🔒 Secure payment powered by Razorpay</Text>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   paymentSection: {
-    paddingVertical: 16,
     alignItems: "center",
   },
   paymentBtn: {
-    backgroundColor: "red",
+    backgroundColor: "limegreen",
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 13,
     paddingHorizontal: 32,
     shadowColor: "pink",
     shadowOffset: { width: 0, height: 4 },
@@ -77,7 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   loadingContainer: {
     flexDirection: "row",
@@ -86,14 +85,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   paymentBtnText: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "bold",
     color: "#ffffff",
+    marginBottom: 4
   },
-  secureText: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 8,
-    textAlign: "center",
-  },
+
 });

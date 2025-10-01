@@ -1,14 +1,14 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View, Modal } from "react-native";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import CheckoutModal from "./CheckoutModal"; // We'll create this component
 
 interface CartCheckoutButtonProps {
   cartId: string;
   storeId: string;
   items: CartItemType[];
-  isStoreOpen?: boolean; // true = store is open
+  isStoreOpen?: boolean;
 }
 
 const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
@@ -17,6 +17,8 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
   items,
   isStoreOpen = true,
 }) => {
+  const [isModalVisible, setIsModalVisible] = React.useState(false);
+
   const hasItems = items && items.length > 0;
 
   // FIXED: Only check for unavailable items among items that exist
@@ -26,6 +28,13 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
   const hasUnavailableItems = unavailableItems.length > 0;
   const hasAvailableItems = availableItems.length > 0;
 
+  const handlePress = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+  };
 
   // Early returns with proper messages
   if (!hasItems) {
@@ -47,6 +56,7 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
       </View>
     );
   }
+  
   if (hasUnavailableItems && hasAvailableItems) {
     return (
       <View style={styles.container}>
@@ -58,6 +68,7 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
       </View>
     );
   }
+  
   if (hasUnavailableItems && !hasAvailableItems) {
     return (
       <View style={styles.container}>
@@ -67,28 +78,57 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
       </View>
     );
   }
-  const handlePress = () => {
-    router.push({
-      pathname: "/(tabs)/cart/[checkout]",
-      params: { checkout: cartId, storeId },
-    });
-  };
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.checkout}
-        onPress={handlePress} activeOpacity={0.8} >
+      <TouchableOpacity style={styles.checkout} onPress={handlePress} activeOpacity={0.8}>
         <View style={styles.buttonContent}>
           <MaterialCommunityIcons name={"cart-outline"} size={20} color={"white"} />
-          <Text style={styles.checkoutText}> Continue to checkout </Text>
-        </View> </TouchableOpacity>
+          <Text style={styles.checkoutText}>Continue to checkout</Text>
+        </View>
+      </TouchableOpacity>
       <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
+      
+      {/* Checkout Modal */}
+ <Modal
+  visible={isModalVisible}
+  animationType="slide"
+  presentationStyle="pageSheet"
+  transparent={true}
+  onRequestClose={handleCloseModal}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      <CheckoutModal
+        cartId={cartId}
+        storeId={storeId}
+        onClose={handleCloseModal}
+      />
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1
   },
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', // dim background
+  justifyContent: 'flex-end',           // push modal to bottom
+},
+modalContainer: {
+  height: '80%',
+  backgroundColor: '#fff', // ensure modal content is white
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+  overflow: 'hidden',
+},
+
   buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, },
   footerText: { color: "#777", fontSize: 12, alignSelf: "center", padding: 4, textAlign: "center", },
   checkout: {
@@ -104,7 +144,8 @@ const styles = StyleSheet.create({
   },
   checkoutText: {
     color: "#fff",
-    fontWeight: "700",
+    fontWeight: "bold",
+    fontStyle:"italic",
     fontSize: 16,
   },
   disabledButton: {
