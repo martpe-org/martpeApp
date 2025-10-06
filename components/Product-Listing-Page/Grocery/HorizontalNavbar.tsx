@@ -102,7 +102,7 @@ const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  },);
 
   return (
     <Animated.View

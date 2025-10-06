@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useToast } from "react-native-toast-notifications";
-
-import { removeCartItems } from "@/components/Cart/api/removeCartItems";
 import useUserDetails from "../../hook/useUserDetails";
 import { useCartStore } from "../../state/useCartStore";
 import Loader from "../common/Loader";
@@ -36,7 +34,7 @@ const ChangeQtyButton: React.FC<Props> = ({
   productPrice,
   productName,
 }) => {
-  const { updateQty, getCartItem, addItem } = useCartStore();
+  const { updateQty, getCartItem, addItem, removeCartItems } = useCartStore(); // Add removeCartItems
   const { userDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
   const toast = useToast();
@@ -62,8 +60,12 @@ const ChangeQtyButton: React.FC<Props> = ({
     setLoading(true);
     try {
       if (newQty === 0) {
+        // Use the store's removeCartItems method instead of direct API call
         const success = await removeCartItems([cartItemId], authToken);
-        if (!success) toast.show("Failed to remove item", { type: "danger" });
+        if (!success) {
+          toast.show("Failed to remove item", { type: "danger" });
+        }
+        // The store method already handles optimistic update and state removal
       } else {
         const success = await updateQty(cartItemId, newQty, authToken);
         if (!success) toast.show("Failed to update quantity", { type: "danger" });
@@ -75,6 +77,8 @@ const ChangeQtyButton: React.FC<Props> = ({
       setLoading(false);
     }
   };
+
+
 
   const increment = () => {
     if (customizable && customGroupIds.length > 0) setRepeatDialog(true);

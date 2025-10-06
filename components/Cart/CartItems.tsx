@@ -90,37 +90,42 @@ const CartItems: React.FC<CartItemsProps> = ({
       </View>
     );
   }
+return (
+<View style={styles.container}>
+  {/* Items List */}
+  <FlashList
+    data={items}
+    renderItem={renderCartItem}
+    keyExtractor={(item) => item._id || `item-${Math.random()}`}
+    estimatedItemSize={120}
+    showsVerticalScrollIndicator={false}
+    contentContainerStyle={styles.listContainer}
+    extraData={[items.length, totalItems, totalCost]}
+  />
 
-  return (
-    <View style={styles.container}>
-      {/* Items List */}
-      <FlashList
-        data={items}
-        renderItem={renderCartItem}
-        keyExtractor={(item) => item._id || `item-${Math.random()}`}
-        estimatedItemSize={120}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-        extraData={[items.length, totalItems, totalCost]}
+  {/* Footer */}
+  <View style={styles.footerContainer}>
+    {/* Show totals only if available items exist */}
+    {availableItems.length > 0 && (
+      <CartTotals
+        subtotal={cartSubtotal}
+        discount={discount}
+        total={cartTotal}
+        appliedOfferId={appliedOfferId}
       />
-      
-      {/* Totals and Checkout - Remove gap between them */}
-      <View style={styles.footerContainer}>
-        <CartTotals
-          subtotal={cartSubtotal}
-          discount={discount}
-          total={cartTotal}
-          appliedOfferId={appliedOfferId}
-        />
-        <CartCheckoutButton
-          cartId={cartId}
-          storeId={storeId}
-          items={availableItems} // Only pass available items for checkout
-          isStoreOpen={isStoreOpen}
-        />
-      </View>
-    </View>
-  );
+    )}
+
+    {/* Checkout button always visible */}
+    <CartCheckoutButton
+      cartId={cartId}
+      storeId={storeId}
+      items={availableItems} // Only pass available items for checkout
+      isStoreOpen={isStoreOpen}
+    />
+  </View>
+</View>
+
+);
 };
 
 const styles = StyleSheet.create({

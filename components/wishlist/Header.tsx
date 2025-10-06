@@ -4,7 +4,7 @@ import React from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const wishlistHeading = "Wishlist";
+const wishlistHeading = "Your Favorites";
 
 const HeaderWishlist = () => {
   return (
@@ -18,7 +18,7 @@ const HeaderWishlist = () => {
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>
-        <Text style={styles.titleText}>{wishlistHeading.toUpperCase()}</Text>
+        <Text style={styles.titleText}>{wishlistHeading}</Text>
       </View>
     </SafeAreaView>
   );
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 56, // fixed compact height
+    height: 56,
     position: "relative",
   },
   backButton: {
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     marginTop:-21
   },
   titleText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#000",
   },

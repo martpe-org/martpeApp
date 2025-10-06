@@ -26,7 +26,6 @@ const PLPFashion: FC<PLPFashionProps> = ({ catalog, headers }) => {
         domainColor="rgba(163, 251, 251, 1)"
         catalog={catalog}
         selectedCategory={selectedCategory}
-        // Removed storeId prop - let PLPCardContainer resolve from catalog items
       />
     </View>
   );

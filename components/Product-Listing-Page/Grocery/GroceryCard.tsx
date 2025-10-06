@@ -108,28 +108,31 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
         <Text style={cardStyles.weight}>
           {weight} / {unit}
         </Text>
-
-        <View style={cardStyles.priceRow}>
-          <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
-          {originalPrice && (
-            <Text style={cardStyles.originalPrice}>
-              ₹{originalPrice.toFixed(2)}
-            </Text>
-          )}
-        </View>
       </TouchableOpacity>
 
-      {/* Add to Cart */}
-      <View style={cardStyles.cartWrapper}>
-        <AddToCart
-          storeId={storeId}
-          slug={resolvedSlug}
-          catalogId={catalogId}
-          price={cost}
-          productName={itemName}
-          customizable={customizable}
-          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-        />
+      {/* Price and Add to Cart Row */}
+      <View style={cardStyles.priceAddRow}>
+        <View style={cardStyles.priceContainer}>
+          <View style={cardStyles.priceRow}>
+            <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
+            {originalPrice && (
+              <Text style={cardStyles.originalPrice}>
+                ₹{originalPrice.toFixed()}
+              </Text>
+            )}
+          </View>
+        </View>
+        <View style={cardStyles.addToCartContainer}>
+          <AddToCart
+            storeId={storeId}
+            slug={resolvedSlug}
+            catalogId={catalogId}
+            price={cost}
+            productName={itemName}
+            customizable={customizable}
+            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+          />
+        </View>
       </View>
     </View>
   );
@@ -182,10 +185,22 @@ const cardStyles = StyleSheet.create({
     color: "#777",
     marginBottom: 4,
   },
+   priceAddRow: {
+    flexDirection: "row",
+    alignItems: "flex-start", // Changed from "center" to "flex-start"
+    justifyContent: "space-between",
+    marginTop: 8,
+    minHeight: 32, // Ensure minimum height for button
+  },
+  priceContainer: {
+    flex: 1, // Changed from flexShrink: 0
+    maxWidth: "60%", // Limit price container width
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    flexWrap: "wrap", // Allow wrapping if needed
   },
   price: {
     fontSize: 14,
@@ -197,7 +212,10 @@ const cardStyles = StyleSheet.create({
     textDecorationLine: "line-through",
     color: "#777",
   },
-  cartWrapper: {
-    marginTop: 8,
+  addToCartContainer: {
+    flexShrink: 0, // Prevent shrinking
+    minWidth: 80, // Ensure minimum button width
+    maxWidth: "55%", // Limit max width
+        marginRight:10
   },
 });

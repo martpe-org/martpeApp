@@ -14,12 +14,25 @@ interface UserDetails {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  countryCode?: string;
+  dob?: string;
+  gender?: string;
 }
 
 interface DeliveryDetails {
   city?: string;
   pincode?: string;
   [key: string]: any;
+}
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  countryCode: string;
+  dob: string;
+  gender: string;
 }
 
 const useUserDetails = () => {
@@ -29,7 +42,18 @@ const useUserDetails = () => {
   const [deliveryDetails, setDeliveryDetails] =
     useState<DeliveryDetails | null>(null);
 
-  // 🚦 Guards to prevent repeated async calls
+  // form state synced with userDetails
+  const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    countryCode: "",
+    dob: "",
+    gender: "",
+  });
+
+  // 🚦 Prevent reinitialization loops
   const userInitRef = useRef(false);
   const deliveryInitRef = useRef(false);
 
@@ -42,18 +66,30 @@ const useUserDetails = () => {
   // USER DETAILS
   // ---------------------------
   const initializeUserDetails = async () => {
-    if (userInitRef.current) return; // 👈 guard
+    if (userInitRef.current) return;
     userInitRef.current = true;
 
     try {
       setIsLoading(true);
       const details = await getAsyncStorageItem("userDetails");
+
       if (details) {
         const parsedDetails = JSON.parse(details) as UserDetails;
         setUserDetails((prev) =>
           !deepEqual(prev, parsedDetails) ? parsedDetails : prev
         );
         setIsAuthenticated(true);
+
+        // sync form data
+        setFormData({
+          firstName: parsedDetails.firstName || "",
+          lastName: parsedDetails.lastName || "",
+          email: parsedDetails.email || "",
+          password: "",
+          countryCode: parsedDetails.countryCode || "",
+          dob: parsedDetails.dob || "",
+          gender: parsedDetails.gender || "",
+        });
       } else {
         setIsAuthenticated(false);
       }
@@ -72,6 +108,17 @@ const useUserDetails = () => {
         !deepEqual(prev, details) ? details : prev
       );
       setIsAuthenticated(true);
+
+      // sync form data
+      setFormData({
+        firstName: details.firstName || "",
+        lastName: details.lastName || "",
+        email: details.email || "",
+        password: "",
+        countryCode: details.countryCode || "",
+        dob: details.dob || "",
+        gender: details.gender || "",
+      });
     } catch (error) {
       console.error("Error saving user details:", error);
     }
@@ -86,6 +133,18 @@ const useUserDetails = () => {
           !deepEqual(prev, parsedDetails) ? parsedDetails : prev
         );
         setIsAuthenticated(true);
+
+        // sync form data
+        setFormData({
+          firstName: parsedDetails.firstName || "",
+          lastName: parsedDetails.lastName || "",
+          email: parsedDetails.email || "",
+          password: "",
+          countryCode: parsedDetails.countryCode || "",
+          dob: parsedDetails.dob || "",
+          gender: parsedDetails.gender || "",
+        });
+
         return parsedDetails;
       }
       return null;
@@ -100,7 +159,19 @@ const useUserDetails = () => {
       await removeAsyncStorageItem("userDetails");
       setUserDetails(null);
       setIsAuthenticated(false);
-      userInitRef.current = false; // reset guard
+      userInitRef.current = false;
+
+      // reset form data
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        countryCode: "",
+        dob: "",
+        gender: "",
+      });
+
       console.log("User details removed successfully");
     } catch (error) {
       console.error("Error removing user details:", error);
@@ -111,25 +182,24 @@ const useUserDetails = () => {
     return !!(isAuthenticated && userDetails?.accessToken);
   };
 
-  // ---------------------------
-  // DELIVERY DETAILS
-  // ---------------------------
-  const initializeDeliveryDetails = async () => {
-    if (deliveryInitRef.current) return; // 👈 guard
-    deliveryInitRef.current = true;
+const initializeDeliveryDetails = async () => {
+  if (deliveryInitRef.current) return;
+  deliveryInitRef.current = true;
 
-    try {
-      const details = await getAsyncStorageItem("deliveryDetails");
-      if (details) {
-        const parsedDetails = JSON.parse(details) as DeliveryDetails;
-        setDeliveryDetails((prev) =>
-          !deepEqual(prev, parsedDetails) ? parsedDetails : prev
-        );
-      }
-    } catch (error) {
-      console.error("Error initializing delivery details:", error);
+  try {
+    const details = await getAsyncStorageItem("deliveryDetails");
+    if (details) {
+      const parsedDetails = JSON.parse(details) as DeliveryDetails;
+      setDeliveryDetails((prev) =>
+        !deepEqual(prev, parsedDetails) ? parsedDetails : prev
+      );
     }
-  };
+    // ❌ No console.log here anymore
+  } catch (error) {
+    console.error("Error initializing delivery details:", error);
+  }
+};
+
 
   const saveDeliveryDetails = async (details: DeliveryDetails) => {
     try {
@@ -146,7 +216,7 @@ const useUserDetails = () => {
     try {
       await removeAsyncStorageItem("deliveryDetails");
       setDeliveryDetails(null);
-      deliveryInitRef.current = false; // reset guard
+      deliveryInitRef.current = false;
       console.log("Delivery details removed successfully");
     } catch (error) {
       console.error("Error removing delivery details:", error);
@@ -154,12 +224,16 @@ const useUserDetails = () => {
   };
 
   // ---------------------------
+  // RETURN
+  // ---------------------------
   return {
     // User
     userDetails,
     authToken: userDetails?.accessToken || null,
     isLoading,
     isAuthenticated,
+    formData,
+    setFormData,
     saveUserDetails,
     getUserDetails,
     removeUserDetails,

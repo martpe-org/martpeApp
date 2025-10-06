@@ -99,7 +99,7 @@ export default DynamicButton;
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#f14343",
+    backgroundColor: "#f57777",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,

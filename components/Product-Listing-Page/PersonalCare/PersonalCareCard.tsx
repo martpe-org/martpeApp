@@ -19,7 +19,6 @@ interface PersonalCareCardProps {
   title: string;
   description: string;
   productId: string | string[];
-
   price: number;
   discount: number;
   image?: string;
@@ -57,6 +56,7 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   const handlePress = () => {
     router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
   };
+
   const isMongoId = (id?: string): boolean =>
     !!id && /^[0-9a-fA-F]{24}$/.test(id);
 
@@ -90,26 +90,23 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   const renderAddToCart = () => {
     if (!storeId) {
       return (
-        <View style={styles.cartWrapper}>
-          <Text style={styles.errorText}>Store ID missing</Text>
-        </View>
+        <Text style={styles.errorText}>Store ID missing</Text>
       );
     }
 
     return (
-      <View style={styles.cartWrapper}>
-        <AddToCart
-          storeId={storeId}
-          slug={slug || id}
-          catalogId={catalogId || item?.catalog_id || ""}
-          price={price}
-          productName={title} // ✅ Add product name
-          customizable={false} // ✅ Add customizable flag (personal care items are typically not customizable)
-          directlyLinkedCustomGroupIds={[]} // ✅ Add empty array for customization groups
-        />
-      </View>
+      <AddToCart
+        storeId={storeId}
+        slug={slug || id}
+        catalogId={catalogId || item?.catalog_id || ""}
+        price={price}
+        productName={title}
+        customizable={false}
+        directlyLinkedCustomGroupIds={[]}
+      />
     );
   };
+
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
@@ -150,14 +147,20 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
         </Text>
 
         {discount > 1 && <Text style={styles.strikedOff}>₹{maxValue}</Text>}
-
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{price}</Text>
-          {discount > 1 && <Text style={styles.discount}>{discount}% Off</Text>}
-        </View>
       </TouchableOpacity>
 
-      {renderAddToCart()}
+      {/* Price and Add to Cart Row */}
+      <View style={styles.priceAddRow}>
+        <View style={styles.priceContainer}>
+          <View style={styles.priceColumn}>
+            <Text style={styles.price}>₹{price}</Text>
+            {discount > 1 && <Text style={styles.discount}>{discount}% Off</Text>}
+          </View>
+        </View>
+        <View style={styles.addToCartContainer}>
+          {renderAddToCart()}
+        </View>
+      </View>
     </View>
   );
 };
@@ -221,11 +224,22 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
     marginBottom: 2,
   },
-  priceRow: {
+  priceAddRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    minHeight: 32,
+  },
+  priceContainer: {
+    flex: 1,
+    marginRight: 8,
+    maxWidth: "60%",
+  },
+  priceColumn: {
+    flexDirection: "column",
+    alignItems: "flex-start",
   },
   price: {
     fontSize: 13,
@@ -236,11 +250,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#28a745",
+    marginTop: 2,
   },
-  cartWrapper: {
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingBottom: 6,
+  addToCartContainer: {
+    flexShrink: 0,
+    minWidth: 80,
+    maxWidth: "55%",
+    marginRight: 10
+
   },
   errorText: {
     fontSize: 10,

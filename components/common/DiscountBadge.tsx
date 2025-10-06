@@ -1,4 +1,3 @@
-// components/common/DiscountBadge.tsx
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -19,18 +18,23 @@ const DiscountBadge: React.FC<DiscountBadgeProps> = ({ percent, style }) => {
 
 const styles = StyleSheet.create({
   offerBadge: {
-    position: "absolute",
-    top:10,
-    left: 10,
-    backgroundColor: "red",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: "#0f7a0f",
     borderRadius: 4,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    borderTopLeftRadius: 1,
+    borderBottomLeftRadius: 1,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    zIndex: 2,
   },
   offerBadgeText: {
     color: "white",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
 });
 

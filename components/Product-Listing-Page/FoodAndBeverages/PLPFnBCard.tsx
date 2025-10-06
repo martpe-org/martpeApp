@@ -181,22 +181,27 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             <Text style={cardStyles.spiceLevel}>🌶️ {spiceLevel}</Text>
           )}
 
-          <View style={cardStyles.priceRow}>
-            <Text style={cardStyles.price}>₹{cost.toFixed(2)}</Text>
-            {discount && originalPrice && (
-              <Text style={cardStyles.originalPrice}>
-                ₹{originalPrice.toFixed(2)}
-              </Text>
-            )}
-          </View>
-
           {discount && (
             <Text style={cardStyles.discount}>{discount}% off</Text>
           )}
         </TouchableOpacity>
 
-        {/* ✅ AddToCart */}
-        {renderAddToCart()}
+        {/* Price and Add to Cart Row */}
+        <View style={cardStyles.priceAddRow}>
+          <View style={cardStyles.priceContainer}>
+            <View style={cardStyles.priceRow}>
+              <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
+              {discount && originalPrice && (
+                <Text style={cardStyles.originalPrice}>
+                  ₹{originalPrice.toFixed(1)}
+                </Text>
+              )}
+            </View>
+          </View>
+          <View style={cardStyles.addToCartContainer}>
+            {renderAddToCart()}
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -259,10 +264,22 @@ const cardStyles = StyleSheet.create({
     color: "#f97316",
     marginBottom: 4,
   },
+ priceAddRow: {
+    flexDirection: "row",
+    alignItems: "flex-start", // Changed from "center"
+    justifyContent: "space-between",
+    minHeight: 32,
+  },
+  priceContainer: {
+    flex: 1, // Changed from flexShrink: 0
+    marginRight: 16,
+    maxWidth: "60%", // Limit price container width
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    flexWrap: "wrap", // Allow wrapping
   },
   price: {
     fontSize: 14,
@@ -274,13 +291,19 @@ const cardStyles = StyleSheet.create({
     textDecorationLine: "line-through",
     color: "#777",
   },
+  addToCartContainer: {
+    flexShrink: 0, // Prevent shrinking
+    minWidth: 80, // Ensure minimum button width
+    maxWidth: "55%",
+    marginRight:9
+  },
   discount: {
     fontSize: 12,
     color: "#28a745",
     marginTop: 2,
   },
   cartWrapper: {
-    marginTop: 8,
+    // Remove marginTop since it's now handled by priceAddRow
   },
   errorText: {
     fontSize: 10,
@@ -289,7 +312,6 @@ const cardStyles = StyleSheet.create({
     fontWeight: "500",
   },
   addButton: {
-    marginTop: 8,
     backgroundColor: "#FB3E44",
     borderRadius: 6,
     paddingVertical: 8,

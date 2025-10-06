@@ -85,36 +85,35 @@ const FashionCard: FC<FashionCardProps> = ({
           <Text style={styles.fashionCardDescription} numberOfLines={1}>
             {desc}
           </Text>
-
-          <View style={{ flexDirection: "row", marginTop: 3 }}>
-            <Text style={styles.fashionCardPrice}>
-              <Text style={{ fontSize: 16, color: "green" }}>₹{value}</Text>{" "}
-              {maxPrice && (
-                <Text style={styles.strikedOffText}>₹{maxPrice}</Text>
-              )}
-            </Text>
-          </View>
         </TouchableOpacity>
       </View>
 
-      {/* Add to Cart Button */}
-      {safeStoreId ? (
-        <View style={styles.addToCartContainer}>
-          <AddToCart
-            price={value || 0}
-            storeId={safeStoreId}
-            slug={slug || id}
-            catalogId={catalogId}
-            productName={itemName}
-            customizable={customizable}
-            directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-          />
+      {/* Price and Add to Cart Row */}
+      <View style={styles.priceAddRow}>
+        <View style={styles.priceContainer}>
+          <Text style={styles.fashionCardPrice}>
+            <Text style={{ fontSize: 16, color: "green" }}>₹{value}</Text>
+            {maxPrice && (
+              <Text style={styles.strikedOffText}> ₹{maxPrice}</Text>
+            )}
+          </Text>
         </View>
-      ) : (
         <View style={styles.addToCartContainer}>
-          <Text style={styles.errorText}>Store ID missing</Text>
+          {safeStoreId ? (
+            <AddToCart
+              price={value || 0}
+              storeId={safeStoreId}
+              slug={slug || id}
+              catalogId={catalogId}
+              productName={itemName}
+              customizable={customizable}
+              directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+            />
+          ) : (
+            <Text style={styles.errorText}>Store ID missing</Text>
+          )}
         </View>
-      )}
+      </View>
     </View>
   );
 };
@@ -161,9 +160,29 @@ const styles = StyleSheet.create({
     color: "#838181",
     fontSize: 11,
   },
+  priceAddRow: {
+    flexDirection: "row",
+    alignItems: "flex-start", // Changed from "center"
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    minHeight: 32,
+  },
+  priceContainer: {
+    flex: 1, // Changed from flexShrink: 0
+    marginRight: 8,
+    maxWidth: "60%", // Limit price container width
+  },
   fashionCardPrice: {
     fontSize: 12,
     fontWeight: "800",
+    flexWrap: "wrap", // Allow text wrapping
+  },
+  addToCartContainer: {
+    flexShrink: 0, // Prevent shrinking
+    minWidth: 80, // Ensure minimum button width
+    maxWidth: "55%",
+    marginRight:10
   },
   strikedOffText: {
     color: "#746F6F",
@@ -174,10 +193,7 @@ const styles = StyleSheet.create({
     color: "#00BC66",
     fontWeight: "900",
   },
-  addToCartContainer: {
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-  },
+
   errorText: {
     fontSize: 10,
     color: "#ff6b6b",

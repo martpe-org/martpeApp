@@ -41,7 +41,7 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.disabledButton}>
-          <Text style={styles.disabledText}>No items in cart</Text>
+          <Text style={styles.disabledText}>Items Unavailable</Text>
         </View>
       </View>
     );

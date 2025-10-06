@@ -93,13 +93,12 @@ export const useCartStore = create<CartState>((set, get) => ({
             total_max_price: data.total_max_price || data.total_price,
             store_id: storeId,
             product: {
-              name: data.product_name || data.product_slug || slug,
-              symbol: data.product_image,
+              name:  data.product_slug || slug,
+              symbol: data.product_slug,
               price: basePrice, // Store the base product price
               quantity: data.qty,
               instock: true,
               customizable: customizable,
-              directlyLinkedCustomGroupIds: data.directlyLinkedCustomGroupIds || [],
               slug: data.product_slug || slug,
             },
             selected_customizations: customizations || [],
@@ -112,7 +111,6 @@ export const useCartStore = create<CartState>((set, get) => ({
             };
           } else {
             updatedCarts.push({
-              _id: data.cart_id,
               store: { _id: storeId },
               cart_items: [newItem],
             });
@@ -130,31 +128,43 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  updateQty: async (cartItemId, qty, authToken) => {
-    if (!authToken || !cartItemId) return false;
-    if (qty < 0) return false;
+updateQty: async (cartItemId, qty, authToken) => {
+  if (!authToken || !cartItemId) return false;
+  if (qty < 0) return false;
 
-    try {
-      const success = await updateQty(cartItemId, qty, authToken);
-      if (!success) return false;
+  try {
+    const success = await updateQty(cartItemId, qty, authToken);
+    if (!success) return false;
 
-      set((state) => {
-        const currentItem = findCartItem(state.allCarts, cartItemId);
-        if (!currentItem) return state;
+    set((state) => {
+      const currentItem = findCartItem(state.allCarts, cartItemId);
+      if (!currentItem) return state;
 
-        const priceUpdates = calculateItemPrices(currentItem, qty);
-        const updatedCarts = updateCartItemInCarts(state.allCarts, cartItemId, priceUpdates);
+      // If quantity is 0, remove the item completely
+      if (qty === 0) {
+        const updatedCarts = state.allCarts.map(cart => ({
+          ...cart,
+          cart_items: cart.cart_items.filter(item => item._id !== cartItemId)
+        })).filter(cart => cart.cart_items.length > 0); // Remove empty carts
         
         saveCartToStorage(updatedCarts);
         return { allCarts: sanitizeCarts(updatedCarts) };
-      });
+      }
 
-      return true;
-    } catch (error) {
-      console.error("updateQty error:", error);
-      return false;
-    }
-  },
+      // Otherwise, update the quantity and prices
+      const priceUpdates = calculateItemPrices(currentItem, qty);
+      const updatedCarts = updateCartItemInCarts(state.allCarts, cartItemId, priceUpdates);
+      
+      saveCartToStorage(updatedCarts);
+      return { allCarts: sanitizeCarts(updatedCarts) };
+    });
+
+    return true;
+  } catch (error) {
+    console.error("updateQty error:", error);
+    return false;
+  }
+},
 
   updateItemCustomizations: async (
     cartItemId,

@@ -90,7 +90,7 @@ const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
     pulse.start();
 
     return () => pulse.stop();
-  }, []);
+  }, );
 
   return (
     <Animated.View
@@ -210,13 +210,6 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
           "https://via.placeholder.com/185?text=Fashion";
 
         const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
-
-        const directlyLinkedCustomGroupIds =
-          item.directlyLinkedCustomGroupIds ||
-          (item.customizations?.map(
-            (c) => c.groupId || c.group_id || c._id || c.id
-          ).filter(Boolean) as string[]) ||
-          [];
 
         const resolveStoreId = (): string | undefined => {
           if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
