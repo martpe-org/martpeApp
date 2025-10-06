@@ -11,12 +11,17 @@ import { StatusBar } from "expo-status-bar";
 
 export default function TabsLayout() {
   const { allCarts, loadCartFromStorage, syncCartFromApi } = useCartStore();
-  const { userDetails } = useUserDetails();
+  const { userDetails, getUserDetails } = useUserDetails();
   const authToken = userDetails?.accessToken;
 
   // ✅ Load cart data once from storage
   useEffect(() => {
     loadCartFromStorage();
+  }, []);
+
+  // ✅ Load user details when layout mounts
+  useEffect(() => {
+    getUserDetails();
   }, []);
 
   // ✅ Sync with API whenever authToken changes
@@ -40,10 +45,16 @@ export default function TabsLayout() {
   const inactiveTabColor = "#060606";
   const backgroundColor = "#ffffff";
 
+  // ✅ Dynamic label: show user’s first name if available
+  const accountLabel =
+    userDetails?.firstName && userDetails.firstName.trim() !== ""
+      ? userDetails.firstName
+      : "Account";
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
       {/* ✅ White background with dark icons for StatusBar */}
-      <StatusBar style="dark"  />
+      <StatusBar style="dark" />
 
       <Tabs
         screenOptions={{
@@ -129,11 +140,11 @@ export default function TabsLayout() {
           }}
         />
 
-        {/* 4. Account Tab */}
+        {/* 4. Account Tab (dynamic label) */}
         <Tabs.Screen
           name="account"
           options={{
-            tabBarLabel: "Account",
+            tabBarLabel: accountLabel, // 👈 dynamic name here
             tabBarIcon: ({ focused }) => (
               <View style={{ alignItems: "center", justifyContent: "center" }}>
                 <ProfileTab

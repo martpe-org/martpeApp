@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {  Text, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface OfferBadgeProps {
   offers?: {
@@ -26,17 +27,20 @@ const OfferBadge: React.FC<OfferBadgeProps> = ({
       text += ` above ${offer.qualifier.min_value}`;
     }
   } else if (maxStoreItemOfferPercent !== undefined) {
-    // show "0% off" if it's actually 0
-    text = `Upto ${maxStoreItemOfferPercent}% off`;
+    text = `UPTO ${maxStoreItemOfferPercent}% OFF`;
   } else {
-    // force default text even if nothing provided
-    text = "No Offers";
+    text = "NO OFFERS";
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#ff5e62", "#ff9966"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.container}
+    >
       <Text style={styles.text}>{text}</Text>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -45,18 +49,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    backgroundColor: "green",
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
     borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     paddingVertical: 4,
     zIndex: 2,
   },
   text: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "bold",
     color: "white",
     textTransform: "uppercase",
+    letterSpacing: 1,
   },
 });
 

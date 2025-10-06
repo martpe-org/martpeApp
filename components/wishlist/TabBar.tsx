@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingVertical: 6,
   },
   tabContainer: {
     width: CONTAINER_WIDTH,

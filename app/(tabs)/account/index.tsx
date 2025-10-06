@@ -169,13 +169,13 @@ const styles = StyleSheet.create({
   gridButton: {
     width: "48%",
     backgroundColor: "#f9f9f9",
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     elevation: 2,
   },
   gridText: { fontWeight: "600", fontSize: 14 },
-  logoutButton: { backgroundColor: "#ff3c41" },
+  logoutButton: { backgroundColor: "#000" },
   logoutText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
 });

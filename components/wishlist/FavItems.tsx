@@ -1,9 +1,8 @@
-import { FontAwesome, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { FC } from "react";
 import {
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,7 +13,8 @@ import ImageComp from "../../components/common/ImageComp";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
 import AddToCart from "../common/AddToCart";
 
-const { width: screenWidth } = Dimensions.get("screen");
+const { width: screenWidth } = Dimensions.get("window");
+const cardWidth = (screenWidth - 36) / 2; // two cards + gaps
 
 interface FavItemsProps {
   favorites: any[];
@@ -38,45 +38,23 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      {[...favorites].reverse().map((item: any, index: number) => {
-        const productName =
-          item?.descriptor?.name || item?.name || "Unnamed Product";
-        const providerName =
-          item?.provider?.descriptor?.name || item?.brand || "Unknown Brand";
-        const imageUrl =
-          item?.descriptor?.images?.[0] || item?.images?.[0] || null;
+    <View style={styles.scrollContainer}>
+      <View style={styles.grid}>
+        {[...favorites].reverse().map((item: any, index: number) => {
+          const productName =
+            item?.descriptor?.name || item?.name || "Unnamed Product";
+          const providerName =
+            item?.provider?.descriptor?.name || item?.brand || "";
+          const imageUrl =
+            item?.descriptor?.images?.[0] || item?.images?.[0] || null;
+          const price = item.price?.value;
+          const maxPrice = item.price?.maximum_value;
 
-        return (
-          <View
-            key={item.id || item.slug || `fav-${index}`}
-            style={styles.itemCard}
-          >
-            {/* Header */}
-            <View style={styles.cardHeader}>
-              <View style={styles.favoriteIndicator}>
-                <FontAwesome name="heart" size={16} color="#E53E3E" />
-              </View>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  if (authToken) {
-                    removeFavorite(item.slug, authToken);
-                  } else {
-                    Toast.show("Authentication required", { type: "error" });
-                  }
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={18} color="#050505" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Content */}
+          return (
             <TouchableOpacity
-              style={styles.cardContent}
+              key={item.id || item.slug || `fav-${index}`}
+              style={styles.card}
+              activeOpacity={0.9}
               onPress={() =>
                 router.push({
                   pathname:
@@ -84,199 +62,166 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   params: { productDetails: item.slug },
                 })
               }
-              activeOpacity={0.8}
             >
-              {/* Product Image + AddToCart */}
-              <View style={styles.imageContainer}>
-                <ImageComp
-                  source={imageUrl}
-                  imageStyle={styles.productImage}
-                  resizeMode="contain"
-                />
-              </View>
+              {/* Heart Icon */}
+              <TouchableOpacity
+                style={styles.heartIcon}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent navigation when clicking heart
+                  if (authToken) {
+                    removeFavorite(item.slug, authToken);
+                  } else {
+                    Toast.show("Authentication required", { type: "error" });
+                  }
+                }}
+              >
+                <FontAwesome name="heart" size={18} color="#E53E3E" />
+              </TouchableOpacity>
+
+              {/* Product Image */}
+              <ImageComp
+                source={imageUrl}
+                imageStyle={styles.image}
+                resizeMode="cover"
+              />
 
               {/* Product Info */}
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={2}>
+                <Text style={styles.productName} numberOfLines={2}>
                   {productName}
                 </Text>
-                <Text style={styles.providerName} numberOfLines={1}>
-                  {providerName}
-                </Text>
+                
+                {providerName ? (
+                  <Text style={styles.provider} numberOfLines={1}>
+                    {providerName}
+                  </Text>
+                ) : null}
 
-                {/* Price Row */}
-                <View style={styles.priceRow}>
-                  {item.price?.maximum_value > item.price?.value && (
-                    <Text style={styles.oldPrice}>
-                      ₹ {item.price?.maximum_value}
-                    </Text>
-                  )}
-                  <Text style={styles.newPrice}>₹ {item.price?.value}</Text>
-                  {item.price?.offer_percent && (
-                    <Text style={styles.discount}>
-                      {Math.ceil(item.price.offer_percent)}% off
-                    </Text>
-                  )}
+                {/* Bottom Section: Price + Add Button */}
+                <View style={styles.bottomSection}>
+                  {/* Price */}
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.newPrice}>₹{price}</Text>
+                    {maxPrice > price && (
+                      <Text style={styles.oldPrice}>₹{maxPrice}</Text>
+                    )}
+                  </View>
+
+                  {/* Add Button */}
+                  <View style={styles.addButtonContainer}>
+                    <AddToCart
+                      price={price}
+                      storeId={item.store_id}
+                      slug={item.slug}
+                      catalogId={item.catalog_id}
+                    />
+                  </View>
                 </View>
               </View>
-              <View style={{ justifyContent: "flex-end" }}>
-                <AddToCart
-                  price={item.price?.value}
-                  storeId={item.store_id}
-                  slug={item.slug}
-                  catalogId={item.catalog_id}
-                />
-              </View>
             </TouchableOpacity>
-          </View>
-        );
-      })}
-    </ScrollView>
+          );
+        })}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    paddingHorizontal: 14,
+    paddingBottom: 20,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  card: {
+    width: cardWidth,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: 15,
+    padding: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  heartIcon: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 2,
+    backgroundColor: "#fff",
+    borderRadius: 50,
+    padding: 4,
+    elevation: 2,
+  },
+  image: {
+    width: "100%",
+    height: cardWidth * 0.8,
+    borderRadius: 10,
+    backgroundColor: "#F8F8F8",
+    marginBottom: 6,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#222",
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  provider: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+  },
+  bottomSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 'auto',
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  newPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#000",
+    marginRight: 6,
+  },
+  oldPrice: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
+  },
+  addButtonContainer: {
+    marginLeft: 8,
+  },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F7FAFC",
-    paddingHorizontal: 20,
+    padding: 20,
   },
   emptyText: {
     fontSize: 18,
     color: "#2D3748",
     fontWeight: "600",
     marginTop: 16,
-    textAlign: "center",
   },
   emptySubText: {
     fontSize: 14,
     color: "#718096",
     marginTop: 8,
-    textAlign: "center",
-  },
-  scrollContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 30,
-  },
-  itemCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  favoriteIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FED7D7",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  cardContent: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  imageContainer: {
-    marginRight: 12,
-  },
-  productImage: {
-    width: screenWidth * 0.25,
-    height: screenWidth * 0.25,
-    borderRadius: 12,
-    backgroundColor: "#F7FAFC",
-  },
-  itemInfo: {
-    flex: 1,
-    justifyContent: "space-between",
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1A202C",
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  providerName: {
-    fontSize: 13,
-    color: "#607274",
-    marginBottom: 8,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  oldPrice: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#607274",
-    marginRight: 6,
-    textDecorationLine: "line-through",
-  },
-  newPrice: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
-  },
-  discount: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "green",
-    marginLeft: 6,
-  },
-  itemBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#EDF2F7",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  badgeText: {
-    fontSize: 12,
-    color: "#4A5568",
-    fontWeight: "500",
-    marginLeft: 4,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    backgroundColor: "#FAFAFA",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  viewDetailsText: {
-    fontSize: 13,
-    color: "#718096",
-    fontWeight: "500",
   },
 });
 
