@@ -50,6 +50,18 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
           const price = item.price?.value;
           const maxPrice = item.price?.maximum_value;
 
+          // ✅ Veg/Non-Veg logic
+          const vegStatus =
+            item?.veg_nonveg ||
+            item?.isVeg ||
+            (productName?.toLowerCase().includes("non veg") ||
+            productName?.toLowerCase().includes("chicken") ||
+            productName?.toLowerCase().includes("mutton")
+              ? "non-veg"
+              : "veg");
+
+          const isVeg = vegStatus === "veg";
+
           return (
             <TouchableOpacity
               key={item.id || item.slug || `fav-${index}`}
@@ -87,10 +99,27 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
 
               {/* Product Info */}
               <View style={styles.itemInfo}>
-                <Text style={styles.productName} numberOfLines={2}>
-                  {productName}
-                </Text>
-                
+                {/* ✅ Veg/Non-Veg Indicator + Name */}
+                <View style={styles.nameRow}>
+                  <View
+                    style={[
+                      styles.vegIndicator,
+                      { borderColor: isVeg ? "#008000" : "#FF0000" },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.vegDot,
+                        { backgroundColor: isVeg ? "#008000" : "#FF0000" },
+                      ]}
+                    />
+                  </View>
+
+                  <Text style={styles.productName} numberOfLines={2}>
+                    {productName}
+                  </Text>
+                </View>
+
                 {providerName ? (
                   <Text style={styles.provider} numberOfLines={1}>
                     {providerName}
@@ -168,12 +197,31 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  vegIndicator: {
+    width: 14,
+    height: 14,
+    borderWidth: 1,
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vegDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 50,
+  },
   productName: {
     fontSize: 13,
     fontWeight: "600",
     color: "#222",
     lineHeight: 18,
-    marginBottom: 2,
+    flexShrink: 1,
   },
   provider: {
     fontSize: 12,
@@ -184,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 'auto',
+    marginTop: "auto",
   },
   priceContainer: {
     flexDirection: "row",

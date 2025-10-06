@@ -34,7 +34,7 @@ const OfferBadge: React.FC<OfferBadgeProps> = ({
 
   return (
     <LinearGradient
-      colors={["#ff5e62", "#ff9966"]}
+      colors={["#ff9966","#ff5e62"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
       style={styles.container}
@@ -49,15 +49,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 6,
+    borderTopLeftRadius: 1,
+    borderBottomLeftRadius: 1,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 4,
     zIndex: 2,
   },
   text: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "bold",
     color: "white",
     textTransform: "uppercase",
