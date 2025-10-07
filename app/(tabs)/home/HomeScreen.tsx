@@ -1,4 +1,3 @@
-// HomeScreen.tsx
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
@@ -129,7 +128,6 @@ export default function HomeScreen() {
             selectedDetails={selectedDetails}
             onPress={handleLocationPress}
           />
-          <Search onPress={handleSearchPress} />
           <FlatList
             data={categoryData}
             horizontal
@@ -140,6 +138,7 @@ export default function HomeScreen() {
               renderCategoryItemCompact({ item, index })
             }
           />
+          <Search onPress={handleSearchPress} />
         </View>
 
         {/* White content */}
@@ -282,7 +281,7 @@ export default function HomeScreen() {
           />
 
           {/* Footer Section */}
-          <FooterSection/>
+          <FooterSection />
         </View>
       </ScrollView>
     </SafeAreaView>

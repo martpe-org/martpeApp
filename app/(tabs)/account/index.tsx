@@ -26,7 +26,6 @@ const Profile = () => {
     email: "",
     password: "",
     countryCode: "",
-    dob: "",
     gender: "",
   });
 
@@ -42,7 +41,6 @@ const Profile = () => {
         email: userDetails.email || "",
         password: "", // Keep password empty for security
         countryCode: userDetails.countryCode || "",
-        dob: userDetails.dob || "",
         gender: userDetails.gender || "",
       });
     }

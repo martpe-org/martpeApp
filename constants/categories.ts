@@ -1,5 +1,10 @@
 export const categoryData = [
   {
+    id: 0,
+    name: "For you",
+    image: require("../assets/tabs/for-you.webp"),
+  },
+  {
     id: 1,
     name: "Food",
     link: "Food",

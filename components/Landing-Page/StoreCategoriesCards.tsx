@@ -139,24 +139,46 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
 
 export const CategoryItemCompact: React.FC<CategoryItemProps> = ({
   item,
-  index
+  index,
 }) => {
   const router = useRouter();
 
   const handleCategoryPress = (categoryItem: any) => {
-    router.push(`../../(tabs)/home/categories/${categoryItem.link}`);
+    if (categoryItem.id === 0) {
+      router.push("/(tabs)/home/HomeScreen");
+    } else {
+      router.push(`../../(tabs)/home/categories/${categoryItem.link}`);
+    }
   };
+    const isDefault = item.id === 0;
 
-  return (
+ return (
     <TouchableOpacity
-      style={[styles.catCardCompact, { marginLeft: index === 0 ? -10 : 0 }]}
+      style={[styles.catCardCompact]}
       onPress={() => handleCategoryPress(item)}
-      activeOpacity={0.8}
+      activeOpacity={1}
     >
-      <Image source={item.image} style={styles.iconImgCompact} />
-      <Text style={styles.catLabelCompact} numberOfLines={1}>
+      {/* Wrapper with padding + border */}
+      <View
+        style={[
+          styles.imageWrapper,
+          isDefault && {
+            borderWidth: 1,
+            borderColor: "#f3dede",
+            padding: 4,
+            paddingBottom:10,
+            marginBottom: -6,
+            marginLeft:-5
+          },
+        ]}
+      >
+        <Image source={item.image} style={styles.iconImgCompact} />
+            <Text style={styles.catLabelCompact} numberOfLines={1}>
         {item.name}
       </Text>
+      </View>
+
+  
     </TouchableOpacity>
   );
 };
@@ -341,26 +363,31 @@ const styles = StyleSheet.create({
   catCardCompact: {
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-    width: 50,
+    marginRight: 4,
+    width: 60,
     borderRadius: 8,
     backgroundColor: "transparent",
     paddingVertical: 6,
   },
   iconImgCompact: {
-    width: 40,
-    height: 36,
-    resizeMode: "contain",
+    width: 45,
+    height: 40,
+    resizeMode: "cover",
     borderRadius: 6,
     marginBottom: 2,
   },
+  imageWrapper: {
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
   catLabelCompact: {
     color: "white",
-    fontSize: 10,
+    fontSize: 12,
     textAlign: "center",
-    fontWeight: "bold",
-    textShadowColor: "rgba(0, 0, 0, 0.4)",
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowColor: "rgba(250, 233, 233, 0.4)",
+    textShadowOffset: { width: 2, height: 3},
     textShadowRadius: 2,
     marginBottom: -7,
   },

@@ -18,7 +18,7 @@ router.push("/privacy-policy");
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back-outline" size={24} color="black" />
+              <Ionicons name="arrow-back-outline" size={20} color="black" />
             </TouchableOpacity>
             <Text style={styles.title}>Terms & Conditions | MartPe</Text>
             <View style={styles.placeholder} />
@@ -170,11 +170,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   contentContainer: {
-    paddingBottom: 20,
   },
   header: {
     backgroundColor: '#f8f9fa',
-    paddingVertical: 15,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -187,6 +185,7 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     width: 40,
+    marginLeft:-15
   },
   title: {
     fontSize: 18,
@@ -201,7 +200,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 20,
   },
   sectionHeading: {
     fontSize: 20,
@@ -214,7 +212,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#495057',
-    marginTop: 16,
     marginBottom: 8,
   },
   paragraph: {

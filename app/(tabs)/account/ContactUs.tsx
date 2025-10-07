@@ -5,9 +5,8 @@ import {
   Linking,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
 } from "react-native";
-import { Entypo, Ionicons } from "@expo/vector-icons";
+import {  Ionicons } from "@expo/vector-icons";
 
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";

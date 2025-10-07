@@ -14,7 +14,7 @@ export default function PrivacyPolicyScreen() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back-outline" size={24} color="black" />
+              <Ionicons name="arrow-back-outline" size={20} color="black" />
             </TouchableOpacity>
             <Text style={styles.title}>Privacy Policy | MartPe</Text>
             <View style={styles.placeholder} />
@@ -168,11 +168,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   contentContainer: {
-    paddingBottom: 20,
   },
   header: {
     backgroundColor: '#f8f9fa',
-    paddingVertical: 15,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -185,21 +183,21 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     width: 40,
+    marginLeft:-10
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#212529',
     textAlign: 'center',
-    flex: 1,
     marginHorizontal: 10,
+    marginVertical: 12,
   },
   placeholder: {
     width: 40, // Same width as backButton to center the title
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 20,
   },
   sectionHeading: {
     fontSize: 20,

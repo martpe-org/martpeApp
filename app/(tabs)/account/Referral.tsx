@@ -1,5 +1,3 @@
-// app/(tabs)/referrals/index.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -195,15 +193,14 @@ export default function ReferralsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F9FAFB" },
-  container: { flex: 1, padding: 16 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flexGrow: 1, padding: 16 },
+  center: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
 
   // top bar
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#fff",

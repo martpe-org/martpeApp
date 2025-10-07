@@ -17,7 +17,6 @@ export const styles = StyleSheet.create({
   },
   catList: {
     marginTop: 5,
-    paddingHorizontal: 8, // Add horizontal padding
   },
   whiteSection: {
     backgroundColor: "#f5f2f2",
@@ -34,7 +33,7 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#333",
   },
@@ -73,7 +72,7 @@ export const styles = StyleSheet.create({
   categoryName: {
     marginTop: -9,
     color: "black",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
     textAlign: "center",
     flexWrap: "wrap", // Allow text wrapping

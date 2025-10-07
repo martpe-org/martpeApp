@@ -32,7 +32,7 @@ export default function Search({ onPress }: SearchProps) {
       setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  });
 
   return (
     <TouchableOpacity
@@ -85,5 +85,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginHorizontal:-8,
+    marginTop: 10,
   },
 });

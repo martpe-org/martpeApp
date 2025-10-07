@@ -22,22 +22,21 @@ interface LocationBarProps {
 
 export default function LocationBar({ selectedDetails, onPress }: LocationBarProps) {
   return (
-    <SafeAreaView style={{flex:1}}>
-    <TouchableOpacity style={styles.locationRow} onPress={onPress}>
-      <FontAwesome6
-        name="location-pin-lock"
-        size={18}
-        color="white"
-        style={{     marginLeft: -14, marginRight:24}}
-      />
-      <Text style={styles.deliveryTxt}>Home -</Text>
-      <Text style={styles.locationTxt} numberOfLines={1}>
-        {selectedDetails?.city || "Select Location"}
-        {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
-      </Text>
-      <Entypo name="chevron-down" size={18} color="white" />
-    </TouchableOpacity>
-</SafeAreaView>
+    <SafeAreaView style={{ paddingTop: 5, paddingBottom: 5 }}>
+      <TouchableOpacity style={styles.locationRow} onPress={onPress}>
+        <Entypo
+          name="location"
+          size={16}
+          color="white"
+          style={{ marginLeft: -5,marginRight: 6 }}
+        />
+        <Text style={styles.locationTxt} numberOfLines={1}>
+          {selectedDetails?.city || "Select Location"}
+          {selectedDetails?.pincode ? `, ${selectedDetails.pincode}` : ""}
+        </Text>
+        <Entypo name="chevron-right" size={18} color="white" />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
@@ -45,17 +44,16 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding:9
-  },
-  deliveryTxt: {
-    color: "white",
-    fontSize: 14,
-    marginHorizontal: 6,
-    marginLeft: -19,
+    padding: 9,
+    justifyContent: "space-between",
+    backgroundColor: "#fa5959",
+    marginHorizontal:-8,
+    borderRadius: 32,
   },
   locationTxt: {
     color: "white",
-    fontSize: 14,
-    marginRight: 4,
+    fontSize: 16,
+    flex: 1,           // text takes remaining space
+    marginRight: 6,    // space between text and arrow
   },
 });

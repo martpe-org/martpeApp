@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Modal,
   View,
@@ -9,7 +9,6 @@ import {
   Pressable,
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { styles } from "./ProfileStyles";
 import { Toast } from "react-native-toast-notifications";
 
@@ -22,7 +21,6 @@ interface ProfileModalProps {
     email: string;
     password: string;
     countryCode: string;
-    dob: string;
     gender: string;
   };
   setFormData: (data: any) => void;
@@ -36,21 +34,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   setFormData,
   handleSaveChanges,
 }) => {
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-  const showDatePicker = () => {
-    setDatePickerVisible(true);
-  };
-
-  const hideDatePicker = () => {
-    setDatePickerVisible(false);
-  };
-
-  const handleDateConfirm = (date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
-    setFormData({ ...formData, dob: formattedDate });
-    hideDatePicker();
-  };
 
   const handleSaveWithToast = () => {
     handleSaveChanges();
@@ -60,18 +44,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     );
   };
 
-  const getDisplayDate = () => {
-    if (!formData.dob) return "Select Date of Birth";
-    
-    try {
-      const date = new Date(formData.dob);
-      if (isNaN(date.getTime())) return "Select Date of Birth";
-      
-      return date.toLocaleDateString("en-GB");
-    } catch (error) {
-      return "Select Date of Birth";
-    }
-  };
 
   return (
     <Modal
@@ -166,32 +138,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                 }
                 placeholder="+91"
                 keyboardType="phone-pad"
-              />
-            </View>
-
-            {/* Date of Birth - FIXED using same logic as StudentBasic */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Date of Birth</Text>
-              <View style={styles.dobInputContainer}>
-                <TextInput
-                  placeholder="Select Date of Birth"
-                  placeholderTextColor="#999"
-                  style={[styles.input, { flex: 1 }]}
-                  value={getDisplayDate()}
-                  editable={false}
-                />
-                <TouchableOpacity onPress={showDatePicker} style={styles.calendarIcon}>
-                  <AntDesign name="calendar" size={20} color="#999" />
-                </TouchableOpacity>
-              </View>
-
-              <DateTimePickerModal
-                isVisible={isDatePickerVisible}
-                mode="date"
-                onConfirm={handleDateConfirm}
-                onCancel={hideDatePicker}
-                maximumDate={new Date()} // Prevent future dates
-                minimumDate={new Date(1900, 0, 1)} // Reasonable minimum date
               />
             </View>
 

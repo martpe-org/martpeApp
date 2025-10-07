@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Linking,
 } from 'react-native';
-import { Entypo, Ionicons } from '@expo/vector-icons';
+import {  Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 interface FAQItem {
@@ -137,27 +137,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   scrollContainer: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 14,
-    marginVertical: 10,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 30,
     textAlign: 'center',
     marginLeft: 28,
   },
   backButton: {
     padding: 4,
     marginLeft: -14,
-    marginTop: 32,
   },
   faqContainer: {
     paddingBottom: 20,
