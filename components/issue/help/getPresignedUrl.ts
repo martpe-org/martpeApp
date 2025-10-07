@@ -1,11 +1,19 @@
-export const getPresignedUrlAction = async (images: string[]) => {
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export async function getPresignedUrlAction(images: string[]) {
   try {
+    if (images.length === 0) return null;
+
+    // Optional: include auth token if required by backend
+    const authToken = await AsyncStorage.getItem("auth-token");
+
     const response = await fetch(
-      `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/digitalassets/presignedurl`,
+      `${process.env.EXPO_PUBLIC_API_URL}/digitalassets/presignedurl`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
         body: JSON.stringify({
           assetNames: images,
@@ -14,18 +22,16 @@ export const getPresignedUrlAction = async (images: string[]) => {
       }
     );
 
-    console.log("Return Img Upload Response: ", response);
-
     if (!response.ok) {
-      throw new Error(`Failed with status ${response.status}`);
+      const text = await response.text();
+      throw new Error(text || "Failed to get presigned URLs");
     }
 
     const data = await response.json();
-
-    console.log("Return Img Upload Data: ", data);
+    console.log("ReturnImgUploadData:", data);
     return data;
   } catch (err) {
-    console.log("Return img upload error: ", err);
+    console.error("Return img upload error:", err);
     return null;
   }
-};
+}

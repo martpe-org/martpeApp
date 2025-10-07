@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { 
-  View, 
-  Alert, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Alert,
+  StyleSheet,
+  ScrollView,
   Text,
   TouchableOpacity,
-  ActivityIndicator 
+  ActivityIndicator
 } from "react-native";
 
 import IssueImagePicker from "./IssueImagePicker";
@@ -21,13 +21,14 @@ import { IssueTaxonomy } from "@/constants/IGM_constants";
 import { createIssueAction, CreateIssueBodyT } from "./help/create-issue";
 import IssueCategorySelector from "./IssueCategorySelector";
 import IssueItemSelector from "./IssueItemSelector";
+import { router } from "expo-router";
 
 interface CreateIssueFormProps {
   data: FetchOrderDetailType;
   onClose: () => void;
 }
 
-export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps) {  
+export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps) {
   const [issueLevel, setIssueLevel] = useState<string>("");
   const [itemId, setItemId] = useState<string>("");
   const [issueCode, setIssueCode] = useState<string>("");
@@ -53,23 +54,23 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
         // Upload each image to its presigned URL
         for (let i = 0; i < presignedData.data.length; i++) {
           if (!imageUris[i]) continue;
-          
+
           // Determine MIME type from file extension
           const uri = imageUris[i];
           const extension = uri.split('.').pop()?.toLowerCase();
           let mimeType = 'image/jpeg';
-          
+
           if (extension === 'png') mimeType = 'image/png';
           else if (extension === 'gif') mimeType = 'image/gif';
           else if (extension === 'webp') mimeType = 'image/webp';
 
           await uploadOnPresignedURLAction(
-            presignedData.data[i].presignedUrl, 
-            imageUris[i], 
+            presignedData.data[i].presignedUrl,
+            imageUris[i],
             mimeType
           );
         }
-        
+
         return presignedData.data.map((item: any) => item.presignedUrl.split("?")[0]);
       } else {
         throw new Error("Failed to get presigned URLs");
@@ -149,23 +150,27 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
       }
 
       const result = await createIssueAction(body as CreateIssueBodyT);
-      if (result.success) {
-        Alert.alert(
-          "Success", 
-          "Issue created successfully",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                onClose();
-                if (result.data?._id) {
-               //   router.push(`/tickets/${result.data._id}`);
-                }
-              }
-            }
-          ]
-        );
-      } else {
+    if (result.success) {
+  Alert.alert(
+    "Success",
+    "Issue created successfully",
+    [
+      {
+        text: "OK",
+        onPress: () => {
+          onClose();
+          if (result.data?._id) {
+router.push({
+  pathname: '/tickets/[ticketId]',
+  params: { ticketId: result.data._id },
+});
+          }
+        },
+      },
+    ]
+  );
+}
+ else {
         throw new Error(result.error?.message || "Failed to create issue");
       }
     } catch (error) {
@@ -176,28 +181,28 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
     }
   };
 
-  const isFormValid = issueLevel && 
-    (issueLevel !== "ITEM" || itemId) && 
-    issueCode && 
+  const isFormValid = issueLevel &&
+    (issueLevel !== "ITEM" || itemId) &&
+    issueCode &&
     description.trim();
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.form}>
-        <IssueTypeSelector 
-          value={issueLevel} 
+        <IssueTypeSelector
+          value={issueLevel}
           onChange={(value) => {
             setIssueLevel(value);
             setItemId(""); // Reset item selection when level changes
             setIssueCode(""); // Reset category selection when level changes
-          }} 
+          }}
         />
 
         {issueLevel === "ITEM" && (
           <IssueItemSelector
             items={data.order_items}
             value={itemId}
-            onChange={(value:any) => {
+            onChange={(value: any) => {
               setItemId(value);
               setIssueCode(""); // Reset category when item changes
             }}
@@ -211,19 +216,19 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
           onChange={setIssueCode}
         />
 
-        <IssueDescriptionInput 
-          value={description} 
-          onChange={setDescription} 
+        <IssueDescriptionInput
+          value={description}
+          onChange={setDescription}
         />
 
-        <IssueImagePicker 
-          images={images} 
-          setImages={setImages} 
+        <IssueImagePicker
+          images={images}
+          setImages={setImages}
         />
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
+          <TouchableOpacity
+            style={styles.cancelButton}
             onPress={onClose}
             disabled={isSubmitting}
           >

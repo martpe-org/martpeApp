@@ -17,7 +17,6 @@ interface OrderedItemsProps {
   orderDetail: FetchOrderDetailType;
 }
 
-// Enable smooth animation on Android
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental

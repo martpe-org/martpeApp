@@ -1,33 +1,19 @@
-export const uploadOnPresignedURLAction = async (url: string, fileUri: string, mimeType: string) => {
+export async function uploadOnPresignedURLAction(url: string, file: File) {
   try {
-    // Create FormData for file upload
-    const formData = new FormData();
-    
-    // For React Native, we need to format the file object properly
-    const fileObject = {
-      uri: fileUri,
-      type: mimeType,
-      name: fileUri.split('/').pop() || 'image.jpg',
-    } as any;
-
-    // Upload directly to presigned URL using fetch with the file
-    const uploadRes = await fetch(url, {
+    const response = await fetch(url, {
       method: "PUT",
-      body: fileObject,
+      body: file,
       headers: {
-        "Content-Type": mimeType,
+        "Content-Type": file.type,
       },
     });
 
-    if (!uploadRes.ok) {
-      console.log("❌ Something went wrong in image upload!!!");
-      throw new Error(`Upload failed with status ${uploadRes.status}`);
+    if (!response.ok) {
+      //const errorText = await response.text();
+      console.log("Something went wrong in image upload!!! ");
+      throw new Error("Something went wrong in image upload!!!");
     }
-
-    console.log("✅ Upload successful!");
-    return true;
   } catch (err) {
     console.log("uploadResError ", err);
-    return false;
   }
-};
+}

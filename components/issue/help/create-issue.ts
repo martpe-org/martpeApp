@@ -1,4 +1,4 @@
-import { getAsyncStorageItem } from "@/utility/asyncStorage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type CreateIssueBodyT = {
   orderId: string;
@@ -31,44 +31,51 @@ export type CreateIssueBodyT = {
 
 export const createIssueAction = async (input: CreateIssueBodyT) => {
   try {
-    // ✅ Get token from AsyncStorage instead of cookies
-    const authToken = await getAsyncStorageItem("auth-token");
+    const userDetailsRaw = await AsyncStorage.getItem("userDetails");
+
+    if (!userDetailsRaw) {
+      throw new Error("User details not found");
+    }
+
+    const userDetails = JSON.parse(userDetailsRaw);
+    const authToken = userDetails?.accessToken;
 
     if (!authToken) {
-      throw new Error("No auth token found");
+      throw new Error("Authentication token not found in user details");
     }
 
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/issues/create`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(input),
-      }
-    );
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/issues/create`;
+    console.log("➡️ Calling:", url);
+    console.log("🧾 Payload:", JSON.stringify(input, null, 2));
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(input),
+    });
+
+    const text = await res.text();
+    console.log("🧠 Raw server response:", text);
 
     if (!res.ok) {
-      throw new Error(`Failed with status ${res.status}`);
+      throw new Error(`API returned ${res.status}: ${text}`);
     }
 
-    const data = (await res.json()) as {
-      _id: string;
-      // status: string;
-      // created_at: string;
-    };
-
+    const data = JSON.parse(text);
     return { success: true, data };
   } catch (error) {
+    console.error("❌ createIssueAction error:", error);
     return {
       success: false,
       error: {
         message: "Failed to create issue",
-        details:
-          error instanceof Error ? error.message : "Create ticket failed",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
     };
   }
 };
+
+
