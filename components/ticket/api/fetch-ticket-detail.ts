@@ -27,7 +27,7 @@ export const fetchTicketDetail = async (
     const data = (await response.json()) as FetchTicketDetailType;
     return data;
   } catch (error) {
-    console.error("⚠️ Fetch ticket detail error:", error);
+    console.log("⚠️ Fetch ticket detail error:", error);
     return null;
   }
 };

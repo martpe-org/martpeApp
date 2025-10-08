@@ -15,68 +15,118 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { fetchTicketDetail } from '@/components/ticket/api/fetch-ticket-detail';
 import { TicketDetail } from '@/components/ticket/TicketDetail';
+import useUserDetails from '@/hook/useUserDetails';
+
 
 export default function TicketDetailScreen() {
+  console.log('🚀 TicketDetailScreen mounted');
+  
   const router = useRouter();
   const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  
+  // Use your userDetails hook instead of manual AsyncStorage check
+  const { 
+    userDetails, 
+    authToken, 
+    isAuthenticated, 
+    isLoading: isUserLoading 
+  } = useUserDetails();
 
-  // Check authentication token
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem('auth-token');
-        if (!token) {
-          return;
-        }
-        setAuthToken(token);
-      } catch (error) {
-        console.error('Auth check error:', error);
-      } finally {
-        setIsAuthLoading(false);
+  console.log('📋 Params received:', { ticketId });
+  console.log('🔐 Auth state:', { 
+    isAuthenticated, 
+    hasUserDetails: !!userDetails,
+    hasAuthToken: !!authToken,
+    isUserLoading 
+  });
+
+  const {
+    data: ticketData,
+    isLoading: isQueryLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['ticket-detail', ticketId],
+    queryFn: () => {
+      console.log('🔄 QueryFn called with:', { 
+        authToken: authToken ? 'present' : 'null', 
+        ticketId,
+        isAuthenticated 
+      });
+      
+      if (!authToken || !ticketId || !isAuthenticated) {
+        console.log('⏭️ Skipping query - missing authToken, ticketId, or not authenticated');
+        return Promise.resolve(null);
       }
-    };
+      
+      console.log('📡 Calling fetchTicketDetail...');
+      return fetchTicketDetail(authToken, ticketId);
+    },
+    enabled: !!authToken && !!ticketId && isAuthenticated,
+    retry: 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    onSuccess: (data) => {
+      console.log('✅ Query success:', data ? 'Data received' : 'No data');
+    },
+    onError: (error) => {
+      console.error('❌ Query error:', error);
+    },
+  });
 
-    checkAuth();
-  }, [router]);
+  console.log('📊 Current state:', {
+    isUserLoading,
+    isQueryLoading,
+    isAuthenticated,
+    hasTicketData: !!ticketData,
+    hasError: !!error,
+  });
 
-  // Fetch ticket detail data
-  // Fetch ticket detail data
-const {
-  data: ticketData,
-  isLoading,
-  error,
-  refetch,
-} = useQuery({
-  queryKey: ['ticket-detail', ticketId],
-  queryFn: () => {
-    if (!authToken || !ticketId) return Promise.resolve(null); // <-- guard here
-    return fetchTicketDetail(authToken, ticketId);
-  },
-  enabled: !!authToken && !!ticketId,
-  retry: 2,
-  staleTime: 2 * 60 * 1000, // 2 minutes
-});
-
+  // Handle authentication failure
+  useEffect(() => {
+    if (!isUserLoading && !isAuthenticated) {
+      console.log('🔐 User not authenticated, showing alert');
+      Alert.alert(
+        'Authentication Required',
+        'Please login to view complaint details.',
+        [
+          { 
+            text: 'Login', 
+          },
+          { 
+            text: 'Go Back', 
+            onPress: () => router.back(),
+            style: 'cancel'
+          }
+        ]
+      );
+    }
+  }, [isUserLoading, isAuthenticated, router]);
 
   // Handle query error
   useEffect(() => {
     if (error) {
-      console.error('Ticket detail fetch error:', error);
+      console.error('💥 Ticket detail fetch error in useEffect:', error);
       Alert.alert(
         'Error',
         'Failed to load complaint details. Please try again.',
         [
-          { text: 'Retry', onPress: () => refetch() },
-          { text: 'Go Back', onPress: () => router.back(), style: 'cancel' }
+          { text: 'Retry', onPress: () => {
+            console.log('🔄 User pressed retry');
+            refetch();
+          }},
+          { text: 'Go Back', onPress: () => {
+            console.log('🔙 User pressed go back');
+            router.back();
+          }, style: 'cancel' }
         ]
       );
     }
   }, [error, refetch, router]);
 
-  // Show loading spinner during auth check or data fetch
-  if (isAuthLoading || isLoading) {
+  // Show loading spinner during user details fetch or data fetch
+  if (isUserLoading || isQueryLoading) {
+    console.log('⏳ Showing loading state');
+    
     return (
       <>
         <Stack.Screen 
@@ -93,8 +143,54 @@ const {
     );
   }
 
+  // Show authentication error
+  if (!isAuthenticated) {
+    console.log('🔐 Showing authentication error state');
+    
+    return (
+      <>
+        <Stack.Screen 
+          options={{
+            title: 'Authentication Required',
+            headerBackTitle: 'Back',
+          }} 
+        />
+        <ScrollView contentContainerStyle={styles.errorContainer}>
+          <Ionicons name="lock-closed-outline" size={64} color="#ff6b35" />
+          <Text style={styles.errorTitle}>Authentication Required</Text>
+          <Text style={styles.errorMessage}>
+            Please log in to view complaint details.
+          </Text>
+          
+          <View style={styles.errorActions}>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                console.log('🔐 Login button pressed');
+              }}
+            >
+              <Text style={styles.retryButtonText}>Login</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.backButtonStyle}
+              onPress={() => {
+                console.log('🔙 Go Back button pressed');
+                router.back();
+              }}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </>
+    );
+  }
+
   // Show error state if no data
   if (!ticketData) {
+    console.log('🚫 Showing error state - no ticket data');
+    
     return (
       <>
         <Stack.Screen 
@@ -113,14 +209,20 @@ const {
           <View style={styles.errorActions}>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => refetch()}
+              onPress={() => {
+                console.log('🔄 Try Again button pressed');
+                refetch();
+              }}
             >
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={styles.backButtonStyle}
-              onPress={() => router.back()}
+              onPress={() => {
+                console.log('🔙 Go Back button pressed');
+                router.back();
+              }}
             >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
@@ -129,6 +231,8 @@ const {
       </>
     );
   }
+
+  console.log('✅ Rendering TicketDetail component');
 
   return (
     <>
