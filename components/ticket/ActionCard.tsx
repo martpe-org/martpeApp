@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Action, FetchTicketDetailType } from './api/fetch-ticket-detail-type';
-import { SendMoreInfoButton } from './SendMoreInfoButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ActionCardProps {
   action: Action;
@@ -10,10 +10,7 @@ interface ActionCardProps {
 }
 
 export const ActionCard: React.FC<ActionCardProps> = ({ action, data, index }) => {
-  const isLastAction = index === data.actions.length - 1;
-  const isInfoRequested = action.descriptor.code === 'INFO_REQUESTED';
-
-  // Use built-in JS formatting instead of date-fns
+  // Format date
   const formattedDate = new Date(action.updated_at).toLocaleString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -23,76 +20,81 @@ export const ActionCard: React.FC<ActionCardProps> = ({ action, data, index }) =
     year: 'numeric',
   });
 
+  const getStatusColor = (code: string) => {
+    switch (code.toLowerCase()) {
+      case 'open': return '#4ade80';
+      case 'processing': return '#4ade80';
+      case 'closed': return '#4caf50';
+      case 'resolved': return '#4caf50';
+      default: return '#4ade80';
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.leftIndicator}>
+        <View style={[styles.dot, { backgroundColor: getStatusColor(action.descriptor.code) }]} />
+        {index < (data.actions?.length || 0) - 1 && <View style={styles.line} />}
+      </View>
+      <View style={styles.content}>
         <Text style={styles.code}>
           {action.descriptor.code.replace(/_/g, ' ')}
         </Text>
-        <Text style={styles.timestamp}>{formattedDate}</Text>
+        <Text style={styles.description}>
+          {action.descriptor.short_desc}
+        </Text>
+        <Text style={styles.createdBy}>
+          created by: {action.actor_details.name}
+        </Text>
+        <Text style={styles.timestamp}>created at: {formattedDate}</Text>
       </View>
-      
-      <Text style={styles.description}>
-        {action.descriptor.short_desc}
-      </Text>
-      
-      <Text style={styles.createdBy}>
-        Created by: {action.actor_details.name}
-      </Text>
-      
-      {/* Show SendMoreInfoButton only for the last INFO_REQUESTED action */}
-      {isLastAction && isInfoRequested && (
-        <View style={styles.actionButton}>
-          <SendMoreInfoButton
-            data={data}
-            info_type="INFO001"
-            ref_id={action.id}
-          />
-        </View>
-      )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007bff',
-  },
-  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+  },
+  leftIndicator: {
+    width: 30,
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  line: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#e0e0e0',
+    marginTop: 4,
+  },
+  content: {
+    flex: 1,
+    paddingBottom: 16,
   },
   code: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-    textTransform: 'capitalize',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   description: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 8,
+    fontSize: 16,
+    color: '#000',
+    marginBottom: 4,
   },
   createdBy: {
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
+    fontSize: 16,
+    color: '#000',
+    marginBottom: 4,
   },
-  actionButton: {
-    marginTop: 12,
-    alignItems: 'flex-start',
+  timestamp: {
+    fontSize: 16,
+    color: '#000',
   },
 });

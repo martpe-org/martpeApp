@@ -20,8 +20,17 @@ export const fetchTicketDetail = async (
 
     if (!response.ok) {
       console.log("❌ Fetch ticket detail failed with status:", response.status);
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.message || "Failed to fetch ticket detail");
+      
+      // Get more detailed error information
+      let errorText = await response.text();
+      console.log("📋 Error response:", errorText);
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData?.message || `Server error: ${response.status}`);
+      } catch {
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
     }
 
     const data = (await response.json()) as FetchTicketDetailType;

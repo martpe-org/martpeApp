@@ -1,54 +1,32 @@
-import React, { useEffect, useState } from 'react';
+ import React, { useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchTicketsList } from '@/components/ticket/api/fetchTicketsList';
 import { TicketList } from '@/components/ticket/TicketList';
+import useUserDetails from '@/hook/useUserDetails';
 
+export default function TicketsIndexScreen() {  
+  const { 
+    authToken, 
+    isAuthenticated, 
+    isLoading: isUserLoading 
+  } = useUserDetails();
 
-export default function TicketsIndexScreen() {
-  const router = useRouter();
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-
-  // Check authentication token
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem('auth-token');
-        if (!token) {
-          return;
-        }
-        setAuthToken(token);
-      } catch (error) {
-        console.error('Auth check error:', error);
-      } finally {
-        setIsAuthLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  // Fetch tickets data
   const {
     data: ticketsData,
-    isLoading,
+    isLoading: isQueryLoading,
     error,
     refetch,
   } = useQuery({
     queryKey: ['tickets-list'],
     queryFn: () => fetchTicketsList(authToken!),
-    enabled: !!authToken,
+    enabled: !!authToken && isAuthenticated,
     retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Handle query error
   useEffect(() => {
     if (error) {
-      console.error('Tickets fetch error:', error);
       Alert.alert(
         'Error',
         'Failed to load complaints. Please try again.',
@@ -60,8 +38,7 @@ export default function TicketsIndexScreen() {
     }
   }, [error, refetch]);
 
-  // Show loading spinner during auth check
-  if (isAuthLoading || isLoading) {
+  if (isUserLoading || isQueryLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007bff" />
@@ -74,7 +51,7 @@ export default function TicketsIndexScreen() {
       <TicketList
         ticketsData={ticketsData || null}
         onRefresh={refetch}
-        refreshing={isLoading}
+        refreshing={isQueryLoading}
       />
     </View>
   );

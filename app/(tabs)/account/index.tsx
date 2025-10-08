@@ -110,7 +110,9 @@ const Profile = () => {
             <AntDesign name="right" size={15} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.listItem}>
+          <TouchableOpacity style={styles.listItem}
+            onPress={() => router.push("/tickets")}
+          >
             <View style={styles.listItemLeft}>
               <Ionicons name="chatbox-outline" size={24} color="#666" />
               <Text style={styles.listItemText}>Complaints</Text>

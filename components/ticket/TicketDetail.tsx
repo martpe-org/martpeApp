@@ -1,16 +1,17 @@
 import React from "react";
-import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity } from "react-native";
 import { FetchTicketDetailType } from "./api/fetch-ticket-detail-type";
 import { ActionCard } from "./ActionCard";
-import { ResolutionCard } from "./ResolutionCard";
-import { SendMoreInfoButton } from "./SendMoreInfoButton";
-import { CloseBtn } from "./CloseBtn";
-
+import { useRouter } from "expo-router";
+import { styles } from "./TicketDetailStyles";
+import ImageComp from "../common/ImageComp";
 interface TicketDetailProps {
   data: FetchTicketDetailType;
+  onBack?: () => void;
 }
+export const TicketDetail: React.FC<TicketDetailProps> = ({ data, onBack }) => {
+  const router = useRouter();
 
-export const TicketDetail: React.FC<TicketDetailProps> = ({ data }) => {
   // Parse ISO8601 durations like PT2H15M30S → seconds
   const parseDuration = (duration?: string): number => {
     if (!duration) return 0;
@@ -34,214 +35,126 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({ data }) => {
     });
   };
 
-  const lastInfoRequest = data.actions
-    ?.slice()
-    ?.reverse()
-    ?.find((action) => action.descriptor?.code === "INFO_REQUESTED");
+  const handleViewOrder = () => {
+    if (data.order_id) {
+      router.push(`/orders/${data.order_id}`);
+    }
+  };
+
+  // Get the first order item name if available
+  const getItemName = () => {
+    // Try to get from order_items first
+    if (data.order_items && data.order_items.length > 0) {
+      const firstItem = data.order_items[0];
+      if (firstItem?.descriptor?.name) {
+        return firstItem.descriptor.name;
+      }
+      if (firstItem?.name) {
+        return firstItem.name;
+      }
+    }
+
+    // Try to get from order breakup
+    if (data.order?.breakup && data.order.breakup.length > 0) {
+      const firstBreakupItem = data.order.breakup.find(item => item.title || item.custom_title);
+      if (firstBreakupItem?.title) {
+        return firstBreakupItem.title;
+      }
+      if (firstBreakupItem?.custom_title) {
+        return firstBreakupItem.custom_title;
+      }
+    }
+
+    // Fallback to generic name
+    return "Item";
+  };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Ticket Details</Text>
-      </View>
-
-      {/* Description Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>
-          {data.descriptor?.long_desc || "No description available"}
-        </Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Issue Id:</Text>
-          <Text style={styles.infoValue}>{data.issue_id || "N/A"}</Text>
-        </View>
-
-        {/* Images */}
-        {Array.isArray(data.descriptor?.images) && data.descriptor.images.length > 0 && (
-          <View style={styles.imagesContainer}>
-            {data.descriptor.images.map((image, index) => (
-              <Image
-                key={index}
-                source={{ uri: image.url }}
-                style={styles.descriptionImage}
-                resizeMode="cover"
-              />
-            ))}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>Title: {data.descriptor?.short_desc || "Issue"}</Text>
+            <Text style={styles.description}>
+              Description: {data.descriptor?.long_desc || "No description available"}
+            </Text>
+            <View style={styles.issueIdRow}>
+              <Text style={styles.issueIdLabel}>Issue Id: </Text>
+              <Text style={styles.issueIdValue} numberOfLines={1} ellipsizeMode="tail">
+                {data.issue_id || "N/A"}
+              </Text>
+            </View>
           </View>
-        )}
+
+          {/* Order Details Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Order Details</Text>
+
+            <View style={styles.storeInfo}>
+              {data.store?.symbol && (
+                <ImageComp
+                  source={{ uri: data.store.symbol }}
+                  imageStyle={styles.storeIcon}
+                  resizeMode="contain"
+                />
+              )}
+              <View style={styles.storeTextContainer}>
+                <Text style={styles.storeName}>{data.store?.name || "Unknown Store"}</Text>
+                <Text style={styles.storeAddress}>
+                  {data.store?.address?.street || "No address available"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.statusContainer}>
+              <Text style={styles.statusLabel}>Status:</Text>
+              <View style={[styles.statusBadge, ]}>
+                <Text style={styles.statusText}>{data.status}</Text>
+              </View>
+            </View>
+            <View style={styles.issueIdRow}>
+              <Text style={styles.itemsLabel}>Items: </Text>
+              <Text style={styles.itemText}>
+                {getItemName()} x 1
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.viewOrderButton}
+              onPress={handleViewOrder}
+            >
+              <Text style={styles.viewOrderButtonText}>View order</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Timeline Section */}
+          <View style={styles.section}>
+            <Text style={styles.timeLabel}>Expected response time:</Text>
+            <Text style={styles.timeValue}>
+              {getExpectedTime(data.expected_response_time?.duration)}
+            </Text>
+
+            <Text style={[styles.timeLabel, { marginTop: 12 }]}>Expected resolution time:</Text>
+            <Text style={styles.timeValue}>
+              {getExpectedTime(data.expected_resolution_time?.duration)}
+            </Text>
+          </View>
+
+          {/* Actions Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Actions</Text>
+            {Array.isArray(data.actions) && data.actions.length > 0 ? (
+              data.actions.map((action, index) => (
+                <ActionCard key={action.id || index} action={action} data={data} index={index} />
+              ))
+            ) : (
+              <Text style={styles.noDataText}>No actions available</Text>
+            )}
+          </View>
+          <View style={{ height: 20 }} />
+        </ScrollView>
       </View>
-
-      {/* Store Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Store Information</Text>
-        <Text style={styles.storeName}>{data.store?.name || "Unknown"}</Text>
-        <Text style={styles.storeAddress}>
-          {data.store?.address?.street || "No address available"}
-        </Text>
-
-        <View style={styles.timeInfo}>
-          <Text style={styles.timeLabel}>Expected response time:</Text>
-          <Text style={styles.timeValue}>
-            {getExpectedTime(data.expected_response_time?.duration)}
-          </Text>
-        </View>
-
-        <View style={styles.timeInfo}>
-          <Text style={styles.timeLabel}>Expected resolution time:</Text>
-          <Text style={styles.timeValue}>
-            {getExpectedTime(data.expected_resolution_time?.duration)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Actions Section */}
-      {Array.isArray(data.actions) && data.actions.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline</Text>
-          {data.actions.map((action, index) => (
-            <ActionCard key={action.id || index} action={action} data={data} index={index} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline</Text>
-          <Text style={styles.noDataText}>No actions available</Text>
-        </View>
-      )}
-
-      {/* Resolutions Section */}
-      {Array.isArray(data.parsed_resolutions) && data.parsed_resolutions.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Proposed Resolutions</Text>
-          {data.parsed_resolutions.map((resolution, index) => (
-            <ResolutionCard
-              key={resolution.id || index}
-              resolution={resolution}
-              data={data}
-              index={index}
-            />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Proposed Resolutions</Text>
-          <Text style={styles.noDataText}>No resolutions available</Text>
-        </View>
-      )}
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        {lastInfoRequest && (
-          <SendMoreInfoButton data={data} info_type="INFO001" ref_id={lastInfoRequest.id} />
-        )}
-        {data.status !== "CLOSED" && <CloseBtn data={data} />}
-      </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  section: {
-    backgroundColor: "#fff",
-    margin: 16,
-    marginBottom: 0,
-    padding: 16,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-    color: "#333",
-  },
-  description: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  infoRow: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginRight: 8,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: "#666",
-    flex: 1,
-  },
-  imagesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 12,
-  },
-  descriptionImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 4,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  storeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  storeAddress: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 16,
-  },
-  timeInfo: {
-    marginBottom: 8,
-  },
-  timeLabel: {
-    fontSize: 12,
-    color: "#888",
-    marginBottom: 2,
-  },
-  timeValue: {
-    fontSize: 14,
-    color: "#333",
-    fontWeight: "500",
-  },
-  actionButtons: {
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  noDataText: {
-    fontSize: 14,
-    color: "#888",
-    textAlign: "center",
-    marginTop: 8,
-  },
-});

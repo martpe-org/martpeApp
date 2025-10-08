@@ -22,6 +22,7 @@ import { createIssueAction, CreateIssueBodyT } from "./help/create-issue";
 import IssueCategorySelector from "./IssueCategorySelector";
 import IssueItemSelector from "./IssueItemSelector";
 import { router } from "expo-router";
+import { Toast } from "react-native-toast-notifications";
 
 interface CreateIssueFormProps {
   data: FetchOrderDetailType;
@@ -49,9 +50,6 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
       const presignedData = await getPresignedUrlAction(fileNames);
 
       if (presignedData && presignedData.success) {
-        console.log("Success in presigned URL", JSON.stringify(presignedData, null, 2));
-
-        // Upload each image to its presigned URL
         for (let i = 0; i < presignedData.data.length; i++) {
           if (!imageUris[i]) continue;
 
@@ -76,110 +74,84 @@ export default function CreateIssueForm({ data, onClose }: CreateIssueFormProps)
         throw new Error("Failed to get presigned URLs");
       }
     } catch (error) {
-      console.error("Error uploading images:", error);
-      Alert.alert("Error", "Failed to upload images");
+      console.log("Error uploading images:", error);
       return [];
     }
   };
 
-  const handleSubmit = async () => {
-    // Validation
-    if (!issueLevel) {
-      Alert.alert("Missing Field", "Please select an issue type.");
-      return;
-    }
+const handleSubmit = async () => {
+  setIsSubmitting(true);
 
-    if (issueLevel === "ITEM" && !itemId) {
-      Alert.alert("Missing Field", "Please select an item.");
-      return;
-    }
+  try {
+    // Get user info from AsyncStorage
+    const userName = (await getAsyncStorageItem("user-name")) || "User";
+    const userPhone = (await getAsyncStorageItem("user-phone")) || "";
+    const userEmail =
+      (await getAsyncStorageItem("user-email")) || "support@martpe.in";
 
-    if (!issueCode) {
-      Alert.alert("Missing Field", "Please select an issue category.");
-      return;
-    }
-
-    if (!description.trim()) {
-      Alert.alert("Missing Field", "Please provide a description.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Get user info from AsyncStorage
-      const userName = await getAsyncStorageItem("user-name") || "User";
-      const userPhone = await getAsyncStorageItem("user-phone") || "";
-      const userEmail = await getAsyncStorageItem("user-email") || "support@martpe.in";
-
-      const body: Record<string, any> = {
-        orderId: data._id,
-        descriptor: {
-          code: issueCode,
-          short_desc: IssueTaxonomy[issueLevel as keyof typeof IssueTaxonomy]?.find(
+    const body: Record<string, any> = {
+      orderId: data._id,
+      descriptor: {
+        code: issueCode,
+        short_desc:
+          IssueTaxonomy[issueLevel as keyof typeof IssueTaxonomy]?.find(
             (item) => item.code === issueCode
           )?.label || "",
-          long_desc: description,
-        },
-        customer: {
-          name: userName,
-          phone: userPhone,
-          email: userEmail,
-        },
-      };
-
-      // Upload images if any
-      if (images.length > 0) {
-        const imageUrls = await handleImageUpload(images);
-        if (imageUrls.length > 0) {
-          body.descriptor.images = imageUrls.map((url: string) => ({
-            url,
-            size_type: "xs",
-          }));
-        }
-      }
-
-      // Add items if ITEM level issue
-      if (issueLevel === "ITEM" && itemId) {
-        body.items = [
-          {
-            catalog_id: itemId,
-            qty: data.order_items.find((item) => item.catalog_id === itemId)?.order_qty || 1,
-          },
-        ];
-      }
-
-      const result = await createIssueAction(body as CreateIssueBodyT);
-    if (result.success) {
-  Alert.alert(
-    "Success",
-    "Issue created successfully",
-    [
-      {
-        text: "OK",
-        onPress: () => {
-          onClose();
-          if (result.data?._id) {
-router.push({
-  pathname: '/tickets/[ticketId]',
-  params: { ticketId: result.data._id },
-});
-          }
-        },
+        long_desc: description,
       },
-    ]
-  );
-}
- else {
-        throw new Error(result.error?.message || "Failed to create issue");
+      customer: {
+        name: userName,
+        phone: userPhone,
+        email: userEmail,
+      },
+    };
+
+    // Upload images if any
+    if (images.length > 0) {
+      const imageUrls = await handleImageUpload(images);
+      if (imageUrls.length > 0) {
+        body.descriptor.images = imageUrls.map((url: string) => ({
+          url,
+          size_type: "xs",
+        }));
       }
-    } catch (error) {
-      console.error("Error creating issue:", error);
-      Alert.alert("Error", "Failed to create issue. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+
+    // Add items if ITEM level issue
+    if (issueLevel === "ITEM" && itemId) {
+      body.items = [
+        {
+          catalog_id: itemId,
+          qty:
+            data.order_items.find((item) => item.catalog_id === itemId)
+              ?.order_qty || 1,
+        },
+      ];
+    }
+
+    const result = await createIssueAction(body as CreateIssueBodyT);
+
+    if (result.success) {
+      Toast.show("Issue created successfully", { type: "success" });
+
+      onClose();
+
+      if (result.data?._id) {
+        router.push({
+          pathname: "/tickets/[ticketId]",
+          params: { ticketId: result.data._id },
+        });
+      }
+    } else {
+      throw new Error(result.error?.message || "Failed to create issue");
+    }
+  } catch (error) {
+    console.error("Error creating issue:", error);
+    Toast.show("Failed to create issue. Please try again.", { type: "error" });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const isFormValid = issueLevel &&
     (issueLevel !== "ITEM" || itemId) &&

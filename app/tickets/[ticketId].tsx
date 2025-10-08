@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -10,35 +10,21 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { fetchTicketDetail } from '@/components/ticket/api/fetch-ticket-detail';
 import { TicketDetail } from '@/components/ticket/TicketDetail';
 import useUserDetails from '@/hook/useUserDetails';
 
-
 export default function TicketDetailScreen() {
-  console.log('🚀 TicketDetailScreen mounted');
-  
   const router = useRouter();
   const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
   
-  // Use your userDetails hook instead of manual AsyncStorage check
   const { 
-    userDetails, 
     authToken, 
     isAuthenticated, 
     isLoading: isUserLoading 
   } = useUserDetails();
-
-  console.log('📋 Params received:', { ticketId });
-  console.log('🔐 Auth state:', { 
-    isAuthenticated, 
-    hasUserDetails: !!userDetails,
-    hasAuthToken: !!authToken,
-    isUserLoading 
-  });
 
   const {
     data: ticketData,
@@ -47,51 +33,18 @@ export default function TicketDetailScreen() {
     refetch,
   } = useQuery({
     queryKey: ['ticket-detail', ticketId],
-    queryFn: () => {
-      console.log('🔄 QueryFn called with:', { 
-        authToken: authToken ? 'present' : 'null', 
-        ticketId,
-        isAuthenticated 
-      });
-      
-      if (!authToken || !ticketId || !isAuthenticated) {
-        console.log('⏭️ Skipping query - missing authToken, ticketId, or not authenticated');
-        return Promise.resolve(null);
-      }
-      
-      console.log('📡 Calling fetchTicketDetail...');
-      return fetchTicketDetail(authToken, ticketId);
-    },
+    queryFn: () => fetchTicketDetail(authToken!, ticketId!),
     enabled: !!authToken && !!ticketId && isAuthenticated,
     retry: 2,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    onSuccess: (data) => {
-      console.log('✅ Query success:', data ? 'Data received' : 'No data');
-    },
-    onError: (error) => {
-      console.error('❌ Query error:', error);
-    },
+    staleTime: 2 * 60 * 1000,
   });
 
-  console.log('📊 Current state:', {
-    isUserLoading,
-    isQueryLoading,
-    isAuthenticated,
-    hasTicketData: !!ticketData,
-    hasError: !!error,
-  });
-
-  // Handle authentication failure
   useEffect(() => {
     if (!isUserLoading && !isAuthenticated) {
-      console.log('🔐 User not authenticated, showing alert');
       Alert.alert(
         'Authentication Required',
         'Please login to view complaint details.',
         [
-          { 
-            text: 'Login', 
-          },
           { 
             text: 'Go Back', 
             onPress: () => router.back(),
@@ -102,31 +55,20 @@ export default function TicketDetailScreen() {
     }
   }, [isUserLoading, isAuthenticated, router]);
 
-  // Handle query error
   useEffect(() => {
     if (error) {
-      console.error('💥 Ticket detail fetch error in useEffect:', error);
       Alert.alert(
         'Error',
         'Failed to load complaint details. Please try again.',
         [
-          { text: 'Retry', onPress: () => {
-            console.log('🔄 User pressed retry');
-            refetch();
-          }},
-          { text: 'Go Back', onPress: () => {
-            console.log('🔙 User pressed go back');
-            router.back();
-          }, style: 'cancel' }
+          { text: 'Retry', onPress: () => refetch() },
+          { text: 'Go Back', onPress: () => router.back(), style: 'cancel' }
         ]
       );
     }
   }, [error, refetch, router]);
 
-  // Show loading spinner during user details fetch or data fetch
   if (isUserLoading || isQueryLoading) {
-    console.log('⏳ Showing loading state');
-    
     return (
       <>
         <Stack.Screen 
@@ -143,10 +85,7 @@ export default function TicketDetailScreen() {
     );
   }
 
-  // Show authentication error
   if (!isAuthenticated) {
-    console.log('🔐 Showing authentication error state');
-    
     return (
       <>
         <Stack.Screen 
@@ -161,23 +100,10 @@ export default function TicketDetailScreen() {
           <Text style={styles.errorMessage}>
             Please log in to view complaint details.
           </Text>
-          
           <View style={styles.errorActions}>
             <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => {
-                console.log('🔐 Login button pressed');
-              }}
-            >
-              <Text style={styles.retryButtonText}>Login</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
               style={styles.backButtonStyle}
-              onPress={() => {
-                console.log('🔙 Go Back button pressed');
-                router.back();
-              }}
+              onPress={() => router.back()}
             >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
@@ -187,10 +113,7 @@ export default function TicketDetailScreen() {
     );
   }
 
-  // Show error state if no data
   if (!ticketData) {
-    console.log('🚫 Showing error state - no ticket data');
-    
     return (
       <>
         <Stack.Screen 
@@ -205,24 +128,16 @@ export default function TicketDetailScreen() {
           <Text style={styles.errorMessage}>
             Unable to load complaint details. The complaint may have been removed or you may not have access to it.
           </Text>
-          
           <View style={styles.errorActions}>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => {
-                console.log('🔄 Try Again button pressed');
-                refetch();
-              }}
+              onPress={() => refetch()}
             >
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
-            
             <TouchableOpacity
               style={styles.backButtonStyle}
-              onPress={() => {
-                console.log('🔙 Go Back button pressed');
-                router.back();
-              }}
+              onPress={() => router.back()}
             >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
@@ -231,8 +146,6 @@ export default function TicketDetailScreen() {
       </>
     );
   }
-
-  console.log('✅ Rendering TicketDetail component');
 
   return (
     <>
