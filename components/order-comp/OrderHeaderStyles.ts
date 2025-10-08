@@ -3,61 +3,70 @@ import { StyleSheet, Dimensions } from "react-native";
 const { height: screenHeight } = Dimensions.get('window');
  export const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#fff",
-    padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#e5ebf1ff',
+    paddingHorizontal: 9,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: '#e5e7eb',
+    marginTop:10,
+    marginHorizontal:8,
+    borderRadius:15
   },
   storeInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  storeLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+  storeLogoContainer: {
     marginRight: 12,
+  },
+  storeLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
   },
   storeDetails: {
     flex: 1,
   },
   storeName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  storeAddress: {
-    fontSize: 14,
-    color: "#6b7280",
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
     marginBottom: 2,
   },
-  viewStoreText: {
+  storeAddress: {
     fontSize: 12,
-    color: "#3b82f6",
-    fontWeight: "500",
+    color: '#6b7280',
+    lineHeight: 18,
   },
   helpButton: {
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
+    elevation: 5,
+    shadowColor: '#080808ff',
+    borderRadius: 26,
+    backgroundColor: '#bdcaf5ff',
+    marginLeft: 10,
   },
   helpText: {
     fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
+    color: '#0f0f0fff',
+    marginLeft: 0,
+    fontWeight: '500',
   },
+
   orderInfoSection: {
     backgroundColor: "#fff",
     padding: 16,
     marginBottom: 8,
   },
   orderNumber: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#111827",
     marginBottom: 4,
@@ -213,4 +222,45 @@ const { height: screenHeight } = Dimensions.get('window');
     paddingHorizontal: 20,
     marginBottom:60
   },
+// Add these styles to your OrderHeaderStyles file
+tabContainer: {
+  flexDirection: 'row',
+  backgroundColor: '#ffffff',
+  borderBottomWidth: 1,
+  borderBottomColor: '#e5e7eb',
+  paddingHorizontal: 16,
+},
+tabButton: {
+  flex: 1,
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  alignItems: 'center',
+  borderBottomWidth: 2,
+  borderBottomColor: 'transparent',
+},
+activeTab: {
+  borderBottomColor: '#3b82f6', // Blue color for active tab
+},
+tabText: {
+  fontSize: 16,
+  fontWeight: '500',
+  color: '#6b7280',
+},
+activeTabText: {
+  color: '#1f2937',
+  fontWeight: '600',
+},
+
+trackSection: {
+  padding: 16,
+  backgroundColor: '#ffffff',
+  minHeight: 200,
+},
+trackingText: {
+  fontSize: 16,
+  color: '#6b7280',
+  textAlign: 'center',
+  marginTop: 50,
+},
+
 });

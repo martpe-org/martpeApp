@@ -137,33 +137,55 @@ export default function OrderHeader({
           onPress={handleStorePress}
           activeOpacity={0.7}
         >
-          <ImageComp
-            source={{ uri: orderDetail.store.symbol }}
-            // style={styles.storeLogo}
-            resizeMode="cover"
-          />
+          <View style={styles.storeLogoContainer}>
+            <ImageComp
+              source={{ uri: orderDetail.store.symbol }}
+              imageStyle={styles.storeLogo}
+              resizeMode="cover"
+            />
+          </View>
           <View style={styles.storeDetails}>
-            <Text style={styles.storeName}>{orderDetail.store.name}</Text>
+            <TouchableOpacity onPress={handleStorePress} activeOpacity={0.7}>
+              <Text style={styles.storeName}>{orderDetail.store.name}</Text>
+            </TouchableOpacity>
             <Text style={styles.storeAddress}>
               {orderDetail.store.address.street &&
                 `${orderDetail.store.address.street}, `}
-              {orderDetail.store.address.locality &&
-                `${orderDetail.store.address.locality}, `}
-              {orderDetail.store.address.city}
             </Text>
-            <Text style={styles.viewStoreText}>Tap to view store</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.helpButton} onPress={handleHelpPress}>
-          <Ionicons name="help-circle-outline" size={24} color="#6b7280" />
+          <Ionicons name="help-circle-outline" size={20} color="#0b0c0c" />
           <Text style={styles.helpText}>Help</Text>
         </TouchableOpacity>
       </SafeAreaView>
 
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <View style={[styles.tabButton, styles.activeTab]}>
+          <Text style={[styles.tabText, styles.activeTabText]}>
+            Order Info
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.tabButton}
+          onPress={() => {
+            // Add your navigation logic here
+            console.log('Track button pressed');
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.tabText}>
+            Track
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Order Info */}
       <View style={styles.orderInfoSection}>
-        <Text style={styles.orderNumber}>Order #: {orderDetail.orderno}</Text>
+        <Text style={styles.orderNumber}>Order No.: {orderDetail.orderno}</Text>
         <Text style={styles.orderDate}>
           Order Placed On: {formattedOrderDate}
         </Text>
@@ -247,55 +269,55 @@ export default function OrderHeader({
       </View>
 
       {/* Help Modal */}
-<Modal
-  visible={showHelpModal}
-  animationType="fade"
-  transparent
-  onRequestClose={closeHelpModal}
->
-  <View style={styles.modalOverlay}>
-    <TouchableOpacity
-      style={styles.modalBackdrop}
-      activeOpacity={1}
-      onPress={closeHelpModal}
-    />
-
-    <View style={styles.modernModalContainer}>
-      {/* Header */}
-      <View style={styles.modernModalHeader}>
-        <View style={styles.headerIconContainer}>
-          <Ionicons name="alert-circle-outline" size={24} color="#070708" />
-        </View>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.modernModalTitle}>Report an Issue</Text>
-          <Text style={styles.modernModalSubtitle}>
-            We are here to help resolve any problems
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={closeHelpModal}
-          style={styles.modernCloseButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close" size={22} color="#6b7280" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Divider */}
-      <View style={styles.modalDivider} />
-
-      {/* Scrollable Form Content */}
-      <ScrollView
-        style={styles.modernModalContent}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <Modal
+        visible={showHelpModal}
+        animationType="fade"
+        transparent
+        onRequestClose={closeHelpModal}
       >
-        <CreateIssueForm data={orderDetail} onClose={closeHelpModal} />
-      </ScrollView>
-    </View>
-  </View>
-</Modal>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={closeHelpModal}
+          />
+
+          <View style={styles.modernModalContainer}>
+            {/* Header */}
+            <View style={styles.modernModalHeader}>
+              <View style={styles.headerIconContainer}>
+                <Ionicons name="alert-circle-outline" size={24} color="#070708" />
+              </View>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.modernModalTitle}>Report an Issue</Text>
+                <Text style={styles.modernModalSubtitle}>
+                  We are here to help resolve any problems
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeHelpModal}
+                style={styles.modernCloseButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.modalDivider} />
+
+            {/* Scrollable Form Content */}
+            <ScrollView
+              style={styles.modernModalContent}
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <CreateIssueForm data={orderDetail} onClose={closeHelpModal} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
     </>
   );

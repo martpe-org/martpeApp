@@ -39,7 +39,7 @@ export default function OrderedItems({ orderDetail }: OrderedItemsProps) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="bag-outline" size={20} color="#6b7280" />
+        <Ionicons name="bag-outline" size={18} color="#6b7280" />
         <Text style={styles.sectionTitle}>Ordered Items</Text>
       </View>
 
@@ -55,6 +55,7 @@ export default function OrderedItems({ orderDetail }: OrderedItemsProps) {
             <View style={styles.itemBrand}>
               <ImageComp
                 source={{ uri: orderDetail.store.symbol }}
+                imageStyle={styles.itemLogo}
                 resizeMode="cover"
               />
               <View style={{ flexShrink: 1 }}>
@@ -62,12 +63,12 @@ export default function OrderedItems({ orderDetail }: OrderedItemsProps) {
                   {item.name}
                 </Text>
                 <Text style={styles.itemBrandName}>1 unit</Text>
-                <Text style={styles.itemNote}>Thank you for Digital Order</Text>
               </View>
             </View>
             <View style={styles.itemPricing}>
-              <Text style={styles.itemQuantity}>x {item.order_qty}</Text>
               <Text style={styles.itemPrice}>₹{item.total_price}</Text>
+              <Text style={styles.itemQuantity}>x {item.order_qty}</Text>
+              <Text style={styles.itemTotalPrice}>₹{item.total_price}</Text>
             </View>
           </View>
 
@@ -78,14 +79,12 @@ export default function OrderedItems({ orderDetail }: OrderedItemsProps) {
             activeOpacity={0.7}
           >
             <Text style={styles.customizationText}>
-              {expandedItem === index
-                ? "Hide Customisation Details"
-                : "View Customisation Details"}
+              View Customization Details
             </Text>
             <Ionicons
-              name={expandedItem === index ? "chevron-up" : "chevron-forward"}
+              name={expandedItem === index ? "chevron-up" : "chevron-down"}
               size={16}
-              color="#ef4444"
+              color="#6b1010"
             />
           </TouchableOpacity>
 
@@ -117,28 +116,30 @@ export default function OrderedItems({ orderDetail }: OrderedItemsProps) {
 const styles = StyleSheet.create({
   section: {
     backgroundColor: "#fff",
-    padding: 16,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 4,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#111827",
-    marginLeft: 8,
+    marginLeft: 6,
   },
   itemCard: {
-    backgroundColor: "#fafafa", // ✅ use white for a clean card
-    padding: 16,
-    borderRadius: 30,
-    marginBottom: 12,
-    elevation: 3,
+    backgroundColor: "#fafafa",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+     elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
-
   itemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -150,80 +151,79 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemLogo: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: 6,
-    marginRight: 12,
+    marginRight: 8,
   },
   itemName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#111827",
     marginBottom: 2,
   },
   itemBrandName: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6b7280",
-    marginBottom: 2,
-  },
-  itemNote: {
-    fontSize: 12,
-    color: "#10b981",
   },
   itemPricing: {
     alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 8,
+  },
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#16a34a",
   },
   itemQuantity: {
     fontSize: 13,
     color: "#6b7280",
-    marginBottom: 4,
   },
-  itemPrice: {
-    fontSize: 15,
+  itemTotalPrice: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#16a34a",
   },
   customizationButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f3e8ff",
+    justifyContent: "flex-start",
+    marginTop: 8,
+    borderRadius: 26,
+    marginRight: 130,
+    padding: 8,
+backgroundColor: "#e9cece",
   },
   customizationText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#ef4444",
-    marginRight: 6,
+    marginRight: 4,
     fontWeight: "500",
   },
   customizationContainer: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: "#fff", // ✅ white background for card look
-
-    // Elevation for Android
-    elevation: 3,
+    marginTop: 6,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    elevation: 1,
   },
-
   customizationRow: {
     flexDirection: "row",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   customizationKey: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: "#374151",
     marginRight: 4,
   },
   customizationValue: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#6b7280",
   },
   noCustomization: {
-    fontSize: 13,
+    fontSize: 12,
     fontStyle: "italic",
     color: "#9ca3af",
   },

@@ -73,7 +73,6 @@ export function AllOrderDetailsCard({ order }: Props) {
   // Helper function to get valid image source
   const getImageSource = () => {
     const symbol = order.store?.symbol;
-    
     // Check if symbol exists and is a valid string
     if (symbol && typeof symbol === 'string' && symbol.trim() !== '') {
       // Ensure it's a valid URL

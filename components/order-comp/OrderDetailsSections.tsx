@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Entypo, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FetchOrderDetailType } from "@/components/order/fetch-order-detail-type";
 
 interface OrderDetailsSectionsProps {
@@ -34,16 +34,24 @@ export default function OrderDetailsSections({
       {/* Delivery Details */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="location-outline" size={20} color="#6b7280" />
-          <Text style={styles.sectionTitle}>Delivery details</Text>
+<MaterialCommunityIcons name="truck-delivery-outline" size={24} color="black" />       
+   <Text style={styles.sectionTitle}>Delivery details</Text>
         </View>
         <View style={styles.deliveryInfo}>
+<View style={{ flexDirection: 'row', alignItems: 'center', }}>
+            <MaterialCommunityIcons name="account-outline" size={16} color="black" style={styles.Icon} />
           <Text style={styles.customerName}>
             {orderDetail.delivery_address.name}
           </Text>
+</View>
+<View style={{ flexDirection: 'row', alignItems: 'center', }}>
+<Ionicons name="call" size={14} color="black" style={styles.Icon}/>
           <Text style={styles.phoneNumber}>
             {orderDetail.delivery_address.phone}
           </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+<Entypo name="location" size={14} color="black" style={styles.Icon}/>
           <Text style={styles.address}>
             {orderDetail.delivery_address.houseNo},{" "}
             {orderDetail.delivery_address.street},{" "}
@@ -51,6 +59,7 @@ export default function OrderDetailsSections({
             {orderDetail.delivery_address.state},{" "}
             {orderDetail.delivery_address.pincode}
           </Text>
+          </View>
           {/* Category & provider pulled dynamically */}
           {orderDetail.fulfillment?.category && (
             <Text style={styles.deliveryCategory}>
@@ -114,13 +123,14 @@ export default function OrderDetailsSections({
 const styles = StyleSheet.create({
   section: {
     backgroundColor: "#fff",
-    padding: 16,
-    marginBottom: 8,
+    padding: 10,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
+    backgroundColor: "#f5f3f3",
+    padding: 8,
   },
   sectionTitle: {
     fontSize: 16,
@@ -136,17 +146,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111827",
     marginBottom: 2,
+    marginLeft: 10,
+  },
+  Icon:{
+marginLeft:-25
   },
   phoneNumber: {
     fontSize: 14,
     color: "#6b7280",
     marginBottom: 4,
+    marginLeft: 10,
   },
   address: {
     fontSize: 14,
     color: "#6b7280",
-    marginBottom: 8,
     lineHeight: 20,
+    marginLeft:10
   },
   deliveryCategory: {
     fontSize: 14,
@@ -183,7 +198,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: "#111827",
   },

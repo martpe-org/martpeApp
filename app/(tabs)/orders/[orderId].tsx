@@ -139,9 +139,9 @@ export default function OrderDetails() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+          <Ionicons name="arrow-back" size={20} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text style={styles.headerTitle}>Order #: {orderDetail.orderno}</Text>
       </View>
 
       <ScrollView>
@@ -174,16 +174,16 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
     backgroundColor: "#fff",
     elevation: 2,
-    padding: 16,
   },
   backButton: {
-    marginRight: 12,
+    marginRight: 10,
     padding: 6,
+    marginLeft: 10,
     borderRadius: 50,
     backgroundColor: "#f9fafb",
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
   },
