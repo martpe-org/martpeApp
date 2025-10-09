@@ -55,7 +55,7 @@ function Food() {
         <SubCategoriesSection
           categoryData={foodCategoryData}
           domain={DOMAINS.FOOD}
-          sectionTitle="What's on your mind?"
+          sectionTitle="Shop by Categories"
           searchCategory="food"
           useLinearGradient={true}
           gradientColors={["#f5f3ee", "rgba(231, 223, 201, 0)"]}
@@ -64,7 +64,7 @@ function Food() {
         {/* Stores Section */}
         <StoresSection
           storesData={storesData}
-          storesSectionTitle="Your Nearby Restaurants"
+          storesSectionTitle="Restaurants near you"
           selectedAddress={selectedAddress}
           showNoStoresAnimation={true}
         />

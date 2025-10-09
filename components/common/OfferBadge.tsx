@@ -47,18 +47,18 @@ const OfferBadge: React.FC<OfferBadgeProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 0,
+    top: 5,
     left: 0,
     borderTopLeftRadius: 1,
     borderBottomLeftRadius: 1,
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 8,
     zIndex: 2,
   },
   text: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
     color: "white",
     textTransform: "uppercase",

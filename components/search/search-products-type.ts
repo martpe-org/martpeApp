@@ -63,7 +63,7 @@ export interface ProductSearchResult {
   images?: string[];
   quantity: number;
   diet_type?: string;
-  store: Store;
+  // store: Store;
   gps: Gps;
   provider_status_timestamp: string;
   catalog_id: string;

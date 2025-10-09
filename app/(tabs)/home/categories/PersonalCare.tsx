@@ -1,17 +1,21 @@
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView, Text, View } from "react-native";
+import { SafeAreaView, FlatList, Text, View } from "react-native";
 import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
 import { personalCareCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
+import {
+  CategoryHeader,
+  OffersCarousel,
+  ProductsSection,
+  SubCategoriesSection,
+} from "@/components/Categories/CategoryComponents";
 import { styles } from "@/components/Categories/cat";
-import { CategoryHeader, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
-
 
 function Beauty() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
+  const pincode = selectedAddress?.pincode || "110001";
 
   const { data: domainData, isLoading } = useDomainData(
     DOMAINS.PERSONAL_CARE,
@@ -20,7 +24,7 @@ function Beauty() {
     pincode
   );
 
-  const storesData = domainData?.stores || [];
+  const productsData = domainData?.stores || []; // compatible with ProductResultsWrapper
 
   if (isLoading) {
     return (
@@ -30,7 +34,7 @@ function Beauty() {
     );
   }
 
-  if (!storesData.length) {
+  if (!productsData.length) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorContainer}>
@@ -46,30 +50,35 @@ function Beauty() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Search Header */}
-        <CategoryHeader onSearchPress={handleSearchPress} />
+      <FlatList
+        data={[{ key: "content" }]} // dummy single-item data
+        keyExtractor={(item) => item.key}
 
-        {/* Offers Section with auto-scroll + dots */}
-        <OffersCarousel storesData={storesData} activeColor="#E11D48" />
+        // 🧩 Header components
+        ListHeaderComponent={
+          <View>
+            <CategoryHeader onSearchPress={handleSearchPress} />
+            <OffersCarousel storesData={productsData} activeColor="#E11D48" />
+            <SubCategoriesSection
+              categoryData={personalCareCategoryData}
+              domain={DOMAINS.PERSONAL_CARE}
+              sectionTitle="Shop by Category"
+              searchCategory="beauty"
+            />
+          </View>
+        }
+        renderItem={() => (
+          <ProductsSection
+            initialProductsData={productsData}
+            category="Stores near You"
+            domain={DOMAINS.PERSONAL_CARE}
+            selectedAddress={selectedAddress}
+          />
+        )}
 
-        {/* Explore the World of Beauty Section */}
-        <SubCategoriesSection
-          categoryData={personalCareCategoryData}
-          domain={DOMAINS.PERSONAL_CARE}
-          sectionTitle="Explore the World of Beauty"
-          searchCategory="beauty"
-          useLinearGradient={true}
-          gradientColors={["#faf7f9", "rgba(255, 146, 211, 0)"]}
-        />
-
-        {/* Stores Section */}
-        <StoresSection
-          storesData={storesData}
-          storesSectionTitle="Your Nearby Beauty Stores"
-          selectedAddress={selectedAddress}
-        />
-      </ScrollView>
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      />
     </SafeAreaView>
   );
 }

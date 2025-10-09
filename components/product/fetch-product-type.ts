@@ -20,7 +20,7 @@ export interface FetchProductDetail {
   long_desc?: string;
   meta?: Meta;
   name: string;
-  price: Price;
+  price: ProductPrice;
   priceRangeDefault?: number;
   provider_id: string;
   provider_status: string;
@@ -81,7 +81,7 @@ export interface Meta {
   statutory_reqs_prepackaged_food?: any;
 }
 
-export interface Price {
+export interface ProductPrice {
   currency: string;
   value: number;
   range?: Range;

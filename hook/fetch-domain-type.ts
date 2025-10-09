@@ -1,3 +1,6 @@
+import { ProductPrice } from "@/components/product/fetch-product-type";
+import { Unitized } from "@/components/search/search-products-type";
+
 export interface FetchDomainType {
   offers: HomeOfferType[] | null;
   stores: {
@@ -60,7 +63,7 @@ export interface Store2 {
   symbol: string;
   orderTimings?: OrderTiming[];
   rating?: number;
-  store_categories?: string[];
+  store_sub_categories?: string[];
   type: string;
   location_id: string;
   maxStoreItemOfferPercent?: number;
@@ -86,6 +89,28 @@ export interface Store2 {
   distance_in_km: number;
   offers?: Offer2[];
   order_value?: OrderValue;
+  products?: DomainStoreProduct[];
+}
+
+export interface DomainStoreProduct {
+  _id: string;
+  slug: string;
+  symbol: string;
+  name: string;
+  diet_type?: string;
+  priceRangeDefault?: number;
+  price: ProductPrice;
+
+  ///
+  quantity: number;
+  domain: string;
+  instock: boolean;
+  unitized?: Unitized;
+  status: string;
+  store_id: string;
+  catalog_id: string;
+  customizable: boolean;
+  directlyLinkedCustomGroupIds?: string[];
 }
 
 interface OrderTiming {

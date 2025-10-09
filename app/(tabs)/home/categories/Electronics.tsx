@@ -1,17 +1,21 @@
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView } from "react-native";
+import { SafeAreaView, FlatList, View } from "react-native";
 import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
 import { electronicsCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
-import { CategoryHeader, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
+import {
+  CategoryHeader,
+  OffersCarousel,
+  ProductsSection,
+  SubCategoriesSection,
+} from "@/components/Categories/CategoryComponents";
 import { styles } from "@/components/Categories/cat";
-
 
 function Electronics() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
+  const pincode = selectedAddress?.pincode || "110001";
 
   const { data: domainData, isLoading } = useDomainData(
     DOMAINS.ELECTRONICS,
@@ -20,7 +24,7 @@ function Electronics() {
     pincode
   );
 
-  const storesData = domainData?.stores || [];
+  const productsData = domainData?.stores || []; // use same structure, ProductResultsWrapper handles it
 
   if (isLoading) {
     return (
@@ -36,30 +40,37 @@ function Electronics() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Search Header */}
-        <CategoryHeader onSearchPress={handleSearchPress} />
+      <FlatList
+        data={[{ key: "content" }]} // dummy one-item data
+        keyExtractor={(item) => item.key}
 
-        {/* Offers Section with auto-scroll + dots */}
-        <OffersCarousel storesData={storesData} activeColor="#E11D48" />
+        // 🧩 Header with search + offers + subcategories
+        ListHeaderComponent={
+          <View>
+            <CategoryHeader onSearchPress={handleSearchPress} />
+            <OffersCarousel storesData={productsData} activeColor="#E11D48" />
+            <SubCategoriesSection
+              categoryData={electronicsCategoryData}
+              domain={DOMAINS.ELECTRONICS}
+              sectionTitle="Explore New Gadgets"
+              searchCategory="electronics"
+            />
+          </View>
+        }
 
-        {/* Explore Gadgets Section */}
-        <SubCategoriesSection
-          categoryData={electronicsCategoryData}
-          domain={DOMAINS.ELECTRONICS}
-          sectionTitle="Explore New Gadgets"
-          searchCategory="electronics"
-          useLinearGradient={false}
-        />
+        // 🛒 Render the dynamic product list (instead of StoresSection)
+        renderItem={() => (
+          <ProductsSection
+            initialProductsData={productsData}
+            category="Stores near You"
+            domain={DOMAINS.ELECTRONICS}
+            selectedAddress={selectedAddress}
+          />
+        )}
 
-        {/* Stores Section */}
-        <StoresSection
-          storesData={storesData}
-          storesSectionTitle="Electronics Stores Near You"
-          selectedAddress={selectedAddress}
-          showNoStoresAnimation={true} // Add this if you want the animation when no stores are found
-        />
-      </ScrollView>
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      />
     </SafeAreaView>
   );
 }

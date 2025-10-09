@@ -1,17 +1,21 @@
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView } from "react-native";
+import { SafeAreaView, FlatList, View } from "react-native";
 import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
 import { groceriesCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
 import { styles } from "@/components/Categories/cat";
-import { CategoryHeader, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
-
+import {
+  CategoryHeader,
+  OffersCarousel,
+  ProductsSection,
+  SubCategoriesSection,
+} from "@/components/Categories/CategoryComponents";
 
 function Grocery() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
+  const pincode = selectedAddress?.pincode || "110001";
 
   const { data: domainData, isLoading } = useDomainData(
     DOMAINS.GROCERY,
@@ -20,7 +24,7 @@ function Grocery() {
     pincode
   );
 
-  const storesData = domainData?.stores || [];
+  const productsData = domainData?.stores || []; // Data compatible with ProductResultsWrapper
 
   if (isLoading) {
     return (
@@ -36,30 +40,39 @@ function Grocery() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Search Header */}
-        <CategoryHeader onSearchPress={handleSearchPress} />
+      <FlatList
+        // Dummy one-item data to satisfy FlatList API
+        data={[{ key: "content" }]}
+        keyExtractor={(item) => item.key}
 
-        {/* Offers Section with auto-scroll + dots */}
-        <OffersCarousel storesData={storesData} activeColor="#E11D48" />
+        // 🧩 Header components before products
+        ListHeaderComponent={
+          <View>
+            <CategoryHeader onSearchPress={handleSearchPress} />
+            <OffersCarousel storesData={productsData} activeColor="#E11D48" />
+            <SubCategoriesSection
+              categoryData={groceriesCategoryData}
+              domain={DOMAINS.GROCERY}
+              sectionTitle="Explore by Categories"
+              searchCategory="grocery"
+            />
+          </View>
+        }
 
-        {/* Explore by Categories Section */}
-        <SubCategoriesSection
-          categoryData={groceriesCategoryData}
-          domain={DOMAINS.GROCERY}
-          sectionTitle="Explore by Categories"
-          searchCategory="grocery"
-          useLinearGradient={true}
-          gradientColors={["#ffffff", "#f0fdf4", "#dcfce7"]}
-        />
+        // 🛍️ Render products list as content
+        renderItem={() => (
+          <ProductsSection
+            initialProductsData={productsData}
+            category="Stores near You"
+            domain={DOMAINS.GROCERY}
+            selectedAddress={selectedAddress}
+          />
+        )}
 
-        {/* Stores Section */}
-        <StoresSection
-          storesData={storesData}
-          storesSectionTitle="Your Nearby Grocery Stores"
-          selectedAddress={selectedAddress}
-        />
-      </ScrollView>
+        // FlatList configs
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      />
     </SafeAreaView>
   );
 }

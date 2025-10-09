@@ -1,7 +1,6 @@
 import React from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface OfferCard3Props {
@@ -39,25 +38,20 @@ const OfferCard3: React.FC<OfferCard3Props> = ({ storeData }) => {
         style={styles.gradientOverlay}
       />
 
-      {/* Discount Tag - BIG highlight */}
-      {calculated_max_offer?.percent > 0 && (
-        <View style={styles.discountTag}>
-          <Text style={styles.discountText}>
-            {Math.round(calculated_max_offer.percent)}% OFF
-          </Text>
-        </View>
-      )}
-
       {/* Store Info Overlay */}
       <View style={styles.infoContainer}>
         <Text style={styles.storeName} numberOfLines={1}>
           {name}
         </Text>
         <View style={styles.locationRow}>
-          <MaterialIcons name="local-offer" size={14} color="#fff" />
           <Text style={styles.addressText} numberOfLines={1}>
-            Special Offer Store
-          </Text>
+            {/* Discount Tag - BIG highlight */}
+            {calculated_max_offer?.percent > 0 && (
+              <Text style={styles.discountText}>
+                {Math.round(calculated_max_offer.percent)}% OFF on orders above ₹149
+              </Text>
+            )}
+               </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -79,7 +73,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    marginBottom:10
+    marginBottom: 10
   },
   backgroundImage: {
     width: "100%",
@@ -90,20 +84,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 18,
   },
-  discountTag: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    backgroundColor: "#E11D48",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 10,
-    elevation: 5,
-  },
   discountText: {
     color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   infoContainer: {
@@ -120,6 +104,7 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.4)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
+    marginLeft: 4,
   },
   locationRow: {
     flexDirection: "row",

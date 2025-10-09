@@ -1,7 +1,6 @@
 import React, { FC, useCallback, useMemo, useRef } from "react";
 import {
   FlatList,
-  ActivityIndicator,
   Text,
   View,
   NativeSyntheticEvent,
@@ -13,6 +12,7 @@ import ProductCard from "./ProductCard";
 import useGetMoreProductSearchResults from "@/state/useGetMoreProductSearchResults";
 import { StoreBucket } from "../search/search-products-type";
 import { styles } from "./searchStyle";
+import Loader from "../common/Loader";
 
 interface Props {
   initialData: StoreBucket[];
@@ -116,7 +116,7 @@ useFocusEffect(
     if (isFetchingNextPage) {
       return (
         <View style={styles.loadingFooter}>
-          <ActivityIndicator size="small" color="#FB3E44" />
+          <Loader />
         </View>
       );
     }

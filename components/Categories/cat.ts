@@ -1,7 +1,4 @@
-import { Dimensions, StyleSheet } from "react-native";
-
-const screenWidth = Dimensions.get("window").width;
-
+import {  StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#fff" },
   container: { flexGrow: 1, backgroundColor: "#fff" },
@@ -9,62 +6,57 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 20,
+    marginTop: 10,
     paddingBottom: 16,
     backgroundColor: "#fff",
   },
   section: { marginHorizontal: 10, marginBottom: 20 },
   subCategories: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    flexWrap: "wrap",
     marginVertical: 15,
-    paddingHorizontal: 10,
   },
-  backButton: { marginRight: 12, padding: 4, marginTop: -20 },
+  backButton: { marginRight: 14, padding: 4, marginTop: -10,marginLeft:-10 },
   searchWrapper: { flex: 1, marginTop: -20 },
   subCategory: {
     alignItems: "center",
     justifyContent: "center",
-    margin: 8,
-    width: (screenWidth - 80) / 4,
+    marginRight: 16,
+    width: 80,
   },
-subCategoryImage: {
-  width: 85,
-  height: 85,
-  borderRadius: 20,
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: 8,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.12,
-  shadowRadius: 6,
-  elevation: 5,
-
-  // ✅ Glassy border effect
-  borderWidth: 1,
-  borderColor: "rgba(255, 255, 255, 0.6)",
-},
-
-subCategoryIcon: {
-  width: 55,
-  height: 55,
-  borderRadius: 12,
-},
-
+  subCategoryImage: {
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    // Remove shadows and glassy effect to match image
+    shadowColor: "transparent",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    // Remove borders
+    borderWidth: 0,
+    borderColor: "transparent",
+    // Add background transparency
+    backgroundColor: "transparent",
+  },
+  subCategoryIcon: {
+    width: 90,
+    height: 80,
+    borderRadius: 20,
+  },
   subHeading: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 25,
+    marginVertical: 15,
+    marginHorizontal: 10,
   },
   subHeadingTextUp: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
     color: "#333",
     textAlign: "center",
+    marginTop:-5
   },
   line: {
     flex: 1,
@@ -82,13 +74,13 @@ subCategoryIcon: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
     borderRadius: 20,
     alignSelf: "flex-end",
     borderWidth: 1,
     borderColor: "#ddd",
-    marginTop: -17,
+    marginTop: -10,
     marginBottom: -15,
   },
   viewMoreButtonText: { color: "#F13A3A", fontSize: 12, fontWeight: "500" },
@@ -138,5 +130,4 @@ subCategoryIcon: {
     marginBottom: 16,
     fontWeight: "500",
   },
-
 });

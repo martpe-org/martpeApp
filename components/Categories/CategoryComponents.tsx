@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -13,10 +11,11 @@ import {
   View,
 } from "react-native";
 import OfferCard3 from "../../components/Categories/OfferCard3";
-import StoreCard3 from "../../components/Categories/StoreCard3";
 import Search from "../../components/common/Search";
 import { styles } from "./cat";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ProductResultsWrapper from "@/components/search-comp/ProductResultsWrapper";
+
 const { width } = Dimensions.get("window");
 
 interface CategoryData {
@@ -52,11 +51,8 @@ export const CategoryHeader: React.FC<{
   onSearchPress: () => void;
 }> = ({ onSearchPress }) => (
   <SafeAreaView style={styles.headerContainer}>
-    <TouchableOpacity
-      onPress={() => router.back()}
-      style={styles.backButton}
-    >
-      <Ionicons name="arrow-back-outline" size={20} color="black" />
+    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <Ionicons name="arrow-back-outline" size={24} color="black" />
     </TouchableOpacity>
     <View style={styles.searchWrapper}>
       <Search onPress={onSearchPress} />
@@ -72,7 +68,6 @@ export const OffersCarousel: React.FC<{
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  // Auto-scroll every 3 seconds
   useEffect(() => {
     if (!storesData.length) return;
     const timer = setInterval(() => {
@@ -83,7 +78,6 @@ export const OffersCarousel: React.FC<{
       });
       setActiveIndex(nextIndex);
     }, 3000);
-
     return () => clearInterval(timer);
   }, [activeIndex, storesData.length]);
 
@@ -142,64 +136,37 @@ export const SubCategoriesSection: React.FC<{
   domain: string;
   sectionTitle: string;
   searchCategory: string;
-  gradientColors?: string[];
-  useLinearGradient?: boolean;
-}> = ({
-  categoryData,
-  domain,
-  sectionTitle,
-  searchCategory,
-  gradientColors,
-  useLinearGradient = false,
-}) => {
-  const renderSubCategories = () => {
-    return categoryData.slice(0, 8).map((subCategory) => (
-      <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/[search]",
-            params: { search: subCategory.name, domainData: domain },
-          })
-        }
-        style={styles.subCategory}
-        key={subCategory.id}
-      >
-        {useLinearGradient && gradientColors ? (
-          <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.subCategoryImage}
-          >
-            <Image
-              source={{ uri: subCategory.image }}
-              resizeMode="contain"
-              style={styles.subCategoryIcon}
-            />
-          </LinearGradient>
-        ) : (
-          <View style={styles.subCategoryImage}>
-            <Image
-              source={{ uri: subCategory.image }}
-              resizeMode="contain"
-              style={{ width: 80, height: 80 }}
-            />
-          </View>
-        )}
-        <Text style={styles.subHeadingTextUp} numberOfLines={1}>
-          {subCategory.name}
-        </Text>
-      </TouchableOpacity>
-    ));
-  };
+}> = ({ categoryData, domain, sectionTitle, searchCategory }) => {
+  const renderSubCategoryItem = ({ item }: { item: CategoryData }) => (
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: "/(tabs)/home/result/[search]",
+          params: { search: item.name, domainData: domain },
+        })
+      }
+      style={styles.subCategory}
+      key={item.id}
+    >
+      <View style={styles.subCategoryImage}>
+        <Image
+          source={{ uri: item.image }}
+          resizeMode="contain"
+          style={styles.subCategoryIcon}
+        />
+      </View>
+      <Text style={styles.subHeadingTextUp} numberOfLines={1}>
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.section}>
       <View style={styles.subHeading}>
-        <View style={styles.line} />
         <Text style={styles.subHeadingText}>{sectionTitle}</Text>
-        <View style={styles.line} />
       </View>
+
       <TouchableOpacity
         onPress={() =>
           router.push({
@@ -212,105 +179,50 @@ export const SubCategoriesSection: React.FC<{
         <Text style={styles.viewMoreButtonText}>View More</Text>
         <Image
           source={require("../../assets/right_arrow.png")}
-          style={{ marginLeft: 5 }}
+          style={{ marginLeft: 1, width: 12, height: 12, tintColor: "#a00c0c" }}
         />
       </TouchableOpacity>
-      <View style={styles.subCategories}>{renderSubCategories()}</View>
+
+      <FlatList
+        data={categoryData.slice(0, 8)}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.subCategories}
+        keyExtractor={(item) => `subcat-${item.id}`}
+        renderItem={renderSubCategoryItem}
+      />
     </View>
   );
 };
 
-// ✅ Shared Stores Section Component
-export const StoresSection: React.FC<{
-  storesData: StoreData[];
-  storesSectionTitle: string;
+// ✅ Replaced StoresSection → ProductsSection
+export const ProductsSection: React.FC<{
+  initialProductsData: any[];
   selectedAddress: any;
-  showNoStoresAnimation?: boolean;
-}> = ({
-  storesData,
-  storesSectionTitle,
-  selectedAddress,
-  showNoStoresAnimation = false,
-}) => {
-  // Animation for no stores (used only in Food component)
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  category: string;
+  domain: string;
+}> = ({ initialProductsData, selectedAddress, category, domain }) => {
+  if (!selectedAddress) return null;
 
-  useEffect(() => {
-    if (showNoStoresAnimation && storesData.length === 0) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else if (storesData.length > 0) {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.8);
-    }
-  }, [storesData.length, fadeAnim, scaleAnim, showNoStoresAnimation]);
+  const searchParams = {
+    query: category,
+    lat: selectedAddress?.lat || 0,
+    lon: selectedAddress?.lng || 0,
+    pincode: selectedAddress?.pincode || "110001",
+    domain,
+  };
 
   return (
     <View style={styles.section}>
       <View style={styles.subHeading}>
-        <View style={styles.line} />
-        <Text style={styles.subHeadingText}>{storesSectionTitle}</Text>
-        <View style={styles.line} />
+        <Text style={styles.subHeadingText}>Top {category}</Text>
       </View>
 
-      {storesData.length > 0 ? (
-        <FlatList
-          data={storesData}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
-          keyExtractor={(item, index) => `store-${item.id}-${index}`}
-          renderItem={({ item }) => (
-            <View
-              style={{
-                width: 300,
-                height: 320,
-                marginRight: 6,
-                marginLeft: -10,
-                marginBottom: -20,
-              }}
-            >
-              <StoreCard3
-                storeData={item}
-                categoryFiltered={[]}
-                userLocation={{
-                  lat: selectedAddress?.lat || 0,
-                  lng: selectedAddress?.lng || 0,
-                }}
-              />
-            </View>
-          )}
-        />
-      ) : showNoStoresAnimation ? (
-        <View style={styles.noRestaurantsContainer}>
-          <Animated.View
-            style={[
-              styles.animatedContent,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-          >
-            <Ionicons name="restaurant-outline" size={40} color="#999" />
-            <Text style={styles.animatedText}>
-              No restaurants available in your area
-            </Text>
-          </Animated.View>
-        </View>
-      ) : null}
+      <ProductResultsWrapper
+        initialData={initialProductsData || []}
+        pageSize={10}
+        searchParams={searchParams}
+      />
     </View>
   );
 };

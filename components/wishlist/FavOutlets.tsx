@@ -90,8 +90,7 @@ const FavOutlets: FC<FavOutletsProps> = ({ itemsData = [], authToken }) => {
     if (typeof address === "string") return address;
     if (typeof address === "object" && address !== null) {
       const parts = [];
-      if (address.street) parts.push(address.street);
-      if (address.locality) parts.push(address.locality);
+
       if (address.city) parts.push(address.city);
       if (address.state) parts.push(address.state);
       if (address.area_code) parts.push(address.area_code);

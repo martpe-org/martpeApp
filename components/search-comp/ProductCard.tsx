@@ -104,7 +104,7 @@ const ProductCard: FC<{
             <Text style={styles.storeName} numberOfLines={1}>
               {store.name}
             </Text>
-            <Text style={styles.storeMetrics}>
+            <Text style={styles.storeMetrics} numberOfLines={1}>
               {store.address?.street || "Address not available"}
             </Text>
           </View>
