@@ -223,9 +223,9 @@ const SearchScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "android" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "android" ? 0 : 20}
       >
         <View style={styles.headerContainer}>
           <View style={styles.headerRow}>
@@ -233,7 +233,7 @@ const SearchScreen: React.FC = () => {
               onPress={() => router.back()}
               style={styles.headerLeftIcon}
             >
-              <Ionicons name="arrow-back-outline" size={20} color="black" />
+              <Ionicons name="arrow-back-outline" size={24} color="black" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Search anything you want</Text>
           </View>
@@ -282,8 +282,8 @@ const SearchScreen: React.FC = () => {
                   <TouchableOpacity onPress={() => removeSearchTerm(term)}>
                     <MaterialCommunityIcons
                       name="close"
-                      size={14}
-                      color="#35374B"
+                      size={16}
+                      color="#040405"
                     />
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -349,11 +349,10 @@ const styles = StyleSheet.create({
     paddingVertical: width * 0.1,
   },
   keyboardAvoidingView: {
-    flex: 1,
+    flexGrow: 1,
   },
   headerContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
     backgroundColor: Colors.WHITE_COLOR,
   },
   headerRow: {
@@ -405,7 +404,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   recentSearchItem: {
-    paddingVertical: width * 0.01,
+    paddingVertical: width * 0.02,
     paddingHorizontal: 10,
     flexDirection: "row",
     borderRadius: 25,

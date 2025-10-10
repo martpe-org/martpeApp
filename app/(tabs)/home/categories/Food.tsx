@@ -1,13 +1,18 @@
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView } from "react-native";
+import { Pressable, SafeAreaView, ScrollView, View } from "react-native";
 import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
 import { foodCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
 import { styles } from "@/components/Categories/cat";
-import { CategoryHeader, createRefreshControl, OffersCarousel, StoresSection, SubCategoriesSection } from "@/components/Categories/CategoryComponents";
-
+import {
+  CategoryHeader,
+  createRefreshControl,
+  OffersCarousel,
+  SubCategoriesSection,
+} from "@/components/Categories/CategoryComponents";
+import RestCards from "@/components/Categories/RestCards";
 
 function Food() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
@@ -45,13 +50,13 @@ function Food() {
         showsVerticalScrollIndicator={false}
         refreshControl={createRefreshControl(isLoading, refetch, "#f2663c")}
       >
-        {/* Search Header */}
+        {/* 🔍 Search Header */}
         <CategoryHeader onSearchPress={handleSearchPress} />
 
-        {/* Offers Section with auto-scroll + dots */}
+        {/* 🏷️ Offers Carousel */}
         <OffersCarousel storesData={storesData} activeColor="#f2663c" />
 
-        {/* Categories Section */}
+        {/* 🍔 Subcategories */}
         <SubCategoriesSection
           categoryData={foodCategoryData}
           domain={DOMAINS.FOOD}
@@ -61,13 +66,25 @@ function Food() {
           gradientColors={["#f5f3ee", "rgba(231, 223, 201, 0)"]}
         />
 
-        {/* Stores Section */}
-        <StoresSection
-          storesData={storesData}
-          storesSectionTitle="Restaurants near you"
-          selectedAddress={selectedAddress}
-          showNoStoresAnimation={true}
-        />
+        {/* 🍱 Restaurants List using RestCards */}
+        <View style={{ marginTop: 10 }}>
+          {storesData.length > 0 ? (
+            storesData.map((store: any, index: number) => (
+              <RestCards
+                key={store.id || index}
+                storeData={store}
+                userLocation={{
+                  lat: selectedAddress?.lat || 0,
+                  lng: selectedAddress?.lng || 0,
+                }}
+              />
+            ))
+          ) : (
+            <View style={{ alignItems: "center", marginTop: 50 }}>
+              <Loader/>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
