@@ -1,7 +1,6 @@
 import React, { FC, useCallback, useMemo, useRef } from "react";
 import {
   FlatList,
-  ActivityIndicator,
   Text,
   View,
   NativeSyntheticEvent,
@@ -12,6 +11,7 @@ import { StoreSearchResult } from "../search/search-stores-type";
 import useGetMoreStoreSearchResults from "@/state/useGetMoreStoreSearchResults";
 import { styles } from "./searchStyle";
 import { useFocusEffect } from "@react-navigation/native";
+import Loader from "../common/Loader";
 
 interface Props {
   initialData: StoreSearchResult[];
@@ -124,7 +124,7 @@ const StoreResultsWrapper: FC<Props> = ({
     if (isFetchingNextPage) {
       return (
         <View style={styles.loadingFooter}>
-          <ActivityIndicator size="small" color="#FB3E44" />
+          <Loader/>
         </View>
       );
     }

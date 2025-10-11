@@ -46,7 +46,7 @@ interface StoreData {
   time_to_ship_in_hours?: number;
 }
 
-// ✅ Shared Header Component
+// âœ… Shared Header Component
 export const CategoryHeader: React.FC<{
   onSearchPress: () => void;
 }> = ({ onSearchPress }) => (
@@ -60,7 +60,7 @@ export const CategoryHeader: React.FC<{
   </SafeAreaView>
 );
 
-// ✅ Shared Offers Carousel Component
+// âœ… Shared Offers Carousel Component
 export const OffersCarousel: React.FC<{
   storesData: StoreData[];
   activeColor?: string;
@@ -130,7 +130,7 @@ export const OffersCarousel: React.FC<{
   );
 };
 
-// ✅ Shared Sub Categories Component
+// âœ… Shared Sub Categories Component
 export const SubCategoriesSection: React.FC<{
   categoryData: CategoryData[];
   domain: string;
@@ -176,7 +176,7 @@ export const SubCategoriesSection: React.FC<{
         }
         style={styles.viewMoreButton}
       >
-        <Text style={styles.viewMoreButtonText}>View More</Text>
+        <Text style={styles.viewMoreButtonText}>View More Stores</Text>
         <Image
           source={require("../../assets/right_arrow.png")}
           style={{ marginLeft: 1, width: 12, height: 12, tintColor: "#a00c0c" }}
@@ -195,7 +195,7 @@ export const SubCategoriesSection: React.FC<{
   );
 };
 
-// ✅ Replaced StoresSection → ProductsSection
+// âœ… Replaced StoresSection â†’ ProductsSection
 export const ProductsSection: React.FC<{
   initialProductsData: any[];
   selectedAddress: any;
@@ -227,7 +227,7 @@ export const ProductsSection: React.FC<{
   );
 };
 
-// ✅ Shared Refresh Control
+// âœ… Shared Refresh Control
 export const createRefreshControl = (
   isLoading: boolean,
   onRefresh: () => void,

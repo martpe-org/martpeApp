@@ -26,22 +26,26 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
   const normalized = normalizeStoreData(item);
   const vendorIdString = normalized.slug;
 
-  // Extract location from Store2 interface
+  // inside RestaurantCard
   const getLocationText = (storeData: Store2) => {
-    const { address } = storeData;
-    if (address.locality && address.city) {
-      return `${address.locality}, ${address.city}`;
-    } else if (address.locality) {
-      return address.locality;
-    } else if (address.city) {
-      return address.city;
-    } else if (address.street) {
-      return address.street;
-    } else if (address.name) {
-      return address.name;
-    }
+    const address = storeData?.address;
+
+    if (!address) return "Location not available";
+
+    const locality = address?.locality || "";
+    const city = address?.city || "";
+    const street = address?.street || "";
+    const name = address?.name || "";
+
+    if (locality && city) return `${locality}, ${city}`;
+    if (locality) return locality;
+    if (city) return city;
+    if (street) return street;
+    if (name) return name;
+
     return "Location not available";
   };
+
 
 
   return (
@@ -79,7 +83,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
 
         {normalized.avg_tts_in_h && (
           <View style={styles.restaurantTimeBadgeCompact}>
-            <Ionicons name="time-outline" size={8} color="white" />
+            <Ionicons name="time-outline" size={10} color="white" />
             <Text style={styles.restaurantTimeTextCompact}>
               {Math.round(normalized.avg_tts_in_h * 60)} min
             </Text>
@@ -112,13 +116,13 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
 
         <View style={styles.restaurantBottomRowCompact}>
           <View style={styles.restaurantLeftColumnCompact}>
-            <Text style={styles.restaurantDeliveryTimeCompact}>
-              {normalized.avg_tts_in_h
-                ? `${Math.round(normalized.avg_tts_in_h * 60)} mins`
-                : "30-40 mins"}
-            </Text>
-
+            {normalized.distance_in_km !== undefined && (
+              <Text style={styles.restaurantDistanceCompact}>
+                {normalized.distance_in_km.toFixed(1)} km
+              </Text>
+            )}
           </View>
+
           <View style={styles.restaurantStatusCompact}>
             <View
               style={[
@@ -173,6 +177,13 @@ const styles = StyleSheet.create({
     width: 200,
     overflow: "hidden",
   },
+  restaurantDistanceCompact: {
+    fontSize: 12,
+    color: "#FF9130",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+
   topActions: {
     position: "absolute",
     top: 12,
@@ -209,9 +220,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 8,
     right: 8,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: "rgba(51, 228, 65, 0.7)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
@@ -219,9 +230,9 @@ const styles = StyleSheet.create({
   },
   restaurantTimeTextCompact: {
     color: "white",
-    fontSize: 10,
+    fontSize: 12,
     marginLeft: 2,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   restaurantInfoCompact: {
     padding: 12,

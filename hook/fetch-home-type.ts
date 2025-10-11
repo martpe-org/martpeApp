@@ -114,16 +114,6 @@ export interface StoreCardOfferType {
   type: string;
   offer_id: string;
 }
-
-export interface Benefit {
-  value_type: string;
-  value: string;
-  value_cap?: string;
-  item_count?: string;
-  item_id?: string;
-  item_value?: string;
-}
-
 export interface Qualifier2 {
   min_value: string;
 }

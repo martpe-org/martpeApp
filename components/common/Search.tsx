@@ -7,32 +7,32 @@ interface SearchProps {
 }
 
 export default function Search({ onPress }: SearchProps) {
-  const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
-  const [searchTextIndex, setSearchTextIndex] = useState(0);
-  const words = searchTexts[searchTextIndex].split(" ");
-  const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
+  // const searchTexts = ["grocery", "biryani", "clothing", "electronics"];
+  // const [searchTextIndex, setSearchTextIndex] = useState(0);
+  // const words = searchTexts[searchTextIndex].split(" ");
+  // const wordAnimations = useRef(words.map(() => new Animated.Value(0))).current;
 
-  useEffect(() => {
-    // animate words when index changes
-    wordAnimations.forEach((anim) => anim.setValue(0));
-    Animated.stagger(
-      150,
-      wordAnimations.map((anim) =>
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        })
-      )
-    ).start();
-  }, [searchTextIndex]);
+  // useEffect(() => {
+  //   // animate words when index changes
+  //   wordAnimations.forEach((anim) => anim.setValue(0));
+  //   Animated.stagger(
+  //     150,
+  //     wordAnimations.map((anim) =>
+  //       Animated.timing(anim, {
+  //         toValue: 1,
+  //         duration: 400,
+  //         useNativeDriver: true,
+  //       })
+  //     )
+  //   ).start();
+  // }, [searchTextIndex]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  });
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setSearchTextIndex((prev) => (prev + 1) % searchTexts.length);
+  //   }, 3000);
+  //   return () => clearInterval(interval);
+  // });
 
   return (
     <TouchableOpacity
@@ -48,9 +48,9 @@ export default function Search({ onPress }: SearchProps) {
       />
       <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
         <Text style={{ color: "#8E8A8A", fontSize: 16 }}>
-          Search for{" "}
+          Search...
         </Text>
-        {words.map((word, idx) => (
+        {/* {words.map((word, idx) => (
           <Animated.Text
             key={idx}
             style={{
@@ -70,7 +70,7 @@ export default function Search({ onPress }: SearchProps) {
           >
             {word}
           </Animated.Text>
-        ))}
+        ))} */}
       </View>
     </TouchableOpacity>
   );

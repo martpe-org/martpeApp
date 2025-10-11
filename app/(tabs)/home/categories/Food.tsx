@@ -1,28 +1,23 @@
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, SafeAreaView, ScrollView, View } from "react-native";
+import { SafeAreaView, FlatList, View } from "react-native";
 import useDeliveryStore from "../../../../components/address/deliveryAddressStore";
 import Loader from "../../../../components/common/Loader";
 import { foodCategoryData } from "../../../../constants/categories";
 import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
-import { styles } from "@/components/Categories/cat";
 import {
   CategoryHeader,
-  createRefreshControl,
   OffersCarousel,
+  ProductsSection,
   SubCategoriesSection,
 } from "@/components/Categories/CategoryComponents";
-import RestCards from "@/components/Categories/RestCards";
+import { styles } from "@/components/Categories/cat";
 
 function Food() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
-  const pincode = selectedAddress?.pincode || selectedAddress || "110001";
+  const pincode = selectedAddress?.pincode || "110001";
 
-  const {
-    data: domainData,
-    isLoading,
-    refetch,
-  } = useDomainData(
+  const { data: domainData, isLoading } = useDomainData(
     DOMAINS.FOOD,
     selectedAddress?.lat,
     selectedAddress?.lng,
@@ -45,47 +40,39 @@ function Food() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.container}
+      <FlatList
+        data={[{ key: "content" }]} // dummy single item for layout consistency
+        keyExtractor={(item) => item.key}
         showsVerticalScrollIndicator={false}
-        refreshControl={createRefreshControl(isLoading, refetch, "#f2663c")}
-      >
-        {/* 🔍 Search Header */}
-        <CategoryHeader onSearchPress={handleSearchPress} />
+        contentContainerStyle={styles.container}
+        ListHeaderComponent={
+          <View>
+            {/* ðŸ” Search Header */}
+            <CategoryHeader onSearchPress={handleSearchPress} />
 
-        {/* 🏷️ Offers Carousel */}
-        <OffersCarousel storesData={storesData} activeColor="#f2663c" />
+            {/* ðŸ·ï¸ Offers Carousel */}
+            <OffersCarousel storesData={storesData} activeColor="#f2663c" />
 
-        {/* 🍔 Subcategories */}
-        <SubCategoriesSection
-          categoryData={foodCategoryData}
-          domain={DOMAINS.FOOD}
-          sectionTitle="Shop by Categories"
-          searchCategory="food"
-          useLinearGradient={true}
-          gradientColors={["#f5f3ee", "rgba(231, 223, 201, 0)"]}
-        />
-
-        {/* 🍱 Restaurants List using RestCards */}
-        <View style={{ marginTop: 10 }}>
-          {storesData.length > 0 ? (
-            storesData.map((store: any, index: number) => (
-              <RestCards
-                key={store.id || index}
-                storeData={store}
-                userLocation={{
-                  lat: selectedAddress?.lat || 0,
-                  lng: selectedAddress?.lng || 0,
-                }}
-              />
-            ))
-          ) : (
-            <View style={{ alignItems: "center", marginTop: 50 }}>
-              <Loader/>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+            {/* ðŸ” Subcategories */}
+            <SubCategoriesSection
+              categoryData={foodCategoryData}
+              domain={DOMAINS.FOOD}
+              sectionTitle="Shop by Categories"
+              searchCategory="food"
+              useLinearGradient={true}
+              gradientColors={["#f5f3ee", "rgba(231, 223, 201, 0)"]}
+            />
+          </View>
+        }
+        renderItem={() => (
+          <ProductsSection
+            initialProductsData={storesData}
+            category="Restaurants near You"
+            domain={DOMAINS.FOOD}
+            selectedAddress={selectedAddress}
+          />
+        )}
+      />
     </SafeAreaView>
   );
 }
