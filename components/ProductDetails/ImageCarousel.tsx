@@ -44,7 +44,9 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ url }) => {
     return (
       <View style={styles.container}>
         <View style={styles.imageContainer}>
-          <Text style={styles.noImageText}>No images available</Text>
+          <Text style={styles.noImageText}>
+            No images available
+          </Text>
         </View>
       </View>
     );

@@ -129,18 +129,18 @@ const ProductDetails: FC = () => {
     router.push("/search/search");
   };
 
- const renderHeader = () => (
-  <SafeAreaView style={styles.safeHeader}>
-    <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
-      </TouchableOpacity>
-      <View style={styles.searchWrapper}>
-        <Search onPress={handleSearchPress} />
+  const renderHeader = () => (
+    <SafeAreaView style={styles.safeHeader}>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back-outline" size={20} color="black" />
+        </TouchableOpacity>
+        <View style={styles.searchWrapper}>
+          <Search onPress={handleSearchPress} />
+        </View>
       </View>
-    </View>
-  </SafeAreaView>
-);
+    </SafeAreaView>
+  );
 
 
   const renderError = () => (

@@ -16,17 +16,20 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    paddingVertical: 8, // ✅ changed from marginTop
   },
   backButton: {
     padding: 6,
     marginRight: 8,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
+    marginBottom: 10,
   },
 
   searchWrapper: {
     flexGrow: 1,
+    marginTop: -10,
+    marginBottom: 10,
+    marginLeft: 10,
   },
   scrollView: {
     flex: 1,
@@ -50,7 +53,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: CART_FOOTER_HEIGHT,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f8f0f0ff",
     paddingHorizontal: 16,
     paddingVertical: 12,
     ...Platform.select({

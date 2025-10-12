@@ -66,8 +66,8 @@ export const cardStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   productCard: {
-    width: width,
-    height: 170,
+    width: width - 22,
+    height: 180,
     borderRadius: 0,
     overflow: "hidden",
     backgroundColor: "#f8f8f8",
