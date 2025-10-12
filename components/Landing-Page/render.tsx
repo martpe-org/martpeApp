@@ -81,7 +81,7 @@ export const normalizeStoreData = (storeData: any): NormalizedStore => {
     calculated_max_offer: { percent: 50 },
 
     status: storeData?.status || "open",
-    distance_in_km: storeData?.distance_in_km || 1.2,
+    distance_in_km: storeData?.distance_in_km || 0,
     avg_tts_in_h: storeData?.avg_tts_in_h || 0.5,
     store_sub_categories: storeData?.store_sub_categories || ["Mock Category"],
     store_name:

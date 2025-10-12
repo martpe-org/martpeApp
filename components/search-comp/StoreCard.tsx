@@ -28,9 +28,6 @@ const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => {
   };
 
   const getStoreCategory = (storeData: StoreSearchResult) => {
-    if (storeData.store_sub_categories?.length > 0) {
-      return storeData.store_sub_categories.join(", ");
-    }
     if (storeData.domain) {
       return storeData.domain.replace("ONDC:", "");
     }

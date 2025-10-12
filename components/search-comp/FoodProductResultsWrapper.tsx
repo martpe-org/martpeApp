@@ -8,11 +8,11 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { InteractionManager } from "react-native";
-import ProductCard from "./ProductCard";
 import useGetMoreProductSearchResults from "@/state/useGetMoreProductSearchResults";
 import { StoreBucket } from "../search/search-products-type";
 import { styles } from "./searchStyle";
 import Loader from "../common/Loader";
+import RestCard from "./RestCard";
 
 interface Props {
   initialData: StoreBucket[];
@@ -32,14 +32,14 @@ interface Props {
 const scrollPositionCache = new Map<string, number>();
 const listDataCache = new Map<string, StoreBucket[]>();
 
-const ProductResultsWrapper: FC<Props> = ({
+const FoodProductResultsWrapper: FC<Props> = ({
   initialData,
   pageSize,
   searchParams,
 }) => {
   const flatListRef = useRef<FlatList<StoreBucket>>(null);
 
-  // Unique cache key for this search
+  // Unique cache key
   const cacheKey = useMemo(
     () =>
       JSON.stringify({
@@ -62,42 +62,40 @@ const ProductResultsWrapper: FC<Props> = ({
       cacheTime: 30 * 60 * 1000,
     });
 
-const allProducts = useMemo(() => {
-  if (data?.pages?.length) {
-    const merged = data.pages.flat();
-    listDataCache.set(cacheKey, merged);
-    return merged;
-  }
-
-  const cachedData = listDataCache.get(cacheKey);
-  if (cachedData?.length) return cachedData;
-
-  // Only use initialData if no cache yet
-  return initialData || [];
-}, [data?.pages, cacheKey, initialData]);
-
-const saveScrollPosition = useCallback((index: number) => {
-  scrollPositionCache.set(cacheKey, index);
-}, [cacheKey]);
-
-
-// inside useFocusEffect
-useFocusEffect(
-  useCallback(() => {
-    const savedOffset = scrollPositionCache.get(cacheKey);
-    if (savedOffset != null && flatListRef.current) {
-      const task = InteractionManager.runAfterInteractions(() => {
-        flatListRef.current?.scrollToOffset({
-          offset: savedOffset,
-          animated: false,
-        });
-      });
-      return () => task.cancel();
+  // Merge pages or fall back to cache/initial data
+  const allProducts = useMemo(() => {
+    if (data?.pages?.length) {
+      const merged = data.pages.flat();
+      listDataCache.set(cacheKey, merged);
+      return merged;
     }
-  }, [cacheKey])
-);
+    const cachedData = listDataCache.get(cacheKey);
+    if (cachedData?.length) return cachedData;
+    return initialData || [];
+  }, [data?.pages, cacheKey, initialData]);
 
+  const saveScrollPosition = useCallback(
+    (offset: number) => {
+      scrollPositionCache.set(cacheKey, offset);
+    },
+    [cacheKey]
+  );
 
+  // Restore scroll position
+  useFocusEffect(
+    useCallback(() => {
+      const savedOffset = scrollPositionCache.get(cacheKey);
+      if (savedOffset != null && flatListRef.current) {
+        const task = InteractionManager.runAfterInteractions(() => {
+          flatListRef.current?.scrollToOffset({
+            offset: savedOffset,
+            animated: false,
+          });
+        });
+        return () => task.cancel();
+      }
+    }, [cacheKey])
+  );
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -130,23 +128,19 @@ useFocusEffect(
     return null;
   }, [isFetchingNextPage, hasNextPage]);
 
-const renderItem = useCallback(({ item }: { item: StoreBucket }) => {
-  const storeData = item.store_info?.hits?.hits?.[0]?._source?.store;
-  const storeId = item.key?.store_id; // optional chaining
-  if (!storeId) return null; // skip invalid items
+  const renderItem = useCallback(
+    ({ item }: { item: StoreBucket }) => {
+      // Safely skip invalid store buckets
+      if (!item?.key?.store_id) return null;
+      return <RestCard item={item} />;
+    },
+    []
+  );
 
-  const products = item.top_products.hits.hits.map(hit => ({
-    ...hit._source,
-    store: storeData,
-  }));
-  return <ProductCard item={[storeId, products]} />;
-}, []);
-
-const keyExtractor = useCallback(
-  (item: StoreBucket, index: number) => item.key?.store_id || String(index),
-  []
-);
-
+  const keyExtractor = useCallback(
+    (item: StoreBucket, index: number) => item.key?.store_id || String(index),
+    []
+  );
 
   if (!allProducts.length) {
     return (
@@ -169,7 +163,6 @@ const keyExtractor = useCallback(
       contentContainerStyle={styles.listContainer}
       onScroll={handleScroll}
       scrollEventThrottle={16}
-      // Performance tweaks
       removeClippedSubviews
       initialNumToRender={10}
       maxToRenderPerBatch={8}
@@ -179,4 +172,4 @@ const keyExtractor = useCallback(
   );
 };
 
-export default ProductResultsWrapper;
+export default FoodProductResultsWrapper;

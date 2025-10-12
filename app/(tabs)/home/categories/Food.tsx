@@ -8,10 +8,10 @@ import { DOMAINS, useDomainData } from "@/utility/categoryUtils";
 import {
   CategoryHeader,
   OffersCarousel,
-  ProductsSection,
   SubCategoriesSection,
 } from "@/components/Categories/CategoryComponents";
 import { styles } from "@/components/Categories/cat";
+import { ProductsSection } from "@/components/Categories/foodCategoryComponents";
 
 function Food() {
   const selectedAddress = useDeliveryStore((state) => state.selectedDetails);
