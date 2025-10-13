@@ -15,7 +15,6 @@ import Loader from "../../../../../components/common/Loader";
 import Search from "../../../../../components/common/Search";
 
 import ImageCarousel from "../../../../../components/ProductDetails/ImageCarousel";
-import MoreBySeller from "../../../../../components/ProductDetails/MoreBySeller";
 import ProductHeader from "../../../../../components/ProductDetails/ProductHeader";
 import ProductPricing from "../../../../../components/ProductDetails/ProductPricing";
 import SellerDetails from "../../../../../components/ProductDetails/Seller";
@@ -193,40 +192,6 @@ const ProductDetails: FC = () => {
     );
   };
 
-  const renderMoreBySeller = () => {
-    if (
-      !Array.isArray(productData?.offers) ||
-      productData.offers.length === 0
-    ) {
-      return null;
-    }
-
-    const transformedProducts = productData.offers.map((offer) => ({
-      id: offer._id,
-      descriptor: {
-        name: offer.short_desc || "Product",
-        images: offer.images || [],
-      },
-      price: {
-        value: parseFloat(offer.benefit?.value || "0"),
-        maximum_value: parseFloat(offer.qualifier?.min_value || "0"),
-        offer_percent: 0,
-      },
-    }));
-
-    return (
-      <View style={styles.sectionContainer}>
-        <MoreBySeller
-          originalId={productDetails!}
-          products={transformedProducts}
-          sellerName={productData.store?.name || ""}
-          sellerDetails={formattedStoreAddress}
-          sellerSymbol={productData.store?.symbol || ""}
-          sellerContact={productData.meta?.contact_details_consumer_care || ""}
-        />
-      </View>
-    );
-  };
 
   // Loading state
   if (isLoading) {
@@ -305,8 +270,7 @@ const ProductDetails: FC = () => {
           />
         </View>
 
-        {renderMoreBySeller()}
-
+=
         <View style={styles.sectionContainer}>
           <SellerDetails
             sellerName={productData.store?.name || "Unknown Store"}

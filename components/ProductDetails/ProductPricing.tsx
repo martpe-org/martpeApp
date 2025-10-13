@@ -33,7 +33,6 @@ const ProductPricing: FC<ProductPricingProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      {/* ✅ Correct: store.slug used for navigation */}
       <TouchableOpacity
         onPress={() =>
           router.push(`/(tabs)/home/result/productListing/${store.slug}`)

@@ -1,11 +1,10 @@
 import { fetchStoreDetails } from "@/components/store/fetch-store-details";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 import { fetchStoreItems } from "@/components/store/fetch-store-items";
-import {
-  FetchStoreItemsResponseType,
-  StoreItem,
-} from "@/components/store/fetch-store-items-type";
+import { FetchStoreItemsResponseType, StoreItem } from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
+
+// Types
 interface ComponentCatalogItem {
   bpp_id: string;
   bpp_uri: string;
@@ -35,11 +34,8 @@ interface ComponentCatalogItem {
   };
   provider_id: string;
   veg: boolean;
-  customizable?: boolean;
-  customizations?: string[]; // Changed to array of strings
-  category?: string;
-  category_name?: string;
 }
+
 interface VendorData {
   _id: string;
   address?: {
@@ -73,59 +69,44 @@ const convertToVendorData = (
   try {
     if (!storeDetails || !storeItems?.results) return null;
 
-    const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
-      (item: StoreItem) => {
-        const isNonVeg = item.diet_type === "non_veg";
-        const priceValue = item.price?.value ?? 0;
-        const maxPriceValue = item.price?.maximum_value ?? priceValue;
-        const quantity = item.quantity ?? 0;
+    // Use a more efficient mapping approach
+    const catalogItems: ComponentCatalogItem[] = storeItems.results.map((item: StoreItem) => {
+      const isNonVeg = item.diet_type === "non_veg";
+      const priceValue = item.price?.value ?? 0;
+      const maxPriceValue = item.price?.maximum_value ?? priceValue;
+      const quantity = item.quantity ?? 0;
 
-        // ✅ FIX: Properly filter and extract customization IDs
-        const validCustomizationIds =
-          Array.isArray(item.custom_menu_id)
-            ? item.custom_menu_id
-                .filter((id) => typeof id === "string" && id.trim() !== "")
-                .map((id) => id.trim())
-            : [];
-
-        const hasValidCustomizations = validCustomizationIds.length > 0;
-
-        return {
-          bpp_id: storeDetails._id,
-          bpp_uri: "",
-          catalog_id: item.catalog_id || "",
-          category_id: item.category_id || "",
-          descriptor: {
-            images: item.images || [],
-            long_desc: item.short_desc || "",
-            name: item.name || "",
-            short_desc: item.short_desc || "",
-            symbol: item.symbol || "",
-          },
-          id: item.slug  || "",
-          location_id: item.location_id || "",
-          non_veg: isNonVeg,
-          price: {
-            maximum_value: maxPriceValue,
-            offer_percent: item.price?.offerPercent ?? null,
-            offer_value: null,
-            value: priceValue,
-          },
-          quantity: {
-            available: { count: quantity },
-            maximum: { count: quantity },
-          },
-          provider_id: storeDetails._id,
-          veg: !isNonVeg,
-          store_id: storeDetails._id,
-          storeId: storeDetails._id,
-
-          // ✅ FIX: Store customization IDs directly as array of strings
-          customizable: Boolean(item.customizable) && hasValidCustomizations,
-          customizations: validCustomizationIds,
-        };
-      }
-    );
+      return {
+        bpp_id: storeDetails._id,
+        bpp_uri: "",
+        catalog_id: item.catalog_id || "",
+        category_id: item.category_id || "",
+        descriptor: {
+          images: item.images || [],
+          long_desc: item.short_desc || "",
+          name: item.name || "",
+          short_desc: item.short_desc || "",
+          symbol: item.symbol || "",
+        },
+        id: item.slug ||  "",
+        location_id: item.location_id || "",
+        non_veg: isNonVeg,
+        price: {
+          maximum_value: maxPriceValue,
+          offer_percent: item.price?.offerPercent ?? null,
+          offer_value: null,
+          value: priceValue,
+        },
+        quantity: {
+          available: { count: quantity },
+          maximum: { count: quantity },
+        },
+        provider_id: storeDetails._id,
+        veg: !isNonVeg,
+        store_id: storeDetails._id,
+        storeId: storeDetails._id,
+      };
+    });
 
     return {
       _id: storeDetails._id,
@@ -167,7 +148,7 @@ const QUERY_KEYS = {
 // Error message helper
 const getErrorMessage = (error: Error | null): string => {
   if (!error) return "An unexpected error occurred";
-
+  
   if (error.message.includes("Store ID is required")) {
     return "Store ID is required";
   }
@@ -177,7 +158,7 @@ const getErrorMessage = (error: Error | null): string => {
   if (error.message.includes("Failed to process")) {
     return "Failed to process store data";
   }
-
+  
   return "Failed to load store details. Please check your connection.";
 };
 
@@ -205,9 +186,7 @@ export const useVendorData = (vendorSlug: string) => {
         throw new Error("Failed to process store data");
       }
 
-      console.log(
-        `Store loaded: ${storeDetails.name} (${convertedData.catalogs.length} items)`
-      );
+      console.log(`Store loaded: ${storeDetails.name} (${convertedData.catalogs.length} items)`);
       return convertedData;
     },
     enabled: !!vendorSlug,
@@ -220,7 +199,7 @@ export const useVendorData = (vendorSlug: string) => {
     retry: 2, // Reduced retry attempts
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Faster retry
     // Add network mode for offline support
-    networkMode: "online",
+    networkMode: 'online',
   });
 };
 

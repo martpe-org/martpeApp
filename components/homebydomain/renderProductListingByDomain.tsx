@@ -38,18 +38,24 @@ export const renderProductListingByDomain = ({
       );
 
 case "ONDC:RET11": // Food and Beverage
-  return (
-    <PLPFnB
-      catalog={allItems} // ✅ force fallback
-      dropdownHeaders={dropdownHeaders || []}
-      vendorAddress={vendorData.address?.street || ""}
-      street={vendorData.address?.locality || ""}
-      fssaiLiscenseNo=""
-      providerId={storeId}
-      searchString={searchString || ""}
-      storeName={storeName}
-    />
-  );
+return (
+  <PLPFnB
+    catalog={allItems}
+    dropdownHeaders={dropdownHeaders}
+    vendorAddress={vendorData?.address ? 
+      [vendorData.address.locality, vendorData.address.street, 
+       vendorData.address.city, vendorData.address.state]
+      .filter(Boolean).join(", ") : ""
+    }
+    street={vendorData?.address?.street || ""}
+    fssaiLiscenseNo={vendorData?.fssaiLiscenseNo || ""}
+    providerId={storeId}
+    searchString={searchString}
+    storeName={storeName}
+    vendorData={vendorData} // ✅ Pass vendor data
+  />
+);
+
     case "ONDC:RET12": // Fashion
       return (
         <PLPFashion
