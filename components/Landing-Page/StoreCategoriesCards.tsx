@@ -337,25 +337,27 @@ const styles = StyleSheet.create({
 
   // Category styles
   categoryRow: {
-    margin: 5,
     flexDirection: "column",
     alignItems: "center",
+    marginLeft: -10,
   },
   categoryItem: {
     margin: 5,
     flexDirection: "column",
     alignItems: "center",
+    marginRight: 10,
   },
   categoryImage: {
-    width: windowWidth * 0.2,
-    height: windowWidth * 0.24,
+    width: windowWidth * 0.28,
+    height: windowWidth * 0.22,
     resizeMode: "contain",
+    
   },
   categoryName: {
     marginTop: -9,
     color: "black",
-    fontSize: 12,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
   },
 

@@ -110,9 +110,7 @@ export default function CategorySection({ title, data, containerStyle = 'twoColu
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderWithLine}>
-        <View style={styles.headerLine} />
         <Text style={styles.sectionTitleCentered}>{title}</Text>
-        <View style={styles.headerLine} />
       </View>
       {renderContent()}
     </View>

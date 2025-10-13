@@ -1,7 +1,6 @@
+// PLPFnB.tsx
 import { FC, useState, useMemo } from "react";
-import { ScrollView } from "react-native";
-import HeaderTabs from "./HeaderTabs";
-import PLPFooter from "./PLPFooter";
+import { ScrollView } from "react-native";import PLPFooter from "./PLPFooter";
 import PLPFnBCardContainer from "./PLPFnBCardContainer";
 import { ComponentCatalogItem } from "@/state/useVendorData";
 
@@ -17,7 +16,7 @@ interface PLPFnBProps {
 }
 
 const PLPFnB: FC<PLPFnBProps> = ({
-  catalog = [], // ✅ fallback to empty array
+  catalog = [],
   dropdownHeaders,
   vendorAddress,
   street,
@@ -26,7 +25,6 @@ const PLPFnB: FC<PLPFnBProps> = ({
   searchString,
   storeName = "",
 }) => {
-  const [vegFilter, setVegFilter] = useState<"All" | "Veg" | "Non-Veg">("All");
   const [selectedCategory] = useState("All");
 
   const fnbCatalog = useMemo(() => {
@@ -42,12 +40,6 @@ const PLPFnB: FC<PLPFnBProps> = ({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* ✅ Veg/Non-Veg Filter Tabs */}
-      <HeaderTabs
-        buttonTitles={["All", "Veg", "Non-Veg"]}
-        onFilterChange={(tab) => setVegFilter(tab as "All" | "Veg" | "Non-Veg")}
-      />
-
       {/* ✅ F&B Card Container */}
       <PLPFnBCardContainer
         catalog={fnbCatalog}
@@ -55,7 +47,6 @@ const PLPFnB: FC<PLPFnBProps> = ({
         searchString={searchString}
         storeId={providerId}
         storeName={storeName}
-        vegFilter={vegFilter}
       />
 
       {/* ✅ Footer */}

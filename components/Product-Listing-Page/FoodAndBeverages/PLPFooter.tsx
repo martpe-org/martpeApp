@@ -41,17 +41,16 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
 ))}
 
 <Text style={{ color: "#79787D" }}>
-  (Outlet: <Text style={{ fontWeight: "bold" }}>{outletLocation}</Text>)
+  (Outlet Location: <Text style={{ fontWeight: "bold" }}>{outletLocation}</Text>)
 </Text>
 
       <View
         style={{ flexDirection: "row", marginTop: 5, alignItems: "center" }}
       >
         <Image
-          style={{ height: 20, width: 20 }}
+          style={{ height:15, width: 15 }}
           source={require("../../../assets/PLPFooterPin.png")}
         />
-        <MaterialIcons name="location-pin" size={16} color="black" />
         <Text style={{ marginLeft: 5, color: "#79787D" }}>{vendorAddress}</Text>
       </View>
       {/* fssai license number */}
@@ -73,7 +72,7 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
         </View>
       )}
 
-      <View
+      {/* <View
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -98,7 +97,7 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
           Report an issue with the menu
         </Text>
         <MaterialCommunityIcons name="chevron-right" size={14} color="black" />
-      </View>
+      </View> */}
     </View>
   );
 };

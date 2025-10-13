@@ -34,13 +34,6 @@ export interface ProductsGrouped {
     hits: { _source: ProductSearchResult }[];
   };
 }
-
-// export interface SearchProductsResponseType {
-//   total: number;
-//   results: ProductSearchResult[];
-//   aggregations: ProductSearchAggregations;
-// }
-
 export interface ProductSearchResult {
   symbol: string;
   code?: string;

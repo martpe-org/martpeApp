@@ -215,32 +215,10 @@ export default function HomeScreen() {
             )
           )}
 
-          {/* Explore Categories Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderWithLine}>
-              <View style={styles.headerLine} />
-              <Text style={styles.sectionTitleCentered}>Explore Food Categories</Text>
-              <View style={styles.headerLine} />
-            </View>
-            <FlatList
-              data={foodCategoryData}
-              renderItem={renderFoodCategories}
-              keyExtractor={(item) => item.id.toString()}
-              horizontal
-              snapToAlignment="start"
-              snapToInterval={windowWidth / 2}
-              decelerationRate="fast"
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryList}
-            />
-          </View>
-
           {/* Grocery Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
-              <View style={styles.headerLine} />
-              <Text style={styles.sectionTitleCentered}>Fresh Groceries</Text>
-              <View style={styles.headerLine} />
+              <Text style={styles.sectionTitleCentered}>Shop for Groceries</Text>
             </View>
             <FlatList
               data={groceriesCategoryData}
@@ -254,33 +232,43 @@ export default function HomeScreen() {
               contentContainerStyle={styles.categoryList}
             />
           </View>
-
-          {/* Category Sections using the new component */}
+          {/* Explore Categories Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderWithLine}>
+              <Text style={styles.sectionTitleCentered}>Shop for food</Text>
+            </View>
+            <FlatList
+              data={foodCategoryData}
+              renderItem={renderFoodCategories}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
+              snapToAlignment="start"
+              snapToInterval={windowWidth / 2}
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryList}
+            />
+          </View>
           <CategorySection
             title="Shop for Fashion"
             data={fashionCategoryData}
             containerStyle="twoColumn"
           />
-
           <CategorySection
-            title="Personal Care"
+            title="Shop for Personal Care"
             data={personalCareCategoryData}
             containerStyle="personalCare"
           />
-
           <CategorySection
-            title="Search for Electronics"
+            title="Shop for Electronics"
             data={electronicsCategoryData}
             containerStyle="twoColumn"
           />
-
           <CategorySection
-            title="Home & Decor"
+            title="Shop for Home & Decor"
             data={homeAndDecorCategoryData}
             containerStyle="homeDecor"
           />
-
-          {/* Footer Section */}
           <FooterSection />
         </View>
       </ScrollView>

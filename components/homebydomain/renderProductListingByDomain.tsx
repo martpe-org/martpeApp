@@ -50,9 +50,6 @@ case "ONDC:RET11": // Food and Beverage
       storeName={storeName}
     />
   );
-
-
-
     case "ONDC:RET12": // Fashion
       return (
         <PLPFashion

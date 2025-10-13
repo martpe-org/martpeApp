@@ -44,8 +44,8 @@ export const styles = StyleSheet.create({
     marginBottom: 1,
   },
   sectionTitleCentered: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "600",
     color: "#5A5555",
     marginHorizontal: 15,
   },
@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   },
   categoryList: {
     alignItems: "center",
-    paddingHorizontal: 8, // Add padding to prevent overflow
+    paddingHorizontal: 2, // Add padding to prevent overflow
   },
   categoryItem: {
     margin: 5,
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     maxWidth: windowWidth * 0.25, // Constrain width
   },
   categoryImage: {
-    width: windowWidth * 0.18, // Slightly smaller to fit better
+    width: windowWidth * 0.2, // Slightly smaller to fit better
     height: windowWidth * 0.22, // Adjust height proportionally
     resizeMode: "contain",
   },
@@ -85,6 +85,7 @@ export const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     paddingHorizontal: 8,
+    marginTop: 14,
   },
   gridCard: {
     width: "48%",
@@ -119,7 +120,7 @@ export const styles = StyleSheet.create({
   // Personal Care Section
   personalCareContainer: {
     flexDirection: "row",
-    paddingHorizontal: 8, // Change from paddingLeft: 1
+    paddingHorizontal: 8,
   },
   personalCareCard: {
     marginRight: 12,
@@ -159,7 +160,8 @@ export const styles = StyleSheet.create({
   // Home & Decor Section
   homeDecorContainer: {
     flexDirection: "row",
-    paddingHorizontal: 8, // Change from paddingLeft: 16
+    paddingHorizontal: 8, 
+    marginTop:10
   },
   homeDecorCard: {
     marginRight: 12,

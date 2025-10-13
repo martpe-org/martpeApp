@@ -4,7 +4,6 @@ import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React from "react";
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,9 +11,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AddToCart from "../../common/AddToCart";
-
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.44;
 
 interface PLPFnBCardProps {
   id: string;
@@ -35,7 +31,6 @@ interface PLPFnBCardProps {
   item?: any;
   customizable?: boolean;
   directlyLinkedCustomGroupIds?: string[];
-  // ✅ F&B specific props
   veg?: boolean;
   non_veg?: boolean;
   spiceLevel?: string;
@@ -83,80 +78,46 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
-  // ✅ AddToCart Renderer with ADD+ logic
-  const renderAddToCart = () => {
-    if (!safeStoreId) {
-      return (
-        <View style={cardStyles.cartWrapper}>
-          <Text style={cardStyles.errorText}>Store ID missing</Text>
-        </View>
-      );
-    }
-
-    if (customizable && directlyLinkedCustomGroupIds?.length > 0) {
-      return (
-        <TouchableOpacity
-          style={cardStyles.addButton}
-          onPress={() =>
-            router.push(
-              `/(tabs)/home/result/productDetails/${resolvedSlug}?storeId=${safeStoreId}`
-            )
-          }
-          activeOpacity={0.8}
-        >
-          <Text style={cardStyles.addButtonText}>ADD+</Text>
-        </TouchableOpacity>
-      );
-    }
-
+ const renderAddToCart = () => {
+  if (!safeStoreId) {
     return (
       <View style={cardStyles.cartWrapper}>
-        <AddToCart
-          price={cost || 0}
-          storeId={safeStoreId}
-          slug={resolvedSlug}
-          catalogId={catalogId}
-          productName={itemName}
-          customizable={customizable}
-          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-        />
+        <Text style={cardStyles.errorText}>Store ID missing</Text>
       </View>
     );
-  };
+  }
 
   return (
-    <View>
-      <View style={cardStyles.card}>
-        <ImageComp
-          source={image || symbol}
-          imageStyle={cardStyles.image}
-          resizeMode="cover"
-          fallbackSource={{ uri: "https://picsum.photos/200/300" }}
-          loaderColor="#666"
-          loaderSize="small"
-        />
+    <View style={cardStyles.cartWrapper}>
+      <AddToCart
+        price={cost}
+        storeId={safeStoreId}
+        slug={resolvedSlug}
+        catalogId={catalogId}
+        productName={itemName}
+        customizable={item.customizable}
+        directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+      />
+    </View>
+  );
+};
 
-        <View style={cardStyles.topActions}>
-          <LikeButton productId={uniqueProductId} color="#E11D48" />
-        </View>
 
-        {/* 🔥 Discount Badge */}
-        {typeof discount === "number" && discount > 1 && (
-          <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
-        )}
-
-        <TouchableOpacity
-          style={cardStyles.info}
-          onPress={handlePress}
-          activeOpacity={0.8}
-        >
-          <View style={cardStyles.nameRow}>
+  return (
+    <TouchableOpacity style={cardStyles.card}
+      onPress={handlePress}
+      activeOpacity={0.8}
+    >
+      <View style={cardStyles.content}>
+        {/* Left side - Text content */}
+        <View style={cardStyles.textContainer}>
+          <View style={cardStyles.headerRow}>
             {veg && (
               <MaterialCommunityIcons
                 name="circle-box-outline"
                 size={16}
                 color="green"
-                style={{ marginRight: 4 }}
+                style={{ marginRight: 6 }}
               />
             )}
             {non_veg && (
@@ -164,46 +125,58 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
                 name="circle-box-outline"
                 size={16}
                 color="red"
-                style={{ marginRight: 4 }}
+                style={{ marginRight: 6 }}
               />
             )}
-            <Text style={cardStyles.name} numberOfLines={2}>
+            <Text style={cardStyles.name} numberOfLines={1}>
               {itemName}
             </Text>
           </View>
 
-          <Text style={cardStyles.weight}>
-            {weight} / {unit}
-          </Text>
-
-          {/* ✅ Spice Level */}
-          {spiceLevel && (
-            <Text style={cardStyles.spiceLevel}>🌶️ {spiceLevel}</Text>
-          )}
-
-          {discount && (
-            <Text style={cardStyles.discount}>{discount}% off</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Price and Add to Cart Row */}
-        <View style={cardStyles.priceAddRow}>
-          <View style={cardStyles.priceContainer}>
-            <View style={cardStyles.priceRow}>
-              <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
-              {discount && originalPrice && (
-                <Text style={cardStyles.originalPrice}>
-                  ₹{originalPrice.toFixed(1)}
-                </Text>
-              )}
-            </View>
+          <View style={cardStyles.priceRow}>
+            <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
+            {originalPrice && originalPrice > cost && (
+              <Text style={cardStyles.originalPrice}>
+                ₹{originalPrice.toFixed()}
+              </Text>
+            )}
+            {discount && discount > 0 && (
+              <Text style={cardStyles.discount}>{discount}% OFF</Text>
+            )}
           </View>
-          <View style={cardStyles.addToCartContainer}>
+          <Text style={cardStyles.description} numberOfLines={2}>
+            {item?.descriptor?.long_desc || "Delicious food item"}
+          </Text>
+        </View>
+
+        {/* Right side - Image and Add to Cart */}
+        <View style={cardStyles.imageContainer}>
+          <ImageComp
+            source={image || symbol}
+            imageStyle={cardStyles.image}
+            resizeMode="cover"
+            fallbackSource={{ uri: "https://picsum.photos/200/300" }}
+            loaderColor="#666"
+            loaderSize="small"
+          />
+          
+          <View style={cardStyles.topActions}>
+            <LikeButton productId={uniqueProductId} color="#E11D48" />
+          </View>
+
+          {typeof discount === "number" && discount > 1 && (
+            <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
+          )}
+
+          <View style={cardStyles.addToCartWrapper}>
             {renderAddToCart()}
           </View>
         </View>
       </View>
-    </View>
+
+      {/* Bottom border */}
+      <View style={cardStyles.divider} />
+    </TouchableOpacity>
   );
 };
 
@@ -211,99 +184,84 @@ export default PLPFnBCard;
 
 const cardStyles = StyleSheet.create({
   card: {
-    width: CARD_WIDTH,
-    borderRadius: 12,
     backgroundColor: "#fff",
-    marginBottom: 15,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 5,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
   },
-  topActions: {
-    position: "absolute",
-    top: 12,
-    right: 12,
+  content: {
     flexDirection: "row",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 20,
-    padding: 6,
-    elevation: 3,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
-  image: {
-    width: "100%",
-    height: 140,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: "#f0f0f0",
+  textContainer: {
+    flex: 1,
+    marginRight: 12,
   },
-  info: {
-    flexGrow: 1,
-  },
-  nameRow: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 2,
+    marginBottom: 6,
   },
   name: {
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
-    flexShrink: 1,
-  },
-  weight: {
-    fontSize: 12,
-    color: "#777",
-    marginBottom: 4,
-  },
-  spiceLevel: {
-    fontSize: 11,
-    color: "#f97316",
-    marginBottom: 4,
-  },
- priceAddRow: {
-    flexDirection: "row",
-    alignItems: "flex-start", // Changed from "center"
-    justifyContent: "space-between",
-    minHeight: 32,
-  },
-  priceContainer: {
-    flex: 1, // Changed from flexShrink: 0
-    marginRight: 16,
-    maxWidth: "60%", // Limit price container width
+    flex: 1,
   },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap", // Allow wrapping
+    marginBottom: 4,
+    gap: 8,
   },
   price: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#f14343",
+    color: "#3C8A3C",
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 14,
     textDecorationLine: "line-through",
-    color: "#777",
-  },
-  addToCartContainer: {
-    flexShrink: 0, // Prevent shrinking
-    minWidth: 80, // Ensure minimum button width
-    maxWidth: "55%",
-    marginRight:9
+    color: "#8B94B2",
   },
   discount: {
     fontSize: 12,
-    color: "#28a745",
-    marginTop: 2,
+    fontWeight: "500",
+    color: "#F13A3A",
+    backgroundColor: "#F9F3F2",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  description: {
+    fontSize: 13,
+    color: "#666",
+    lineHeight: 18,
+  },
+  imageContainer: {
+    width: 100,
+    alignItems: "center",
+  },
+  image: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+  },
+  topActions: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: 4,
+  },
+  addToCartWrapper: {
+    marginTop: -8,
+    width: "100%",
   },
   cartWrapper: {
-    // Remove marginTop since it's now handled by priceAddRow
+    width: "100%",
   },
   errorText: {
     fontSize: 10,
@@ -323,5 +281,10 @@ const cardStyles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
     textTransform: "uppercase",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#f0f0f0",
+    marginTop: 16,
   },
 });

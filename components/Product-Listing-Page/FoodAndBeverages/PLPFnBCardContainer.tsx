@@ -1,3 +1,4 @@
+// PLPFnBCardContainer.tsx
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, Text, Animated } from "react-native";
 import PLPFnBCard from "./PLPFnBCard";
@@ -39,12 +40,10 @@ export interface FnBCatalogItem {
     option_id?: string;
     name: string;
   }[];
-  // ✅ F&B specific fields
   spiceLevel?: string;
 }
-
 interface PLPFnBCardContainerProps {
-  catalog?: FnBCatalogItem[]; // ✅ made optional
+  catalog?: FnBCatalogItem[];
   selectedCategory?: string;
   searchString: string;
   storeId: string;
@@ -53,19 +52,17 @@ interface PLPFnBCardContainerProps {
 }
 
 const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
-  catalog = [], // ✅ fallback to empty array
+  catalog = [],
   selectedCategory,
   searchString,
   vegFilter = "All",
 }) => {
-  // ✅ Apply veg/non-veg filter first
   const vegFilteredCatalog = React.useMemo(() => {
     if (vegFilter === "Veg") return catalog.filter((item) => item.veg);
     if (vegFilter === "Non-Veg") return catalog.filter((item) => item.non_veg);
     return catalog;
   }, [catalog, vegFilter]);
 
-  // ✅ Apply category filter
   const filteredCatalog = React.useMemo(() => {
     if (!selectedCategory || selectedCategory === "All") {
       return vegFilteredCatalog;
@@ -75,7 +72,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     );
   }, [vegFilteredCatalog, selectedCategory]);
 
-  // ✅ Apply search filter
   const displayedCatalog = React.useMemo(() => {
     return filteredCatalog.filter((item) => {
       const itemName = item?.descriptor?.name || "";
@@ -85,7 +81,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     });
   }, [filteredCatalog, searchString]);
 
-  // ✅ If no items at all
   if ((displayedCatalog || []).length === 0) {
     return (
       <NoItemsDisplay category={selectedCategory || "this category"} />
@@ -135,7 +130,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   );
 };
 
-// ✅ Animated "No Items" Component
 const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim = useRef(new Animated.Value(0.8)).current;
@@ -154,7 +148,7 @@ const NoItemsDisplay: React.FC<{ category: string }> = ({ category }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  });
 
   return (
     <Animated.View
@@ -180,11 +174,9 @@ export default PLPFnBCardContainer;
 
 const containerStyles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-evenly",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
 });
 
