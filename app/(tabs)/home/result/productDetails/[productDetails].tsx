@@ -13,8 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AddToCart from "../../../../../components/common/AddToCart";
 import Loader from "../../../../../components/common/Loader";
 import Search from "../../../../../components/common/Search";
-import { fetchProductDetails } from "../../../../../components/product/fetch-product";
-import { FetchProductDetail } from "../../../../../components/product/fetch-product-type";
+
 import ImageCarousel from "../../../../../components/ProductDetails/ImageCarousel";
 import MoreBySeller from "../../../../../components/ProductDetails/MoreBySeller";
 import ProductHeader from "../../../../../components/ProductDetails/ProductHeader";
@@ -23,6 +22,8 @@ import SellerDetails from "../../../../../components/ProductDetails/Seller";
 import Services from "../../../../../components/ProductDetails/Services";
 import VariantGroup from "../../../../../components/variants/VariantGroup";
 import { styles } from "./pdpStyles";
+import { FetchProductDetail } from "@/components/search/search-products-type";
+import { fetchProductDetails } from "@/components/product/fetch-product";
 
 // Constants
 const DEFAULT_RETURN_DAYS = 10;

@@ -13,6 +13,7 @@ import LikeButton from "../common/likeButton";
 import AddToCart from "../common/AddToCart";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ProductSearchResult } from "../search/search-products-type";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -84,7 +85,7 @@ const ProductCard: FC<{
   };
 
   return (
-    <View style={styles.card}>
+    <SafeAreaView style={styles.card}>
       {/* Store Header */}
       <View style={styles.cardHeader}>
         <TouchableOpacity
@@ -230,7 +231,7 @@ const ProductCard: FC<{
           }}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
+    },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   productCard: {
-    width: width * 0.42,
+    width: width * 0.48,
     marginRight: 12,
     backgroundColor: "#fff",
     borderRadius: 12,

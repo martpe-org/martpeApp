@@ -112,13 +112,15 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "Cart",
             tabBarIcon: ({ focused }) => (
-              <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <TouchableOpacity style={{ alignItems: "center", justifyContent: "center" }}
+                onPress={() => router.push({ pathname: "/(tabs)/cart" })}
+              >
                 <CartTab
                   color={focused ? activeTabColor : inactiveTabColor}
                   active={focused}
                   itemCount={totalItems}
                 />
-              </View>
+              </TouchableOpacity>
             ),
           }}
         />
@@ -129,13 +131,15 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "Orders",
             tabBarIcon: ({ focused }) => (
-              <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <TouchableOpacity style={{ alignItems: "center", justifyContent: "center" }}
+              onPress={() => router.push({ pathname: "/(tabs)/orders" })}
+              >
                 <MaterialCommunityIcons
                   name="package-variant-closed"
                   size={22}
                   color={focused ? activeTabColor : inactiveTabColor}
                 />
-              </View>
+              </TouchableOpacity>
             ),
           }}
         />

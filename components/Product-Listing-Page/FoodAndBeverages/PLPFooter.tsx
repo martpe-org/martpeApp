@@ -28,19 +28,24 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
       style={{
         paddingVertical: 40,
         paddingHorizontal: 20,
+        margin:10,
         position: "relative",
+        borderWidth:0.3,
+        borderColor:"#222",
+        borderRadius:10,
+        
       }}
     >
       {footerText.map((content, idx) => (
   <Text
     key={`footer-${idx}`}
-    style={{ marginTop: 5, color: "#79787D", fontSize: 12 }}
+    style={{ marginTop: 5, color: "#141314", fontSize: 13 }}
   >
     {"\u25CF"} {content}
   </Text>
 ))}
 
-<Text style={{ color: "#79787D" }}>
+<Text style={{ color: "#1f1c2e" }}>
   (Outlet Location: <Text style={{ fontWeight: "bold" }}>{outletLocation}</Text>)
 </Text>
 
@@ -51,7 +56,7 @@ const PLPFooter: React.FC<PLPFooterProps> = ({
           style={{ height:15, width: 15 }}
           source={require("../../../assets/PLPFooterPin.png")}
         />
-        <Text style={{ marginLeft: 5, color: "#79787D" }}>{vendorAddress}</Text>
+        <Text style={{ marginLeft: 5, color: "#070707",fontWeight:"bold" }}>{vendorAddress}</Text>
       </View>
       {/* fssai license number */}
       {fssaiLiscenseNo && (

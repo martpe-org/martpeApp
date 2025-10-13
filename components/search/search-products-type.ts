@@ -1,88 +1,87 @@
-export interface SearchProductsResponseType {
-  after_key?: {
-    store_id: string;
-  };
-  buckets: StoreBucket[];
-}
-
-export interface StoreBucket {
-  key: {
-    store_id: string;
-  };
-  doc_count: number;
-  store_info: StoreInfo;
-  top_products: ProductsGrouped;
-}
-
-export interface StoreInfo {
-  hits: Hits;
-}
-
-export interface Hits {
-  hits: Hit[];
-}
-
-export interface Hit {
+export interface FetchProductDetail {
   _id: string;
-  _source: {
-    store: Store;
-  };
-}
-
-export interface ProductsGrouped {
-  hits: {
-    hits: { _source: ProductSearchResult }[];
-  };
-}
-export interface ProductSearchResult {
-  symbol: string;
-  code?: string;
-  store_status: string;
-  rating?: number;
+  catalog_id: string;
+  category: string;
+  category_id: string;
+  createdAt: string;
+  parent_item_id?: string;
+  variants?: string[];
+  attributes?: Attributes;
+  custom_menu_id?: string[];
+  back_image?: string;
   customizable: boolean;
+  diet_type?: string;
   directlyLinkedCustomGroupIds?: string[];
+  domain: string;
+  gps: Gps;
+  images?: string[];
+  instock: boolean;
+  location_id: string;
+  long_desc?: string;
+  meta?: Meta;
+  name: string;
+  price: ProductPrice;
+  priceRangeDefault?: number;
+  provider_id: string;
+  provider_status: string;
+  provider_status_timestamp: string;
+  quantity: number;
+  rating?: number;
+  recommended?: boolean;
+  short_desc?: string;
+  slug: string;
+  status: string;
+  status_timestamp: string;
+  store: Store;
+  store_id: string;
+  store_status: string;
+  store_status_timestamp: string;
+  symbol: string;
+  tts_in_h?: number;
   type: string;
   unitized?: Unitized;
-  location_id: string;
-  category_id: string;
-  price: Price;
-  priceRangeDefault?: number;
-  status_timestamp: string;
-  common_name?: string;
-  brand?: string;
-  slug: string;
-  tts_in_h?: number;
-  store_id: string;
-  images?: string[];
-  quantity: number;
-  diet_type?: string;
-  // store: Store;
-  gps: Gps;
-  provider_status_timestamp: string;
-  catalog_id: string;
-  store_status_timestamp: string;
-  provider_status: string;
+  updatedAt: string;
   vendor_id: string;
-  domain: string;
-  name: string;
-  provider_id: string;
-  short_desc?: string;
-  status: string;
-  instock: boolean;
-  distance_in_km: number;
-  recommended?: boolean;
+  // lookup
+  customizations?: any;
+  offers?: Offer[];
 }
 
-export interface Unitized {
-  measure?: Measure;
+export interface Attributes {
+  brand?: string;
+  model?: string;
+  color?: string;
+  ram?: string;
+  rom?: string;
+  size?: string;
+  color_name?: string;
+  ram_unit?: string;
+  storage_unit?: string;
+  special_feature?: string;
+  includes?: string;
+  weight?: string;
 }
 
-export interface Measure {
-  unit?: string;
-  value?: string;
+export interface Gps {
+  lat: number;
+  lon: number;
 }
 
-export interface Price {
+export interface Meta {
+  returnable: boolean;
+  cancellable: boolean;
+  return_window?: string;
+  seller_pickup_return?: boolean;
+  time_to_ship?: string;
+  available_on_cod: boolean;
+  contact_details_consumer_care?: string;
+  fssai_license_no?: string;
+  mandatory_reqs_veggies_fruits?: any;
+  statutory_reqs_packaged_commodities?: any;
+  statutory_reqs_prepackaged_food?: any;
+}
+
+export interface ProductPrice {
   currency: string;
   value: number;
   range?: Range;
@@ -102,114 +101,77 @@ export interface DefaultSelection {
 }
 
 export interface Store {
+  name: string;
   symbol: string;
   address: Address;
-  name: string;
   rating?: number;
   slug: string;
 }
 
 export interface Address {
   city: string;
-  street?: string;
-  area_code: string;
-  locality?: string;
   state: string;
+  locality?: string;
+  area_code: string;
+  street?: string;
 }
 
-export interface Gps {
-  lon: number;
+export interface Unitized {
+  measure?: Measure;
+}
+
+export interface Measure {
+  unit?: string;
+  value?: string;
+}
+
+export interface Offer {
+  _id: string;
+  benefit?: Benefit;
+  code: string;
+  createdAt: string;
+  domain: string;
+  gps: Gps2;
+  images?: any[];
+  isHyperLocalOnly: boolean;
+  isPanindia: boolean;
+  item_ids?: any[];
+  location_ids?: string[];
+  maxRadius: number;
+  meta?: Meta2;
+  offer_id?: string;
+  provider_status: string;
+  qualifier?: Qualifier;
+  rating?: number;
+  short_desc: string;
+  store: Store2;
+  store_id: string;
+  store_status: string;
+  updatedAt: string;
+  vendor_id: string;
+}
+
+export interface Benefit {
+  value_type?: string;
+  value?: string;
+}
+
+export interface Gps2 {
   lat: number;
+  lon: number;
 }
 
-export interface ProductSearchAggregations {
-  connectivity: Connectivity;
-  gender: Gender;
-  size: Size;
-  color: Color;
-  fabric: Fabric;
-  cpu: Cpu;
-  screen_size: ScreenSize;
-  model: Model;
-  storage: Storage;
-  category: Category;
-  brand: Brand;
-  ram: Ram;
+export interface Meta2 {
+  additive?: string;
+  auto?: string;
 }
 
-export interface Connectivity {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
+export interface Qualifier {
+  min_value?: string;
 }
 
-export interface Gender {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Size {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Color {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Fabric {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Cpu {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface ScreenSize {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Model {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Storage {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Category {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: Bucket[];
-}
-
-export interface Bucket {
-  key: string;
-  doc_count: number;
-}
-
-export interface Brand {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
-}
-
-export interface Ram {
-  doc_count_error_upper_bound: number;
-  sum_other_doc_count: number;
-  buckets: any[];
+export interface Store2 {
+  name: string;
+  symbol: string;
+  slug: string;
 }

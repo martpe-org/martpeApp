@@ -5,7 +5,6 @@ export interface FetchStoreItemsResponseType {
 }
 
 export interface StoreItem {
-  _id: string;
   symbol: string;
   store_status: string;
   rating?: number;
@@ -35,6 +34,7 @@ export interface StoreItem {
   provider_id: string;
   short_desc?: string;
   category?: string;
+  category_name?:string;
   status: string;
   instock: boolean;
 }

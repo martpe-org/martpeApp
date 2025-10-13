@@ -1,18 +1,12 @@
-import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AddToCart from "../../common/AddToCart";
 
-interface PLPFnBCardProps {
+export interface PLPFnBCardProps {
   id: string;
   itemName: string;
   cost: number;
@@ -45,8 +39,6 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   productId,
   slug,
   catalogId,
-  weight = "1 serving",
-  unit = "plate",
   originalPrice,
   discount,
   symbol,
@@ -57,7 +49,6 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   directlyLinkedCustomGroupIds = [],
   veg = false,
   non_veg = false,
-  spiceLevel,
 }) => {
   const handlePress =
     onPress ||
@@ -78,38 +69,54 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
- const renderAddToCart = () => {
-  if (!safeStoreId) {
+  /** ✅ Only show AddToCart if product is in stock & storeId exists */
+  const renderAddToCart = () => {
+    if (!safeStoreId) {
+      return (
+        <View style={cardStyles.cartWrapper}>
+          <Text style={cardStyles.errorText}>Store ID missing</Text>
+        </View>
+      );
+    }
+
+    if (!item?.instock) {
+      return (
+        <View style={cardStyles.cartWrapper}>
+          <Text style={cardStyles.outOfStockText}>Out of stock</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={cardStyles.cartWrapper}>
-        <Text style={cardStyles.errorText}>Store ID missing</Text>
+        <AddToCart
+          price={cost}
+          storeId={safeStoreId}
+          slug={resolvedSlug}
+          catalogId={catalogId}
+          productName={itemName}
+          customizable={customizable || directlyLinkedCustomGroupIds.length > 0}
+          directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+        />
       </View>
     );
-  }
+  };
+
+  /** ✅ Fallback for missing long_desc */
+  const descriptionText =
+    item?.short_desc ||
+    item?.description ||
+    item?.descriptor?.long_desc ||
+    "";
 
   return (
-    <View style={cardStyles.cartWrapper}>
-      <AddToCart
-        price={cost}
-        storeId={safeStoreId}
-        slug={resolvedSlug}
-        catalogId={catalogId}
-        productName={itemName}
-        customizable={item.customizable}
-        directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
-      />
-    </View>
-  );
-};
-
-
-  return (
-    <TouchableOpacity style={cardStyles.card}
+    <TouchableOpacity
+      style={cardStyles.card}
       onPress={handlePress}
       activeOpacity={0.8}
     >
       <View style={cardStyles.content}>
-        {/* Left side - Text content */}
+        {/* Left - Text content */}
         <View style={cardStyles.textContainer}>
           <View style={cardStyles.headerRow}>
             {veg && (
@@ -136,20 +143,21 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           <View style={cardStyles.priceRow}>
             <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
             {originalPrice && originalPrice > cost && (
-              <Text style={cardStyles.originalPrice}>
-                ₹{originalPrice.toFixed()}
-              </Text>
+              <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed()}</Text>
             )}
             {discount && discount > 0 && (
               <Text style={cardStyles.discount}>{discount}% OFF</Text>
             )}
           </View>
-          <Text style={cardStyles.description} numberOfLines={2}>
-            {item?.descriptor?.long_desc || "Delicious food item"}
-          </Text>
+
+          {!!descriptionText && (
+            <Text style={cardStyles.description} numberOfLines={2}>
+              {descriptionText}
+            </Text>
+          )}
         </View>
 
-        {/* Right side - Image and Add to Cart */}
+        {/* Right - Image + Actions */}
         <View style={cardStyles.imageContainer}>
           <ImageComp
             source={image || symbol}
@@ -159,23 +167,14 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             loaderColor="#666"
             loaderSize="small"
           />
-          
+
           <View style={cardStyles.topActions}>
             <LikeButton productId={uniqueProductId} color="#E11D48" />
           </View>
 
-          {typeof discount === "number" && discount > 1 && (
-            <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
-          )}
-
-          <View style={cardStyles.addToCartWrapper}>
-            {renderAddToCart()}
-          </View>
+          <View style={cardStyles.addToCartWrapper}>{renderAddToCart()}</View>
         </View>
       </View>
-
-      {/* Bottom border */}
-      <View style={cardStyles.divider} />
     </TouchableOpacity>
   );
 };
@@ -184,9 +183,9 @@ export default PLPFnBCard;
 
 const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    backgroundColor: "transparent",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
   content: {
     flexDirection: "row",
@@ -204,7 +203,7 @@ const cardStyles = StyleSheet.create({
   },
   name: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#333",
     flex: 1,
   },
@@ -244,7 +243,7 @@ const cardStyles = StyleSheet.create({
   },
   image: {
     width: 120,
-    height: 120,
+    height: 110,
     borderRadius: 8,
     backgroundColor: "#f0f0f0",
   },
@@ -252,7 +251,6 @@ const cardStyles = StyleSheet.create({
     position: "absolute",
     top: 4,
     right: 4,
-    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 16,
     padding: 4,
   },
@@ -269,22 +267,11 @@ const cardStyles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
   },
-  addButton: {
-    backgroundColor: "#FB3E44",
-    borderRadius: 6,
-    paddingVertical: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#fff",
-    textTransform: "uppercase",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#f0f0f0",
-    marginTop: 16,
+  outOfStockText: {
+    fontSize: 11,
+    color: "#999",
+    textAlign: "center",
+    fontWeight: "500",
+    marginTop: 4,
   },
 });

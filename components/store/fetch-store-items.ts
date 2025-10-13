@@ -1,6 +1,4 @@
 import { FetchStoreItemsResponseType } from './fetch-store-items-type';
-// import Constants from 'expo-constants';
-// const BASE_URL = Constants.expoConfig?.extra?.BACKEND_BASE_URL;
 
 export const fetchStoreItems = async (slug: string) => {
   try {

@@ -159,7 +159,7 @@ const LikeButton = ({
         <MaterialCommunityIcons
           name={isFavorite ? "heart" : "heart-outline"}
           size={24}
-          color={isFavorite ? color : "#000"}
+          color={isFavorite ? color : "#fa0808"}
         />
       </Animated.View>
     </TouchableOpacity>
