@@ -1,9 +1,9 @@
-import { FC, useState, useMemo } from "react";
+import React, { FC, useState, useMemo } from "react";
 import { ScrollView } from "react-native";
 import PLPFooter from "./PLPFooter";
 import PLPFnBCardContainer from "./PLPFnBCardContainer";
-import { ComponentCatalogItem } from "@/state/useVendorData";
 import { StoreItem } from "@/components/store/fetch-store-items-type";
+import { useVendorData, ComponentCatalogItem } from "@/state/useVendorData"; // ✅ Import useVendorData
 
 interface PLPFnBProps {
   catalog: ComponentCatalogItem[];
@@ -28,66 +28,62 @@ const PLPFnB: FC<PLPFnBProps> = ({
 }) => {
   const [selectedCategory] = useState("All");
 
-  // 🧠 Convert ComponentCatalogItem → StoreItem (for RN UI)
-  const mappedItems: StoreItem[] = useMemo(() => {
-    if (!catalog) return [];
+  // ✅ Use useVendorData instead of useStoreDetails to get custom_menus
+  const { data: vendorData } = useVendorData(providerId);
 
-    return catalog.map((item) => ({
-      symbol: item.descriptor?.symbol || item.id || "",
-      store_status: "open",
-      rating: 0,
-      customizable: item.customizable ?? false,
-      type: "food",
-      unitized: {
-        measure: { value: 1, unit: "plate" },
-      },
-      location_id: item.location_id || "",
-      category_id: item.category_id || "",
-      price: {
-        value: item.price?.value || 0,
-        maximum_value: item.price?.maximum_value || 0,
-        offerPercent: item.price?.offer_percent || 0,
-      },
-      slug: item.id || item.catalog_id || "",
-      tts_in_h: 0.5,
-      store_id: item.store_id || providerId,
-      images: item.descriptor?.images || [],
-      quantity: item.quantity?.available?.count || 0,
-      custom_menu_id: item.customizations || [],
-      diet_type: item.veg
-        ? "Veg"
-        : item.non_veg
-        ? "Non-Veg"
-        : undefined,
-      recommended: false,
-      provider_status_timestamp: new Date().toISOString(),
-      catalog_id: item.catalog_id || "",
-      store_status_timestamp: new Date().toISOString(),
-      provider_status: "active",
-      vendor_id: providerId,
-      domain: "fnb",
-      name: item.descriptor?.name || "Unnamed Item",
-      provider_id: providerId,
-      short_desc: item.descriptor?.short_desc || "",
-      // ✅ Use category title from backend if present
-      category: item.category || item.category_name || "Others",
-      status: "active",
-      instock: true,
-    }));
-  }, [catalog, providerId]);
+  // ✅ Now custom_menus will be available
+  const menus = vendorData?.custom_menus || [];
+  console.log("🧠 Final menus passed to PLPFnBCardContainer:", menus.length);
+
+  const mappedItems: StoreItem[] = useMemo(() => {
+    if (!catalog?.length) return [];
+
+    return catalog.map((item) => {
+      // Find matching menu by name
+      const matchedMenu = vendorData?.custom_menus?.find((m) =>
+        item.descriptor?.name?.toLowerCase().includes(m.name.toLowerCase())
+      );
+
+      // Assign custom_menu_id array
+      const customMenuIds = matchedMenu ? [matchedMenu.custom_menu_id] : [];
+
+      return {
+        symbol: item.descriptor?.symbol || "",
+        store_status: "open",
+        rating: 0,
+        customizable: false,
+        custom_menu_id: customMenuIds,
+        price: {
+          value: item.price?.value ?? 0,
+          maximum_value: item.price?.maximum_value ?? 0,
+          offerPercent: item.price?.offer_percent ?? 0,
+        },
+        name: item.descriptor?.name || "Unnamed Item",
+        short_desc: item.descriptor?.short_desc || "",
+        images: item.descriptor?.images || [],
+        category_id: item.category_id || "",
+        diet_type: item.veg ? "veg" : item.non_veg ? "non_veg" : undefined,
+        store_id: providerId,
+        catalog_id: item.catalog_id || "",
+        slug: item.id || item.catalog_id || "",
+        instock: true,
+        status: "active",
+        vendor_id: providerId,
+        domain: "fnb",
+      };
+    });
+  }, [catalog, providerId, vendorData?.custom_menus]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* ✅ Grouped Card Container */}
       <PLPFnBCardContainer
         items={mappedItems}
+        menus={menus}
         selectedCategory={selectedCategory}
         searchString={searchString}
         storeId={providerId}
         storeName={storeName}
       />
-
-      {/* ✅ Footer */}
       <PLPFooter
         vendorName={storeName}
         outletLocation={street}

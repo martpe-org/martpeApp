@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import PLPFnBCard from "./PLPFnBCard";
 import { StoreItem } from "@/components/store/fetch-store-items-type";
+import { CustomMenu } from "@/components/store/fetch-store-details-type";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -19,6 +20,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 interface PLPFnBCardContainerProps {
   items?: StoreItem[];
+  menus: CustomMenu[]; // obtained from store details
   selectedCategory?: string;
   searchString: string;
   storeId: string;
@@ -28,67 +30,123 @@ interface PLPFnBCardContainerProps {
 
 const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   items = [],
+  menus = [],
   selectedCategory,
   searchString,
   vegFilter = "All",
 }) => {
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
-  // 🥦 Step 1: Filter Veg/Non-Veg
+  // Filter Veg / Non-Veg
   const vegFiltered = useMemo(() => {
     if (vegFilter === "Veg") return items.filter((i) => i.diet_type?.toLowerCase() === "veg");
-    if (vegFilter === "Non-Veg") return items.filter((i) => i.diet_type?.toLowerCase() === "non-veg");
+    if (vegFilter === "Non-Veg") return items.filter((i) => i.diet_type?.toLowerCase() === "non_veg");
     return items;
   }, [items, vegFilter]);
 
-  // 🎯 Step 2: Filter selected category
-  const categoryFiltered = useMemo(() => {
-    if (!selectedCategory || selectedCategory === "All") return vegFiltered;
-    return vegFiltered.filter((i) => i.category_id === selectedCategory);
-  }, [vegFiltered, selectedCategory]);
+  // Search filter
+  const displayed = useMemo(
+    () =>
+      vegFiltered.filter((i) =>
+        searchString ? i.name.toLowerCase().includes(searchString.toLowerCase()) : true
+      ),
+    [vegFiltered, searchString]
+  );
 
-  // 🔍 Step 3: Search filter
-  const displayed = useMemo(() => {
-    return categoryFiltered.filter((i) =>
-      searchString
-        ? i.name.toLowerCase().includes(searchString.toLowerCase())
-        : true
+  if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
+
+console.log("🧩 Menu Mapping Debug", {
+  menus: menus.map(m => m.name),
+  sampleItem: displayed[0]?.name,
+  sampleItemMenuIds: displayed[0]?.custom_menu_id
+});
+
+
+  // --- MENU GROUPED VIEW ---
+  if (menus.length > 0) {
+    const visibleMenus = menus.filter((menu) =>
+      displayed.some((item) =>
+        Array.isArray(item.custom_menu_id)
+          ? item.custom_menu_id.includes(menu.custom_menu_id)
+          : item.custom_menu_id === menu.custom_menu_id
+      )
     );
-  }, [categoryFiltered, searchString]);
 
-  // 🗂️ Step 4: Group by category_id (not category name)
-  const grouped = useMemo(() => {
-    const groups: Record<string, StoreItem[]> = {};
-    displayed.forEach((item) => {
-      const catKey = item.category_id || "uncategorized";
-      if (!groups[catKey]) groups[catKey] = [];
-      groups[catKey].push(item);
-    });
-    return groups;
-  }, [displayed]);
+    return (
+      <ScrollView style={styles.scroll}>
+        
+        {visibleMenus.map((menu) => {
+          const filtered = displayed.filter((i) =>
+            Array.isArray(i.custom_menu_id)
+              ? i.custom_menu_id.includes(menu.custom_menu_id)
+              : i.custom_menu_id === menu.custom_menu_id
+          );
 
-  const toggleCategory = (cat: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [cat]: !prev[cat],
-    }));
-  };
+          const expanded = expandedMenus[menu.custom_menu_id] ?? true;
+console.log("🧠 Menus at render:", menus);
 
-  if (displayed.length === 0) {
-    return <NoItems category={selectedCategory || "this category"} />;
+          return (
+            <View key={menu.custom_menu_id} style={styles.menuSection}>
+              {/* HEADER */}
+              <TouchableOpacity
+                style={[styles.menuHeader, expanded && styles.menuHeaderExpanded]}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setExpandedMenus((prev) => ({
+                    ...prev,
+                    [menu.custom_menu_id]: !expanded,
+                  }));
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.menuTitle}>
+                  {menu.name?.replace(/([^\w\s])/g, " $1 ")}
+                </Text>
+                <Text style={styles.arrow}>{expanded ? "▲" : "▼"}</Text>
+              </TouchableOpacity>
+
+              {/* CONTENT */}
+              {expanded && (
+                <View style={styles.menuContent}>
+                  {filtered.map((item, idx) => (
+                    <PLPFnBCard
+                      key={item.slug || idx}
+                      id={item.symbol}
+                      productId={item.symbol}
+                      itemName={item.name}
+                      cost={item.price?.value || 0}
+                      providerId={item.store_id}
+                      slug={item.slug}
+                      catalogId={item.catalog_id}
+                      weight={item.unitized?.measure?.value}
+                      unit={item.unitized?.measure?.unit}
+                      originalPrice={item.price?.maximum_value}
+                      discount={item.price?.offerPercent}
+                      symbol={item.symbol}
+                      image={item.images?.[0]}
+                      item={item}
+                      customizable={item.customizable}
+                      directlyLinkedCustomGroupIds={item.custom_menu_id || []}
+                      veg={item.diet_type?.toLowerCase() === "veg"}
+                      non_veg={item.diet_type?.toLowerCase() === "non_veg"}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+    );
   }
 
-  const categoryKeys = Object.keys(grouped);
-
-  // 🧩 If only one category exists, render flat list (no wrapper)
-  if (categoryKeys.length === 1) {
-    const onlyCategoryItems = grouped[categoryKeys[0]];
-    return (
-      <View style={styles.itemsWrapper}>
-        {onlyCategoryItems.map((item, idx) => (
+  // --- FALLBACK (NO MENUS) ---
+  return (
+    <ScrollView style={styles.scroll}>
+      <View style={styles.menuContent}>
+        {displayed.map((item, idx) => (
           <PLPFnBCard
-            key={item.symbol || idx}
+            key={item.slug || idx}
             id={item.symbol}
             productId={item.symbol}
             itemName={item.name}
@@ -106,69 +164,14 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
             customizable={item.customizable}
             directlyLinkedCustomGroupIds={item.custom_menu_id || []}
             veg={item.diet_type?.toLowerCase() === "veg"}
-            non_veg={item.diet_type?.toLowerCase() === "non-veg"}
+            non_veg={item.diet_type?.toLowerCase() === "non_veg"}
           />
         ))}
       </View>
-    );
-  }
-
-  // ✅ Otherwise render grouped sections
-  return (
-    <ScrollView style={styles.scroll}>
-      {Object.entries(grouped).map(([categoryId, catItems]) => {
-        const expanded = expandedCategories[categoryId] ?? true;
-        const categoryName =
-          catItems[0]?.category ||
-          catItems[0]?.category_name ||
-          "Category";
-
-        return (
-          <View key={categoryId} style={styles.categoryWrapper}>
-            <TouchableOpacity
-              style={styles.header}
-              onPress={() => toggleCategory(categoryId)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.headerTitle}>{categoryName}</Text>
-              <Text style={styles.arrow}>{expanded ? "▲" : "▼"}</Text>
-            </TouchableOpacity>
-
-            {expanded && (
-              <View style={styles.itemsWrapper}>
-                {catItems.map((item, idx) => (
-                  <PLPFnBCard
-                    key={item.symbol || idx}
-                    id={item.symbol}
-                    productId={item.symbol}
-                    itemName={item.name}
-                    cost={item.price?.value || 0}
-                    providerId={item.store_id}
-                    slug={item.slug}
-                    catalogId={item.catalog_id}
-                    weight={item.unitized?.measure?.value}
-                    unit={item.unitized?.measure?.unit}
-                    originalPrice={item.price?.maximum_value}
-                    discount={item.price?.offerPercent}
-                    symbol={item.symbol}
-                    image={item.images?.[0]}
-                    item={item}
-                    customizable={item.customizable}
-                    directlyLinkedCustomGroupIds={item.custom_menu_id || []}
-                    veg={item.diet_type?.toLowerCase() === "veg"}
-                    non_veg={item.diet_type?.toLowerCase() === "non-veg"}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-        );
-      })}
     </ScrollView>
   );
 };
 
-// 🕳️ Empty State
 const NoItems: React.FC<{ category: string }> = ({ category }) => {
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
@@ -178,7 +181,7 @@ const NoItems: React.FC<{ category: string }> = ({ category }) => {
       Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 4, tension: 100, useNativeDriver: true }),
     ]).start();
-  });
+  }, [fade, scale]);
 
   return (
     <Animated.View style={[styles.empty, { opacity: fade, transform: [{ scale }] }]}>
@@ -193,17 +196,45 @@ const NoItems: React.FC<{ category: string }> = ({ category }) => {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: "#fff" },
-  categoryWrapper: { marginBottom: 10 },
-  header: {
+
+  // Wrapper for each menu
+  menuSection: {
+    marginBottom: 16,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+
+  // Header style (menu title)
+  menuHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#fafafa",
+    paddingVertical: 12,
+    backgroundColor: "#fef2f2",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  headerTitle: { fontWeight: "600", fontSize: 16 },
-  arrow: { fontSize: 14 },
-  itemsWrapper: { paddingHorizontal: 8 },
+  menuHeaderExpanded: {
+    backgroundColor: "#fde8e8",
+  },
+  menuTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#d12a2a",
+  },
+  arrow: { fontSize: 14, color: "#999" },
+
+  // Inner items wrapper
+  menuContent: {
+    paddingHorizontal: 8,
+    backgroundColor: "#fff",
+  },
+
+  // Empty state
   empty: {
     alignItems: "center",
     justifyContent: "center",
@@ -211,7 +242,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emoji: { fontSize: 40, marginBottom: 10 },
-  emptyTitle: { fontSize: 18, fontWeight: "700" },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: "#111" },
   emptySub: { fontSize: 14, color: "#666" },
 });
 

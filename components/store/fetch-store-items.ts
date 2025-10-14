@@ -2,10 +2,7 @@ import { FetchStoreItemsResponseType } from './fetch-store-items-type';
 
 export const fetchStoreItems = async (slug: string) => {
   try {
-    console.log(
-      '-------------->',
-      `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}/products?size=100`
-    );
+
     const res = await fetch(
       `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}/products?size=100`,
       {

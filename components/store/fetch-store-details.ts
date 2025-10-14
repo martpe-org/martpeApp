@@ -1,18 +1,14 @@
-import { cache } from 'react';
-import { FetchStoreDetailsResponseType } from './fetch-store-details-type';
+import { FetchStoreDetailsResponseType } from "./fetch-store-details-type";
 
-export const fetchStoreDetails = cache(async (slug: string) => {
+export const fetchStoreDetails = async (slug: string) => {
   try {
-    console.log(
-      '-------------->',
-      `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}`
-    );
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}`, {
-      method: 'GET'
-    });
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/stores/${slug}`;
+    console.log('Fetching store details from:', url);
+
+    const res = await fetch(url, { method: 'GET' });
 
     if (!res.ok) {
-      console.log('fetch store details failed');
+      console.log('Fetch failed with status:', res.status, await res.text());
       throw new Error();
     }
 
@@ -21,4 +17,4 @@ export const fetchStoreDetails = cache(async (slug: string) => {
     console.log('Fetch store details error ', error);
     return null;
   }
-});
+};

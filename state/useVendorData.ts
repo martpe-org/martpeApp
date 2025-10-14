@@ -1,11 +1,17 @@
 import { fetchStoreDetails } from "@/components/store/fetch-store-details";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 import { fetchStoreItems } from "@/components/store/fetch-store-items";
-import { FetchStoreItemsResponseType, StoreItem } from "@/components/store/fetch-store-items-type";
+import {
+  FetchStoreItemsResponseType,
+  StoreItem,
+} from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
 
-// Types
-interface ComponentCatalogItem {
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                   */
+/* -------------------------------------------------------------------------- */
+
+export interface ComponentCatalogItem {
   bpp_id: string;
   bpp_uri: string;
   store_id: string;
@@ -34,9 +40,10 @@ interface ComponentCatalogItem {
   };
   provider_id: string;
   veg: boolean;
+  
 }
 
-interface VendorData {
+export interface VendorData {
   _id: string;
   address?: {
     area_code?: string;
@@ -59,9 +66,22 @@ interface VendorData {
   storeSections: string[];
   panIndia: boolean;
   hyperLocal: boolean;
+  /** ✅ Added: custom menus for F&B and others */
+  custom_menus?: {
+    name: string;
+    short_desc?: string;
+    long_desc?: string;
+    images?: any[];
+    type: string;
+    display?: { rank?: string };
+    custom_menu_id: string;
+  }[];
 }
 
-// Convert backend data to component format - OPTIMIZED
+/* -------------------------------------------------------------------------- */
+/*                            DATA CONVERSION LOGIC                           */
+/* -------------------------------------------------------------------------- */
+
 const convertToVendorData = (
   storeDetails: FetchStoreDetailsResponseType,
   storeItems: FetchStoreItemsResponseType
@@ -69,46 +89,52 @@ const convertToVendorData = (
   try {
     if (!storeDetails || !storeItems?.results) return null;
 
-    // Use a more efficient mapping approach
-    const catalogItems: ComponentCatalogItem[] = storeItems.results.map((item: StoreItem) => {
-      const isNonVeg = item.diet_type === "non_veg";
-      const priceValue = item.price?.value ?? 0;
-      const maxPriceValue = item.price?.maximum_value ?? priceValue;
-      const quantity = item.quantity ?? 0;
+    console.log("🧠 Raw storeDetails.custom_menus:", storeDetails.custom_menus);
 
-      return {
-        bpp_id: storeDetails._id,
-        bpp_uri: "",
-        catalog_id: item.catalog_id || "",
-        category_id: item.category_id || "",
-        descriptor: {
-          images: item.images || [],
-          long_desc: item.short_desc || "",
-          name: item.name || "",
-          short_desc: item.short_desc || "",
-          symbol: item.symbol || "",
-        },
-        id: item.slug ||  "",
-        location_id: item.location_id || "",
-        non_veg: isNonVeg,
-        price: {
-          maximum_value: maxPriceValue,
-          offer_percent: item.price?.offerPercent ?? null,
-          offer_value: null,
-          value: priceValue,
-        },
-        quantity: {
-          available: { count: quantity },
-          maximum: { count: quantity },
-        },
-        provider_id: storeDetails._id,
-        veg: !isNonVeg,
-        store_id: storeDetails._id,
-        storeId: storeDetails._id,
-      };
-    });
+    const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
+      (item: StoreItem) => {
+        const isNonVeg = item.diet_type === "non_veg";
+        const priceValue = item.price?.value ?? 0;
+        const maxPriceValue = item.price?.maximum_value ?? priceValue;
+        const quantityCount =
+          typeof item.quantity === "number"
+            ? item.quantity
+            : item.quantity ?? 0;
 
-    return {
+        return {
+          bpp_id: storeDetails._id,
+          bpp_uri: "",
+          catalog_id: item.catalog_id || "",
+          category_id: item.category_id || "",
+          descriptor: {
+            images: item.images || [],
+            long_desc: item.short_desc || "",
+            name: item.name || "",
+            short_desc: item.short_desc || "",
+            symbol: item.symbol || "",
+          },
+          id: item.slug || "",
+          location_id: item.location_id || "",
+          non_veg: isNonVeg,
+          price: {
+            maximum_value: maxPriceValue,
+            offer_percent: item.price?.offerPercent ?? null,
+            offer_value: null,
+            value: priceValue,
+          },
+          quantity: {
+            available: { count: quantityCount },
+            maximum: { count: quantityCount },
+          },
+          provider_id: storeDetails._id,
+          veg: !isNonVeg,
+          store_id: storeDetails._id,
+          storeId: storeDetails._id,
+        };
+      }
+    );
+
+    const converted: VendorData = {
       _id: storeDetails._id,
       address: {
         area_code: storeDetails.address?.area_code || "",
@@ -131,103 +157,108 @@ const convertToVendorData = (
       storeSections: storeDetails.store_categories || [],
       panIndia: !!storeDetails.isPanindia,
       hyperLocal: !!storeDetails.isHyperLocalOnly,
+      custom_menus: storeDetails.custom_menus || [], // ✅ critical fix
     };
+
+    console.log(
+      `✅ Converted vendor data for ${storeDetails.name}:`,
+      converted.custom_menus?.length || 0,
+      "menus"
+    );
+
+    return converted;
   } catch (error) {
-    console.error("Error converting vendor data:", error);
+    console.error("❌ Error converting vendor data:", error);
     return null;
   }
 };
 
-// Query Keys
-const QUERY_KEYS = {
+/* -------------------------------------------------------------------------- */
+/*                                 QUERY KEYS                                 */
+/* -------------------------------------------------------------------------- */
+
+export const QUERY_KEYS = {
   storeDetails: (vendorSlug: string) => ["storeDetails", vendorSlug],
   storeItems: (vendorSlug: string) => ["storeItems", vendorSlug],
   vendorData: (vendorSlug: string) => ["vendorData", vendorSlug],
 } as const;
 
-// Error message helper
-const getErrorMessage = (error: Error | null): string => {
+/* -------------------------------------------------------------------------- */
+/*                              ERROR HANDLING                                */
+/* -------------------------------------------------------------------------- */
+
+export const getErrorMessage = (error: Error | null): string => {
   if (!error) return "An unexpected error occurred";
-  
-  if (error.message.includes("Store ID is required")) {
+  if (error.message.includes("Store ID is required"))
     return "Store ID is required";
-  }
-  if (error.message.includes("Store not found")) {
+  if (error.message.includes("Store not found"))
     return "Store not found or unavailable";
-  }
-  if (error.message.includes("Failed to process")) {
+  if (error.message.includes("Failed to process"))
     return "Failed to process store data";
-  }
-  
   return "Failed to load store details. Please check your connection.";
 };
 
-// OPTIMIZED custom hook for fetching vendor data
-export const useVendorData = (vendorSlug: string) => {
-  return useQuery({
+/* -------------------------------------------------------------------------- */
+/*                                HOOKS                                       */
+/* -------------------------------------------------------------------------- */
+
+// 🧩 Fetch full vendor (store) data including items
+export const useVendorData = (vendorSlug: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.vendorData(vendorSlug),
     queryFn: async (): Promise<VendorData | null> => {
-      if (!vendorSlug) {
-        throw new Error("Store ID is required");
-      }
+      if (!vendorSlug) throw new Error("Store ID is required");
 
-      // Parallel fetch for better performance
       const [storeDetails, storeItems] = await Promise.all([
         fetchStoreDetails(vendorSlug),
         fetchStoreItems(vendorSlug),
       ]);
 
-      if (!storeDetails || !storeItems) {
+      if (!storeDetails || !storeItems)
         throw new Error("Store not found or unavailable");
-      }
 
-      const convertedData = convertToVendorData(storeDetails, storeItems);
-      if (!convertedData) {
-        throw new Error("Failed to process store data");
-      }
+      const converted = convertToVendorData(storeDetails, storeItems);
+      if (!converted) throw new Error("Failed to process store data");
 
-      console.log(`Store loaded: ${storeDetails.name} (${convertedData.catalogs.length} items)`);
-      return convertedData;
+      console.log(
+        `🏪 Store loaded: ${storeDetails.name} (${converted.catalogs.length} items)`
+      );
+      return converted;
     },
     enabled: !!vendorSlug,
-    // AGGRESSIVE CACHING FOR STORE DATA
-    staleTime: 1000 * 60 * 15, // 15 minutes (stores don't change frequently)
-    gcTime: 1000 * 60 * 60, // 1 hour in cache
-    refetchOnWindowFocus: false, // Don't refetch when returning to app
-    refetchOnMount: false, // Don't refetch on mount if data exists
-    refetchOnReconnect: true, // Only refetch on network reconnect
-    retry: 2, // Reduced retry attempts
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Faster retry
-    // Add network mode for offline support
-    networkMode: 'online',
+    staleTime: 1000 * 60 * 15, // 15 min cache
+    gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: true,
+    retry: 2,
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, 10000),
+    networkMode: "online",
   });
-};
 
-// SEPARATE HOOK FOR STORE DETAILS ONLY (lighter payload)
-export const useStoreDetails = (vendorSlug: string) => {
-  return useQuery({
+// 🧩 Lighter fetch: store details only
+export const useStoreDetails = (vendorSlug: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.storeDetails(vendorSlug),
     queryFn: () => fetchStoreDetails(vendorSlug),
     enabled: !!vendorSlug,
-    staleTime: 1000 * 60 * 30, // 30 minutes for basic store info
-    gcTime: 1000 * 60 * 60 * 2, // 2 hours in cache
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60 * 2,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-};
 
-// SEPARATE HOOK FOR STORE ITEMS ONLY
-export const useStoreItems = (vendorSlug: string) => {
-  return useQuery({
+// 🧩 Fetch only store items
+export const useStoreItems = (vendorSlug: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.storeItems(vendorSlug),
     queryFn: () => fetchStoreItems(vendorSlug),
     enabled: !!vendorSlug,
-    staleTime: 1000 * 60 * 10, // 10 minutes for items (may change more frequently)
-    gcTime: 1000 * 60 * 30, // 30 minutes in cache
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-};
 
-export { QUERY_KEYS, getErrorMessage, convertToVendorData };
-export type { VendorData, ComponentCatalogItem };
+export { convertToVendorData };

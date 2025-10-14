@@ -34,7 +34,7 @@ export interface StoreItem {
   provider_id: string;
   short_desc?: string;
   category?: string;
-  category_name?:string;
+  category_name?: string;
   status: string;
   instock: boolean;
 }

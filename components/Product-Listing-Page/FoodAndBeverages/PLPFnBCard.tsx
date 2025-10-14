@@ -140,15 +140,18 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             </Text>
           </View>
 
-          <View style={cardStyles.priceRow}>
-            <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
-            {originalPrice && originalPrice > cost && (
-              <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed()}</Text>
-            )}
-            {discount && discount > 0 && (
-              <Text style={cardStyles.discount}>{discount}% OFF</Text>
-            )}
-          </View>
+<View style={cardStyles.priceRow}>
+  <Text style={cardStyles.price}>
+    {typeof cost === "number" ? `₹${cost.toFixed(0)}` : "—"}
+  </Text>
+  {typeof originalPrice === "number" && typeof cost === "number" && originalPrice > cost && (
+    <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed(0)}</Text>
+  )}
+  {typeof discount === "number" && discount > 0 && (
+    <Text style={cardStyles.discount}>{discount}% OFF</Text>
+  )}
+</View>
+
 
           {!!descriptionText && (
             <Text style={cardStyles.description} numberOfLines={2}>
