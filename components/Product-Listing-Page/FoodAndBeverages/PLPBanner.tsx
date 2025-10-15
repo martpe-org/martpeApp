@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import PLPBannerCard from "./PLPBannerCard";
 import { getDistance } from "geolib";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
+import { fetchStoreDetails } from "@/components/store/fetch-store-details";
 
 interface Point {
   coordinates: number[];
@@ -16,6 +18,7 @@ interface GeoLocation {
   point?: Point;
 }
 
+// PLPBanner.tsx - Remove store from props since we fetch internally
 interface PLPBannerProps {
   address: string;
   descriptor: {
@@ -29,6 +32,7 @@ interface PLPBannerProps {
   searchbox?: boolean;
   userAddress: string;
   vendorId: string | string[];
+  // Remove store from here since we fetch it internally
 }
 
 const PLPBanner: React.FC<PLPBannerProps> = ({
@@ -60,6 +64,20 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
     console.warn("⚠️ Could not calculate distance:", e);
     distance = 0;
   }
+  // Add this inside PLPBanner component
+const [storeData, setStoreData] = useState<FetchStoreDetailsResponseType | null>(null);
+
+useEffect(() => {
+  const loadStoreData = async () => {
+    if (vendorId) {
+      const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
+      const data = await fetchStoreDetails(vendorIdString);
+      setStoreData(data);
+    }
+  };
+  
+  loadStoreData();
+}, [vendorId]);
 
   const formattedDistance = Number(distance.toFixed(1));
 
@@ -83,18 +101,18 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
         <Ionicons name="arrow-back-outline" size={18} color="black" />
       </TouchableOpacity>
 
-      {/* plp banner */}
-      <PLPBannerCard
-        searchbox={searchbox}
-        title={descriptor?.name || "Store Name"}
-        description={storeSections}
-        address={address}
-        deliveryTime={deliveryTime}
-        distance={formattedDistance}
-        delivery="Free Delivery"
-        userAddress={userAddress}
-        vendorId={vendorId}
-      />
+<PLPBannerCard
+  searchbox={searchbox}
+  title={descriptor?.name || "Store Name"}
+  description={storeSections}
+  address={address}
+  deliveryTime={deliveryTime}
+  distance={formattedDistance}
+  delivery="Free Delivery"
+  userAddress={userAddress}
+  vendorId={vendorId}
+  store={storeData} // 🔹 Pass the fetched store data
+/>
     </View>
   );
 };
@@ -106,12 +124,14 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     position: "absolute",
-    top: -20,
-    left: 0,
-    right: 0,
+    top: -10,
+    left: 10,
+    right: 10,
     bottom: 0,
     resizeMode: "cover",
-    height: 200,
+    height: 100,
+    borderRadius:40
+
   },
   backButton: {
     position: "absolute",

@@ -15,7 +15,6 @@ import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodD
 import Loader from "../../../../../components/common/Loader";
 import { useVendorData } from "@/state/useVendorData";
 import { computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
-import { getErrorMessage } from "@/utility/CheckoutUtils";
 import {styles} from "./PlpStyles";
 import useDeliveryStore from "@/components/address/deliveryAddressStore";
 
@@ -65,7 +64,6 @@ const PLP: React.FC = () => {
     data: vendorData,
     isLoading,
     isError,
-    error,
     refetch,
     isRefetching,
   } = useVendorData(vendorSlug);
@@ -119,9 +117,6 @@ const PLP: React.FC = () => {
   const renderError = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          {/* {getErrorMessage(error)} */}
-        </Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Tap to retry</Text>
         </TouchableOpacity>

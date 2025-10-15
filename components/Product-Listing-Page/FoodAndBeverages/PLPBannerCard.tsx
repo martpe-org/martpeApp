@@ -1,17 +1,16 @@
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
+import React, { useEffect } from "react";
+import { StyleSheet, Text, View, SafeAreaView } from "react-native";
 import {
   MaterialCommunityIcons,
   MaterialIcons,
-  Ionicons,
 } from "@expo/vector-icons";
 import LikeButton from "@/components/common/likeButton";
 import ShareButton from "@/components/common/Share";
+import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 
 interface PLPBannerCardProps {
   title: string;
-  description: string;
+  description?: string;
   address: string;
   deliveryTime: string;
   distance: number;
@@ -19,6 +18,7 @@ interface PLPBannerCardProps {
   searchbox?: boolean;
   userAddress: string;
   vendorId: string | string[];
+  store?: FetchStoreDetailsResponseType;
 }
 
 const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
@@ -31,93 +31,74 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
   delivery,
   searchbox,
   userAddress,
+  store,
 }) => {
-  const safeDescription = description ?? "";
 
-  // Convert vendorId to string if it's an array (consistent with ProductHeader)
+  const getDescriptionText = () => {
+    if (store?.store_sub_categories?.length) {
+      const categories = store.store_sub_categories.slice(0, 3).join(", ");
+      return categories.charAt(0).toUpperCase() + categories.slice(1);
+    }
+
+    // Final fallback
+    return "Discover amazing products and great service";
+  };
+
+  const descriptionText = getDescriptionText();
+  const displayDescription =
+    descriptionText.length > 40
+      ? descriptionText.slice(0, 40) + "..."
+      : descriptionText;
   const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
 
   return (
-    <View
+    <SafeAreaView
       style={{
         ...styles.PLPBannerCardContainer,
-        marginTop: searchbox ? 10 : 140,
+        marginTop: searchbox ? 10 : 50,
         height: searchbox ? 100 : undefined,
       }}
     >
-      <Text style={styles.PLPBannerCardTitle}>{title}</Text>
-      <Text
-        style={{
-          ...styles.PLPBannerCardDescription,
-          marginBottom: 5,
-        }}
-      >
-        {safeDescription.length > 40
-          ? safeDescription.slice(0, 40) + "..."
-          : safeDescription}
-      </Text>
+      {/* Title + Info Icon */}
+      <View style={{ flexDirection: "row" }}>
+        <Text style={styles.PLPBannerCardTitle}>{title}</Text>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={24}
+          color="#666"
+          style={styles.icon}
+        />
+      </View>
 
- 
-
-      {/* from address */}
-      <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 15 }}>
-        <View
-          style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}
-        >
-          <MaterialIcons name="location-pin" size={14} color="black" />
-        </View>
+      {/* Description - Only show if we have meaningful text */}
+      {descriptionText !== "Discover amazing products and great service" && (
         <Text
           style={{
-            fontSize: 12,
-            marginLeft: 10,
-            lineHeight: 14,
-            color: "#848080",
+            ...styles.PLPBannerCardDescription,
+            marginBottom: 5,
           }}
-          numberOfLines={3}
-          ellipsizeMode="tail"
+        >
+          {displayDescription}
+        </Text>
+      )}
+
+      {/* Address */}
+      <View style={styles.PLPBannerCardContentContainer}>
+        <View style={{ padding: 3, backgroundColor: "#e8e8e8" }} />
+        <Text
+          style={{
+            fontSize: 13,
+            lineHeight: 16,
+            color: "#333",
+          }}
+          numberOfLines={2}
+          ellipsizeMode="clip"
         >
           {address}
         </Text>
       </View>
 
-      {/* to address */}
-      <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 10 }}>
-        <View
-          style={{ padding: 3, backgroundColor: "#e8e8e8", borderRadius: 100 }}
-        >
-          <MaterialIcons name="my-location" size={14} color="black" />
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flex: 1,
-          }}
-        >
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center" }}
-            onPress={() => router.push("/address/SavedAddresses")}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                marginLeft: 10,
-                flex: 1,
-                lineHeight: 14,
-                color: "#848080",
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {userAddress?.length > 0 ? userAddress : "Select location"}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color="black" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* like + share */}
+      {/* Like + Share buttons */}
       <View
         style={{
           flexDirection: "row",
@@ -130,15 +111,15 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
           storeData={{
             id: vendorIdString,
             name: title,
-            descriptor: { short_desc: description },
-            symbol: "https://via.placeholder.com/150", // replace with actual logo if available
+            descriptor: { short_desc: descriptionText },
           }}
           color="#E11D48"
         />
         <View style={{ marginHorizontal: 5 }} />
         <ShareButton storeName={title} type="outlet" />
       </View>
-           {/* horizontal description bar */}
+
+      {/* Delivery Info Bar */}
       <View
         style={{
           ...styles.PLPBannerCardContentContainer,
@@ -174,20 +155,24 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 
         <Text style={{ fontSize: 12, fontWeight: "500" }}>{delivery}</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   PLPBannerCardContainer: {
-    backgroundColor: "#ffff",
+    backgroundColor: "#fff",
     borderRadius: 10,
     marginHorizontal: 15,
-    padding: 20,
   },
   PLPBannerCardTitle: {
     fontSize: 20,
     fontWeight: "900",
+    margin: 4,
+  },
+  icon: {
+    margin: 4,
+    marginTop: 5,
   },
   PLPBannerCardDescription: {
     fontSize: 14,
@@ -196,7 +181,6 @@ const styles = StyleSheet.create({
   horizontalBar: {
     borderBottomWidth: 0.5,
     paddingBottom: 15,
-    borderColor: "#C6C6C6",
   },
   PLPBannerCardContentContainer: {
     flexDirection: "row",
