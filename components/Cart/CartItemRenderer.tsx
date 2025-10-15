@@ -21,22 +21,50 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
 
   if (!item || !item._id) return null;
 
-  const productName = item.product?.name || "Unknown Product";
-  const productImage = item.product?.symbol;
-  const unitPrice = item.unit_price || 0;
-  const isAvailable = item.product?.instock;
+  // -----------------------------
+  // ✅ Safe Data Extraction
+  // -----------------------------
+  const product = item.product;
+  const productName = product?.name || "Unknown Product";
+  const productImage = product?.symbol;
+  const isAvailable = product?.instock ?? true;
   const hasCustomizations = item.selected_customizations?.length > 0;
-  const originalPrice = item.product?.price?.maximum_value || unitPrice;
-  const hasDiscount = originalPrice > unitPrice;
 
+  // ✅ Fallback price logic (handles ₹0 bug)
+  const fallbackUnitPrice =
+    item.unit_price && item.unit_price > 0
+      ? item.unit_price
+      : product?.price?.value && product?.price?.value > 0
+      ? product.price.value
+      : product?.price?.maximum_value && product?.price?.maximum_value > 0
+      ? product.price.maximum_value
+      : 0;
+
+  const fallbackOriginalPrice =
+    product?.price?.maximum_value && product.price.maximum_value > 0
+      ? product.price.maximum_value
+      : fallbackUnitPrice;
+
+  const hasDiscount =
+    fallbackOriginalPrice > fallbackUnitPrice && fallbackUnitPrice > 0;
+
+  // -----------------------------
+  // ✅ Currency Formatter
+  // -----------------------------
   const formatCurrency = (amt: number) => {
+    if (!amt || amt <= 0) return "₹0";
     const formatted = amt.toFixed(2);
-    return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted.replace(/\.?0+$/, "")}`;
+    return `₹${formatted.endsWith(".00")
+      ? formatted.slice(0, -3)
+      : formatted.replace(/\.?0+$/, "")}`;
   };
 
+  // -----------------------------
+  // ✅ Handlers
+  // -----------------------------
   const handleProductPress = () => {
-    if (item.product?.slug || item.slug) {
-      const slug = item.product?.slug || item.slug;
+    const slug = product?.slug || item.slug;
+    if (slug) {
       router.push(`/(tabs)/home/result/productDetails/${slug}`);
     } else {
       toast.show("Product details not available", { type: "warning" });
@@ -46,7 +74,6 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
   const handleQtyChange = (newQty: number) => {
     onQtyChange(item._id, newQty);
   };
-
   const renderCustomizations = () => {
     if (!hasCustomizations) return null;
 
@@ -61,81 +88,57 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
     );
   };
 
+  // -----------------------------
+  // ✅ Price Renderer
+  // -----------------------------
   const renderPrice = () => {
     if (hasDiscount) {
       return (
         <View style={styles.priceRow}>
-          <Text style={styles.originalPrice}>{formatCurrency(originalPrice)}</Text>
-          <Text style={styles.discountedPrice}>{formatCurrency(unitPrice)}</Text>
+          <Text style={styles.originalPrice}>
+            {formatCurrency(fallbackOriginalPrice)}
+          </Text>
+          <Text style={styles.discountedPrice}>
+            {formatCurrency(fallbackUnitPrice)}
+          </Text>
         </View>
       );
     } else {
       return (
-        <Text style={styles.singlePrice}>{formatCurrency(unitPrice)}</Text>
+        <Text style={styles.singlePrice}>
+          {formatCurrency(fallbackUnitPrice)}
+        </Text>
       );
     }
   };
-
-  const getDietTypeFromProductName = (name: string): string | null => {
-    if (!name) return null;
-    
-    const nameLower = name.toLowerCase();
-    
-    // Food items that are typically non-veg
-    const nonVegKeywords = [
-      'chicken', 'mutton', 'fish', 'prawn', 'shrimp', 'egg', 'meat', 
-      'pork', 'beef', 'bacon', 'sausage', 'pepperoni', 'pizza'
-    ];
-    
-    // Food items that are typically veg
-    const vegKeywords = [
-      'paneer', 'vegetable', 'veg', 'dal', 'rice', 'pasta', 
-      'fries', 'salad', 'soup', 'bread'
-    ];
-    
-    // Check for non-veg keywords first
-    if (nonVegKeywords.some(keyword => nameLower.includes(keyword))) {
-      return 'non-veg';
-    }
-    
-    // Check for veg keywords
-    if (vegKeywords.some(keyword => nameLower.includes(keyword))) {
-      return 'veg';
-    }
-    
-    return null;
-  };
-
   const renderDietIcon = () => {
-    // Try to get diet type from multiple sources
-    let dietType = item.product?.diet_type;
-    
-    // If diet type is not available, try to infer from product name
+    let dietType = product?.diet_type;
+
     if (!dietType) {
-      dietType = getDietTypeFromProductName(productName);
-    }
-    
-    // If still no diet type, check if it's a food item or general product
-    if (!dietType) {
-      // For non-food items like watches, laptop stands, etc., don't show diet icon
-      const isLikelyFoodItem = () => {
-        const foodCategories = ['pizza', 'burger', 'food', 'meal', 'snack', 'beverage', 'drink'];
-        const nameLower = productName.toLowerCase();
-        return foodCategories.some(category => nameLower.includes(category));
-      };
-      
-      if (!isLikelyFoodItem()) {
-        return null; // Don't show diet icon for non-food items
-      }
+      const foodCategories = [
+        "pizza",
+        "burger",
+        "food",
+        "meal",
+        "snack",
+        "beverage",
+        "drink",
+      ];
+      const isFood = foodCategories.some((cat) =>
+        productName.toLowerCase().includes(cat)
+      );
+      if (!isFood) return null;
     }
 
     const dietTypeLower = dietType?.toLowerCase();
-    const isVeg = dietTypeLower === "veg" || dietTypeLower === "vegetarian";
-    const isNonVeg = dietTypeLower === "non-veg" || dietTypeLower === "nonveg" || dietTypeLower === "non_veg";
+    const isVeg =
+      dietTypeLower === "veg" || dietTypeLower === "vegetarian";
+    const isNonVeg =
+      dietTypeLower === "non-veg" ||
+      dietTypeLower === "nonveg" ||
+      dietTypeLower === "non_veg";
 
-    if (!isVeg && !isNonVeg) {
-      return null;
-    }
+    if (!isVeg && !isNonVeg) return null;
 
     const borderColor = isVeg ? "#0B8E49" : "#E43B3B";
     const dotColor = isVeg ? "#0B8E49" : "#E43B3B";
@@ -147,6 +150,9 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
     );
   };
 
+  // -----------------------------
+  // ✅ Render
+  // -----------------------------
   return (
     <View style={[styles.item, !isAvailable && styles.unavailableItem]}>
       {/* Product Image */}
@@ -165,10 +171,17 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.image, styles.placeholderImage, !isAvailable && styles.unavailableImage]}>
+          <View
+            style={[
+              styles.image,
+              styles.placeholderImage,
+              !isAvailable && styles.unavailableImage,
+            ]}
+          >
             <Text style={styles.placeholderText}>IMG</Text>
           </View>
         )}
+
         {!isAvailable && (
           <View style={styles.unavailableOverlay}>
             <Text style={styles.unavailableText}>N/A</Text>
@@ -176,7 +189,7 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
         )}
       </TouchableOpacity>
 
-      {/* Product Info and Controls */}
+      {/* Product Info */}
       <View style={styles.productInfo}>
         <View style={styles.headerRow}>
           <View style={styles.nameAndPriceContainer}>
@@ -190,22 +203,21 @@ const CartItemRenderer: React.FC<CartItemRendererProps> = ({
               </Text>
             </View>
 
-            {/* Customizations */}
             {renderCustomizations()}
-
             {renderPrice()}
           </View>
+
           <View style={styles.controlsContainer}>
             <ChangeQtyButton
               cartItemId={item._id}
               qty={item.qty || 1}
               catalogId={catalogId}
-              instock={item.product?.instock}
-              customizable={item.product?.customizable}
+              instock={product?.instock}
+              customizable={product?.customizable}
               productName={productName}
               storeId={item.store_id}
-              customGroupIds={item.product?.directlyLinkedCustomGroupIds ?? []}
-              productPrice={unitPrice}
+              customGroupIds={product?.directlyLinkedCustomGroupIds ?? []}
+              productPrice={fallbackUnitPrice}
               onQtyChange={handleQtyChange}
             />
           </View>

@@ -5,8 +5,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  StyleSheet,
-  Dimensions,
 } from "react-native";
 import ImageComp from "../common/ImageComp";
 import LikeButton from "../common/likeButton";
@@ -14,8 +12,8 @@ import AddToCart from "../common/AddToCart";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ProductSearchResult } from "../search/search-products-type";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { styles } from "./ProductCardStyles";
 
-const { width } = Dimensions.get("window");
 
 // Helper functions
 const getDomainName = (domain: string): string => {
@@ -84,6 +82,15 @@ const ProductCard: FC<{
     address: { street: "Address not available" },
   };
 
+  // Filter out products with invalid price
+  const validProducts = products.filter(
+    (p) => p.price?.value && p.price.value > 0
+  );
+
+  if (validProducts.length === 0) {
+    return null; // Skip rendering stores with no valid products
+  }
+
   return (
     <SafeAreaView style={styles.card}>
       {/* Store Header */}
@@ -126,7 +133,7 @@ const ProductCard: FC<{
       {/* Products Carousel */}
       <View style={styles.productsCarousel}>
         <FlatList
-          data={products}
+          data={validProducts}
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={(product, index) =>
@@ -139,6 +146,7 @@ const ProductCard: FC<{
               : product.slug || product.catalog_id;
             const discountPercent = product.price?.offerPercent || 0;
             const { veg, nonVeg } = getVegStatus(product);
+            const priceValue = product.price?.value;
 
             return (
               <View style={styles.productCard}>
@@ -202,28 +210,36 @@ const ProductCard: FC<{
                   {/* Price + AddToCart Row */}
                   <View style={styles.priceCartRow}>
                     <View style={styles.priceRow}>
-                      <Text style={styles.price}>
-                        ₹{product.price?.value || 0}
-                      </Text>
-                      {product.price?.maximum_value &&
-                        product.price.maximum_value > product.price.value && (
-                          <Text style={styles.originalPrice}>
-                            ₹{product.price.maximum_value}
-                          </Text>
-                        )}
+                      {priceValue && priceValue > 0 ? (
+                        <>
+                          <Text style={styles.price}>₹{priceValue}</Text>
+                          {product.price?.maximum_value &&
+                            product.price.maximum_value > priceValue && (
+                              <Text style={styles.originalPrice}>
+                                ₹{product.price.maximum_value}
+                              </Text>
+                            )}
+                        </>
+                      ) : (
+                        <Text style={styles.unavailablePrice}>
+                          Price unavailable
+                        </Text>
+                      )}
                     </View>
 
-                    <AddToCart
-                      storeId={product.store_id || storeId}
-                      slug={product.slug || product.catalog_id}
-                      catalogId={product.catalog_id}
-                      price={product.price?.value || 0}
-                      productName={product.name || "Product"}
-                      customizable={product.customizable || false}
-                      directlyLinkedCustomGroupIds={
-                        product.directlyLinkedCustomGroupIds || []
-                      }
-                    />
+                    {priceValue && priceValue > 0 ? (
+                      <AddToCart
+                        storeId={product.store_id || storeId}
+                        slug={product.slug || product.catalog_id}
+                        catalogId={product.catalog_id}
+                        price={priceValue}
+                        productName={product.name || "Product"}
+                        customizable={product.customizable || false}
+                        directlyLinkedCustomGroupIds={
+                          product.directlyLinkedCustomGroupIds || []
+                        }
+                      />
+                    ) : null}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -235,148 +251,6 @@ const ProductCard: FC<{
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#fff",
-    marginHorizontal: 8,
-    marginBottom: 16,
-    borderRadius: 12,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  storeInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  storeImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
-  storeDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  storeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  storeMetrics: {
-    fontSize: 12,
-    color: "#666",
-  },
-  visitStoreButton: {
-    backgroundColor: "#f5f5f5",
-    padding: 8,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  productsCarousel: {
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    padding: 8,
-    marginTop: 4,
-  },
-  productsContainer: {
-    paddingLeft: 4,
-  },
-  productCard: {
-    width: width * 0.48,
-    marginRight: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
-    overflow: "hidden",
-  },
-  productImage: {
-    width: "100%",
-    height: 90,
-    backgroundColor: "#f0f0f0",
-  },
-  productInfo: {
-    paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 8,
-    flex: 1,
-    justifyContent: "flex-start",
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  productName: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#333",
-  },
-  priceCartRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 6,
-    marginRight:4
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  price: {
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "green",
-    
-  },
-  originalPrice: {
-    fontSize: 11,
-    color: "#999",
-    textDecorationLine: "line-through",
-    marginLeft: 6,
-        marginRight:4
 
-  },
-  productDiscountBadge: {
-    position: "absolute",
-    top: 8,
-    left: 6,
-    backgroundColor: "#2ecc71",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    zIndex: 1,
-  },
-  productDiscountText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  likeButtonContainer: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 2,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 20,
-    padding: 6,
-    elevation: 3,
-  },
-});
 
 export default ProductCard;

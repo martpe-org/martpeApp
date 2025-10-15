@@ -74,20 +74,16 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
         {/* Info Icon that opens modal */}
         <StoreBannerInfo store={store} />
       </View>
-
       {/* Description - Categories */}
       {descriptionText && (
         <Text style={styles.categoryText}>
           {descriptionText}
         </Text>
       )}
-
       {/* Address */}
       <Text style={styles.addressText}>
         {formattedAddress || address}
       </Text>
-
-      {/* Info Row - Open Now, Distance, Time */}
       {/* Info Row - Open Now, Distance, Time */}
       <View style={styles.infoRow}>
         {/* Store Timings */}
@@ -101,14 +97,12 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
           />
           <Text style={styles.infoText}>{distance} km</Text>
         </View>
-
         {/* Delivery Time with icon */}
         <View style={styles.infoItem}>
           <Entypo name="stopwatch" size={18} color="black" />
           <Text style={styles.infoText}>{deliveryTime}</Text>
         </View>
       </View>
-
       {/* Bottom Action Row */}
       {/* <View style={styles.bottomRow}> */}
       {/* <View style={styles.actionButtons}> */}
@@ -151,16 +145,19 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
-    color: "#666",
+    color: "#df4c4c",
     marginBottom: 2,
-    fontWeight: "500",
+    fontWeight: "bold",
     textTransform: "capitalize",
+    marginTop:-4
+
   },
   addressText: {
     fontSize: 12,
     color: "#666",
     marginBottom: 8,
     lineHeight: 14,
+    marginTop:4
   },
   infoRow: {
     flexDirection: "row",

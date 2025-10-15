@@ -19,7 +19,7 @@ const PLPFnB: FC<PLPFnBProps> = ({
   vendorAddress,
   street,
   fssaiLiscenseNo,
-  providerId,
+  providerId, // This is the original ObjectId
   searchString,
   storeName = "",
 }) => {
@@ -30,11 +30,10 @@ const PLPFnB: FC<PLPFnBProps> = ({
       return id;
     }
     
-    // Create slug from store name + ID
     const nameSlug = name
       .toLowerCase()
-      .replace(/[^\w\s]/gi, '') // Remove special characters
-      .replace(/\s+/g, '-')     // Replace spaces with hyphens
+      .replace(/[^\w\s]/gi, '')
+      .replace(/\s+/g, '-')
       .trim();
     
     return `${nameSlug}-${id}`;
@@ -42,58 +41,50 @@ const PLPFnB: FC<PLPFnBProps> = ({
 
   const fullSlug = getFullSlug(providerId, storeName);
 
-  // ✅ Use useVendorData with the correct full slug
   const { data: vendorData, isLoading, error } = useVendorData(fullSlug);
-  // ✅ Get both catalog and menus from vendorData
   const catalog = vendorData?.catalogs || [];
   const menus = vendorData?.custom_menus || [];
 
+  const mappedItems: StoreItem[] = useMemo(() => {
+    if (!catalog?.length) {
+      return [];
+    }  
+    return catalog.map((item) => {
+      const customMenuIds = item.custom_menu_id || [];
 
-const mappedItems: StoreItem[] = useMemo(() => {
-  if (!catalog?.length) {
-    return [];
-  }  
-  return catalog.map((item) => {
-    // ✅ USE THE ACTUAL MENU RELATIONSHIPS from the API
-    const customMenuIds = item.custom_menu_id || [];
-    
-    if (customMenuIds.length > 0) {
-    } else {
-    }
-
-    return {
-      symbol: item.descriptor?.symbol || `item-${item.id}`,
-      store_status: "open",
-      rating: 0,
-      customizable: false,
-      custom_menu_id: customMenuIds, // Use the actual IDs from API
-      price: {
-        value: item.price?.value ?? 0,
-        maximum_value: item.price?.maximum_value ?? 0,
-        offerPercent: item.price?.offer_percent ?? 0,
-        currency: "INR"
-      },
-      name: item.descriptor?.name || "Unnamed Item",
-      short_desc: item.descriptor?.short_desc || "",
-      images: item.descriptor?.images || [],
-      category_id: item.category_id || "",
-      diet_type: item.veg ? "veg" : item.non_veg ? "non_veg" : "veg",
-      store_id: fullSlug,
-      catalog_id: item.catalog_id || "",
-      slug: item.id || `slug-${item.catalog_id}`,
-      instock: true,
-      status: "active",
-      vendor_id: fullSlug,
-      domain: "fnb",
-      quantity: item.quantity?.available?.count || 0,
-      location_id: item.location_id || "",
-      store_status_timestamp: new Date().toISOString(),
-      provider_status: "active",
-      provider_status_timestamp: new Date().toISOString(),
-      type: "food"
-    };
-  });
-}, [catalog, fullSlug, menus]);
+      return {
+        symbol: item.descriptor?.symbol || `item-${item.id}`,
+        store_status: "open",
+        rating: 0,
+        customizable: item.customizable || false, // ✅ Use actual customizable flag
+        custom_menu_id: customMenuIds,
+        price: {
+          value: item.price?.value ?? 0,
+          maximum_value: item.price?.maximum_value ?? 0,
+          offerPercent: item.price?.offer_percent ?? 0,
+          currency: "INR"
+        },
+        name: item.descriptor?.name || "Unnamed Item",
+        short_desc: item.descriptor?.short_desc || "",
+        images: item.descriptor?.images || [],
+        category_id: item.category_id || "",
+        diet_type: item.veg ? "veg" : item.non_veg ? "non_veg" : "veg",
+        store_id: providerId, // ✅ Use original providerId (ObjectId) for cart operations
+        catalog_id: item.catalog_id || "",
+        slug: item.id || `slug-${item.catalog_id}`,
+        instock: true,
+        status: "active",
+        vendor_id: providerId, // ✅ Use original providerId
+        domain: "fnb",
+        quantity: item.quantity?.available?.count || 0,
+        location_id: item.location_id || "",
+        store_status_timestamp: new Date().toISOString(),
+        provider_status: "active",
+        provider_status_timestamp: new Date().toISOString(),
+        type: "food"
+      };
+    });
+  }, [catalog, providerId]); // ✅ Add providerId to dependencies
 
   // Show loading state
   if (isLoading) {
@@ -140,7 +131,7 @@ const mappedItems: StoreItem[] = useMemo(() => {
         menus={menus}
         selectedCategory={selectedCategory}
         searchString={searchString}
-        storeId={fullSlug}
+        storeId={providerId} // ✅ Pass the original ObjectId, not the slug
         storeName={storeName}
       />
       <PLPFooter

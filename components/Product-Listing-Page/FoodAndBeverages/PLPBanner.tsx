@@ -65,19 +65,19 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
     distance = 0;
   }
   // Add this inside PLPBanner component
-const [storeData, setStoreData] = useState<FetchStoreDetailsResponseType | null>(null);
+  const [storeData, setStoreData] = useState<FetchStoreDetailsResponseType | null>(null);
 
-useEffect(() => {
-  const loadStoreData = async () => {
-    if (vendorId) {
-      const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
-      const data = await fetchStoreDetails(vendorIdString);
-      setStoreData(data);
-    }
-  };
-  
-  loadStoreData();
-}, [vendorId]);
+  useEffect(() => {
+    const loadStoreData = async () => {
+      if (vendorId) {
+        const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
+        const data = await fetchStoreDetails(vendorIdString);
+        setStoreData(data);
+      }
+    };
+
+    loadStoreData();
+  }, [vendorId]);
 
   const formattedDistance = Number(distance.toFixed(1));
 
@@ -101,18 +101,18 @@ useEffect(() => {
         <Ionicons name="arrow-back-outline" size={18} color="black" />
       </TouchableOpacity>
 
-<PLPBannerCard
-  searchbox={searchbox}
-  title={descriptor?.name || "Store Name"}
-  description={storeSections}
-  address={address}
-  deliveryTime={deliveryTime}
-  distance={formattedDistance}
-  delivery="Free Delivery"
-  userAddress={userAddress}
-  vendorId={vendorId}
-  store={storeData} // 🔹 Pass the fetched store data
-/>
+      <PLPBannerCard
+        searchbox={searchbox}
+        title={descriptor?.name || "Store Name"}
+        description={storeSections}
+        address={address}
+        deliveryTime={deliveryTime}
+        distance={formattedDistance}
+        delivery="Free Delivery"
+        userAddress={userAddress}
+        vendorId={vendorId}
+        store={storeData} // 🔹 Pass the fetched store data
+      />
     </View>
   );
 };
@@ -125,12 +125,12 @@ const styles = StyleSheet.create({
   backgroundImage: {
     position: "absolute",
     top: -10,
-    left: 10,
-    right: 10,
+    left: 2,
+    right: 2,
     bottom: 0,
     resizeMode: "cover",
     height: 100,
-    borderRadius:20
+    borderRadius: 20
 
   },
   backButton: {

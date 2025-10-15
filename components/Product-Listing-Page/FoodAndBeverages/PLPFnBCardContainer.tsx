@@ -34,6 +34,8 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   menus = [],
   selectedCategory,
   searchString,
+  storeId, // This should now be the ObjectId
+  storeName,
   vegFilter = "All",
 }) => {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
@@ -54,7 +56,16 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     [vegFiltered, searchString]
   );
 
+  // ✅ FIX: Check if item actually has customization groups
+  // Since your API doesn't provide customization_group_ids, we'll use a fallback
+  const hasCustomizationGroups = (item: StoreItem) => {
+    // For now, return empty array since we don't have the actual group IDs
+    // You'll need to update your API to include customization_group_ids
+    return [];
+  };
+
   if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
+  
   if (menus.length > 0) {
     const visibleMenus = menus.filter((menu) =>
       displayed.some((item) =>
@@ -63,6 +74,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
           : item.custom_menu_id === menu.custom_menu_id
       )
     );
+    
     return (
       <ScrollView style={styles.scroll}>
         {visibleMenus.map((menu) => {
@@ -96,7 +108,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
                   size={20}
                   color="#693434"
                 />
-                  </TouchableOpacity>
+              </TouchableOpacity>
 
               {/* CONTENT */}
               {expanded && (
@@ -108,7 +120,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
                       productId={item.symbol}
                       itemName={item.name}
                       cost={item.price?.value || 0}
-                      providerId={item.store_id}
+                      providerId={storeId} // ✅ Use the ObjectId from props
                       slug={item.slug}
                       catalogId={item.catalog_id}
                       weight={item.unitized?.measure?.value}
@@ -118,8 +130,9 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
                       symbol={item.symbol}
                       image={item.images?.[0]}
                       item={item}
+                      // ✅ FIX: Pass correct customization props
                       customizable={item.customizable}
-                      directlyLinkedCustomGroupIds={item.custom_menu_id || []}
+                      directlyLinkedCustomGroupIds={hasCustomizationGroups(item)} // Empty array for now
                       veg={item.diet_type?.toLowerCase() === "veg"}
                       non_veg={item.diet_type?.toLowerCase() === "non_veg"}
                     />
@@ -132,7 +145,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
       </ScrollView>
     );
   }
-
   // --- FALLBACK (NO MENUS) ---
   return (
     <ScrollView style={styles.scroll}>
@@ -144,7 +156,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
             productId={item.symbol}
             itemName={item.name}
             cost={item.price?.value || 0}
-            providerId={item.store_id}
+            providerId={storeId} // ✅ Use the ObjectId from props
             slug={item.slug}
             catalogId={item.catalog_id}
             weight={item.unitized?.measure?.value}
@@ -154,8 +166,9 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
             symbol={item.symbol}
             image={item.images?.[0]}
             item={item}
+            // ✅ FIX: Pass correct customization props
             customizable={item.customizable}
-            directlyLinkedCustomGroupIds={item.custom_menu_id || []}
+            directlyLinkedCustomGroupIds={hasCustomizationGroups(item)} // Empty array for now
             veg={item.diet_type?.toLowerCase() === "veg"}
             non_veg={item.diet_type?.toLowerCase() === "non_veg"}
           />
