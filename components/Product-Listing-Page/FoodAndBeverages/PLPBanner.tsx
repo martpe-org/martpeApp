@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     resizeMode: "cover",
     height: 100,
-    borderRadius:40
+    borderRadius:20
 
   },
   backButton: {

@@ -93,7 +93,7 @@ export const StoreTimings: React.FC<StoreTimingsProps> = ({ store }) => {
         </Text>
         <MaterialIcons
           name="keyboard-arrow-down"
-          size={20}
+          size={18}
           color={isStoreOpen ? "#16a34a" : "#000"}
         />
       </TouchableOpacity>
@@ -145,9 +145,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    marginRight: 10,
   },
   openButton: {
     backgroundColor: "#f0fdf4",

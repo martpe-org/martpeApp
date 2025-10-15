@@ -1,12 +1,15 @@
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View, SafeAreaView } from "react-native";
+import React from "react";
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity } from "react-native";
 import {
+  Entypo,
   MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
 import LikeButton from "@/components/common/likeButton";
 import ShareButton from "@/components/common/Share";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
+import { StoreTimings } from "./StoreTimings";
+import { StoreBannerInfo } from "./StoreBannerInfo";
 
 interface PLPBannerCardProps {
   title: string;
@@ -39,122 +42,91 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
       const categories = store.store_sub_categories.slice(0, 3).join(", ");
       return categories.charAt(0).toUpperCase() + categories.slice(1);
     }
-
-    // Final fallback
-    return "Discover amazing products and great service";
+    return null;
   };
 
   const descriptionText = getDescriptionText();
-  const displayDescription =
-    descriptionText.length > 40
-      ? descriptionText.slice(0, 40) + "..."
-      : descriptionText;
   const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
+
+  // Format address like the image
+  const formattedAddress = [
+    store?.address?.street,
+    store?.address?.street !== store?.address?.locality
+      ? store?.address?.locality
+      : null,
+    store?.address?.city,
+    store?.address?.state,
+    store?.address?.area_code,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <SafeAreaView
       style={{
         ...styles.PLPBannerCardContainer,
         marginTop: searchbox ? 10 : 50,
-        height: searchbox ? 100 : undefined,
       }}
     >
-      {/* Title + Info Icon */}
-      <View style={{ flexDirection: "row" }}>
+      {/* Store Name Row */}
+      <View style={styles.titleRow}>
         <Text style={styles.PLPBannerCardTitle}>{title}</Text>
-        <MaterialCommunityIcons
-          name="alert-circle-outline"
-          size={24}
-          color="#666"
-          style={styles.icon}
-        />
+        {/* Info Icon that opens modal */}
+        <StoreBannerInfo store={store} />
       </View>
 
-      {/* Description - Only show if we have meaningful text */}
-      {descriptionText !== "Discover amazing products and great service" && (
-        <Text
-          style={{
-            ...styles.PLPBannerCardDescription,
-            marginBottom: 5,
-          }}
-        >
-          {displayDescription}
+      {/* Description - Categories */}
+      {descriptionText && (
+        <Text style={styles.categoryText}>
+          {descriptionText}
         </Text>
       )}
 
       {/* Address */}
-      <View style={styles.PLPBannerCardContentContainer}>
-        <View style={{ padding: 3, backgroundColor: "#e8e8e8" }} />
-        <Text
-          style={{
-            fontSize: 13,
-            lineHeight: 16,
-            color: "#333",
-          }}
-          numberOfLines={2}
-          ellipsizeMode="clip"
-        >
-          {address}
-        </Text>
+      <Text style={styles.addressText}>
+        {formattedAddress || address}
+      </Text>
+
+      {/* Info Row - Open Now, Distance, Time */}
+      {/* Info Row - Open Now, Distance, Time */}
+      <View style={styles.infoRow}>
+        {/* Store Timings */}
+        {store && <StoreTimings store={store} />}
+        {/* Distance with icon */}
+        <View style={styles.infoItem}>
+          <MaterialCommunityIcons
+            name="truck-outline"
+            size={22}
+            color="#836f6f"
+          />
+          <Text style={styles.infoText}>{distance} km</Text>
+        </View>
+
+        {/* Delivery Time with icon */}
+        <View style={styles.infoItem}>
+          <Entypo name="stopwatch" size={18} color="black" />
+          <Text style={styles.infoText}>{deliveryTime}</Text>
+        </View>
       </View>
 
-      {/* Like + Share buttons */}
-      <View
-        style={{
-          flexDirection: "row",
-          width: "100%",
-          justifyContent: "flex-end",
-        }}
-      >
-        <LikeButton
-          vendorId={vendorIdString}
-          storeData={{
-            id: vendorIdString,
-            name: title,
-            descriptor: { short_desc: descriptionText },
-          }}
-          color="#E11D48"
-        />
-        <View style={{ marginHorizontal: 5 }} />
-        <ShareButton storeName={title} type="outlet" />
-      </View>
-
-      {/* Delivery Info Bar */}
-      <View
-        style={{
-          ...styles.PLPBannerCardContentContainer,
-          marginTop: 5,
-          ...styles.horizontalBar,
-        }}
-      >
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <MaterialCommunityIcons
-          name="clock-time-four"
-          size={12}
-          color="black"
-          style={{ marginRight: 3 }}
-        />
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{deliveryTime}</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <MaterialIcons
-          name="delivery-dining"
-          size={16}
-          color="black"
-          style={{ marginRight: 3 }}
-        />
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{distance} km</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{delivery}</Text>
-      </View>
+      {/* Bottom Action Row */}
+      {/* <View style={styles.bottomRow}> */}
+      {/* <View style={styles.actionButtons}> */}
+      {/* <LikeButton
+            vendorId={vendorIdString}
+            storeData={{
+              id: vendorIdString,
+              name: title,
+              descriptor: { short_desc: descriptionText || "" },
+            }}
+            color="#E11D48"
+          /> */}
+      {/* <View style={{ marginHorizontal: 8 }} /> */}
+      {/* <ShareButton storeName={title} type="outlet" /> */}
+      {/* </View> */}
+      {/* Free Delivery - Simple text like in the image */}
+      {/* <Text style={styles.deliveryText}>{delivery}</Text> */}
+      {/* </View> */}
     </SafeAreaView>
   );
 };
@@ -162,30 +134,67 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 const styles = StyleSheet.create({
   PLPBannerCardContainer: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    marginHorizontal: 15,
+    marginHorizontal: 16,
+    padding: 12,
+    paddingBottom: 8,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 2,
   },
   PLPBannerCardTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900",
-    margin: 4,
+    color: "#000",
+    marginTop:2
   },
-  icon: {
-    margin: 4,
-    marginTop: 5,
+  categoryText: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 2,
+    fontWeight: "500",
+    textTransform: "capitalize",
   },
-  PLPBannerCardDescription: {
-    fontSize: 14,
-    color: "#848080",
+  addressText: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+    lineHeight: 14,
   },
-  horizontalBar: {
-    borderBottomWidth: 0.5,
-    paddingBottom: 15,
-  },
-  PLPBannerCardContentContainer: {
+  infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  infoText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#000",
+    marginLeft: 4,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 0.5,
+    borderTopColor: "#e5e5e5",
+    paddingTop: 8,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deliveryText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#000",
   },
 });
 

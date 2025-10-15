@@ -270,7 +270,7 @@ const ProductDetails: FC = () => {
           />
         </View>
 
-=
+        =
         <View style={styles.sectionContainer}>
           <SellerDetails
             sellerName={productData.store?.name || "Unknown Store"}
