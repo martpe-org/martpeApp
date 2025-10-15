@@ -63,6 +63,23 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     }
     return null;
   };
+  /** ✅ Resolve correct product price */
+const resolvedPrice = (() => {
+  if (typeof cost === "number" && cost > 0) return cost;
+  if (typeof item?.price?.value === "number" && item.price.value > 0)
+    return item.price.value;
+  if (typeof item?.price === "number" && item.price > 0) return item.price;
+  return null;
+})();
+
+/** ✅ Resolve original price (for strike-through display) */
+const resolvedOriginalPrice =
+  typeof originalPrice === "number" && originalPrice > 0
+    ? originalPrice
+    : typeof item?.price?.maximum_value === "number"
+    ? item.price.maximum_value
+    : null;
+
 
   const safeStoreId = resolveStoreId();
   const resolvedSlug = slug || id;
@@ -141,16 +158,23 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           </View>
 
 <View style={cardStyles.priceRow}>
-  <Text style={cardStyles.price}>
-    {typeof cost === "number" ? `₹${cost.toFixed(0)}` : "—"}
-  </Text>
-  {typeof originalPrice === "number" && typeof cost === "number" && originalPrice > cost && (
-    <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed(0)}</Text>
-  )}
-  {typeof discount === "number" && discount > 0 && (
-    <Text style={cardStyles.discount}>{discount}% OFF</Text>
+  {resolvedPrice ? (
+    <>
+      <Text style={cardStyles.price}>₹{resolvedPrice.toFixed(0)}</Text>
+      {resolvedOriginalPrice && resolvedOriginalPrice > resolvedPrice && (
+        <Text style={cardStyles.originalPrice}>
+          ₹{resolvedOriginalPrice.toFixed(0)}
+        </Text>
+      )}
+      {typeof discount === "number" && discount > 0 && (
+        <Text style={cardStyles.discount}>{discount}% OFF</Text>
+      )}
+    </>
+  ) : (
+    <Text style={cardStyles.errorText}>Not available</Text>
   )}
 </View>
+
 
 
           {!!descriptionText && (

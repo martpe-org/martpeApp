@@ -120,7 +120,7 @@ const PLP: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>
-          {getErrorMessage(error)}
+          {/* {getErrorMessage(error)} */}
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Tap to retry</Text>

@@ -40,7 +40,8 @@ export interface ComponentCatalogItem {
   };
   provider_id: string;
   veg: boolean;
-  
+  // ✅ ADD THIS: Preserve the menu relationships
+  custom_menu_id?: string[];
 }
 
 export interface VendorData {
@@ -88,9 +89,6 @@ const convertToVendorData = (
 ): VendorData | null => {
   try {
     if (!storeDetails || !storeItems?.results) return null;
-
-    console.log("🧠 Raw storeDetails.custom_menus:", storeDetails.custom_menus);
-
     const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
       (item: StoreItem) => {
         const isNonVeg = item.diet_type === "non_veg";
@@ -101,6 +99,8 @@ const convertToVendorData = (
             ? item.quantity
             : item.quantity ?? 0;
 
+        // ✅ CRITICAL FIX: Preserve the custom_menu_id relationship
+        const customMenuIds = item.custom_menu_id || [];
         return {
           bpp_id: storeDetails._id,
           bpp_uri: "",
@@ -130,6 +130,8 @@ const convertToVendorData = (
           veg: !isNonVeg,
           store_id: storeDetails._id,
           storeId: storeDetails._id,
+          // ✅ PRESERVE the menu relationships
+          custom_menu_id: customMenuIds, // Add this field to ComponentCatalogItem
         };
       }
     );
@@ -159,12 +161,6 @@ const convertToVendorData = (
       hyperLocal: !!storeDetails.isHyperLocalOnly,
       custom_menus: storeDetails.custom_menus || [], // ✅ critical fix
     };
-
-    console.log(
-      `✅ Converted vendor data for ${storeDetails.name}:`,
-      converted.custom_menus?.length || 0,
-      "menus"
-    );
 
     return converted;
   } catch (error) {
@@ -219,10 +215,6 @@ export const useVendorData = (vendorSlug: string) =>
 
       const converted = convertToVendorData(storeDetails, storeItems);
       if (!converted) throw new Error("Failed to process store data");
-
-      console.log(
-        `🏪 Store loaded: ${storeDetails.name} (${converted.catalogs.length} items)`
-      );
       return converted;
     },
     enabled: !!vendorSlug,

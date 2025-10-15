@@ -57,42 +57,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
           : safeDescription}
       </Text>
 
-      {/* horizontal description bar */}
-      <View
-        style={{
-          ...styles.PLPBannerCardContentContainer,
-          marginTop: 5,
-          ...styles.horizontalBar,
-        }}
-      >
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <MaterialCommunityIcons
-          name="clock-time-four"
-          size={12}
-          color="black"
-          style={{ marginRight: 3 }}
-        />
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{deliveryTime}</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <MaterialIcons
-          name="delivery-dining"
-          size={16}
-          color="black"
-          style={{ marginRight: 3 }}
-        />
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{distance} km</Text>
-        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
-          {" \u25CF"}
-        </Text>
-
-        <Text style={{ fontSize: 12, fontWeight: "500" }}>{delivery}</Text>
-      </View>
+ 
 
       {/* from address */}
       <View style={{ ...styles.PLPBannerCardContentContainer, marginTop: 15 }}>
@@ -173,18 +138,52 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
         <View style={{ marginHorizontal: 5 }} />
         <ShareButton storeName={title} type="outlet" />
       </View>
+           {/* horizontal description bar */}
+      <View
+        style={{
+          ...styles.PLPBannerCardContentContainer,
+          marginTop: 5,
+          ...styles.horizontalBar,
+        }}
+      >
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
+
+        <MaterialCommunityIcons
+          name="clock-time-four"
+          size={12}
+          color="black"
+          style={{ marginRight: 3 }}
+        />
+        <Text style={{ fontSize: 12, fontWeight: "500" }}>{deliveryTime}</Text>
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
+
+        <MaterialIcons
+          name="delivery-dining"
+          size={16}
+          color="black"
+          style={{ marginRight: 3 }}
+        />
+        <Text style={{ fontSize: 12, fontWeight: "500" }}>{distance} km</Text>
+        <Text style={{ color: "#848080", fontSize: 12, marginHorizontal: 5 }}>
+          {" \u25CF"}
+        </Text>
+
+        <Text style={{ fontSize: 12, fontWeight: "500" }}>{delivery}</Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   PLPBannerCardContainer: {
-    backgroundColor: "#f5f1f1",
+    backgroundColor: "#ffff",
     borderRadius: 10,
     marginHorizontal: 15,
-    // overflow: "hidden",
     padding: 20,
-    elevation: 3,
   },
   PLPBannerCardTitle: {
     fontSize: 20,

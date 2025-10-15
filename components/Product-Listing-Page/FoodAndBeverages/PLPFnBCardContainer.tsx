@@ -13,6 +13,7 @@ import {
 import PLPFnBCard from "./PLPFnBCard";
 import { StoreItem } from "@/components/store/fetch-store-items-type";
 import { CustomMenu } from "@/components/store/fetch-store-details-type";
+import { Ionicons } from "@expo/vector-icons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -54,15 +55,6 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   );
 
   if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
-
-console.log("🧩 Menu Mapping Debug", {
-  menus: menus.map(m => m.name),
-  sampleItem: displayed[0]?.name,
-  sampleItemMenuIds: displayed[0]?.custom_menu_id
-});
-
-
-  // --- MENU GROUPED VIEW ---
   if (menus.length > 0) {
     const visibleMenus = menus.filter((menu) =>
       displayed.some((item) =>
@@ -71,10 +63,8 @@ console.log("🧩 Menu Mapping Debug", {
           : item.custom_menu_id === menu.custom_menu_id
       )
     );
-
     return (
       <ScrollView style={styles.scroll}>
-        
         {visibleMenus.map((menu) => {
           const filtered = displayed.filter((i) =>
             Array.isArray(i.custom_menu_id)
@@ -83,7 +73,6 @@ console.log("🧩 Menu Mapping Debug", {
           );
 
           const expanded = expandedMenus[menu.custom_menu_id] ?? true;
-console.log("🧠 Menus at render:", menus);
 
           return (
             <View key={menu.custom_menu_id} style={styles.menuSection}>
@@ -102,8 +91,12 @@ console.log("🧠 Menus at render:", menus);
                 <Text style={styles.menuTitle}>
                   {menu.name?.replace(/([^\w\s])/g, " $1 ")}
                 </Text>
-                <Text style={styles.arrow}>{expanded ? "▲" : "▼"}</Text>
-              </TouchableOpacity>
+                <Ionicons
+                  name={expanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#693434"
+                />
+                  </TouchableOpacity>
 
               {/* CONTENT */}
               {expanded && (
@@ -222,13 +215,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fde8e8",
   },
   menuTitle: {
-    fontWeight: "700",
+    fontWeight: "500",
     fontSize: 16,
-    color: "#d12a2a",
+    color: "#e75c5c",
   },
-  arrow: { fontSize: 14, color: "#999" },
-
-  // Inner items wrapper
   menuContent: {
     paddingHorizontal: 8,
     backgroundColor: "#fff",
