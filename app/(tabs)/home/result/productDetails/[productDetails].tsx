@@ -10,12 +10,10 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import AddToCart from "../../../../../components/common/AddToCart";
 import Loader from "../../../../../components/common/Loader";
 import Search from "../../../../../components/common/Search";
 
 import ImageCarousel from "../../../../../components/ProductDetails/ImageCarousel";
-import ProductHeader from "../../../../../components/ProductDetails/ProductHeader";
 import ProductPricing from "../../../../../components/ProductDetails/ProductPricing";
 import SellerDetails from "../../../../../components/ProductDetails/Seller";
 import Services from "../../../../../components/ProductDetails/Services";
@@ -23,9 +21,9 @@ import VariantGroup from "../../../../../components/variants/VariantGroup";
 import { styles } from "./pdpStyles";
 import { FetchProductDetail } from "@/components/search/search-products-type";
 import { fetchProductDetails } from "@/components/product/fetch-product";
+import ProductBottomDetail from "@/components/ProductDetails/ProductBottomDetail";
 
 // Constants
-const DEFAULT_RETURN_DAYS = 10;
 interface ProductDetailsParams {
   productDetails: string;
   [key: string]: string;
@@ -48,29 +46,12 @@ const ProductDetails: FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  const formattedStoreAddress = useMemo(() => {
-    if (!productData?.store?.address) return "";
-
-    const { locality, city, state } = productData.store.address;
-    const addressParts = [locality, city, state].filter(Boolean);
-    return addressParts.join(", ");
-  }, [productData?.store?.address]);
-
   const productQuantityDisplay = useMemo(() => {
     const quantity = Number(productData?.unitized?.measure?.value) || 0;
     const unit = productData?.unitized?.measure?.unit || "";
     return { quantity, unit };
   }, [productData?.unitized?.measure]);
 
-  const returnableDays = useMemo(() => {
-    if (!productData?.meta?.return_window) return DEFAULT_RETURN_DAYS;
-
-    const days = parseInt(
-      productData.meta.return_window.replace(/\D/g, ""),
-      10
-    );
-    return isNaN(days) ? DEFAULT_RETURN_DAYS : days;
-  }, [productData?.meta?.return_window]);
 
   // Data fetching function
   const fetchData = useCallback(
@@ -125,6 +106,7 @@ const ProductDetails: FC = () => {
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
+
   const handleSearchPress = () => {
     router.push("/search/search");
   };
@@ -132,7 +114,10 @@ const ProductDetails: FC = () => {
   const renderHeader = () => (
     <SafeAreaView style={styles.safeHeader}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back-outline" size={20} color="black" />
         </TouchableOpacity>
         <View style={styles.searchWrapper}>
@@ -141,7 +126,6 @@ const ProductDetails: FC = () => {
       </View>
     </SafeAreaView>
   );
-
 
   const renderError = () => (
     <SafeAreaView style={styles.container}>
@@ -162,7 +146,12 @@ const ProductDetails: FC = () => {
 
     return (
       <View style={styles.imageCarouselContainer}>
-        <ImageCarousel url={productData.images} />
+        <ImageCarousel
+          url={productData.images}
+          productId={productDetails!}
+          productName={productData.name}
+          storeName={productData.store?.name || "Unknown Store"}
+        />
       </View>
     );
   };
@@ -192,7 +181,6 @@ const ProductDetails: FC = () => {
     );
   };
 
-
   // Loading state
   if (isLoading) {
     return <Loader />;
@@ -209,7 +197,9 @@ const ProductDetails: FC = () => {
       <SafeAreaView style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Product information unavailable</Text>
+          <Text style={styles.errorText}>
+            Product information unavailable
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -219,15 +209,6 @@ const ProductDetails: FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {renderHeader()}
-
-      <ProductHeader
-        itemName={productData.name}
-        category={productData.category}
-        storeName={productData.store?.name || "Unknown Store"}
-        productId={productDetails!} // product slug/id
-        quantity={productQuantityDisplay.quantity}
-        unit={productQuantityDisplay.unit}
-      />
 
       <ScrollView
         style={styles.scrollView}
@@ -242,67 +223,25 @@ const ProductDetails: FC = () => {
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* Image Carousel */}
         {renderImageCarousel()}
-
+        {/* Pricing Section */}
         <View style={styles.sectionContainer}>
-          <ProductPricing
-            store={{
-              name: productData.store?.name || "Unknown Store",
-              slug: productData.store?.slug || "unknown-store",
-            }}
-            description={productData.short_desc || "No description available"}
-            maxPrice={productData.price?.maximum_value ?? 0}
-            price={productData.price?.value || 0}
-            discount={productData.price?.offerPercent || 0}
-          />
+          {productData && <ProductPricing product={productData} />}
         </View>
+        {/* Variants Section */}
         {renderVariantGroup()}
 
         <View style={styles.sectionContainer}>
-          <Services
-            productId={productDetails!}
-            storeId={productData.store_id}
-            returnableDays={returnableDays}
-            isReturnable={productData.meta?.returnable || false}
-            isCashOnDeliveryAvailable={
-              productData.meta?.available_on_cod || false
-            }
-          />
+          <Services product={productData} />
         </View>
-
-        =
+        {/* Seller Details Section */}
         <View style={styles.sectionContainer}>
-          <SellerDetails
-            sellerName={productData.store?.name || "Unknown Store"}
-            sellerDetails={formattedStoreAddress || "No address available"}
-            sellerSymbol={productData.store?.symbol || ""}
-            sellerContact={
-              productData.meta?.contact_details_consumer_care ||
-              "Contact information not available"
-            }
-          />
+          <SellerDetails product={productData} />
         </View>
+        {productData && <ProductBottomDetail product={productData} />}
 
-        {/* Bottom padding to account for sticky footer */}
-        <View style={styles.bottomPadding} />
       </ScrollView>
-
-      {/* Sticky Add to Cart Footer */}
-      <View style={styles.stickyFooter}>
-        {productData && (
-          <AddToCart
-            storeId={productData.store_id}
-            slug={productData.slug}
-            catalogId={productData.catalog_id}
-            price={productData.price?.value || 0}
-            productName={productData.name} // ✅ Add this line
-            customizable={productData.customizable}
-            directlyLinkedCustomGroupIds={
-              productData.directlyLinkedCustomGroupIds || []
-            }
-          />
-        )}
-      </View>
     </SafeAreaView>
   );
 };

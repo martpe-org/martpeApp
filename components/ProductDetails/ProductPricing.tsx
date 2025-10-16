@@ -1,75 +1,56 @@
 import React, { FC } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-} from "react-native";
-import { Discount } from "./SVG";
-import { router } from "expo-router";
+import { View, Text, StyleSheet } from "react-native";
+import { FetchProductDetail } from "../product/fetch-product-type";
 
-interface Store {
-  name: string;
-  slug: string;
+interface ProductDetailsInfoProps {
+  product: FetchProductDetail;
 }
 
-interface ProductPricingProps {
-  store: Store;           // ✅ store object with slug + name
-  description: string;
-  maxPrice: number;
-  price: number;
-  discount: number;
-}
+const ProductPricing: FC<ProductDetailsInfoProps> = ({ product }) => {
+  const price =
+    product.price.value === 0
+      ? Number(product.price.default_selection?.value) ||
+        Number(product.price.range?.lower) ||
+        product.priceRangeDefault ||
+        0
+      : product.price.value;
 
-const { width } = Dimensions.get("window");
+  const maxPrice = product.price.maximum_value || 0;
+  const discount = product.price.offerPercent || 0;
+  const weight =
+    product.unitized?.measure?.value && product.unitized?.measure?.unit
+      ? `${product.unitized.measure.value} ${product.unitized.measure.unit}`
+      : "";
 
-const ProductPricing: FC<ProductPricingProps> = ({
-  store,
-  description,
-  maxPrice,
-  price,
-  discount,
-}) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        onPress={() =>
-          router.push(`/(tabs)/home/result/productListing/${store.slug}`)
-        }
-        activeOpacity={0.7}
-      >
-        <Text style={{ textAlign: "left" }}>
-          Visit / Explore{" "}
-          <Text style={{ color: "#F13A3A", fontWeight: "900" }}>
-            {store.name}
-          </Text>
+      {/* Product name */}
+      <Text style={styles.productName}>{product.name}</Text>
+
+      {/* Description */}
+      {product.long_desc ? (
+        <Text style={styles.description} numberOfLines={4}>
+          {product.long_desc.replace(/<[^>]+>/g, "")}
         </Text>
-      </TouchableOpacity>
+      ) : null}
+      {/* Product weight */}
+      {weight ? <Text style={styles.weightText}>{weight}</Text> : null}
 
-      {/* Product description */}
-      <Text style={styles.description}>{description}</Text>
-
-      <View style={styles.divider} />
-
-      {/* Pricing and discount */}
+      {/* Price section */}
       <View style={styles.priceRow}>
         <View style={styles.priceInfo}>
           {maxPrice > price && (
             <Text style={styles.strikePrice}>₹ {Math.ceil(maxPrice)}</Text>
           )}
-          <Text style={styles.rupee}>₹</Text>
-          <Text style={styles.finalPrice}>{price}</Text>
+          <Text style={styles.finalPrice}>₹ {price}</Text>
         </View>
 
         {discount > 0 && (
           <View style={styles.discountBadge}>
-            <Discount />
-            <Text style={styles.discountText}>{Math.ceil(discount)} %</Text>
+            <Text style={styles.discountText}>{Math.ceil(discount)}% OFF</Text>
           </View>
         )}
       </View>
-
       <Text style={styles.taxInfo}>Inclusive of all taxes</Text>
     </View>
   );
@@ -79,60 +60,61 @@ export default ProductPricing;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
     flexDirection: "column",
-    justifyContent: "space-between",
-    paddingHorizontal: width * 0.05,
-    paddingVertical: width * 0.05,
-    marginHorizontal: width * 0.05,
-    elevation: 5,
-    borderRadius: 10,
+    backgroundColor: "#fff",
+    width: "100%",
+  },
+  productName: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 4,
   },
   description: {
-    color: "#000",
-    fontWeight: "400",
     fontSize: 13,
-    paddingVertical: 5,
+    color: "#495057",
+    lineHeight: 18,
+    marginBottom: 6,
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#EAEFF1",
-    marginVertical: 10,
+  weightText: {
+    fontSize: 14,
+    color: "#6c757d",
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 6,
   },
   priceInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: width * 0.02,
+    gap: 8,
   },
   strikePrice: {
-    fontSize: 16,
+    fontSize: 15,
+    color: "#868e96",
     textDecorationLine: "line-through",
-    fontWeight: "400",
-    color: "#495057",
-  },
-  rupee: {
-    fontSize: 14,
   },
   finalPrice: {
-    fontSize: 20,
-    fontWeight: "900",
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#000",
   },
   discountBadge: {
     backgroundColor: "#1DA578",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: width * 0.05,
     borderRadius: 100,
+    paddingVertical: 2,
+    paddingHorizontal: 10,
   },
   discountText: {
-    color: "white",
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
   },
   taxInfo: {
     fontSize: 12,
-    color: "#495057",
+    color: "#868e96",
   },
 });

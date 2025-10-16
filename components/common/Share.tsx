@@ -69,9 +69,9 @@ const ShareButton: React.FC<ShareProps> = ({
   return (
     <TouchableOpacity onPress={shareMessage}>
       <MaterialCommunityIcons
-        name="share-variant"
+        name="share-variant-outline"
         size={size || 24}
-        color="#000"
+        color="#faf7f7"
       />
     </TouchableOpacity>
   );

@@ -1,69 +1,61 @@
 import React, { FC } from "react";
-import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { FetchProductDetail } from "../product/fetch-product-type";
+import { router } from "expo-router";
 
 interface SellerDetailsProps {
-  sellerName: string;
-  sellerDetails: string;
-  sellerSymbol: string;
-  sellerContact: string;
+  product: FetchProductDetail;
 }
 
-const { width } = Dimensions.get("window");
-
-const SellerDetails: FC<SellerDetailsProps> = ({
-  sellerDetails,
-  sellerName,
-  sellerSymbol,
-  sellerContact,
-}) => {
-  const [storeName, email, phone] = sellerContact.split(",");
-  const contactDetails = [
-    {
-      title: "Email",
-      value: email,
-    },
-    {
-      title: "Phone",
-      value: phone,
-    },
-  ];
+const SellerDetails: FC<SellerDetailsProps> = ({ product }) => {
+  const store = product?.store;
+  const storeName = store?.name || "Unknown Store";
+  const storeSlug = store?.slug || "unknown-store";
+  const storeLogo = store?.symbol  || "";
+  const storeAddress =
+    store?.address?.locality ||
+    store?.address?.state ||
+    "No address available";
+  const contactDetails =
+    product?.meta?.contact_details_consumer_care ||
+    "Contact information not available";
 
   return (
-    <View style={{ ...styles.container, marginTop: 10 }}>
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        <Text style={{ color: "#444444" }}>About</Text>
-        <Text style={styles.sellerNameText}> {sellerName}</Text>
+    <TouchableOpacity
+      style={styles.container}
+      activeOpacity={0.7}
+      onPress={() =>
+        router.push(`/(tabs)/home/result/productListing/${storeSlug}`)
+      }
+    >
+      {/* Store Logo */}
+      {storeLogo ? (
+        <Image source={{ uri: storeLogo }} style={styles.logo} />
+      ) : (
+        <View style={[styles.logo, styles.placeholderLogo]}>
+          <Text style={{ fontSize: 10, color: "#888" }}>No Logo</Text>
+        </View>
+      )}
+
+      {/* Store Info */}
+      <View style={styles.textContainer}>
+        <Text style={styles.soldByText}>
+          Sold by:{" "}
+          <Text style={styles.storeNameText} numberOfLines={1}>
+            {storeName}
+          </Text>
+        </Text>
+        <Text style={styles.addressText} numberOfLines={1}>
+          {storeAddress}
+        </Text>
+        <Text style={styles.contactText} numberOfLines={1}>
+          {contactDetails}
+        </Text>
       </View>
 
-     <Image
-  source={{ uri: sellerSymbol }}
-  style={{
-    width: width * 0.25,       // 25% of screen width
-    height: width * 0.25,      // Equal height for circle
-    marginVertical: width * 0.04,
-    borderRadius: (width * 0.25) / 2, // Perfect circle
-    resizeMode: "cover",       // Fill without distortion
-    borderWidth: 1,
-    borderColor: "#0a0a0a",    // Subtle border
-  }}
-/>
-
-      <Text style={styles.title}>Store Name</Text>
-      <Text style={styles.details}>{storeName}</Text>
-
-      <Text style={styles.title}>Seller Details</Text>
-      <Text style={styles.details}>{sellerDetails}</Text>
-
-      <Text style={styles.title}>Contact Details</Text>
-      {contactDetails?.length > 0
-        ? contactDetails.map((contactDetail, index) => (
-            <View style={styles.subtitleContainer} key={index}>
-              <Text style={styles.subtitle}>{contactDetail?.title}:</Text>
-              <Text style={styles.subtitleValues}>{contactDetail?.value}</Text>
-            </View>
-          ))
-        : null}
-    </View>
+      {/* Visit */}
+      <Text style={styles.visitText}>›</Text>
+    </TouchableOpacity>
   );
 };
 
@@ -71,74 +63,52 @@ export default SellerDetails;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    flexDirection: "column",
-    justifyContent: "space-between",
-
-    paddingHorizontal: width * 0.05,
-    paddingVertical: width * 0.05,
-    marginHorizontal: width * 0.05,
-    elevation: 5,
-    borderRadius: 10,
-    marginTop: width * 0.05,
-    marginBottom: width * 0.4,
-  },
-  backButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backButtonIcon: {
-    width: 15,
-    height: 15,
-    resizeMode: "contain",
-  },
-  sellerNameText: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#000",
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#000",
-    marginTop: 5,
-  },
-  details: {
-    fontSize: 14,
-    fontWeight: "normal",
-    color: "#000",
-    flexDirection: "column",
-  },
-  subtitleContainer: {
-    flex: 1,
     flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
   },
-  subtitle: {
-    fontSize: 12,
-    color: "#444444",
+  logo: {
+    width: 45,
+    height: 45,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 0.5,
+    borderColor: "#ccc",
     marginRight: 10,
   },
-  subtitleValues: {
-    color: "#030303",
-    fontWeight: "normal",
-    textTransform: "lowercase",
-    fontSize: 12,
-  },
-  cartButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "grey",
+  placeholderLogo: {
     justifyContent: "center",
     alignItems: "center",
   },
-  cartButtonIcon: {
-    width: 15,
-    height: 15,
-    resizeMode: "contain",
+  textContainer: {
+    flex: 1,
+  },
+  soldByText: {
+    fontSize: 14,
+    color: "#212529",
+    fontWeight: "500",
+  },
+  storeNameText: {
+    color: "#007bff",
+    fontWeight: "700",
+  },
+  addressText: {
+    fontSize: 12,
+    color: "#495057",
+  },
+  contactText: {
+    fontSize: 12,
+    color: "#868e96",
+  },
+  visitText: {
+    fontSize: 20,
+    color: "#adb5bd",
+    marginLeft: 8,
+    fontWeight: "600",
   },
 });
