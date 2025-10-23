@@ -41,23 +41,6 @@ export interface FetchStoreDetailsResponseType {
     contact_number: string;
     contact_email: string;
   };
-  
-  // Add these missing fields from the API response
-  createdAt?: string;
-  filename?: string;
-  geometry?: {
-    coordinates: number[][][];
-    type: string;
-  };
-  isSingleNonPanindiaServicebility?: boolean;
-  order_value?: {
-    min_value: number;
-  };
-  time_range?: {
-    gte: string;
-    lte: string;
-  };
-  creds?: any[]; // Add this if needed
 }
 
 export interface Address {

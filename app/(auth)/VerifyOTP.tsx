@@ -76,10 +76,6 @@ const VerifyOTP: React.FC = () => {
       try {
         const decodedOrderId = decodeURIComponent(otpOrderId);
         const formattedNumber = getFormattedMobileNumber(mobileNumber);
-        console.log("Resending OTP with params:", {
-          orderId: decodedOrderId,
-          phoneNumber: formattedNumber,
-        });
 
         const response = await resendOTP({
           orderId: decodedOrderId,
@@ -171,13 +167,9 @@ const VerifyOTP: React.FC = () => {
           };
 
           await saveUserDetails(userDetails);
-          router.push("/(auth)/SignUp");
-        } else if (isOTPVerified && !user) {
-          router.push({
-            pathname: "/(auth)/SignUp",
-            params: { mobileNumber: formattedNumber },
-          });
-        } else {
+          router.push("/(tabs)/home/HomeScreen");
+        } 
+         else {
           Alert.alert("Verification Failed", "Invalid OTP");
         }
       } else {

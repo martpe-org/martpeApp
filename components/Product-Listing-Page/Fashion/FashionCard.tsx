@@ -39,20 +39,30 @@ const FashionCard: FC<FashionCardProps> = ({
   customizable = false,
   directlyLinkedCustomGroupIds = [],
 }) => {
+  const productIdString = Array.isArray(productId) ? productId[0] : productId;
+  const uniqueSlug = slug || productIdString || id;
+
   const handlePress =
     onPress ||
     (() => {
-      router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+      if (!uniqueSlug) return; // safety check
+      router.push(`/(tabs)/home/result/productDetails/${uniqueSlug}`);
     });
 
+  const handleLikePress = (e: any) => {
+    e.stopPropagation?.(); // prevent card press
+  };
+
   const safeStoreId = storeId && storeId !== "unknown-store" ? storeId : null;
-  const productIdString = Array.isArray(productId) ? productId[0] : productId;
-  const uniqueProductId = productIdString || slug || id;
 
   return (
     <View style={styles.fashionCard}>
       {/* Card Clickable Content */}
-      <View style={styles.cardContent}>
+      <TouchableOpacity
+        style={styles.cardContent}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
         <ImageComp
           source={image}
           imageStyle={styles.fashionCardImage}
@@ -64,9 +74,11 @@ const FashionCard: FC<FashionCardProps> = ({
           loaderSize="small"
         />
 
-        {/* ❤️ Like button */}
+        {/* ❤️ Like button — independent of navigation */}
         <View style={styles.topActions}>
-          <LikeButton productId={uniqueProductId} color="#E11D48" />
+          <TouchableOpacity onPress={handleLikePress}>
+            <LikeButton productId={uniqueSlug} color="#E11D48" />
+          </TouchableOpacity>
         </View>
 
         {/* 🔥 Offer badge */}
@@ -74,28 +86,22 @@ const FashionCard: FC<FashionCardProps> = ({
           <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
         )}
 
-        <TouchableOpacity
-          style={styles.fashionCardContent}
-          onPress={handlePress}
-          activeOpacity={0.8}
-        >
+        <View style={styles.fashionCardContent}>
           <Text style={styles.fashionCardTitle} numberOfLines={1}>
             {itemName}
           </Text>
           <Text style={styles.fashionCardDescription} numberOfLines={1}>
             {desc}
           </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
       {/* Price and Add to Cart Row */}
       <View style={styles.priceAddRow}>
         <View style={styles.priceContainer}>
           <Text style={styles.fashionCardPrice}>
             <Text style={{ fontSize: 16, color: "green" }}>₹{value}</Text>
-            {maxPrice && (
-              <Text style={styles.strikedOffText}> ₹{maxPrice}</Text>
-            )}
+            {maxPrice && <Text style={styles.strikedOffText}> ₹{maxPrice}</Text>}
           </Text>
         </View>
         <View style={styles.addToCartContainer}>
@@ -103,7 +109,7 @@ const FashionCard: FC<FashionCardProps> = ({
             <AddToCart
               price={value || 0}
               storeId={safeStoreId}
-              slug={slug || id}
+              slug={uniqueSlug}
               catalogId={catalogId}
               productName={itemName}
               customizable={customizable}
@@ -117,6 +123,7 @@ const FashionCard: FC<FashionCardProps> = ({
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   fashionCard: {

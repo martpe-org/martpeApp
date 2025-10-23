@@ -94,7 +94,7 @@ const Faqs: React.FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
+        <Ionicons name="arrow-back-outline" size={24} color="black" />
           </TouchableOpacity>
           <View>
             <Text style={styles.title}>Frequently Asked Questions</Text>

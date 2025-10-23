@@ -2,6 +2,7 @@ import React from "react";
 import {
   Dimensions,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -65,8 +66,25 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
       ? `${normalized.distance_in_km.toFixed(1)} km`
       : "";
 
+  const handleNavigate = () => {
+    router.push({
+      pathname: "/(tabs)/home/result/productListing/[id]",
+      params: { id: normalized.slug },
+    });
+  };
+
+  const handleLikePress = (e: any) => {
+    // stop parent touchable from firing
+    e.stopPropagation?.();
+  };
+
   return (
-    <View style={styles.nearbyCard}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.nearbyCard}
+      onPress={handleNavigate}
+    >
+      {/* Image Section */}
       <View style={styles.nearbyImageContainer}>
         <Image
           source={{
@@ -81,42 +99,41 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
           maxStoreItemOfferPercent={normalized.maxStoreItemOfferPercent}
         />
 
+        {/* Like Button (does not trigger navigation) */}
         <View style={styles.topActions}>
-          <LikeButton
-            vendorId={vendorIdString}
-            storeData={normalized}
-            color="#E11D48"
-          />
+          <Pressable onPress={handleLikePress}>
+            <LikeButton
+              vendorId={vendorIdString}
+              storeData={normalized}
+              color="#E11D48"
+            />
+          </Pressable>
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.nearbyInfo}
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/productListing/[id]",
-            params: { id: normalized.slug },
-          })
-        }
-      >
+
+      {/* Store Info */}
+      <View style={styles.nearbyInfo}>
         <Text style={styles.nearbyName} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.nearbyCategory} numberOfLines={1}>
           {category}
         </Text>
-        {/* Restaurant Location using Store2 address */}
+
+        {/* Location */}
         <View style={styles.restaurantLocationContainer}>
-          <Ionicons name="location-outline" size={10} color="#222" marginBottom="5" />
+          <Ionicons name="location-outline" size={10} color="#222" marginBottom={5} />
           <Text style={styles.restaurantLocationCompact} numberOfLines={1}>
             {getLocationText(item)}
           </Text>
         </View>
+
         {distance !== "" && (
           <Text style={styles.nearbyDistance}>{distance}</Text>
         )}
-      </TouchableOpacity>
+      </View>
 
-
+      {/* Status */}
       <View style={styles.restaurantStatusCompact}>
         <View
           style={[
@@ -133,7 +150,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ item }) => {
           Open
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

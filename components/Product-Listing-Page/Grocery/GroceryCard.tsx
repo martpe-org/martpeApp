@@ -54,28 +54,35 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
   customizable = false,
   directlyLinkedCustomGroupIds = [],
 }) => {
+  const resolvedSlug = slug || id;
+
   const handlePress =
     onPress ||
     (() => {
-      router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+      router.push(`/(tabs)/home/result/productDetails/${resolvedSlug}`);
     });
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation?.(); // prevents card navigation when liking
+  };
 
   const resolveStoreId = (): string => {
     if (providerId && providerId !== "unknown-store") return providerId;
-    if (item?.store_id && item.store_id !== "unknown-store") {
-      return item.store_id;
-    }
+    if (item?.store_id && item.store_id !== "unknown-store") return item.store_id;
     return catalogId || id || "default-store";
   };
 
   const storeId = resolveStoreId();
-  const resolvedSlug = slug || id;
 
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
   return (
-    <View style={cardStyles.card}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={handlePress}
+      style={cardStyles.card}
+    >
       {/* Product Image */}
       <ImageComp
         source={image}
@@ -88,7 +95,9 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
 
       {/* ❤️ Like button */}
       <View style={cardStyles.topActions}>
-        <LikeButton productId={uniqueProductId} color="#E11D48" />
+        <TouchableOpacity onPress={handleLikePress}>
+          <LikeButton productId={uniqueProductId} color="#E11D48" />
+        </TouchableOpacity>
       </View>
 
       {/* 🔥 Discount badge */}
@@ -97,18 +106,14 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
       )}
 
       {/* Info Section */}
-      <TouchableOpacity
-        style={cardStyles.info}
-        onPress={handlePress}
-        activeOpacity={0.8}
-      >
+      <View style={cardStyles.info}>
         <Text style={cardStyles.name} numberOfLines={2}>
           {itemName}
         </Text>
         <Text style={cardStyles.weight}>
           {weight} / {unit}
         </Text>
-      </TouchableOpacity>
+      </View>
 
       {/* Price and Add to Cart Row */}
       <View style={cardStyles.priceAddRow}>
@@ -116,9 +121,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           <View style={cardStyles.priceRow}>
             <Text style={cardStyles.price}>₹{cost.toFixed()}</Text>
             {originalPrice && (
-              <Text style={cardStyles.originalPrice}>
-                ₹{originalPrice.toFixed()}
-              </Text>
+              <Text style={cardStyles.originalPrice}>₹{originalPrice.toFixed()}</Text>
             )}
           </View>
         </View>
@@ -134,7 +137,7 @@ const GroceryCard: React.FC<GroceryCardProps> = ({
           />
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

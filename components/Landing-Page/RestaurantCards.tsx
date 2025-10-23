@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Image,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,37 +20,42 @@ import OfferCard3 from "../Categories/OfferCard3";
 interface RestaurantCardProps {
   item: Store2;
 }
-
-
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
   const router = useRouter();
   const normalized = normalizeStoreData(item);
   const vendorIdString = normalized.slug;
 
-  // inside RestaurantCard
   const getLocationText = (storeData: Store2) => {
     const address = storeData?.address;
-
     if (!address) return "Location not available";
 
-    const locality = address?.locality || "";
-    const city = address?.city || "";
-    const street = address?.street || "";
-    const name = address?.name || "";
-
+    const { locality, city, street, name } = address;
     if (locality && city) return `${locality}, ${city}`;
     if (locality) return locality;
     if (city) return city;
     if (street) return street;
     if (name) return name;
-
     return "Location not available";
   };
 
+  const handleNavigate = () => {
+    router.push({
+      pathname: "/(tabs)/home/result/productListing/[id]",
+      params: { id: normalized.slug },
+    });
+  };
 
+  const handleLikePress = (e: any) => {
+    e.stopPropagation?.(); // prevent card press
+  };
 
   return (
-    <View style={styles.restaurantCardCompact}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.restaurantCardCompact}
+      onPress={handleNavigate}
+    >
+      {/* Image Section */}
       <View style={styles.restaurantImageContainerCompact}>
         <Image
           source={{
@@ -58,21 +64,22 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
           style={styles.restaurantImageCompact}
           resizeMode="cover"
         />
+
         <LinearGradient
           colors={["rgba(255,107,53,0.1)", "rgba(255,152,48,0.05)"]}
           style={styles.gradientOverlay}
         />
 
-
-        {/* Like button */}
+        {/* Like Button — should not trigger navigation */}
         <View style={styles.topActions}>
-          <LikeButton
-            vendorId={vendorIdString}
-            storeData={normalized}
-            color="#E11D48"
-          />
+          <Pressable onPress={handleLikePress}>
+            <LikeButton
+              vendorId={vendorIdString}
+              storeData={normalized}
+              color="#E11D48"
+            />
+          </Pressable>
         </View>
-
 
         {/* Offer badge */}
         <OfferBadge
@@ -80,7 +87,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
           maxStoreItemOfferPercent={normalized.maxStoreItemOfferPercent}
         />
 
-
+        {/* Delivery Time */}
         {normalized.avg_tts_in_h && (
           <View style={styles.restaurantTimeBadgeCompact}>
             <Ionicons name="time-outline" size={10} color="white" />
@@ -91,29 +98,30 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
         )}
       </View>
 
-
-      <TouchableOpacity
-        style={styles.restaurantInfoCompact}
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/home/result/productListing/[id]",
-            params: { id: normalized.slug },
-          })
-        }
-      >
+      {/* Info Section */}
+      <View style={styles.restaurantInfoCompact}>
         <Text style={styles.restaurantNameCompact} numberOfLines={1}>
-          {normalized.descriptor?.name ?? "Unknown Restaurant"}        </Text>
+          {normalized.descriptor?.name ?? "Unknown Restaurant"}
+        </Text>
+
         <Text style={styles.restaurantCuisineCompact} numberOfLines={1}>
           {normalized.store_sub_categories?.join(", ") ?? "Multi Cuisine"}
         </Text>
-        {/* Restaurant Location using Store2 address */}
+
+        {/* Location */}
         <View style={styles.restaurantLocationContainer}>
-          <Ionicons name="location-outline" size={10} color="#080303" marginBottom="5" />
+          <Ionicons
+            name="location-outline"
+            size={10}
+            color="#080303"
+            marginBottom={5}
+          />
           <Text style={styles.restaurantLocationCompact} numberOfLines={1}>
             {getLocationText(item)}
           </Text>
         </View>
 
+        {/* Bottom Row */}
         <View style={styles.restaurantBottomRowCompact}>
           <View style={styles.restaurantLeftColumnCompact}>
             {normalized.distance_in_km !== undefined && (
@@ -143,8 +151,8 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ item }) => {
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 };
 

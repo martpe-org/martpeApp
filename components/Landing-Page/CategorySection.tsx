@@ -1,4 +1,3 @@
-// CategorySection.tsx
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -7,7 +6,7 @@ import { styles } from '@/app/(tabs)/home/HomeScreenStyle';
 interface CategoryItem {
   id: number;
   name: string;
-  image: string; // Changed from 'any' to 'string' since it's a URI
+  image: string;
 }
 
 interface CategorySectionProps {

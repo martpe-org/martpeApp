@@ -39,7 +39,6 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
 
       // ✅ Prevent unnecessary writes if nothing changed
       if (prev && deepEqual(prev, details)) {
-        console.log("Delivery details unchanged, skipping save");
         return;
       }
 
@@ -74,7 +73,6 @@ const useDeliveryStore = create<DeliveryStore>((set, get) => ({
           set({ selectedDetails: parsedDetails });
           console.log("Delivery details loaded from AsyncStorage:", parsedDetails);
         } else {
-          console.log("Delivery details unchanged, skipping update");
         }
       } else {
         console.log("No delivery details found in AsyncStorage");

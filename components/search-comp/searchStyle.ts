@@ -24,8 +24,9 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backButton: {
-    marginRight: 16,
+    marginRight: 18,
     padding: 4,
+    marginLeft:-10
   },
   headerTitle: {
     fontSize: 18,
@@ -39,7 +40,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f1f1f1",
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     marginBottom: 16,
   },
   searchInput: {

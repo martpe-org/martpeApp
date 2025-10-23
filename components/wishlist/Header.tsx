@@ -14,7 +14,7 @@ const HeaderWishlist = () => {
         onPress={() => router.push("/(tabs)/account")}
         activeOpacity={0.7}
       >
-        <Ionicons name="arrow-back-outline" size={24} color="black" />
+        <Ionicons name="arrow-back-outline" size={26} color="black" />
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>

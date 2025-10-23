@@ -90,10 +90,10 @@ export default function OrdersScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push("/(tabs)/account")}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>My Orders</Text>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, StyleSheet, TextInput, Animated, Platform } from "react-native";
+import { View, StyleSheet, TextInput } from "react-native";
 import SearchboxDropdown from "./SearchboxDropdown";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -188,33 +188,17 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 1000,
     marginBottom: 10,
-    marginLeft: 50,
+    marginLeft: 35,
   },
   searchBoxContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowRadius: 8,
-    elevation: 2,
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.1,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    paddingVertical: 10,
+    marginHorizontal: 10,
+    borderRadius: 15,
+    borderWidth: 0.4,
+    borderColor: "#999",
   },
   searchIcon: {
     marginRight: 12,

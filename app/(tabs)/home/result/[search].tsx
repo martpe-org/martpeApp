@@ -182,7 +182,7 @@ const Results: FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back-outline" size={20} color="black" />
+            <Ionicons name="arrow-back-outline" size={24} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Results</Text>
         </View>

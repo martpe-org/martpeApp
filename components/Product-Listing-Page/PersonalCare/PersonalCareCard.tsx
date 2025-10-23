@@ -3,7 +3,7 @@ import DiscountBadge from "@/components/common/DiscountBadge";
 import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Dimensions,
   StyleSheet,
@@ -53,8 +53,14 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   slug,
   item,
 }) => {
+  const resolvedSlug = slug || id;
+
   const handlePress = () => {
-    router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+    router.push(`/(tabs)/home/result/productDetails/${resolvedSlug}`);
+  };
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation?.(); // Prevents triggering card navigation
   };
 
   const isMongoId = (id?: string): boolean =>
@@ -72,32 +78,19 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
 
   const storeId = resolveStoreId();
 
-  useEffect(() => {
-    if (!storeId) {
-    }
-  }, [storeId, id, title]);
-
   const getImageSource = () => {
-    if (symbol && symbol.trim() !== "") {
-      return { uri: symbol };
-    }
-    if (image && image.trim() !== "") {
-      return { uri: image };
-    }
+    if (symbol && symbol.trim() !== "") return { uri: symbol };
+    if (image && image.trim() !== "") return { uri: image };
     return { uri: "https://via.placeholder.com/150?text=Personal+Care" };
   };
 
   const renderAddToCart = () => {
-    if (!storeId) {
-      return (
-        <Text style={styles.errorText}>Store ID missing</Text>
-      );
-    }
+    if (!storeId) return <Text style={styles.errorText}>Store ID missing</Text>;
 
     return (
       <AddToCart
         storeId={storeId}
-        slug={slug || id}
+        slug={resolvedSlug}
         catalogId={catalogId || item?.catalog_id || ""}
         price={price}
         productName={title}
@@ -108,10 +101,14 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
   };
 
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
-  const uniqueProductId = productIdString || slug || id;
+  const uniqueProductId = productIdString || resolvedSlug;
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.85}
+      onPress={handlePress}
+    >
       <View style={styles.imageContainer}>
         <ImageComp
           source={getImageSource()}
@@ -123,31 +120,29 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
           loaderColor="#530633"
           loaderSize="small"
         />
+
+        {/* ❤️ Like button */}
         <View style={styles.topActions}>
-          <LikeButton productId={uniqueProductId} color="#E11D48" />
+          <TouchableOpacity onPress={handleLikePress}>
+            <LikeButton productId={uniqueProductId} color="#E11D48" />
+          </TouchableOpacity>
         </View>
+
+        {/* 🔥 Discount badge */}
         {typeof discount === "number" && discount > 1 && (
-          <DiscountBadge
-            percent={Number(discount)}
-            style={{ top: 8, left: 8 }}
-          />
+          <DiscountBadge percent={Number(discount)} style={{ top: 8, left: 8 }} />
         )}
       </View>
 
-      <TouchableOpacity
-        style={styles.info}
-        onPress={handlePress}
-        activeOpacity={0.85}
-      >
+      <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
         <Text style={styles.description} numberOfLines={2}>
           {description || "No description available"}
         </Text>
-
         {discount > 1 && <Text style={styles.strikedOff}>₹{maxValue}</Text>}
-      </TouchableOpacity>
+      </View>
 
       {/* Price and Add to Cart Row */}
       <View style={styles.priceAddRow}>
@@ -157,11 +152,9 @@ const PersonalCareCard: React.FC<PersonalCareCardProps> = ({
             {discount > 1 && <Text style={styles.discount}>{discount}% Off</Text>}
           </View>
         </View>
-        <View style={styles.addToCartContainer}>
-          {renderAddToCart()}
-        </View>
+        <View style={styles.addToCartContainer}>{renderAddToCart()}</View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

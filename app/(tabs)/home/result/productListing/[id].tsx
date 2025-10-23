@@ -1,5 +1,5 @@
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import {  useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -15,7 +15,7 @@ import FoodDetailsComponent from "../../../../../components/ProductDetails/FoodD
 import Loader from "../../../../../components/common/Loader";
 import { useVendorData } from "@/state/useVendorData";
 import { computeVendorInfo, renderProductListingByDomain } from "@/components/homebydomain/renderProductListingByDomain";
-import {styles} from "./PlpStyles";
+import { styles } from "./PlpStyles";
 import useDeliveryStore from "@/components/address/deliveryAddressStore";
 
 // Helper functions
@@ -67,6 +67,21 @@ const PLP: React.FC = () => {
     refetch,
     isRefetching,
   } = useVendorData(vendorSlug);
+
+  // ✅ Extract user location from delivery store
+  const userLocation = useMemo(() => {
+    // selectedDetails has lat and lng directly at root level
+    if (selectedDetails?.lat && selectedDetails?.lng) {
+      console.log('✅ User location found:', { lat: selectedDetails.lat, lng: selectedDetails.lng });
+      return {
+        lat: selectedDetails.lat,
+        lng: selectedDetails.lng
+      };
+    }
+    // Debug log if no location found
+    console.log('⚠️ No user location found in selectedDetails:', selectedDetails);
+    return undefined;
+  }, [selectedDetails]);
 
   // BottomSheet setup
   const snapPoints = useMemo(() => ["25%", "50%", "70%"], []);
@@ -162,6 +177,7 @@ const PLP: React.FC = () => {
               descriptor={vendorData.descriptor}
               storeSections={storeCategories}
               geoLocation={vendorData.geoLocation}
+              userLocation={userLocation} // ✅ Pass user location
               userAddress={selectedDetails?.fullAddress ?? ""}
               vendorId={vendorSlug}
             />

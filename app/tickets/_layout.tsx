@@ -7,8 +7,8 @@ export default function TicketLayout() {
   const router = useRouter();
 
   const renderBackButton = () => (
-    <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
-      <Ionicons name="arrow-back-outline" size={24} color="#010102" />
+    <TouchableOpacity onPress={() => router.push("/(tabs)/account")} style={{ marginLeft:-9, marginRight:15}}>
+      <Ionicons name="arrow-back-outline" size={26} color="#010102" />
     </TouchableOpacity>
   );
 

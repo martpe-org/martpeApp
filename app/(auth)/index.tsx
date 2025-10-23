@@ -1,18 +1,21 @@
-import { Link, Stack, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import React from "react";
 import {
-  Alert,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  Image,
+  Alert,
+  StyleSheet,
 } from "react-native";
+import { Link, Stack, useRouter } from "expo-router";
 import { widthPercentageToDP } from "react-native-responsive-screen";
+import { useTranslation } from "react-i18next";
 import { generateOTP } from "../../components/OTP/gen-otp";
 import useUserDetails from "../../hook/useUserDetails";
 import Loader from "@/components/common/Loader";
@@ -27,42 +30,32 @@ const NewLogin: React.FC = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  // Add authentication check
   const {
     isAuthenticated,
     isLoading: authLoading,
     checkAuthentication,
   } = useUserDetails();
 
-  const [mobileNumber, setMobileNumber] = useState<string>("");
+  const [mobileNumber, setMobileNumber] = React.useState<string>("");
   const [textInputBorderColor, setTextInputBorderColor] =
-    useState(TEXT_INPUT_COLOR);
+    React.useState(TEXT_INPUT_COLOR);
   const [isValidMobileNumber, setIsValidMobileNumber] =
-    useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+    React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-  // Check if user is already authenticated on component mount
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAuth = async () => {
       if (!authLoading && isAuthenticated && checkAuthentication()) {
-        console.log("User is already authenticated, redirecting to home");
-        router.replace("./(tabs)/home"); // Replace with your home screen route
+        router.replace("./(tabs)/home");
       }
     };
-
     checkAuth();
   }, [isAuthenticated, authLoading, checkAuthentication, router]);
 
-  // Input handlers
-  const customTextInputOnFocus = () => setTextInputBorderColor("#030303");
-  const customTextInputOnBlur = () => setTextInputBorderColor(TEXT_INPUT_COLOR);
-
-  // Validation effect
-  useEffect(() => {
+  React.useEffect(() => {
     setIsValidMobileNumber(/^\d{10}$/.test(mobileNumber));
   }, [mobileNumber]);
 
-  // Generate OTP handler
   const generateOtpForUser = async (mobileNumber: string) => {
     try {
       const response = await generateOTP(`${mobileNumber}`);
@@ -75,12 +68,12 @@ const NewLogin: React.FC = () => {
           },
         });
       } else {
-        const errorMessage =
-          response.data?.message || t("Failed to generate OTP");
-        Alert.alert(t("Error"), errorMessage);
+        Alert.alert(
+          t("Error"),
+          response.data?.message || t("Failed to generate OTP")
+        );
       }
     } catch (error) {
-      console.error("Error generating OTP:", error);
       Alert.alert(
         t("Error"),
         error instanceof Error
@@ -90,10 +83,8 @@ const NewLogin: React.FC = () => {
     }
   };
 
-  // Continue button handler
   const handleContinue = async () => {
     Keyboard.dismiss();
-
     if (!isValidMobileNumber) {
       Alert.alert(
         t("Invalid number"),
@@ -101,7 +92,6 @@ const NewLogin: React.FC = () => {
       );
       return;
     }
-
     setIsLoading(true);
     try {
       await generateOtpForUser(mobileNumber);
@@ -110,7 +100,6 @@ const NewLogin: React.FC = () => {
     }
   };
 
-  // Show loading screen while checking authentication status
   if (authLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
@@ -121,85 +110,78 @@ const NewLogin: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <SafeAreaView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <View style={styles.contentContainer}>
+            <Image
+              source={require("../../assets/images/martpe-logo.png")}
+              style={styles.logo}
+              accessibilityLabel="MartPe Logo"
+            />
+            <Text style={styles.welcomeText}>{t("Welcome to MartPe")}</Text>
+            <Text style={styles.subtitleText}>
+              {t("Your goto app for everything on ONDC!")}
+            </Text>
 
-      <View style={styles.contentContainer}>
-        {/* Logo */}
-        <Image
-          source={require("../../assets/images/martpe-logo.png")}
-          style={styles.logo}
-          accessibilityLabel="MartPe Logo"
-        />
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  borderColor: isValidMobileNumber
+                    ? "green"
+                    : textInputBorderColor,
+                },
+              ]}
+            >
+              <Text style={styles.countryCode}>+91</Text>
+              <TextInput
+                placeholder={t("Enter mobile number")}
+                placeholderTextColor={TEXT_INPUT_COLOR}
+                keyboardType="number-pad"
+                value={mobileNumber}
+                maxLength={10}
+                onChangeText={setMobileNumber}
+                style={styles.inputField}
+                onFocus={() => setTextInputBorderColor("#030303")}
+                onBlur={() => setTextInputBorderColor(TEXT_INPUT_COLOR)}
+              />
+            </View>
 
-        {/* Welcome Text */}
-        <Text style={styles.welcomeText}>{t("Welcome to MartPe")}</Text>
-        <Text style={styles.subtitleText}>
-          {t("Your goto app for everything on ONDC!")}
-        </Text>
+            <TouchableOpacity
+              disabled={!isValidMobileNumber || isLoading}
+              onPress={handleContinue}
+              style={[
+                styles.continueButton,
+                {
+                  backgroundColor: isValidMobileNumber
+                    ? PRIMARY_COLOR
+                    : DISABLED_COLOR,
+                  opacity: isLoading ? 0.7 : 1,
+                },
+              ]}
+            >
+              {isLoading ? <Loader /> : <Text style={styles.continueButtonText}>{t("Continue")}</Text>}
+            </TouchableOpacity>
 
-        {/* Mobile Number Input */}
-        <View
-          style={[
-            styles.inputContainer,
-            {
-              borderColor: isValidMobileNumber ? "green" : textInputBorderColor,
-            },
-          ]}
-        >
-          <Text style={styles.countryCode}>+91</Text>
-          <TextInput
-            placeholder={t("Enter mobile number")}
-            placeholderTextColor={TEXT_INPUT_COLOR}
-            keyboardType="number-pad"
-            value={mobileNumber}
-            maxLength={10}
-            onChangeText={setMobileNumber}
-            style={styles.inputField}
-            onFocus={customTextInputOnFocus}
-            onBlur={customTextInputOnBlur}
-            accessibilityLabel="Mobile number input"
-            accessibilityHint="Enter your 10-digit mobile number"
-          />
-        </View>
-
-        {/* Continue Button */}
-        <TouchableOpacity
-          disabled={!isValidMobileNumber || isLoading}
-          onPress={handleContinue}
-          style={[
-            styles.continueButton,
-            {
-              backgroundColor: isValidMobileNumber
-                ? PRIMARY_COLOR
-                : DISABLED_COLOR,
-              opacity: isLoading ? 0.7 : 1,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Continue button"
-          accessibilityHint="Press to verify your mobile number"
-        >
-          {isLoading ? (
-            <Loader/>
-          ) : (
-            <Text style={styles.continueButtonText}>{t("Continue")}</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Footer Links */}
-        <Text style={styles.footerText}>
-          {t("By continuing, you agree to our")}
-          <Link style={styles.footerLink} href="/(aux)/terms-and-conditions">
-            {t(" Terms of Service ")}
-          </Link>
-          &
-          <Link style={styles.footerLink} href="/(aux)/privacy-policy">
-            {t(" Privacy Policy")}
-          </Link>
-        </Text>
-      </View>
-    </SafeAreaView>
+            <Text style={styles.footerText}>
+              {t("By continuing, you agree to our")}
+              <Link style={styles.footerLink} href="/(aux)/terms-and-conditions">
+                {t(" Terms of Service ")}
+              </Link>
+              & 
+              <Link style={styles.footerLink} href="/(aux)/privacy-policy">
+                {t(" Privacy Policy")}
+              </Link>
+            </Text>
+          </View>
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

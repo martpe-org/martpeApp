@@ -1,12 +1,14 @@
 import React from "react";
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+} from "react-native";
 import {
   Entypo,
   MaterialCommunityIcons,
-  MaterialIcons,
 } from "@expo/vector-icons";
-import LikeButton from "@/components/common/likeButton";
-import ShareButton from "@/components/common/Share";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 import { StoreTimings } from "./StoreTimings";
 import { StoreBannerInfo } from "./StoreBannerInfo";
@@ -15,9 +17,9 @@ interface PLPBannerCardProps {
   title: string;
   description?: string;
   address: string;
-  deliveryTime: string;
-  distance: number;
+  distance: number; // distance in meters
   delivery: string;
+  deliveryTime: string;
   searchbox?: boolean;
   userAddress: string;
   vendorId: string | string[];
@@ -36,7 +38,9 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
   userAddress,
   store,
 }) => {
+  const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
 
+  // Format categories
   const getDescriptionText = () => {
     if (store?.store_sub_categories?.length) {
       const categories = store.store_sub_categories.slice(0, 3).join(", ");
@@ -44,11 +48,9 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
     }
     return null;
   };
-
   const descriptionText = getDescriptionText();
-  const vendorIdString = Array.isArray(vendorId) ? vendorId[0] : vendorId;
 
-  // Format address like the image
+  // Format address
   const formattedAddress = [
     store?.address?.street,
     store?.address?.street !== store?.address?.locality
@@ -61,52 +63,79 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
     .filter(Boolean)
     .join(", ");
 
+const formattedDistance =
+   distance != null ? distance.toFixed(1) + " km" : "N/A";
+
+let formattedDeliveryTime = "-";
+
+if (store?.avg_tts_in_h != null && store.avg_tts_in_h > 0) {
+  const totalMinutes = store.avg_tts_in_h * 60;
+
+  if (totalMinutes < 60) {
+    // Show in minutes if less than 1 hour
+    formattedDeliveryTime = `${Math.round(totalMinutes)} min`;
+  } else {
+    // Convert to hours, show max 1 decimal if needed
+    const hours = totalMinutes / 60;
+    const roundedHours =
+      hours % 1 < 0.25
+        ? Math.floor(hours)
+        : hours % 1 > 0.75
+        ? Math.ceil(hours)
+        : Math.round(hours * 2) / 2; // rounds to nearest 0.5
+    formattedDeliveryTime = `${roundedHours} hr${roundedHours > 1 ? "s" : ""}`;
+  }
+} else if (deliveryTime) {
+  // fallback to distance-based estimation
+  formattedDeliveryTime = deliveryTime;
+}
+
+
+
   return (
     <SafeAreaView
       style={{
         ...styles.PLPBannerCardContainer,
-        marginTop: searchbox ? 10 : 50,
+        marginTop: searchbox ? 10 : 70,
       }}
     >
       {/* Store Name Row */}
       <View style={styles.titleRow}>
         <Text style={styles.PLPBannerCardTitle}>{title}</Text>
-        {/* Info Icon that opens modal */}
         <StoreBannerInfo store={store} />
       </View>
+
       {/* Description - Categories */}
       {descriptionText && (
-        <Text style={styles.categoryText}>
-          {descriptionText}
-        </Text>
+        <Text style={styles.categoryText}>{descriptionText}</Text>
       )}
+
       {/* Address */}
-      <Text style={styles.addressText}>
-        {formattedAddress || address}
-      </Text>
-      {/* Info Row - Open Now, Distance, Time */}
+      <Text style={styles.addressText}>{formattedAddress || address}</Text>
+
+      {/* Info Row - Timings, Distance */}
       <View style={styles.infoRow}>
-        {/* Store Timings */}
         {store && <StoreTimings store={store} />}
-        {/* Distance with icon */}
+
         <View style={styles.infoItem}>
           <MaterialCommunityIcons
             name="truck-outline"
             size={22}
             color="#836f6f"
           />
-          <Text style={styles.infoText}>{distance} km</Text>
+          <Text style={styles.infoText}>{formattedDistance}</Text>
         </View>
-        {/* Delivery Time with icon */}
+
         <View style={styles.infoItem}>
           <Entypo name="stopwatch" size={18} color="black" />
-          <Text style={styles.infoText}>{deliveryTime}</Text>
+          <Text style={styles.infoText}>{formattedDeliveryTime}</Text>
         </View>
       </View>
-      {/* Bottom Action Row */}
-      {/* <View style={styles.bottomRow}> */}
-      {/* <View style={styles.actionButtons}> */}
-      {/* <LikeButton
+
+      {/* Preserve commented code */}
+      {/* <View style={styles.bottomRow}>
+        <View style={styles.actionButtons}>
+          <LikeButton
             vendorId={vendorIdString}
             storeData={{
               id: vendorIdString,
@@ -114,13 +143,12 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
               descriptor: { short_desc: descriptionText || "" },
             }}
             color="#E11D48"
-          /> */}
-      {/* <View style={{ marginHorizontal: 8 }} /> */}
-      {/* <ShareButton storeName={title} type="outlet" /> */}
-      {/* </View> */}
-      {/* Free Delivery - Simple text like in the image */}
-      {/* <Text style={styles.deliveryText}>{delivery}</Text> */}
-      {/* </View> */}
+          />
+          <View style={{ marginHorizontal: 8 }} />
+          <ShareButton storeName={title} type="outlet" />
+        </View>
+        <Text style={styles.deliveryText}>{delivery}</Text>
+      </View> */}
     </SafeAreaView>
   );
 };
@@ -128,9 +156,7 @@ const PLPBannerCard: React.FC<PLPBannerCardProps> = ({
 const styles = StyleSheet.create({
   PLPBannerCardContainer: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
     padding: 12,
-    paddingBottom: 8,
   },
   titleRow: {
     flexDirection: "row",
@@ -141,7 +167,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     color: "#000",
-    marginTop:2
+    marginTop: 2,
   },
   categoryText: {
     fontSize: 13,
@@ -149,15 +175,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     fontWeight: "bold",
     textTransform: "capitalize",
-    marginTop:-4
-
+    marginTop: -4,
   },
   addressText: {
     fontSize: 12,
     color: "#666",
     marginBottom: 8,
     lineHeight: 14,
-    marginTop:4
+    marginTop: 4,
   },
   infoRow: {
     flexDirection: "row",
@@ -175,23 +200,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#000",
     marginLeft: 4,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 0.5,
-    borderTopColor: "#e5e5e5",
-    paddingTop: 8,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deliveryText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#000",
   },
 });
 

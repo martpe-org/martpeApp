@@ -1,4 +1,4 @@
-import { useGlobalSearchParams, useRouter } from "expo-router";
+import { useGlobalSearchParams } from "expo-router";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
@@ -9,9 +9,7 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import Loader from "../../../../../components/common/Loader";
-import Search from "../../../../../components/common/Search";
 
 import ImageCarousel from "../../../../../components/ProductDetails/ImageCarousel";
 import ProductPricing from "../../../../../components/ProductDetails/ProductPricing";
@@ -44,7 +42,6 @@ const ProductDetails: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ErrorState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const router = useRouter();
 
   const productQuantityDisplay = useMemo(() => {
     const quantity = Number(productData?.unitized?.measure?.value) || 0;
@@ -107,29 +104,10 @@ const ProductDetails: FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleSearchPress = () => {
-    router.push("/search/search");
-  };
 
-  const renderHeader = () => (
-    <SafeAreaView style={styles.safeHeader}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back-outline" size={20} color="black" />
-        </TouchableOpacity>
-        <View style={styles.searchWrapper}>
-          <Search onPress={handleSearchPress} />
-        </View>
-      </View>
-    </SafeAreaView>
-  );
 
   const renderError = () => (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error?.message}</Text>
         {error?.retry && (
@@ -195,7 +173,6 @@ const ProductDetails: FC = () => {
   if (!productData) {
     return (
       <SafeAreaView style={styles.container}>
-        {renderHeader()}
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>
             Product information unavailable
@@ -208,7 +185,6 @@ const ProductDetails: FC = () => {
   // Main render
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
 
       <ScrollView
         style={styles.scrollView}

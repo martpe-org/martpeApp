@@ -19,10 +19,10 @@ export const styles = StyleSheet.create({
   },
   backButton: {
     padding: 6,
-    marginRight: 8,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
-    marginBottom: 10,
+    marginBottom:-20,
+    marginLeft:5
   },
 
   searchWrapper: {

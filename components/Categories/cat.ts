@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: 9,
     paddingHorizontal: 5,
     borderRadius: 20,
     alignSelf: "flex-end",
@@ -83,7 +83,7 @@ export const styles = StyleSheet.create({
     marginTop: -10,
     marginBottom: -15,
   },
-  viewMoreButtonText: { color: "#F13A3A", fontSize: 12, fontWeight: "500" },
+  viewMoreButtonText: { color: "#F13A3A", fontSize: 14, fontWeight: "500" },
   noStoresContainer: {
     alignItems: "center",
     justifyContent: "center",

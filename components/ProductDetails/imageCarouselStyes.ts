@@ -6,22 +6,38 @@ export const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#fff",
   },
-// Counter sitting above thumbnail container
-counterAboveThumbnailContainer: {
+  // Counter sitting above thumbnail container
+  counterAboveThumbnailContainer: {
+    position: "absolute",
+    bottom: 100, // adjust so it sits above the thumbnail strip
+    alignSelf: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    zIndex: 25, // above thumbnails
+  },
+  counterAboveThumbnails: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+backButton: {
   position: "absolute",
-  bottom: 100, // adjust so it sits above the thumbnail strip
-  alignSelf: "center",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 10,
-  zIndex: 25, // above thumbnails
+  top: 10,
+  left: 10,
+  zIndex: 20,
+  backgroundColor: "#f5f5f5",
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  justifyContent: "center",
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 3,
+  elevation: 0,
 },
-counterAboveThumbnails: {
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: "600",
-},
-
 
 
   carouselWrapper: {
@@ -63,7 +79,7 @@ counterAboveThumbnails: {
     alignItems: "center",
     zIndex: 5,
   },
-  navButtonOut:{
+  navButtonOut: {
     position: "absolute",
     top: "50%",
     width: 40,
@@ -76,7 +92,7 @@ counterAboveThumbnails: {
   },
   navLeft: { left: 12 },
   navRight: { right: 12 },
-  navButtonText: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  navButtonText: { color: "#fff", fontSize: 32, fontWeight: "bold", top: -3 },
   outsideActionsContainer: {
     position: "absolute",
     top: 12,
@@ -101,12 +117,12 @@ counterAboveThumbnails: {
     justifyContent: "center",
     alignItems: "center",
   },
-fullScreenContainer: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.9)",
-  justifyContent: "flex-start",
-  overflow: "visible",
-},
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "flex-start",
+    overflow: "visible",
+  },
 
   topControls: {
     flexDirection: "row",
@@ -118,24 +134,24 @@ fullScreenContainer: {
   },
   topIcon: { color: "#fff", fontSize: 24 },
   topClose: { color: "#fff", fontSize: 20 },
-fullScreenImageWrapper: {
-  width,
-  height: height * 0.7,
-  justifyContent: "center",
-  alignItems: "center",
-},
+  fullScreenImageWrapper: {
+    width,
+    height: height * 0.7,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   fullScreenImage: {
     width: "100%",
     height: "100%",
   },
-thumbnailStripContainer: {
-  position: "absolute",
-  bottom: 0,
-  width: "100%",
-  backgroundColor: "rgba(0,0,0,0.8)",
-  paddingVertical: 8,
-  zIndex: 20,
-},
+  thumbnailStripContainer: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.8)",
+    paddingVertical: 8,
+    zIndex: 20,
+  },
   thumbnailStrip: {
     alignItems: "center",
     paddingHorizontal: 10,

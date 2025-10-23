@@ -1,8 +1,15 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Modal } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Modal,
+  ActivityIndicator,
+} from "react-native";
 import { CartItemType } from "../../app/(tabs)/cart/fetch-carts-type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import CheckoutModal from "./CheckoutModal"; // We'll create this component
+import CheckoutModal from "./CheckoutModal";
 
 interface CartCheckoutButtonProps {
   cartId: string;
@@ -18,10 +25,10 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
   isStoreOpen = true,
 }) => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const hasItems = items && items.length > 0;
 
-  // FIXED: Only check for unavailable items among items that exist
   const availableItems = items.filter((item) => item.product?.instock === true);
   const unavailableItems = items.filter((item) => item.product?.instock === false);
 
@@ -29,14 +36,19 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
   const hasAvailableItems = availableItems.length > 0;
 
   const handlePress = () => {
-    setIsModalVisible(true);
+    setIsLoading(true);
+
+    // Add a small delay to simulate processing before showing modal
+    setTimeout(() => {
+      setIsModalVisible(true);
+      setIsLoading(false);
+    }, 1200);
   };
 
   const handleCloseModal = () => {
     setIsModalVisible(false);
   };
 
-  // Early returns with proper messages
   if (!hasItems) {
     return (
       <View style={styles.container}>
@@ -56,7 +68,7 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
       </View>
     );
   }
-  
+
   if (hasUnavailableItems && hasAvailableItems) {
     return (
       <View style={styles.container}>
@@ -68,7 +80,7 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
       </View>
     );
   }
-  
+
   if (hasUnavailableItems && !hasAvailableItems) {
     return (
       <View style={styles.container}>
@@ -79,58 +91,84 @@ const CartCheckoutButton: React.FC<CartCheckoutButtonProps> = ({
     );
   }
 
+  // --- Active Checkout Button ---
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.checkout} onPress={handlePress} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={[styles.checkout, isLoading && { opacity: 0.8 }]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+        disabled={isLoading}
+      >
         <View style={styles.buttonContent}>
-          <MaterialCommunityIcons name={"cart-outline"} size={20} color={"white"} />
-          <Text style={styles.checkoutText}>Continue to checkout</Text>
+          {isLoading ? (
+            <>
+              <ActivityIndicator size="small" color="#fff" style={{ marginLeft: 4 }} />
+              <Text style={styles.checkoutText}>Checking out...</Text>
+            </>
+          ) : (
+            <>
+              <MaterialCommunityIcons name={"cart-outline"} size={20} color={"white"} />
+              <Text style={styles.checkoutText}>Continue to checkout</Text>
+            </>
+          )}
         </View>
       </TouchableOpacity>
-      <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
-      
-      {/* Checkout Modal */}
- <Modal
-  visible={isModalVisible}
-  animationType="slide"
-  presentationStyle="pageSheet"
-  transparent={true}
-  onRequestClose={handleCloseModal}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <CheckoutModal
-        cartId={cartId}
-        storeId={storeId}
-        onClose={handleCloseModal}
-      />
-    </View>
-  </View>
-</Modal>
 
+      <Text style={styles.footerText}>Taxes & shipping calculated at checkout</Text>
+
+      {/* Checkout Modal */}
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        transparent={true}
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <CheckoutModal
+              cartId={cartId}
+              storeId={storeId}
+              onClose={handleCloseModal}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
+// --- Styles ---
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
-modalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)', // dim background
-  justifyContent: 'flex-end',           // push modal to bottom
-},
-modalContainer: {
-  height: '80%',
-  backgroundColor: '#fff', // ensure modal content is white
-  borderTopLeftRadius: 16,
-  borderTopRightRadius: 16,
-  overflow: 'hidden',
-},
-
-  buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, },
-  footerText: { color: "#777", fontSize: 12, alignSelf: "center", padding: 4, textAlign: "center", },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    height: "80%",
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: "hidden",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  footerText: {
+    color: "#777",
+    fontSize: 12,
+    alignSelf: "center",
+    padding: 4,
+    textAlign: "center",
+  },
   checkout: {
     backgroundColor: "#f76161",
     padding: 14,
@@ -145,7 +183,6 @@ modalContainer: {
   checkoutText: {
     color: "#fff",
     fontWeight: "bold",
-    fontStyle:"italic",
     fontSize: 16,
   },
   disabledButton: {

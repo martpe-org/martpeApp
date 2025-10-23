@@ -35,7 +35,7 @@ const ContactUs: React.FC = () => {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-        <Ionicons name="arrow-back-outline" size={20} color="black" />
+        <Ionicons name="arrow-back-outline" size={24} color="black" />
           </TouchableOpacity>
           <View>
             <Text style={styles.title}>Contact Us</Text>
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
   },
   content: {
-    padding: 16,
+    padding: 10,
   },
   headerRow: {
     flexDirection: "row",

@@ -15,10 +15,10 @@ router.push("/privacy-policy");
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => router.push("/(tabs)/account")}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back-outline" size={20} color="black" />
+              <Ionicons name="arrow-back-outline" size={24} color="black" />
             </TouchableOpacity>
             <Text style={styles.title}>Terms & Conditions | MartPe</Text>
             <View style={styles.placeholder} />

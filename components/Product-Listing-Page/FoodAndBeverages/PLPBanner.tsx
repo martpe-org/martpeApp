@@ -98,7 +98,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
           router.back();
         }}
       >
-        <Ionicons name="arrow-back-outline" size={18} color="black" />
+        <Ionicons name="arrow-back-outline" size={24} color="black" />
       </TouchableOpacity>
 
       <PLPBannerCard
@@ -124,25 +124,18 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     position: "absolute",
-    top: -10,
+    top: 10,
     left: 2,
     right: 2,
-    bottom: 0,
     resizeMode: "cover",
     height: 100,
-    borderRadius: 20
-
+    borderRadius: 20,
   },
   backButton: {
     position: "absolute",
     top: -52,
-    left: 10,
     zIndex: 1,
     padding: 8,
-    marginLeft: 5,
-    elevation: 15,
-    borderRadius: 100,
-    backgroundColor: "#fff",
   },
 });
 

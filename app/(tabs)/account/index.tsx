@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import useUserDetails from "../../../hook/useUserDetails";
 import { router } from "expo-router";
@@ -47,8 +48,26 @@ const Profile = () => {
   }, [userDetails]); // Only run when userDetails changes
 
   const handleLogout = async () => {
-    await removeUserDetails();
-    router.replace("/(auth)");
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "No",
+          onPress: () => { },
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            await removeUserDetails();
+            router.replace("/(auth)");
+          },
+          style: "destructive",
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleSaveChanges = async () => {
@@ -137,7 +156,7 @@ const Profile = () => {
           <Text style={styles.sectionTitle}>SETTINGS & HELP</Text>
 
           <TouchableOpacity style={styles.listItem}
-           onPress={() => router.push("/terms-and-conditions")}
+            onPress={() => router.push("/terms-and-conditions")}
           >
             <View style={styles.listItemLeft}>
               <Ionicons name="document-text-outline" size={24} color="#666" />

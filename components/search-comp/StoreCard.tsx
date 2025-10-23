@@ -1,66 +1,59 @@
 import { router } from "expo-router";
 import React, { FC } from "react";
-import { Text, TouchableOpacity, View, StyleSheet, Dimensions } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  View,
+  StyleSheet,
+  Dimensions,
+  Pressable,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import ImageComp from "../common/ImageComp";
 import LikeButton from "../common/likeButton";
 import { StoreSearchResult } from "../search/search-stores-type";
+import { normalizeStoreData } from "../Landing-Page/render";
 
 const { width } = Dimensions.get("window");
 
-// Store Card Component - Updated to match screenshot design
-const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => {
-  const maxOfferPercent = store.maxStoreItemOfferPercent || 0;
+const StoreCard: FC<{ item: StoreSearchResult }> = ({ item }) => {
+  // ✅ Normalize data for consistent fields
+  const normalized = normalizeStoreData(item);
+  const maxOfferPercent = normalized.maxStoreItemOfferPercent || 0;
 
   const getLocationText = (storeData: StoreSearchResult) => {
     const { address } = storeData;
-    if (address.locality && address.city) {
-      return `${address.locality}, ${address.city}`;
-    } else if (address.locality) {
-      return address.locality;
-    } else if (address.city) {
-      return address.city;
-    } else if (address.street) {
-      return address.street;
-    }
+    if (address.locality && address.city) return `${address.locality}, ${address.city}`;
+    if (address.locality) return address.locality;
+    if (address.city) return address.city;
+    if (address.street) return address.street;
     return "Location not available";
   };
 
-  const getStoreCategory = (storeData: StoreSearchResult) => {
-    if (storeData.domain) {
-      return storeData.domain.replace("ONDC:", "");
-    }
-    return storeData.type === "restaurant" ? "Restaurant" : "Store";
+  const handleNavigate = () => {
+    router.push(`/(tabs)/home/result/productListing/${normalized.slug}`);
   };
 
-  // Function to get the best available image URL
-  const getStoreImageUrl = (storeData: StoreSearchResult): string => {
-    if (storeData.symbol && storeData.symbol.trim() !== "" && storeData.symbol !== "null") {
-      return storeData.symbol;
-    }
-    if (storeData.images && storeData.images.length > 0 && storeData.images[0].trim() !== "") {
-      return storeData.images[0];
-    }
-    return "https://via.placeholder.com/200x120/f8f9fa/6c757d?text=Store";
+  const handleLikePress = (e: any) => {
+    e.stopPropagation?.();
   };
 
   return (
-    <View
-
+    <TouchableOpacity
+      activeOpacity={0.9}
       style={styles.gridStoreCard}
+      onPress={handleNavigate}
     >
-      {/* Store Image Container */}
+      {/* Image */}
       <View style={styles.storeImageContainer}>
         <ImageComp
-          source={{
-            uri: getStoreImageUrl(store),
-          }}
+          source={{ uri: normalized.symbol || "https://via.placeholder.com/200x120" }}
           imageStyle={styles.gridStoreImage}
           resizeMode="cover"
         />
 
-        {/* Discount Badge - Top Left */}
+        {/* Discount Badge */}
         {maxOfferPercent > 0 && (
           <View style={styles.offerBadge}>
             <Text style={styles.offerBadgeText}>
@@ -69,63 +62,104 @@ const StoreCard: FC<{ item: StoreSearchResult }> = ({ item: store }) => {
           </View>
         )}
 
-        {/* Like Button - Top Right */}
+        {/* Like Button */}
         <View style={styles.likeButtonContainer}>
-          <LikeButton
-            vendorId={store.slug}
-            storeData={store}
-            color="#E11D48"
-          />
+          <Pressable onPress={handleLikePress}>
+            <LikeButton vendorId={normalized.slug} storeData={normalized} color="#E11D48" />
+          </Pressable>
         </View>
-      </View>
+        {/* Delivery Time */}
+        {normalized.avg_tts_in_h != null && (
+          <View style={styles.timeBadge}>
+            <Ionicons name="time-outline" size={10} color="white" />
+            <Text style={styles.timeText}>
+              {(() => {
+                let minutes = 0;
 
-      {/* Store Info */}
-      <TouchableOpacity style={styles.gridStoreInfo}
-        onPress={() =>
-          router.push(`/(tabs)/home/result/productListing/${store.slug}`)
-        }
-      >
-        <Text style={styles.gridStoreName} numberOfLines={1}>
-          {store.name || "Unknown Store"}
-        </Text>
+                // Handle if it's already in hours (like 0.5 => 30 min)
+                if (normalized.avg_tts_in_h < 10) {
+                  minutes = normalized.avg_tts_in_h * 60;
+                }
+                // Handle if it's in seconds (like 1800 => 30 min)
+                else if (normalized.avg_tts_in_h > 600) {
+                  minutes = normalized.avg_tts_in_h / 60;
+                }
+                // Handle if it's already in minutes
+                else {
+                  minutes = normalized.avg_tts_in_h;
+                }
 
-        <Text style={styles.storeCategory} numberOfLines={1}>
-          {getStoreCategory(store)}
-        </Text>
-
-        {/* Location with icon */}
-        <View style={styles.storeLocationContainer}>
-          <Ionicons name="location-outline" size={12} color="#666" />
-          <Text style={styles.storeLocationText} numberOfLines={1}>
-            {getLocationText(store)}
-          </Text>
-        </View>
-
-        {/* Status and Distance Row */}
-        <View style={styles.storeBottomRow}>
-          <View style={styles.storeStatusContainer}>
-            <View style={styles.storeStatusDot} />
-            <Text style={styles.storeStatusText}>Open</Text>
-          </View>
-
-          {store.distance_in_km != null && (
-            <Text style={styles.storeDistanceText}>
-              {store.distance_in_km.toFixed(1)} km
-            </Text>
-          )}
-        </View>
-
-        {/* Delivery Time if available */}
-        {store.avg_tts_in_h != null && (
-          <View style={styles.deliveryTimeContainer}>
-            <Ionicons name="time-outline" size={12} color="#00C851" />
-            <Text style={styles.deliveryTimeText}>
-              {Math.round(store.avg_tts_in_h * 60)} min
+                if (minutes < 60) {
+                  return `${Math.round(minutes)} min`;
+                } else {
+                  const hrs = Math.floor(minutes / 60);
+                  const mins = Math.round(minutes % 60);
+                  return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+                }
+              })()}
             </Text>
           </View>
         )}
-      </TouchableOpacity>
-    </View>
+
+      </View>
+
+      {/* Info */}
+      <View style={styles.gridStoreInfo}>
+        <Text style={styles.gridStoreName} numberOfLines={1}>
+          {normalized.descriptor?.name ?? "Unknown Store"}
+        </Text>
+
+        <Text style={styles.storeCategory} numberOfLines={1}>
+          {normalized.store_sub_categories?.join(", ") ?? "General Store"}
+        </Text>
+
+        {/* Location */}
+        <View style={styles.storeLocationContainer}>
+          <Ionicons name="location-outline" size={12} color="#666" />
+          <Text style={styles.storeLocationText} numberOfLines={1}>
+            {getLocationText(item)}
+          </Text>
+        </View>
+
+        {/* Bottom Row */}
+        <View style={styles.storeBottomRow}>
+          {/* Distance */}
+          {normalized.distance_in_km != null && (
+            <Text style={styles.storeDistanceText}>
+              {(() => {
+                let distance = normalized.distance_in_km;
+
+                // Heuristic: if it's >100, assume meters; otherwise already in km
+                if (distance > 100) {
+                  distance = distance / 1000;
+                }
+
+                // Show meters if below 1 km
+                if (distance < 1) {
+                  return `${Math.round(distance * 1000)} m`;
+                }
+
+                return `${distance.toFixed(1)} km`;
+              })()}
+            </Text>
+          )}
+
+          {/* Status */}
+          <View style={styles.storeStatusContainer}>
+            <View
+              style={[
+                styles.storeStatusDot,
+                {
+                  backgroundColor:
+                    normalized.status === "open" ? "#00C851" : "green",
+                },
+              ]}
+            />
+            <Text style={styles.storeStatusText}>Open</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -166,7 +200,7 @@ const styles = StyleSheet.create({
   },
   offerBadgeText: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.2,
   },
@@ -174,15 +208,31 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    zIndex: 2,
+    zIndex: 3,
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     padding: 6,
     elevation: 3,
   },
+  timeBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "rgba(11, 155, 23, 0.7)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  timeText: {
+    color: "white",
+    fontSize: 11,
+    marginLeft: 3,
+    fontWeight: "500",
+  },
   gridStoreInfo: {
     padding: 12,
-    alignItems: "flex-start",
   },
   gridStoreName: {
     fontSize: 14,
@@ -213,8 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
-    width: "100%",
+    marginTop: 4,
   },
   storeStatusContainer: {
     flexDirection: "row",
@@ -224,7 +273,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#00C851",
     marginRight: 4,
   },
   storeStatusText: {
@@ -235,17 +283,6 @@ const styles = StyleSheet.create({
   storeDistanceText: {
     fontSize: 12,
     color: "#FF9130",
-    fontWeight: "500",
-  },
-  deliveryTimeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  deliveryTimeText: {
-    fontSize: 11,
-    color: "#00C851",
-    marginLeft: 4,
     fontWeight: "500",
   },
 });
