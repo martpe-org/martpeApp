@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
   },
   paymentBtnText: {
     fontSize: 16,

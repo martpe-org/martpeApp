@@ -1,6 +1,12 @@
-import { FC } from "react";
-import { Text, StyleSheet, Animated, View } from "react-native";
-import { useRef, useEffect } from "react";
+import React, { FC, useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  FlatList,
+  Animated,
+} from "react-native";
 import FashionCard from "./FashionCard";
 
 interface CatalogItem {
@@ -32,7 +38,7 @@ interface CatalogItem {
   store?: { _id: string; name?: string; slug?: string; symbol?: string };
   customizable?: boolean;
   directlyLinkedCustomGroupIds: string[];
-  customizations?: { 
+  customizations?: {
     _id?: string;
     id?: string;
     groupId?: string;
@@ -50,14 +56,12 @@ interface PLPCardContainerProps {
   storeId?: string;
 }
 
-// No Items Animation Component
+// Simple animated "No Items" placeholder
 const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = new Animated.Value(0);
+  const scaleAnim = new Animated.Value(0.8);
 
   useEffect(() => {
-    // Initial animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -71,35 +75,13 @@ const NoItemsDisplay: FC<{ category: string }> = ({ category }) => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Pulse animation
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-
-    return () => pulse.stop();
-  }, );
+  }, []);
 
   return (
     <Animated.View
       style={[
         noItemsStyles.container,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }, { scale: pulseAnim }],
-        },
+        { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
       ]}
     >
       <Text style={noItemsStyles.emoji}>🔍</Text>
@@ -117,151 +99,169 @@ const PLPCardContainer: FC<PLPCardContainerProps> = ({
   selectedCategory = "All",
   storeId,
 }) => {
-  const getFilteredCatalog = (): CatalogItem[] => {
+  const BATCH_SIZE = 10;
+  const [visibleItems, setVisibleItems] = useState<CatalogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Filter logic (same as your earlier version)
+  const getFilteredCatalog = useCallback((): CatalogItem[] => {
     if (!selectedCategory || selectedCategory === "All" || selectedCategory === "Home & Decor") {
       return catalog;
     }
-
     const category = String(selectedCategory).toLowerCase();
-    return catalog.filter((item) => {
-      const itemName = item?.descriptor?.name?.toLowerCase() || "";
-      const itemDesc = item?.descriptor?.long_desc?.toLowerCase() || "";
-      const itemShortDesc = item?.descriptor?.short_desc?.toLowerCase() || "";
 
-      const match = (text: string, keyword: string | RegExp) =>
-        typeof keyword === "string"
-          ? new RegExp(`\\b${keyword}\\b`, "i").test(text)
-          : keyword.test(text);
+    return catalog.filter((item) => {
+      const name = item?.descriptor?.name?.toLowerCase() || "";
+      const desc = item?.descriptor?.long_desc?.toLowerCase() || "";
+      const short = item?.descriptor?.short_desc?.toLowerCase() || "";
+      const match = (t: string, k: string | RegExp) =>
+        typeof k === "string"
+          ? new RegExp(`\\b${k}\\b`, "i").test(t)
+          : k.test(t);
 
       switch (category) {
         case "furniture":
           return (
-            match(itemName, "furniture") ||
-            match(itemName, "chair") ||
-            match(itemName, "table") ||
-            match(itemName, "sofa") ||
-            match(itemDesc, "furniture")
+            match(name, "furniture") ||
+            match(name, "chair") ||
+            match(name, "table") ||
+            match(name, "sofa") ||
+            match(desc, "furniture")
           );
         case "furnishing":
           return (
-            match(itemName, "curtain") ||
-            match(itemName, "carpet") ||
-            match(itemName, "bedsheet") ||
-            match(itemName, "pillow") ||
-            match(itemDesc, "furnishing")
+            match(name, "curtain") ||
+            match(name, "carpet") ||
+            match(name, "bedsheet") ||
+            match(name, "pillow") ||
+            match(desc, "furnishing")
           );
         case "cooking":
           return (
-            match(itemName, "kitchen") ||
-            match(itemName, "dining") ||
-            match(itemName, "cookware") ||
-            match(itemName, "utensil") ||
-            match(itemDesc, "cooking") ||
-            match(itemDesc, "dining")
+            match(name, "kitchen") ||
+            match(name, "cookware") ||
+            match(name, "utensil") ||
+            match(desc, "dining")
           );
         case "garden":
           return (
-            match(itemName, "garden") ||
-            match(itemName, "outdoor") ||
-            match(itemName, "plant") ||
-            match(itemName, "patio") ||
-            match(itemDesc, "garden") ||
-            match(itemDesc, "outdoor")
+            match(name, "garden") ||
+            match(name, "outdoor") ||
+            match(name, "plant") ||
+            match(desc, "patio")
           );
         default:
-          return (
-            match(itemName, category) ||
-            match(itemDesc, category) ||
-            match(itemShortDesc, category)
-          );
+          return match(name, category) || match(desc, category) || match(short, category);
       }
     });
-  };
+  }, [selectedCategory, catalog]);
 
   const filteredCatalog = getFilteredCatalog();
 
-  if (
-    filteredCatalog.length === 0 &&
-    selectedCategory !== "All" &&
-    selectedCategory !== "Home & Decor"
-  ) {
+  useEffect(() => {
+    // reset pagination when category changes
+    setVisibleItems(filteredCatalog.slice(0, BATCH_SIZE));
+  }, [filteredCatalog]);
+
+  const loadMoreItems = () => {
+    if (isLoading || visibleItems.length >= filteredCatalog.length) return;
+    setIsLoading(true);
+
+    setTimeout(() => {
+      const next = filteredCatalog.slice(0, visibleItems.length + BATCH_SIZE);
+      setVisibleItems(next);
+      setIsLoading(false);
+    }, 300);
+  };
+
+  // Preserve your resolveStoreId logic
+  const resolveStoreId = (item: CatalogItem): string => {
+    if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
+      return item.provider.store_id;
+    }
+    if (item.store?._id && item.store._id !== "unknown-store") {
+      return item.store._id;
+    }
+    if (storeId && storeId !== "unknown-store") {
+      return storeId;
+    }
+    if (item.provider_id && item.provider_id !== "unknown-store") {
+      return item.provider_id;
+    }
+    return "unknown-store";
+  };
+
+  const renderItem = ({ item }: { item: CatalogItem }) => {
+    const name = item?.descriptor?.name || "";
+    const desc = item?.descriptor?.long_desc || "";
+    const value = item?.price?.value || 0;
+    const maxPrice = item?.price?.maximum_value || 0;
+
+    const discount =
+      typeof item?.price?.offer_percent === "number"
+        ? item.price.offer_percent
+        : maxPrice && value
+        ? Math.round(((maxPrice - value) / maxPrice) * 100)
+        : 0;
+
+    const image =
+      item?.descriptor?.images?.[0] ||
+      item?.descriptor?.symbol ||
+      "https://via.placeholder.com/185?text=Fashion";
+
+    const safeStoreId = resolveStoreId(item);
+
+    return (
+      <FashionCard
+        key={`${item.id}-${item.catalog_id}`}
+        itemName={name}
+        desc={desc}
+        value={value}
+        maxPrice={maxPrice}
+        discount={discount}
+        image={image}
+        id={item.id}
+        catalogId={item.catalog_id}
+        storeId={safeStoreId}
+        slug={item.slug}
+        customizable={item.customizable || false}
+        directlyLinkedCustomGroupIds={item.directlyLinkedCustomGroupIds || []}
+      />
+    );
+  };
+
+  if (filteredCatalog.length === 0) {
     return <NoItemsDisplay category={selectedCategory} />;
   }
 
   return (
-    <View style={styles.container}>
-      {filteredCatalog.map((item, idx) => {
-        const name = item?.descriptor?.name || "";
-        const desc = item?.descriptor?.long_desc || "";
-        const value = item?.price?.value || 0;
-        const maxPrice = item?.price?.maximum_value || 0;
-
-        // ✅ Normalize discount into number
-        const discount =
-          typeof item?.price?.offer_percent === "number"
-            ? item.price.offer_percent
-            : maxPrice && value
-            ? Math.round(((maxPrice - value) / maxPrice) * 100)
-            : 0;
-
-        const image =
-          item?.descriptor?.images?.[0] ||
-          item?.descriptor?.symbol ||
-          "https://via.placeholder.com/185?text=Fashion";
-
-        const uniqueKey = `${item.id}-${idx}-${item.catalog_id}`;
-
-        const resolveStoreId = (): string | undefined => {
-          if (item.provider?.store_id && item.provider.store_id !== "unknown-store") {
-            return item.provider.store_id;
-          }
-          if (item.store?._id && item.store._id !== "unknown-store") {
-            return item.store._id;
-          }
-          if (storeId && storeId !== "unknown-store") {
-            return storeId;
-          }
-          if (item.provider_id && item.provider_id !== "unknown-store") {
-            return item.provider_id;
-          }
-          return undefined;
-        };
-
-        const safeStoreId = resolveStoreId() || "unknown-store";
-
-        return (
-<FashionCard
-  key={uniqueKey}
-  itemName={name}
-  desc={desc}
-  value={value}
-  maxPrice={maxPrice}
-  discount={discount}
-  image={image}
-  id={item.id}
-  catalogId={item.catalog_id}
-  storeId={safeStoreId}
-  slug={item.slug}
-  customizable={item.customizable || false}
-  directlyLinkedCustomGroupIds={item.directlyLinkedCustomGroupIds || []}
-/>
-
-        );
-      })}
-    </View>
+    <FlatList
+      data={visibleItems}
+      renderItem={renderItem}
+      keyExtractor={(item) => `${item.id}-${item.catalog_id}`}
+      numColumns={2}
+      columnWrapperStyle={{ justifyContent: "space-between" }}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      onEndReached={loadMoreItems}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        isLoading ? (
+          <View style={{ paddingVertical: 20 }}>
+            <ActivityIndicator size="small" color="#666" />
+          </View>
+        ) : null
+      }
+    />
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 25,
     padding: 10,
     paddingTop: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
   },
 });
 
@@ -274,23 +274,9 @@ const noItemsStyles = StyleSheet.create({
     marginTop: 50,
     marginBottom: 50,
   },
-  emoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 20,
-  },
+  emoji: { fontSize: 48, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "bold", color: "#333", marginBottom: 8 },
+  subtitle: { fontSize: 14, color: "#666", textAlign: "center" },
 });
 
 export default PLPCardContainer;

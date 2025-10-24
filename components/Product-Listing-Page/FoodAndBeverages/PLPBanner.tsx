@@ -95,7 +95,7 @@ const PLPBanner: React.FC<PLPBannerProps> = ({
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => {
-          router.back();
+          router.push("/(tabs)/home/HomeScreen");
         }}
       >
         <Ionicons name="arrow-back-outline" size={24} color="black" />

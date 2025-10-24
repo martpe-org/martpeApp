@@ -14,6 +14,7 @@ import PLPFnBCard from "./PLPFnBCard";
 import { StoreItem } from "@/components/store/fetch-store-items-type";
 import { CustomMenu } from "@/components/store/fetch-store-details-type";
 import { Ionicons } from "@expo/vector-icons";
+import { FetchProductDetail } from "@/components/search/search-products-type";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -56,13 +57,19 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     [vegFiltered, searchString]
   );
 
-  // ✅ FIX: Check if item actually has customization groups
-  // Since your API doesn't provide customization_group_ids, we'll use a fallback
-  const hasCustomizationGroups = (item: StoreItem) => {
-    // For now, return empty array since we don't have the actual group IDs
-    // You'll need to update your API to include customization_group_ids
-    return [];
-  };
+const hasCustomizationGroups = (item: FetchProductDetail) => {
+  // ✅ Use directlyLinkedCustomGroupIds from API
+  if (item.directlyLinkedCustomGroupIds && item.directlyLinkedCustomGroupIds.length > 0) {
+    return item.directlyLinkedCustomGroupIds;
+  }
+  
+  // ✅ FALLBACK: If customizable but no groups, use slug as placeholder
+  if (item.customizable) {
+    return [item.slug];
+  }
+  
+  return [];
+};
 
   if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
   
@@ -132,7 +139,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
                       item={item}
                       // ✅ FIX: Pass correct customization props
                       customizable={item.customizable}
-                      directlyLinkedCustomGroupIds={hasCustomizationGroups(item)} // Empty array for now
+  directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}  // ✅ Will be [slug] if customizable
                       veg={item.diet_type?.toLowerCase() === "veg"}
                       non_veg={item.diet_type?.toLowerCase() === "non_veg"}
                     />

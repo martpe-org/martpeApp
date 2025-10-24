@@ -1,15 +1,9 @@
+import { FetchProductDetail } from "@/components/search/search-products-type";
 import { fetchStoreDetails } from "@/components/store/fetch-store-details";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 import { fetchStoreItems } from "@/components/store/fetch-store-items";
-import {
-  FetchStoreItemsResponseType,
-  StoreItem,
-} from "@/components/store/fetch-store-items-type";
+import { FetchStoreItemsResponseType } from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
-
-/* -------------------------------------------------------------------------- */
-/*                                   TYPES                                   */
-/* -------------------------------------------------------------------------- */
 
 export interface ComponentCatalogItem {
   bpp_id: string;
@@ -29,10 +23,10 @@ export interface ComponentCatalogItem {
   location_id: string;
   non_veg: boolean | null;
   price: {
-    maximum_value: number;
-    offer_percent: number | null;
-    offer_value: number | null;
+    currency: string;
     value: number;
+    maximum_value?: number;
+    offerPercent: number | null;
   };
   quantity: {
     available: { count: number };
@@ -42,6 +36,8 @@ export interface ComponentCatalogItem {
   veg: boolean;
   // ✅ ADD THIS: Preserve the menu relationships
   custom_menu_id?: string[];
+  customizable?: boolean;
+  directlyLinkedCustomGroupIds?: string[]; // ✅ ADD THIS
 }
 
 export interface VendorData {
@@ -79,10 +75,6 @@ export interface VendorData {
   }[];
 }
 
-/* -------------------------------------------------------------------------- */
-/*                            DATA CONVERSION LOGIC                           */
-/* -------------------------------------------------------------------------- */
-
 const convertToVendorData = (
   storeDetails: FetchStoreDetailsResponseType,
   storeItems: FetchStoreItemsResponseType
@@ -90,7 +82,7 @@ const convertToVendorData = (
   try {
     if (!storeDetails || !storeItems?.results) return null;
     const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
-      (item: StoreItem) => {
+      (item: FetchProductDetail) => {
         const isNonVeg = item.diet_type === "non_veg";
         const priceValue = item.price?.value ?? 0;
         const maxPriceValue = item.price?.maximum_value ?? priceValue;
@@ -99,8 +91,8 @@ const convertToVendorData = (
             ? item.quantity
             : item.quantity ?? 0;
 
-        // ✅ CRITICAL FIX: Preserve the custom_menu_id relationship
         const customMenuIds = item.custom_menu_id || [];
+
         return {
           bpp_id: storeDetails._id,
           bpp_uri: "",
@@ -117,10 +109,10 @@ const convertToVendorData = (
           location_id: item.location_id || "",
           non_veg: isNonVeg,
           price: {
-            maximum_value: maxPriceValue,
-            offer_percent: item.price?.offerPercent ?? null,
-            offer_value: null,
             value: priceValue,
+            maximum_value: maxPriceValue,
+            offerPercent: item.price?.offerPercent ?? null,
+            currency: "INR",
           },
           quantity: {
             available: { count: quantityCount },
@@ -130,8 +122,9 @@ const convertToVendorData = (
           veg: !isNonVeg,
           store_id: storeDetails._id,
           storeId: storeDetails._id,
-          // ✅ PRESERVE the menu relationships
-          custom_menu_id: customMenuIds, // Add this field to ComponentCatalogItem
+          customizable: item.customizable || false,
+          directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [], // ✅ MAP THIS
+          custom_menu_id: customMenuIds,
         };
       }
     );
@@ -159,7 +152,7 @@ const convertToVendorData = (
       storeSections: storeDetails.store_categories || [],
       panIndia: !!storeDetails.isPanindia,
       hyperLocal: !!storeDetails.isHyperLocalOnly,
-      custom_menus: storeDetails.custom_menus || [], // ✅ critical fix
+      custom_menus: storeDetails.custom_menus || [],
     };
 
     return converted;
@@ -224,8 +217,7 @@ export const useVendorData = (vendorSlug: string) =>
     refetchOnMount: false,
     refetchOnReconnect: true,
     retry: 2,
-    retryDelay: (attemptIndex) =>
-      Math.min(1000 * 2 ** attemptIndex, 10000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     networkMode: "online",
   });
 
