@@ -3,7 +3,7 @@ import { ScrollView, View, Text, ActivityIndicator } from "react-native";
 import PLPFooter from "./PLPFooter";
 import PLPFnBCardContainer from "./PLPFnBCardContainer";
 import { useVendorData } from "@/state/useVendorData";
-import { FetchProductDetail } from "@/components/search/search-products-type";
+import { StoreItem } from "@/components/store/fetch-store-items-type";
 
 interface PLPFnBProps {
   dropdownHeaders: string[];
@@ -29,13 +29,13 @@ const PLPFnB: FC<PLPFnBProps> = ({
     if (id.includes('-') && id.length > 20) {
       return id;
     }
-    
+
     const nameSlug = name
       .toLowerCase()
       .replace(/[^\w\s]/gi, '')
       .replace(/\s+/g, '-')
       .trim();
-    
+
     return `${nameSlug}-${id}`;
   };
 
@@ -45,55 +45,50 @@ const PLPFnB: FC<PLPFnBProps> = ({
   const catalog = vendorData?.catalogs || [];
   const menus = vendorData?.custom_menus || [];
 
-const mappedItems: FetchProductDetail[] = useMemo(() => {
-  if (!catalog?.length) {
-    return [];
-  }  
-return catalog.map((item) => {
-  console.log("🔍 Item:", item.descriptor?.name, {
-    priceValue: item.price?.value,
-    maxPrice: item.price?.maximum_value,
-    offerPercent: item.price?.offerPercent,
-    customizable: item.customizable,
-    directlyLinked: item.directlyLinkedCustomGroupIds?.length
-  });    const customMenuIds = item.custom_menu_id || [];
-    const customGroupIds = item.directlyLinkedCustomGroupIds || [];  // ✅ GET FROM MAPPED ITEM
+  const mappedItems: StoreItem[] = useMemo(() => {
+    if (!catalog?.length) {
+      return [];
+    }
+    return catalog.map((item) => {
+      const customMenuIds = item.custom_menu_id || [];
+      const customGroupIds = item.directlyLinkedCustomGroupIds || [];  // ✅ GET FROM MAPPED ITEM
 
-    return {
-      symbol: item.descriptor?.symbol || `item-${item.id}`,
-      store_status: "open",
-      rating: 0,
-      customizable: item.customizable || false,
-      custom_menu_id: customMenuIds,
-      directlyLinkedCustomGroupIds: customGroupIds,  // ✅ PASS IT THROUGH
-    price: {
-  value: item.price?.value ?? 0,  // ✅ Works
-  maximum_value: item.price?.maximum_value ?? 0,  // ✅ Works
-  offerPercent: item.price?.offerPercent ?? 0,  // ✅ Works
-  currency: "INR"
-},
-      name: item.descriptor?.name || "Unnamed Item",
-      short_desc: item.descriptor?.short_desc || "",
-      images: item.descriptor?.images || [],
-      category_id: item.category_id || "",
-      diet_type: item.veg ? "veg" : item.non_veg ? "non_veg" : "veg",
-      store_id: providerId,
-      catalog_id: item.catalog_id || "",
-      slug: item.id || `slug-${item.catalog_id}`,
-      instock: true,
-      status: "active",
-      vendor_id: providerId,
-      domain: "fnb",
-      quantity: item.quantity?.available?.count || 0,
-      location_id: item.location_id || "",
-      store_status_timestamp: new Date().toISOString(),
-      provider_status: "active",
-      provider_status_timestamp: new Date().toISOString(),
-      type: "food"
-    };
-  });
-  
-}, [catalog, providerId]);
+      return {
+        symbol: item.descriptor?.symbol || `item-${item.id}`,
+        store_status: "open",
+        rating: 0,
+        customizable: item.customizable || false,
+        custom_menu_id: customMenuIds,
+        directlyLinkedCustomGroupIds: customGroupIds,
+        priceRangeDefault: item.priceRangeDefault,
+        price: {
+          value: item.price?.value ?? 0,  // ✅ Works
+          maximum_value: item.price?.maximum_value ?? 0,  // ✅ Works
+          offerPercent: item.price?.offerPercent ?? 0,  // ✅ Works
+          currency: "INR"
+        },
+        name: item.descriptor?.name || "Unnamed Item",
+        short_desc: item.descriptor?.short_desc || "",
+        images: item.descriptor?.images || [],
+        category_id: item.category_id || "",
+        diet_type: item.veg ? "veg" : item.non_veg ? "non_veg" : "veg",
+        store_id: providerId,
+        catalog_id: item.catalog_id || "",
+        slug: item.id || `slug-${item.catalog_id}`,
+        instock: true,
+        status: "active",
+        vendor_id: providerId,
+        domain: "fnb",
+        quantity: item.quantity?.available?.count || 0,
+        location_id: item.location_id || "",
+        store_status_timestamp: new Date().toISOString(),
+        provider_status: "active",
+        provider_status_timestamp: new Date().toISOString(),
+        type: "food"
+      };
+    });
+
+  }, [catalog, providerId]);
 
   // Show loading state
   if (isLoading) {

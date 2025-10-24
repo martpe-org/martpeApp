@@ -1,8 +1,7 @@
-import { FetchProductDetail } from "@/components/search/search-products-type";
 import { fetchStoreDetails } from "@/components/store/fetch-store-details";
 import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-details-type";
 import { fetchStoreItems } from "@/components/store/fetch-store-items";
-import { FetchStoreItemsResponseType } from "@/components/store/fetch-store-items-type";
+import { FetchStoreItemsResponseType, StoreItem } from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
 
 export interface ComponentCatalogItem {
@@ -37,7 +36,8 @@ export interface ComponentCatalogItem {
   // ✅ ADD THIS: Preserve the menu relationships
   custom_menu_id?: string[];
   customizable?: boolean;
-  directlyLinkedCustomGroupIds?: string[]; // ✅ ADD THIS
+  directlyLinkedCustomGroupIds?: string[];
+    priceRangeDefault?: number;
 }
 
 export interface VendorData {
@@ -81,8 +81,9 @@ const convertToVendorData = (
 ): VendorData | null => {
   try {
     if (!storeDetails || !storeItems?.results) return null;
+
     const catalogItems: ComponentCatalogItem[] = storeItems.results.map(
-      (item: FetchProductDetail) => {
+      (item: StoreItem) => {
         const isNonVeg = item.diet_type === "non_veg";
         const priceValue = item.price?.value ?? 0;
         const maxPriceValue = item.price?.maximum_value ?? priceValue;
@@ -125,6 +126,7 @@ const convertToVendorData = (
           customizable: item.customizable || false,
           directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [], // ✅ MAP THIS
           custom_menu_id: customMenuIds,
+                priceRangeDefault: item.priceRangeDefault || priceValue
         };
       }
     );
@@ -162,19 +164,12 @@ const convertToVendorData = (
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/*                                 QUERY KEYS                                 */
-/* -------------------------------------------------------------------------- */
-
 export const QUERY_KEYS = {
   storeDetails: (vendorSlug: string) => ["storeDetails", vendorSlug],
   storeItems: (vendorSlug: string) => ["storeItems", vendorSlug],
   vendorData: (vendorSlug: string) => ["vendorData", vendorSlug],
 } as const;
 
-/* -------------------------------------------------------------------------- */
-/*                              ERROR HANDLING                                */
-/* -------------------------------------------------------------------------- */
 
 export const getErrorMessage = (error: Error | null): string => {
   if (!error) return "An unexpected error occurred";
@@ -186,10 +181,6 @@ export const getErrorMessage = (error: Error | null): string => {
     return "Failed to process store data";
   return "Failed to load store details. Please check your connection.";
 };
-
-/* -------------------------------------------------------------------------- */
-/*                                HOOKS                                       */
-/* -------------------------------------------------------------------------- */
 
 // 🧩 Fetch full vendor (store) data including items
 export const useVendorData = (vendorSlug: string) =>

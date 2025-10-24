@@ -2,9 +2,11 @@ import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AddToCart from "../../common/AddToCart";
+import { StoreItem } from "@/components/store/fetch-store-items-type"; // ✅ Import StoreItem type
+import { cardStyles } from "./PlpFnbCardStyles";
 
 export interface PLPFnBCardProps {
   id: string;
@@ -22,7 +24,7 @@ export interface PLPFnBCardProps {
   symbol?: string;
   image?: string;
   onPress?: () => void;
-  item?: any;
+  item?: StoreItem; // ✅ Strong typing
   customizable?: boolean;
   directlyLinkedCustomGroupIds?: string[];
   veg?: boolean;
@@ -63,11 +65,13 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     }
     return null;
   };
-  /** ✅ Resolve correct product price */
+
   const resolvedPrice = (() => {
     if (typeof cost === "number" && cost > 0) return cost;
     if (typeof item?.price?.value === "number" && item.price.value > 0)
       return item.price.value;
+    if (typeof item?.priceRangeDefault === "number" && item.priceRangeDefault > 0)
+      return item.priceRangeDefault; // ✅ Now this will work
     if (typeof item?.price === "number" && item.price > 0) return item.price;
     return null;
   })();
@@ -76,17 +80,14 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const resolvedOriginalPrice =
     typeof originalPrice === "number" && originalPrice > 0
       ? originalPrice
-      : typeof item?.price?.maximum_value === "number"
-        ? item.price.maximum_value
-        : null;
-
+      : item?.price?.maximum_value ?? null;
 
   const safeStoreId = resolveStoreId();
   const resolvedSlug = slug || id;
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
 
-  /** ✅ Only show AddToCart if product is in stock & storeId exists */
+  /** ✅ Show AddToCart only if store and stock available */
   const renderAddToCart = () => {
     if (!safeStoreId) {
       return (
@@ -107,7 +108,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     return (
       <View style={cardStyles.cartWrapper}>
         <AddToCart
-          price={cost}
+          price={resolvedPrice || 0}
           storeId={safeStoreId}
           slug={resolvedSlug}
           catalogId={catalogId}
@@ -119,11 +120,10 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     );
   };
 
-  /** ✅ Fallback for missing long_desc */
+  /** ✅ Fallback for description */
   const descriptionText =
     item?.short_desc ||
-    item?.description ||
-    item?.descriptor?.long_desc ||
+    (item as any)?.descriptor?.long_desc ||
     "";
 
   return (
@@ -160,22 +160,26 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           <View style={cardStyles.priceRow}>
             {resolvedPrice ? (
               <>
-                <Text style={cardStyles.price}>₹{resolvedPrice.toFixed(0)}</Text>
-                {resolvedOriginalPrice && resolvedOriginalPrice > resolvedPrice && (
-                  <Text style={cardStyles.originalPrice}>
-                    ₹{resolvedOriginalPrice.toFixed(0)}
-                  </Text>
-                )}
+                <Text style={cardStyles.price}>
+                  ₹{Number(resolvedPrice).toFixed(1).replace(/\.00$/, "")}
+                </Text>
+                {resolvedOriginalPrice &&
+                  resolvedOriginalPrice > resolvedPrice && (
+                    <Text style={cardStyles.originalPrice}>
+                      ₹
+                      {Number(resolvedOriginalPrice)
+                        .toFixed(1)
+                      }
+                    </Text>
+                  )}
                 {typeof discount === "number" && discount > 0 && (
                   <Text style={cardStyles.discount}>{discount}% OFF</Text>
                 )}
               </>
             ) : (
-              <Text style={cardStyles.errorText}></Text>
+              <Text style={cardStyles.errorText}>No price</Text>
             )}
           </View>
-
-
 
           {!!descriptionText && (
             <Text style={cardStyles.description} numberOfLines={2}>
@@ -208,97 +212,4 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
 
 export default PLPFnBCard;
 
-const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: "transparent",
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  content: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    flex: 1,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-    gap: 8,
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#3C8A3C",
-  },
-  originalPrice: {
-    fontSize: 14,
-    textDecorationLine: "line-through",
-    color: "#8B94B2",
-  },
-  discount: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#F13A3A",
-    backgroundColor: "#F9F3F2",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  description: {
-    fontSize: 13,
-    color: "#666",
-    lineHeight: 18,
-  },
-  imageContainer: {
-    width: 100,
-    alignItems: "center",
-  },
-  image: {
-    width: 120,
-    height: 110,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
-  topActions: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    borderRadius: 16,
-    padding: 4,
-  },
-  addToCartWrapper: {
-    marginTop: -8,
-    width: "100%",
-  },
-  cartWrapper: {
-    width: "100%",
-  },
-  errorText: {
-    fontSize: 10,
-    color: "#ff6b6b",
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  outOfStockText: {
-    fontSize: 11,
-    color: "#999",
-    textAlign: "center",
-    fontWeight: "500",
-    marginTop: 4,
-  },
-});
+
