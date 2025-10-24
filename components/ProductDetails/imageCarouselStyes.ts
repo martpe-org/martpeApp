@@ -26,7 +26,6 @@ backButton: {
   top: 10,
   left: 10,
   zIndex: 20,
-  backgroundColor: "#f5f5f5",
   width: 40,
   height: 40,
   borderRadius: 20,

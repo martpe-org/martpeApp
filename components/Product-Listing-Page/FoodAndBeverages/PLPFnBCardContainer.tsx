@@ -57,22 +57,22 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
     [vegFiltered, searchString]
   );
 
-const hasCustomizationGroups = (item: FetchProductDetail) => {
-  // ✅ Use directlyLinkedCustomGroupIds from API
-  if (item.directlyLinkedCustomGroupIds && item.directlyLinkedCustomGroupIds.length > 0) {
-    return item.directlyLinkedCustomGroupIds;
-  }
-  
-  // ✅ FALLBACK: If customizable but no groups, use slug as placeholder
-  if (item.customizable) {
-    return [item.slug];
-  }
-  
-  return [];
-};
+  const hasCustomizationGroups = (item: FetchProductDetail) => {
+    // ✅ Use directlyLinkedCustomGroupIds from API
+    if (item.directlyLinkedCustomGroupIds && item.directlyLinkedCustomGroupIds.length > 0) {
+      return item.directlyLinkedCustomGroupIds;
+    }
+
+    // ✅ FALLBACK: If customizable but no groups, use slug as placeholder
+    if (item.customizable) {
+      return [item.slug];
+    }
+
+    return [];
+  };
 
   if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
-  
+
   if (menus.length > 0) {
     const visibleMenus = menus.filter((menu) =>
       displayed.some((item) =>
@@ -81,7 +81,7 @@ const hasCustomizationGroups = (item: FetchProductDetail) => {
           : item.custom_menu_id === menu.custom_menu_id
       )
     );
-    
+
     return (
       <ScrollView style={styles.scroll}>
         {visibleMenus.map((menu) => {
@@ -139,7 +139,7 @@ const hasCustomizationGroups = (item: FetchProductDetail) => {
                       item={item}
                       // ✅ FIX: Pass correct customization props
                       customizable={item.customizable}
-  directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}  // ✅ Will be [slug] if customizable
+                      directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}  // ✅ Will be [slug] if customizable
                       veg={item.diet_type?.toLowerCase() === "veg"}
                       non_veg={item.diet_type?.toLowerCase() === "non_veg"}
                     />
