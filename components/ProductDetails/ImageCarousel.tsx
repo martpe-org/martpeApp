@@ -123,7 +123,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
             <ShareButton
               productId={productId}
               productName={productName}
-              storeName={storeName}
+              storeName={storeName} 
               type="item"
             />
           </View>

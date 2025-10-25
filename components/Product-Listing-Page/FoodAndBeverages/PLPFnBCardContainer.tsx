@@ -1,20 +1,21 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   StyleSheet,
   Text,
-  Animated,
   TouchableOpacity,
   LayoutAnimation,
   Platform,
   UIManager,
-  ScrollView,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import PLPFnBCard from "./PLPFnBCard";
 import { StoreItem } from "@/components/store/fetch-store-items-type";
 import { CustomMenu } from "@/components/store/fetch-store-details-type";
 import { Ionicons } from "@expo/vector-icons";
 import { FetchProductDetail } from "@/components/search/search-products-type";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -22,7 +23,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 interface PLPFnBCardContainerProps {
   items?: StoreItem[];
-  menus: CustomMenu[]; // obtained from store details
+  menus: CustomMenu[];
   selectedCategory?: string;
   searchString: string;
   storeId: string;
@@ -30,12 +31,14 @@ interface PLPFnBCardContainerProps {
   vegFilter?: "All" | "Veg" | "Non-Veg";
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   items = [],
   menus = [],
   selectedCategory,
   searchString,
-  storeId, // This should now be the ObjectId
+  storeId,
   storeName,
   vegFilter = "All",
 }) => {
@@ -58,169 +61,169 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   );
 
   const hasCustomizationGroups = (item: FetchProductDetail) => {
-    // ✅ Use directlyLinkedCustomGroupIds from API
     if (item.directlyLinkedCustomGroupIds && item.directlyLinkedCustomGroupIds.length > 0) {
       return item.directlyLinkedCustomGroupIds;
     }
-
-    // ✅ FALLBACK: If customizable but no groups, use slug as placeholder
     if (item.customizable) {
       return [item.slug];
     }
-
     return [];
   };
 
   if (!displayed.length) return <NoItems category={selectedCategory || "this category"} />;
 
-  if (menus.length > 0) {
-    const visibleMenus = menus.filter((menu) =>
-      displayed.some((item) =>
-        Array.isArray(item.custom_menu_id)
-          ? item.custom_menu_id.includes(menu.custom_menu_id)
-          : item.custom_menu_id === menu.custom_menu_id
-      )
-    );
+  // Filter menus that actually have visible items
+  const visibleMenus = menus.filter((menu) =>
+    displayed.some((item) =>
+      Array.isArray(item.custom_menu_id)
+        ? item.custom_menu_id.includes(menu.custom_menu_id)
+        : item.custom_menu_id === menu.custom_menu_id
+    )
+  );
 
-    return (
-      <ScrollView style={styles.scroll}>
-        {visibleMenus.map((menu) => {
-          const filtered = displayed.filter((i) =>
-            Array.isArray(i.custom_menu_id)
-              ? i.custom_menu_id.includes(menu.custom_menu_id)
-              : i.custom_menu_id === menu.custom_menu_id
-          );
+  return (
+    <FlatList
+      data={visibleMenus}
+      keyExtractor={(menu) => menu.custom_menu_id}
+      contentContainerStyle={styles.scroll}
+      renderItem={({ item: menu }) => (
+        <MenuSection
+          menu={menu}
+          displayed={displayed}
+          expanded={expandedMenus[menu.custom_menu_id] ?? true}
+          setExpandedMenus={setExpandedMenus}
+          hasCustomizationGroups={hasCustomizationGroups}
+          storeId={storeId}
+        />
+      )}
+    />
+  );
+};
 
-          const expanded = expandedMenus[menu.custom_menu_id] ?? true;
+const MenuSection = ({
+  menu,
+  displayed,
+  expanded,
+  setExpandedMenus,
+  hasCustomizationGroups,
+  storeId,
+}: any) => {
+  const filtered = displayed.filter((i) =>
+    Array.isArray(i.custom_menu_id)
+      ? i.custom_menu_id.includes(menu.custom_menu_id)
+      : i.custom_menu_id === menu.custom_menu_id
+  );
 
-          return (
-            <View key={menu.custom_menu_id} style={styles.menuSection}>
-              {/* HEADER */}
+  // Infinite query pagination
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["menu-items", menu.custom_menu_id],
+    queryFn: async ({ pageParam = 0 }) => {
+      const start = pageParam * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      return filtered.slice(start, end);
+    },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < ITEMS_PER_PAGE ? undefined : allPages.length,
+    initialPageParam: 0,
+  });
+
+  const paginatedItems = data?.pages.flat() ?? [];
+
+  return (
+    <View style={styles.menuSection}>
+      <TouchableOpacity
+        style={[styles.menuHeader, expanded && styles.menuHeaderExpanded]}
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setExpandedMenus((prev: any) => ({
+            ...prev,
+            [menu.custom_menu_id]: !expanded,
+          }));
+        }}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.menuTitle}>
+          {menu.name?.replace(/([^\w\s])/g, " $1 ")}
+        </Text>
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color="#693434"
+        />
+      </TouchableOpacity>
+
+      {expanded && (
+        <FlatList
+          data={paginatedItems}
+          keyExtractor={(item, idx) => item.slug || `${menu.custom_menu_id}-${idx}`}
+          renderItem={({ item }) => (
+            <PLPFnBCard
+              key={item.slug}
+              id={item.symbol}
+              productId={item.symbol}
+              itemName={item.name}
+              cost={item.price?.value || 0}
+              providerId={storeId}
+              slug={item.slug}
+              catalogId={item.catalog_id}
+              weight={item.unitized?.measure?.value}
+              unit={item.unitized?.measure?.unit}
+              originalPrice={item.price?.maximum_value}
+              discount={item.price?.offerPercent}
+              symbol={item.symbol}
+              image={item.images?.[0]}
+              item={item}
+              customizable={item.customizable}
+              directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}
+              veg={item.diet_type?.toLowerCase() === "veg"}
+              non_veg={item.diet_type?.toLowerCase() === "non_veg"}
+            />
+          )}
+          ListFooterComponent={
+            hasNextPage ? (
               <TouchableOpacity
-                style={[styles.menuHeader, expanded && styles.menuHeaderExpanded]}
-                onPress={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setExpandedMenus((prev) => ({
-                    ...prev,
-                    [menu.custom_menu_id]: !expanded,
-                  }));
-                }}
-                activeOpacity={0.7}
+                style={styles.loadMore}
+                onPress={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
               >
-                <Text style={styles.menuTitle}>
-                  {menu.name?.replace(/([^\w\s])/g, " $1 ")}
-                </Text>
-                <Ionicons
-                  name={expanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#693434"
-                />
+                {isFetchingNextPage ? (
+                  <ActivityIndicator size="small" color="#e75c5c" />
+                ) : (
+                  <Text style={styles.loadMoreText}>Load more</Text>
+                )}
               </TouchableOpacity>
-
-              {/* CONTENT */}
-              {expanded && (
-                <View style={styles.menuContent}>
-                  {filtered.map((item, idx) => (
-                    <PLPFnBCard
-                      key={item.slug || idx}
-                      id={item.symbol}
-                      productId={item.symbol}
-                      itemName={item.name}
-                      cost={item.price?.value || 0}
-                      providerId={storeId} // ✅ Use the ObjectId from props
-                      slug={item.slug}
-                      catalogId={item.catalog_id}
-                      weight={item.unitized?.measure?.value}
-                      unit={item.unitized?.measure?.unit}
-                      originalPrice={item.price?.maximum_value}
-                      discount={item.price?.offerPercent}
-                      symbol={item.symbol}
-                      image={item.images?.[0]}
-                      item={item}
-                      // ✅ FIX: Pass correct customization props
-                      customizable={item.customizable}
-                      directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}  // ✅ Will be [slug] if customizable
-                      veg={item.diet_type?.toLowerCase() === "veg"}
-                      non_veg={item.diet_type?.toLowerCase() === "non_veg"}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
-    );
-  }
-  // --- FALLBACK (NO MENUS) ---
-  return (
-    <ScrollView style={styles.scroll}>
-      <View style={styles.menuContent}>
-        {displayed.map((item, idx) => (
-          <PLPFnBCard
-            key={item.slug || idx}
-            id={item.symbol}
-            productId={item.symbol}
-            itemName={item.name}
-            cost={Number(item.price?.value) || 0}
-            providerId={storeId} // ✅ Use the ObjectId from props
-            slug={item.slug}
-            catalogId={item.catalog_id}
-            weight={item.unitized?.measure?.value}
-            unit={item.unitized?.measure?.unit}
-            originalPrice={item.price?.maximum_value}
-            discount={item.price?.offerPercent}
-            symbol={item.symbol}
-            image={item.images?.[0]}
-            item={item}
-            // ✅ FIX: Pass correct customization props
-            customizable={item.customizable}
-            directlyLinkedCustomGroupIds={hasCustomizationGroups(item)} // Empty array for now
-            veg={item.diet_type?.toLowerCase() === "veg"}
-            non_veg={item.diet_type?.toLowerCase() === "non_veg"}
-          />
-        ))}
-      </View>
-    </ScrollView>
+            ) : null
+          }
+        />
+      )}
+    </View>
   );
 };
 
-const NoItems: React.FC<{ category: string }> = ({ category }) => {
-  const fade = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.8)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, friction: 4, tension: 100, useNativeDriver: true }),
-    ]).start();
-  }, [fade, scale]);
-
-  return (
-    <Animated.View style={[styles.empty, { opacity: fade, transform: [{ scale }] }]}>
-      <Text style={styles.emoji}>🍽️</Text>
-      <Text style={styles.emptyTitle}>No Food Items Found</Text>
-      <Text style={styles.emptySub}>
-        No items available in <Text style={{ fontWeight: "600" }}>{category}</Text>
-      </Text>
-    </Animated.View>
-  );
-};
+const NoItems: React.FC<{ category: string }> = ({ category }) => (
+  <View style={styles.empty}>
+    <Text style={styles.emoji}>🍽️</Text>
+    <Text style={styles.emptyTitle}>No Food Items Found</Text>
+    <Text style={styles.emptySub}>
+      No items available in <Text style={{ fontWeight: "600" }}>{category}</Text>
+    </Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: "#fff" },
-
-  // Wrapper for each menu
+  scroll: { backgroundColor: "#fff", paddingBottom: 20 },
   menuSection: {
     marginBottom: 16,
     backgroundColor: "#fff",
     borderRadius: 10,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#eee",
   },
-
-  // Header style (menu title)
   menuHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -228,8 +231,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#fef2f2",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   menuHeaderExpanded: {
     backgroundColor: "#fde8e8",
@@ -239,17 +240,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#e75c5c",
   },
-  menuContent: {
-    paddingHorizontal: 8,
-    backgroundColor: "#fff",
+  loadMore: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
-
-  // Empty state
+  loadMoreText: { color: "#e75c5c", fontWeight: "500" },
   empty: {
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    flex: 1,
   },
   emoji: { fontSize: 40, marginBottom: 10 },
   emptyTitle: { fontSize: 18, fontWeight: "700", color: "#111" },

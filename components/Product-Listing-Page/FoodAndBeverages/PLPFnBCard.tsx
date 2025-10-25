@@ -1,12 +1,13 @@
 import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AddToCart from "../../common/AddToCart";
 import { StoreItem } from "@/components/store/fetch-store-items-type"; // ✅ Import StoreItem type
 import { cardStyles } from "./PlpFnbCardStyles";
+import ProductDetailsModal from "./ProductDetailsModal";
 
 export interface PLPFnBCardProps {
   id: string;
@@ -52,11 +53,13 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   veg = false,
   non_veg = false,
 }) => {
-  const handlePress =
-    onPress ||
-    (() => {
-      router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
-    });
+ const handlePress =
+  onPress ||
+  (() => {
+    setModalVisible(true);
+    // Or if you want to keep the original navigation as fallback:
+    // router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+  });
 
   const resolveStoreId = (): string | null => {
     if (providerId && providerId !== "unknown-store") return providerId;
@@ -86,6 +89,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const resolvedSlug = slug || id;
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
+const [modalVisible, setModalVisible] = useState(false);
 
   /** ✅ Show AddToCart only if store and stock available */
   const renderAddToCart = () => {
@@ -161,15 +165,12 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             {resolvedPrice ? (
               <>
                 <Text style={cardStyles.price}>
-                  ₹{Number(resolvedPrice).toFixed(1).replace(/\.00$/, "")}
+                  ₹{Number(resolvedPrice).toFixed(0).replace(/\.00$/, "")}
                 </Text>
                 {resolvedOriginalPrice &&
                   resolvedOriginalPrice > resolvedPrice && (
                     <Text style={cardStyles.originalPrice}>
-                      ₹
-                      {Number(resolvedOriginalPrice)
-                        .toFixed(1)
-                      }
+                      {`₹${Number(resolvedOriginalPrice).toFixed(0)}`}
                     </Text>
                   )}
                 {typeof discount === "number" && discount > 0 && (
@@ -206,6 +207,12 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
           <View style={cardStyles.addToCartWrapper}>{renderAddToCart()}</View>
         </View>
       </View>
+      <ProductDetailsModal
+  visible={modalVisible}
+  onClose={() => setModalVisible(false)}
+  productId={uniqueProductId}
+  productSlug={resolvedSlug}
+/>
     </TouchableOpacity>
   );
 };
