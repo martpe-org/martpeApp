@@ -6,10 +6,8 @@ import {
     Modal,
     ScrollView,
     SafeAreaView,
-    RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { FetchProductDetail } from "@/components/search/search-products-type";
 import { fetchProductDetails } from "@/components/product/fetch-product";
 import LikeButton from "@/components/common/likeButton";
@@ -18,21 +16,15 @@ import AddToCart from "@/components/common/AddToCart";
 import Loader from "@/components/common/Loader";
 import ShareButton from "@/components/common/Share";
 import { styles } from "./ProductDetailsModal.styles";
-
-
 interface ProductDetailsModalProps {
     visible: boolean;
     onClose: () => void;
     productSlug?: string;
 }
-
-
 interface ErrorState {
     message: string;
     retry?: boolean;
 }
-
-
 const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
     visible,
     onClose,
@@ -41,8 +33,6 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
     const [productData, setProductData] = useState<FetchProductDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<ErrorState | null>(null);
-    const [refreshing, setRefreshing] = useState(false);
-
 
     const fetchData = useCallback(
         async (showLoader = true) => {
@@ -51,8 +41,6 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
                 setIsLoading(false);
                 return;
             }
-
-
             try {
                 if (showLoader) setIsLoading(true);
                 setError(null);
@@ -74,20 +62,15 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
                 });
             } finally {
                 setIsLoading(false);
-                setRefreshing(false);
             }
         },
         [productSlug]
     );
-
-
     useEffect(() => {
         if (visible && productSlug) {
             fetchData();
         }
     }, [visible, productSlug, fetchData]);
-
-
     useEffect(() => {
         if (!visible) {
             setProductData(null);
@@ -95,15 +78,9 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
             setIsLoading(true);
         }
     }, [visible]);
-
-
-
-
-
     const handleRetry = useCallback(() => {
         fetchData();
     }, [fetchData]);
-
 
     const pricing = useMemo(() => {
         if (!productData) return null;
@@ -116,16 +93,10 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
                 productData.priceRangeDefault ||
                 0
                 : productData.price.value;
-
-
         const maxPrice = productData.price.maximum_value || 0;
         const discount = productData.price.offerPercent || 0;
-
-
         return { price, maxPrice, discount };
     }, [productData]);
-
-
     const renderHeader = () => (
         <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -136,8 +107,6 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
             </Text>
         </View>
     );
-
-
     const renderError = () => (
         <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error?.message}</Text>
@@ -148,15 +117,14 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
             )}
         </View>
     );
-
+    const uniqueProductId = useMemo(() => {
+        return productSlug || productData?.slug || 'unknown';
+    }, [productSlug, productData]);
 
     const renderProductImage = () => {
         if (!productData?.images?.length) return null;
 
-
         const firstImage = productData.images[0];
-
-
         return (
             <View style={styles.imageWrapper}>
                 <ImageComp
@@ -173,10 +141,14 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
                     style={styles.overlayButtons}
                     pointerEvents="box-none"
                 >
-                    <LikeButton
-                        productId={productSlug}
-                        color="#E11D48"
-                    />
+                    <TouchableOpacity
+                        onPress={(e) => {
+                            e.stopPropagation?.();
+                        }}
+                        activeOpacity={1}
+                    >
+                        <LikeButton productId={uniqueProductId} color="#E11D48" />
+                    </TouchableOpacity>
                     <ShareButton
                         productId={productSlug}
                         productName={productData.name}
@@ -188,12 +160,8 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
         );
     };
 
-
-
     const renderPricing = () => {
         if (!pricing) return null;
-
-
         return (
             <View style={styles.pricingContainer}>
                 <Text style={styles.productNameBottom} numberOfLines={1}>

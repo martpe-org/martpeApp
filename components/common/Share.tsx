@@ -71,7 +71,7 @@ const ShareButton: React.FC<ShareProps> = ({
       <MaterialCommunityIcons
         name="share-variant-outline"
         size={size || 24}
-        color="#faf7f7"
+        color="#0e284e"
       />
     </TouchableOpacity>
   );

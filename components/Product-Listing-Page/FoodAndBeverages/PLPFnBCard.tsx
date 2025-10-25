@@ -1,6 +1,5 @@
 import ImageComp from "@/components/common/ImageComp";
 import LikeButton from "@/components/common/likeButton";
-import { router } from "expo-router";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -53,13 +52,13 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   veg = false,
   non_veg = false,
 }) => {
- const handlePress =
-  onPress ||
-  (() => {
-    setModalVisible(true);
-    // Or if you want to keep the original navigation as fallback:
-    // router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
-  });
+  const handlePress =
+    onPress ||
+    (() => {
+      setModalVisible(true);
+      // Or if you want to keep the original navigation as fallback:
+      // router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
+    });
 
   const resolveStoreId = (): string | null => {
     if (providerId && providerId !== "unknown-store") return providerId;
@@ -89,7 +88,7 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
   const resolvedSlug = slug || id;
   const productIdString = Array.isArray(productId) ? productId[0] : productId;
   const uniqueProductId = productIdString || slug || id;
-const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   /** ✅ Show AddToCart only if store and stock available */
   const renderAddToCart = () => {
@@ -201,18 +200,25 @@ const [modalVisible, setModalVisible] = useState(false);
           />
 
           <View style={cardStyles.topActions}>
-            <LikeButton productId={uniqueProductId} color="#E11D48" />
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+              }}
+              activeOpacity={1}
+            >
+              <LikeButton productId={uniqueProductId} color="#E11D48" />
+            </TouchableOpacity>
           </View>
 
           <View style={cardStyles.addToCartWrapper}>{renderAddToCart()}</View>
         </View>
       </View>
       <ProductDetailsModal
-  visible={modalVisible}
-  onClose={() => setModalVisible(false)}
-  productId={uniqueProductId}
-  productSlug={resolvedSlug}
-/>
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        productId={uniqueProductId}
+        productSlug={resolvedSlug}
+      />
     </TouchableOpacity>
   );
 };
