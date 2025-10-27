@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -10,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SelectedOptionsType } from './EditCustomization';
-import { styles } from './WrapperSheetStyles'; // Reusing the same styles
+import { styles } from './WrapperSheetStyles';
 import Loader from '../common/Loader';
 
 interface EditCustomizationSheetProps {
@@ -50,27 +49,28 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
   showUpdateButton,
   updating,
 }) => {
-  const renderVegIcon = (dietType: string) => {
-    if (dietType === 'veg') {
-      return (
-        <View style={[styles.dietIcon, { borderColor: '#4CAF50' }]}>
-          <View style={[styles.dietDot, { backgroundColor: '#4CAF50' }]} />
-        </View>
-      );
-    } else {
-      return (
-        <View style={[styles.dietIcon, { borderColor: '#F44336' }]}>
-          <View style={[styles.dietDot, { backgroundColor: '#F44336' }]} />
-        </View>
-      );
-    }
-  };
+  const renderVegIcon = (dietType: string) => (
+    <View
+      style={[
+        styles.dietIcon,
+        { borderColor: dietType === 'veg' ? '#4CAF50' : '#F44336' },
+      ]}
+    >
+      <View
+        style={[
+          styles.dietDot,
+          { backgroundColor: dietType === 'veg' ? '#4CAF50' : '#F44336' },
+        ]}
+      />
+    </View>
+  );
 
   const renderOption = (groupId: string, optionId: string, group: any) => {
     const option = group[`ci_${optionId}`];
     const isMultiSelect = Number(group.config.max) > 1;
     const isSelected = selectedOptions[groupId]?.find(o => o.optionId === optionId);
-    const isDisabled = !isSelected &&
+    const isDisabled =
+      !isSelected &&
       selectedOptions[groupId]?.length >= Number(group.config.max) &&
       isMultiSelect;
 
@@ -98,21 +98,25 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
             </Text>
             <View style={styles.selectionIndicator}>
               {isMultiSelect ? (
-                <View style={[
-                  styles.checkbox,
-                  isSelected && styles.checkboxSelected,
-                  isDisabled && styles.checkboxDisabled,
-                ]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    isSelected && styles.checkboxSelected,
+                    isDisabled && styles.checkboxDisabled,
+                  ]}
+                >
                   {isSelected && (
                     <Ionicons name="checkmark" size={16} color="#fff" />
                   )}
                 </View>
               ) : (
-                <View style={[
-                  styles.radio,
-                  isSelected && styles.radioSelected,
-                  isDisabled && styles.radioDisabled,
-                ]}>
+                <View
+                  style={[
+                    styles.radio,
+                    isSelected && styles.radioSelected,
+                    isDisabled && styles.radioDisabled,
+                  ]}
+                >
                   {isSelected && <View style={styles.radioDot} />}
                 </View>
               )}
@@ -164,24 +168,24 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
     );
   };
 
-  const selectedOptionsText = selectedOptions && Object.values(selectedOptions).length
-    ? `Selected: ${Object.values(selectedOptions)
-      .flat()
-      .map((o) => o.name)
-      .join(', ')}`
-    : 'No options selected';
+  const selectedOptionsText =
+    selectedOptions && Object.values(selectedOptions).length
+      ? `Selected: ${Object.values(selectedOptions)
+          .flat()
+          .map(o => o.name)
+          .join(', ')}`
+      : 'No options selected';
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true} // Make background transparent
-      onRequestClose={onClose}
-    >
-      {/* Semi-transparent overlay */}
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        {/* Modal container with 60% height */}
-        <View style={{
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      {/* ✅ Tappable overlay to close */}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+      >
+        {/* Stop propagation inside */}
+        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{
           height: '70%',
           backgroundColor: '#f5f5f5',
           borderTopLeftRadius: 16,
@@ -204,9 +208,8 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
               </View>
             </View>
 
-            {/* Content */}
+            {/* Scrollable Content */}
             <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-              {/* Back button */}
               {step > 0 && (
                 <TouchableOpacity
                   style={styles.backButton}
@@ -218,10 +221,8 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
                 </TouchableOpacity>
               )}
 
-              {/* Groups */}
               {currentGroupIds.map(renderGroup)}
 
-              {/* Continue button */}
               {hasChildGroups && (
                 <TouchableOpacity
                   style={[
@@ -231,16 +232,18 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
                   onPress={onNext}
                   disabled={isNextDisabled()}
                 >
-                  <Text style={[
-                    styles.continueButtonText,
-                    isNextDisabled() && styles.continueButtonTextDisabled,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.continueButtonText,
+                      isNextDisabled() && styles.continueButtonTextDisabled,
+                    ]}
+                  >
                     Continue
                   </Text>
                   <Ionicons
                     name="chevron-forward"
                     size={20}
-                    color={isNextDisabled() ? "#999" : "#fff"}
+                    color={isNextDisabled() ? '#999' : '#fff'}
                   />
                 </TouchableOpacity>
               )}
@@ -264,16 +267,17 @@ const EditCustomizationSheet: React.FC<EditCustomizationSheetProps> = ({
                   {updating ? (
                     <Loader />
                   ) : (
-                    <Text style={styles.addToCartButtonText}>Update Customization</Text>
+                    <Text style={styles.addToCartButtonText}>
+                      Update Customization
+                    </Text>
                   )}
                 </TouchableOpacity>
               )}
             </View>
           </SafeAreaView>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
-
   );
 };
 

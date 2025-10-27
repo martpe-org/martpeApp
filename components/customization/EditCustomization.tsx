@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useToast } from 'react-native-toast-notifications';

@@ -205,7 +205,7 @@ modalContainer: {
     paddingHorizontal: 24,
     borderRadius: 8,
     alignSelf: 'flex-end',
-    marginTop: 16,
+    marginBottom:26
   },
   continueButtonDisabled: {
     backgroundColor: '#ccc',

@@ -213,40 +213,46 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
     };
 
 
-    return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-            <View style={styles.modalBackground}>
-                <View style={styles.modalContainer}>
-                    <SafeAreaView style={styles.container}>
-                        {renderHeader()}
+return (
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    {/* ✅ Background tap dismiss */}
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onClose}
+      style={styles.modalBackground}
+    >
+      {/* Prevent modal content tap from closing */}
+      <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.modalContainer}>
+        <SafeAreaView style={styles.container}>
+          {renderHeader()}
 
-
-                        {isLoading ? (
-                            <View style={styles.loaderContainer}>
-                                <Loader />
-                            </View>
-                        ) : error ? (
-                            renderError()
-                        ) : !productData ? (
-                            <View style={styles.errorContainer}>
-                                <Text style={styles.errorText}>Product information unavailable</Text>
-                            </View>
-                        ) : (
-                            <ScrollView
-                                style={styles.scrollView}
-                                contentContainerStyle={styles.scrollContent}
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {renderProductImage()}
-                                {renderPricing()}
-                                {renderAddToCart()}
-                            </ScrollView>
-                        )}
-                    </SafeAreaView>
-                </View>
+          {isLoading ? (
+            <View style={styles.loaderContainer}>
+              <Loader />
             </View>
-        </Modal>
-    );
+          ) : error ? (
+            renderError()
+          ) : !productData ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Product information unavailable</Text>
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderProductImage()}
+              {renderPricing()}
+              {renderAddToCart()}
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  </Modal>
+);
+
 };
 
 

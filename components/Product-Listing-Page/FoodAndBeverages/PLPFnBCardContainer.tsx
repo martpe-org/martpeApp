@@ -113,7 +113,7 @@ const MenuSection = ({
   storeId,
   storeData
 }: any) => {
-  const filtered = displayed.filter((i) =>
+  const filtered = displayed.filter((i :any) =>
     Array.isArray(i.custom_menu_id)
       ? i.custom_menu_id.includes(menu.custom_menu_id)
       : i.custom_menu_id === menu.custom_menu_id
@@ -187,7 +187,6 @@ const MenuSection = ({
               directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}
               veg={item.diet_type?.toLowerCase() === "veg"}
               non_veg={item.diet_type?.toLowerCase() === "non_veg"}
-              storeData={storeData}
             />
           )}
           ListFooterComponent={

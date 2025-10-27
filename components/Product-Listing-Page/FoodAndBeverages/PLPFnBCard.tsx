@@ -197,21 +197,21 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             loaderSize="small"
           />
 
-      <View style={cardStyles.topActions}>
-  <TouchableOpacity
-    onPress={(e) => {
-      e.stopPropagation?.();
-    }}
-    activeOpacity={0.8}
-    style={cardStyles.likeButtonWrapper} // ✅ Added wrapper style
-  >
-    <LikeButton
-      productId={uniqueProductId}
-      color="#E11D48"
-      productData={item}
-    />
-  </TouchableOpacity>
-</View>
+          <View style={cardStyles.topActions}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+              }}
+              activeOpacity={0.8}
+              style={cardStyles.likeButtonWrapper} // ✅ Added wrapper style
+            >
+              <LikeButton
+                productId={uniqueProductId}
+                color="#E11D48"
+                productData={item}
+              />
+            </TouchableOpacity>
+          </View>
 
 
           <View style={cardStyles.addToCartWrapper}>{renderAddToCart()}</View>
@@ -227,5 +227,4 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
 };
 
 export default PLPFnBCard;
-
 

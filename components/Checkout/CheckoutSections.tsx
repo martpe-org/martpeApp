@@ -106,13 +106,13 @@ export const CheckoutSections: React.FC<CheckoutSectionsProps> = ({
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Delivery Address</Text>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.editBtn}
           onPress={() => router.push("/address/savedAddresses")}
         >
           <MaterialCommunityIcons name="pencil" size={16} color="#666" />
           <Text style={styles.editText}>Edit</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       <View style={styles.addressCard}>
         <Text style={styles.addressName}>{data.address.name}</Text>
@@ -164,7 +164,7 @@ export const CheckoutSections: React.FC<CheckoutSectionsProps> = ({
                 item.selected_customizations.length > 0 && (
                   <Text style={styles.customizationsText}>
                     Customizations:{" "}
-                    {item.selected_customizations.map((c) => c.name).join(", ")}
+                    {item.selected_customizations.map((c:any) => c.name).join(", ")}
                   </Text>
                 )}
             </View>

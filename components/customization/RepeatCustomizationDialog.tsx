@@ -8,25 +8,51 @@ interface Props {
   onChooseNew: () => void;
 }
 
-const RepeatCustomizationDialog: React.FC<Props> = ({ visible, onClose, onRepeat, onChooseNew }) => {
+const RepeatCustomizationDialog: React.FC<Props> = ({
+  visible,
+  onClose,
+  onRepeat,
+  onChooseNew,
+}) => {
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.dialogContainer}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      {/* ✅ Tap outside to close */}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        style={styles.modalOverlay}
+      >
+        {/* Prevent taps inside the dialog from closing it */}
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => {}}
+          style={styles.dialogContainer}
+        >
           <Text style={styles.dialogTitle}>Add another item with customization?</Text>
           <Text style={styles.dialogSubtitle}>
-            Repeat will use the same customizations. I will choose will let you create a new customized item.
+            Repeat will use the same customizations. “I will choose” lets you create a new customized item.
           </Text>
           <View style={styles.dialogButtons}>
-            <TouchableOpacity style={[styles.dialogButton, styles.outlineButton]} onPress={onChooseNew}>
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.outlineButton]}
+              onPress={onChooseNew}
+            >
               <Text style={styles.outlineButtonText}>I will choose</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.dialogButton, styles.primaryButton]} onPress={onRepeat}>
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.primaryButton]}
+              onPress={onRepeat}
+            >
               <Text style={styles.primaryButtonText}>Repeat</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
