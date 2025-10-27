@@ -128,24 +128,25 @@ const PLPFnB: FC<PLPFnBProps> = ({
     );
   }
 
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <PLPFnBCardContainer
-        items={mappedItems}
-        menus={menus}
-        selectedCategory={selectedCategory}
-        searchString={searchString}
-        storeId={providerId} // ✅ Pass the original ObjectId, not the slug
-        storeName={storeName}
-      />
-      <PLPFooter
-        vendorName={storeName}
-        outletLocation={street}
-        vendorAddress={vendorAddress}
-        fssaiLiscenseNo={fssaiLiscenseNo}
-      />
-    </ScrollView>
-  );
+return (
+  <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <PLPFnBCardContainer
+      items={mappedItems}
+      menus={menus}
+      selectedCategory={selectedCategory}
+      searchString={searchString}
+      storeId={providerId}
+      storeName={storeName}
+      storeData={vendorData} // ✅ Pass the store data
+    />
+    <PLPFooter
+      vendorName={storeName}
+      outletLocation={street}
+      vendorAddress={vendorAddress}
+      fssaiLiscenseNo={fssaiLiscenseNo}
+    />
+  </ScrollView>
+);
 };
 
 export default PLPFnB;

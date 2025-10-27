@@ -14,7 +14,6 @@ import { ProductSearchResult } from "../search/search-products-type";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styles } from "./ProductCardStyles";
 
-
 // Helper functions
 const getDomainName = (domain: string): string => {
   const domainMap: Record<string, string> = {
@@ -28,11 +27,9 @@ const getDomainName = (domain: string): string => {
   return domainMap[domain] || domain;
 };
 
-// Function to determine veg/non-veg status
 const getVegStatus = (product: ProductSearchResult) => {
   if (product.diet_type) {
     const dietType = product.diet_type.toLowerCase();
-
     const nonVeg =
       dietType.includes("non-veg") ||
       dietType.includes("non_veg") ||
@@ -48,48 +45,32 @@ const getVegStatus = (product: ProductSearchResult) => {
   }
 
   const domain = getDomainName(product.domain || "");
-  if (domain === "F&B") {
-    return { veg: true, nonVeg: false };
-  }
-
+  if (domain === "F&B") return { veg: true, nonVeg: false };
   return { veg: false, nonVeg: false };
 };
 
 const ProductCard: FC<{
   item: [string, ProductSearchResult[]];
 }> = ({ item: [storeId, products] }) => {
-  if (!products || products.length === 0) {
+  if (!products || products.length === 0)
     return (
       <View style={styles.card}>
         <Text>No products available</Text>
       </View>
     );
-  }
 
   const firstProduct = products[0];
-  if (!firstProduct) {
-    return (
-      <View style={styles.card}>
-        <Text>Invalid product data</Text>
-      </View>
-    );
-  }
-
-  const store = firstProduct.store || {
+  const store = firstProduct?.store || {
     name: "Unknown Store",
     symbol: "",
     slug: storeId,
     address: { street: "Address not available" },
   };
 
-  // Filter out products with invalid price
   const validProducts = products.filter(
     (p) => p.price?.value && p.price.value > 0
   );
-
-  if (validProducts.length === 0) {
-    return null; // Skip rendering stores with no valid products
-  }
+  if (validProducts.length === 0) return null;
 
   return (
     <SafeAreaView style={styles.card}>
@@ -98,9 +79,8 @@ const ProductCard: FC<{
         <TouchableOpacity
           style={styles.storeInfo}
           onPress={() => {
-            if (store.slug) {
+            if (store.slug)
               router.push(`/(tabs)/home/result/productListing/${store.slug}`);
-            }
           }}
         >
           <ImageComp
@@ -120,9 +100,8 @@ const ProductCard: FC<{
 
         <TouchableOpacity
           onPress={() => {
-            if (store.slug) {
+            if (store.slug)
               router.push(`/(tabs)/home/result/productListing/${store.slug}`);
-            }
           }}
           style={styles.visitStoreButton}
         >
@@ -147,9 +126,24 @@ const ProductCard: FC<{
             const discountPercent = product.price?.offerPercent || 0;
             const { veg, nonVeg } = getVegStatus(product);
             const priceValue = product.price?.value;
+            const productSlug = product.slug || product.catalog_id;
+
+            const handleCardPress = () => {
+              if (productSlug) {
+                router.push(`/(tabs)/home/result/productDetails/${productSlug}`);
+              }
+            };
+
+            const handleLikePress = (e: any) => {
+              e.stopPropagation?.(); // prevent navigation when liking
+            };
 
             return (
-              <View style={styles.productCard}>
+              <TouchableOpacity
+                style={styles.productCard}
+                onPress={handleCardPress}
+                activeOpacity={0.85}
+              >
                 {/* Image Section */}
                 <View style={{ position: "relative" }}>
                   <ImageComp
@@ -169,22 +163,16 @@ const ProductCard: FC<{
                     </View>
                   )}
 
+                  {/* Like button — independent of navigation */}
                   <View style={styles.likeButtonContainer}>
-                    <LikeButton productId={productId} color="#E11D48" />
+                    <TouchableOpacity onPress={handleLikePress}>
+                      <LikeButton productId={productId} color="#E11D48" />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
-                {/* Info + Price + Add to Cart */}
-                <TouchableOpacity
-                  style={styles.productInfo}
-                  onPress={() => {
-                    if (product.slug) {
-                      router.push(
-                        `/(tabs)/home/result/productDetails/${product.slug}`
-                      );
-                    }
-                  }}
-                >
+                {/* Product Info */}
+                <View style={styles.productInfo}>
                   <View style={styles.nameRow}>
                     {veg && (
                       <MaterialCommunityIcons
@@ -207,7 +195,7 @@ const ProductCard: FC<{
                     </Text>
                   </View>
 
-                  {/* Price + AddToCart Row */}
+                  {/* Price + AddToCart */}
                   <View style={styles.priceCartRow}>
                     <View style={styles.priceRow}>
                       {priceValue && priceValue > 0 ? (
@@ -241,8 +229,8 @@ const ProductCard: FC<{
                       />
                     ) : null}
                   </View>
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             );
           }}
         />
@@ -250,7 +238,5 @@ const ProductCard: FC<{
     </SafeAreaView>
   );
 };
-
-
 
 export default ProductCard;

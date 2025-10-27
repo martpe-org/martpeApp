@@ -24,7 +24,7 @@ export interface PLPFnBCardProps {
   symbol?: string;
   image?: string;
   onPress?: () => void;
-  item?: StoreItem; // ✅ Strong typing
+  item?: StoreItem;
   customizable?: boolean;
   directlyLinkedCustomGroupIds?: string[];
   veg?: boolean;
@@ -56,8 +56,6 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     onPress ||
     (() => {
       setModalVisible(true);
-      // Or if you want to keep the original navigation as fallback:
-      // router.push(`/(tabs)/home/result/productDetails/${slug || id}`);
     });
 
   const resolveStoreId = (): string | null => {
@@ -199,16 +197,22 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
             loaderSize="small"
           />
 
-          <View style={cardStyles.topActions}>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation?.();
-              }}
-              activeOpacity={1}
-            >
-              <LikeButton productId={uniqueProductId} color="#E11D48" />
-            </TouchableOpacity>
-          </View>
+      <View style={cardStyles.topActions}>
+  <TouchableOpacity
+    onPress={(e) => {
+      e.stopPropagation?.();
+    }}
+    activeOpacity={0.8}
+    style={cardStyles.likeButtonWrapper} // ✅ Added wrapper style
+  >
+    <LikeButton
+      productId={uniqueProductId}
+      color="#E11D48"
+      productData={item}
+    />
+  </TouchableOpacity>
+</View>
+
 
           <View style={cardStyles.addToCartWrapper}>{renderAddToCart()}</View>
         </View>
@@ -216,7 +220,6 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
       <ProductDetailsModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        productId={uniqueProductId}
         productSlug={resolvedSlug}
       />
     </TouchableOpacity>

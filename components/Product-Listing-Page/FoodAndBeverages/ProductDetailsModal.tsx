@@ -145,9 +145,13 @@ const ProductDetailsModal: FC<ProductDetailsModalProps> = ({
                         onPress={(e) => {
                             e.stopPropagation?.();
                         }}
-                        activeOpacity={1}
+                        activeOpacity={0.8}
+                        style={styles.likeButtonWrapper} // ✅ Added wrapper style
                     >
-                        <LikeButton productId={uniqueProductId} color="#E11D48" />
+                        <LikeButton
+                            productId={uniqueProductId}
+                            color="#E11D48"
+                        />
                     </TouchableOpacity>
                     <ShareButton
                         productId={productSlug}

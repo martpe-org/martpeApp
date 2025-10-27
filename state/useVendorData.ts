@@ -3,7 +3,6 @@ import { FetchStoreDetailsResponseType } from "@/components/store/fetch-store-de
 import { fetchStoreItems } from "@/components/store/fetch-store-items";
 import { FetchStoreItemsResponseType, StoreItem } from "@/components/store/fetch-store-items-type";
 import { useQuery } from "@tanstack/react-query";
-
 export interface ComponentCatalogItem {
   bpp_id: string;
   bpp_uri: string;
@@ -39,7 +38,6 @@ export interface ComponentCatalogItem {
   directlyLinkedCustomGroupIds?: string[];
     priceRangeDefault?: number;
 }
-
 export interface VendorData {
   _id: string;
   address?: {
@@ -126,7 +124,7 @@ const convertToVendorData = (
           customizable: item.customizable || false,
           directlyLinkedCustomGroupIds: item.directlyLinkedCustomGroupIds || [], // ✅ MAP THIS
           custom_menu_id: customMenuIds,
-                priceRangeDefault: item.priceRangeDefault || priceValue
+          priceRangeDefault: item.priceRangeDefault || priceValue
         };
       }
     );

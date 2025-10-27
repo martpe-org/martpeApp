@@ -13,6 +13,17 @@ export const styles = StyleSheet.create({
     modalContainer: {
         height: screenHeight * 0.55,
     },
+    likeButtonWrapper: {
+  backgroundColor: "rgba(255,255,255,0.95)", // subtle white background
+  borderRadius: 20,
+  padding: 6,
+  elevation: 3, // Android shadow
+  shadowColor: "#000", // iOS shadow
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.15,
+  shadowRadius: 3,
+},
+
     container: {
         flex: 1,
         backgroundColor: "#fff",

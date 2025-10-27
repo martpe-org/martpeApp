@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Animated, Alert } from "react-native";
-import { TouchableOpacity } from "@gorhom/bottom-sheet";
+import { Animated, Alert, TouchableOpacity } from "react-native";
 import { useToast } from "react-native-toast-notifications";
 import useUserDetails from "../../hook/useUserDetails";
 import { useFavoriteStore } from "../../state/useFavoriteStore";
@@ -103,31 +102,24 @@ const LikeButton = ({
         // ADD
         if (isStore && storeData) {
           // Ensure storeData has proper structure
-          const normalizedStoreData = {
-            id: storeData.id || storeData.slug || itemId,
-            slug: storeData.slug || storeData.id || itemId,
-            descriptor: {
-              name:
-                storeData.descriptor?.name || storeData.name || "Unknown Store",
-              short_desc:
-                storeData.descriptor?.short_desc || storeData.short_desc || "",
-              description:
-                storeData.descriptor?.description ||
-                storeData.description ||
-                "",
-              images: storeData.descriptor?.images || storeData.images || [],
-              symbol: storeData.descriptor?.symbol || storeData.symbol || "",
-              ...storeData.descriptor,
-            },
-            symbol: storeData.symbol || "",
-            address: storeData.address || {},
-            geoLocation: storeData.geoLocation || {},
-            calculated_max_offer: storeData.calculated_max_offer || {},
-            ...storeData,
-            // Override with normalized values
-            id: storeData.id || storeData.slug || itemId,
-            slug: storeData.slug || storeData.id || itemId,
-          };
+const normalizedStoreData = {
+  // ✅ Clean this up - remove the duplication
+  id: storeData.id || storeData._id || storeData.slug || itemId,
+  slug: storeData.slug || storeData.id || storeData._id || itemId,
+  descriptor: {
+    name: storeData.descriptor?.name || storeData.name || "Unknown Store",
+    short_desc: storeData.descriptor?.short_desc || storeData.short_desc || "",
+    description: storeData.descriptor?.description || storeData.description || "",
+    images: storeData.descriptor?.images || storeData.images || [],
+    symbol: storeData.descriptor?.symbol || storeData.symbol || "",
+    ...storeData.descriptor,
+  },
+  symbol: storeData.symbol || "",
+  address: storeData.address || {},
+  geoLocation: storeData.geoLocation || {},
+  calculated_max_offer: storeData.calculated_max_offer || {},
+  ...storeData, // This should come last to avoid being overridden
+};
 
           await addStoreFavorite(normalizedStoreData, authToken);
           toast.show("Store added to favorites", { type: "success" });

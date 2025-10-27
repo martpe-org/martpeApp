@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -29,6 +29,7 @@ interface PLPFnBCardContainerProps {
   storeId: string;
   storeName: string;
   vegFilter?: "All" | "Veg" | "Non-Veg";
+  storeData?: any; // ✅ Add store data prop
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -41,6 +42,8 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
   storeId,
   storeName,
   vegFilter = "All",
+  storeData,
+
 }) => {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
@@ -94,6 +97,7 @@ const PLPFnBCardContainer: React.FC<PLPFnBCardContainerProps> = ({
           setExpandedMenus={setExpandedMenus}
           hasCustomizationGroups={hasCustomizationGroups}
           storeId={storeId}
+          storeData={storeData}
         />
       )}
     />
@@ -107,6 +111,7 @@ const MenuSection = ({
   setExpandedMenus,
   hasCustomizationGroups,
   storeId,
+  storeData
 }: any) => {
   const filtered = displayed.filter((i) =>
     Array.isArray(i.custom_menu_id)
@@ -164,24 +169,25 @@ const MenuSection = ({
           renderItem={({ item }) => (
             <PLPFnBCard
               key={item.slug}
-              id={item.symbol}
-              productId={item.symbol}
+              id={item.slug}                      // ✅ Use slug as id
+              productId={item.slug}               // ✅ Use slug as productId
               itemName={item.name}
               cost={item.price?.value || 0}
               providerId={storeId}
-              slug={item.slug}
+              slug={item.slug}                    // ✅ Keep slug
               catalogId={item.catalog_id}
               weight={item.unitized?.measure?.value}
               unit={item.unitized?.measure?.unit}
               originalPrice={item.price?.maximum_value}
               discount={item.price?.offerPercent}
-              symbol={item.symbol}
+              symbol={item.symbol}                // ✅ Keep symbol for image only
               image={item.images?.[0]}
               item={item}
               customizable={item.customizable}
               directlyLinkedCustomGroupIds={hasCustomizationGroups(item)}
               veg={item.diet_type?.toLowerCase() === "veg"}
               non_veg={item.diet_type?.toLowerCase() === "non_veg"}
+              storeData={storeData}
             />
           )}
           ListFooterComponent={
