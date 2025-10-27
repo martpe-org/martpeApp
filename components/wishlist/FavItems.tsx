@@ -14,7 +14,7 @@ import { useFavoriteStore } from "../../state/useFavoriteStore";
 import AddToCart from "../common/AddToCart";
 
 const { width: screenWidth } = Dimensions.get("window");
-const cardWidth = (screenWidth - 36) / 2; // two cards + gaps
+const cardWidth = (screenWidth - 36) / 2;
 
 interface FavItemsProps {
   favorites: any[];
@@ -47,20 +47,28 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
             item?.provider?.descriptor?.name || item?.brand || "";
           const imageUrl =
             item?.descriptor?.images?.[0] || item?.images?.[0] || null;
-          const price = item.price?.value;
-          const maxPrice = item.price?.maximum_value;
 
-          // ✅ Veg/Non-Veg logic
+          // ✅ Determine Veg/Non-Veg
           const vegStatus =
+            item?.diet_type ||
             item?.veg_nonveg ||
             item?.isVeg ||
-            (productName?.toLowerCase().includes("non veg") ||
-            productName?.toLowerCase().includes("chicken") ||
-            productName?.toLowerCase().includes("mutton")
-              ? "non-veg"
+            (productName?.toLowerCase().includes("chicken") ||
+            productName?.toLowerCase().includes("mutton") ||
+            productName?.toLowerCase().includes("non veg")
+              ? "non_veg"
               : "veg");
 
           const isVeg = vegStatus === "veg";
+
+          // ✅ Customization logic
+          const customizable =
+            item?.customizable ||
+            (item?.directlyLinkedCustomGroupIds &&
+              item.directlyLinkedCustomGroupIds.length > 0);
+
+          const directlyLinkedCustomGroupIds =
+            item?.directlyLinkedCustomGroupIds || [];
 
           return (
             <TouchableOpacity
@@ -79,7 +87,7 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
               <TouchableOpacity
                 style={styles.heartIcon}
                 onPress={(e) => {
-                  e.stopPropagation(); // Prevent navigation when clicking heart
+                  e.stopPropagation();
                   if (authToken) {
                     removeFavorite(item.slug, authToken);
                   } else {
@@ -99,7 +107,6 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
 
               {/* Product Info */}
               <View style={styles.itemInfo}>
-                {/* ✅ Veg/Non-Veg Indicator + Name */}
                 <View style={styles.nameRow}>
                   <View
                     style={[
@@ -126,26 +133,21 @@ const FavItems: FC<FavItemsProps> = ({ favorites = [], authToken }) => {
                   </Text>
                 ) : null}
 
-                {/* Bottom Section: Price + Add Button */}
-                <View style={styles.bottomSection}>
-                  {/* Price */}
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.newPrice}>₹{price}</Text>
-                    {maxPrice > price && (
-                      <Text style={styles.oldPrice}>₹{maxPrice}</Text>
-                    )}
-                  </View>
-
-                  {/* Add Button */}
-                  <View style={styles.addButtonContainer}>
-                    <AddToCart
-                      price={price}
-                      storeId={item.store_id}
-                      slug={item.slug}
-                      catalogId={item.catalog_id}
-                    />
-                  </View>
-                </View>
+                {/* ✅ Expanded AddToCart full width */}
+                <TouchableOpacity
+                  style={styles.fullAddContainer}
+                  activeOpacity={0.8}
+                >
+                  <AddToCart
+                    price={0} // price removed
+                    storeId={item.store_id}
+                    slug={item.slug}
+                    catalogId={item.catalog_id}
+                    customizable={customizable}
+                    directlyLinkedCustomGroupIds={directlyLinkedCustomGroupIds}
+                    productName={productName}
+                  />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
@@ -228,31 +230,11 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 8,
   },
-  bottomSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  fullAddContainer: {
     marginTop: "auto",
-  },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  newPrice: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
-    marginRight: 6,
-  },
-  oldPrice: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#9CA3AF",
-    textDecorationLine: "line-through",
-  },
-  addButtonContainer: {
-    marginLeft: 8,
+    borderTopWidth: 1,
+    borderColor: "#eee",
+    paddingVertical: 6,
   },
   center: {
     flex: 1,

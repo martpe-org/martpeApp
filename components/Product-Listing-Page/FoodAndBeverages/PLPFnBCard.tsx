@@ -75,6 +75,13 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
     if (typeof item?.price === "number" && item.price > 0) return item.price;
     return null;
   })();
+  console.log("💰 Price Debug:", {
+  id,
+  slug,
+  raw: item?.price,
+  resolvedPrice,
+});
+
 
   /** ✅ Resolve original price (for strike-through display) */
   const resolvedOriginalPrice =
@@ -208,8 +215,10 @@ const PLPFnBCard: React.FC<PLPFnBCardProps> = ({
               <LikeButton
                 productId={uniqueProductId}
                 color="#E11D48"
-                productData={item}
-              />
+  productData={{
+    ...item,
+    price: item?.price?.value || item?.priceRangeDefault || resolvedPrice || 0,
+  }}              />
             </TouchableOpacity>
           </View>
 

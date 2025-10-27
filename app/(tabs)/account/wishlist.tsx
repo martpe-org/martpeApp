@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState,  useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -23,9 +23,6 @@ const Wishlist = () => {
   const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (authToken) fetchFavs(authToken);
-  }, [authToken, fetchFavs]);
 
   const handleRefresh = useCallback(async () => {
     if (!authToken) return;

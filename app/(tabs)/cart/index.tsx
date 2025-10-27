@@ -41,7 +41,7 @@ const CartScreen = () => {
   }
 
   const validCarts = apiCarts.filter(
-    (c) => c?.cart_items?.length > 0 || c.cartItemsCount > 0
+    (c:any) => c?.cart_items?.length > 0 || c.cartItemsCount > 0
   );
   const { totalCarts, totalItems } = calculateTotals();
 

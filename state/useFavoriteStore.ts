@@ -20,9 +20,16 @@ interface FavoriteState {
 }
 
 const normalizeFavorites = (favorites: any) => ({
-  products: favorites?.products || [],
+  products: (favorites?.products || []).map((p: any) => {
+    if (typeof p.price === "number") {
+      return p;
+    }
+    const value = p.price?.value || p.price?.maximum_value || 0;
+    return { ...p, price: { ...p.price, value } };
+  }),
   stores: favorites?.stores || favorites?.outlets || [],
 });
+
 
 const saveFavoritesToStorage = async (favorites: { products: Product[]; stores: Store[] }) => {
   try {
@@ -61,10 +68,8 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const favorites = await fetchFavs(authToken);
-      console.log("📦 Raw favorites from API:", favorites);
 
       const normalizedFavorites = normalizeFavorites(favorites);
-      console.log("✨ Normalized favorites:", normalizedFavorites);
 
       // Save to AsyncStorage and update state
       await saveFavoritesToStorage(normalizedFavorites);
