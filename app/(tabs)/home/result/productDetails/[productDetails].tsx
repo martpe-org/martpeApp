@@ -185,7 +185,6 @@ const ProductDetails: FC = () => {
   // Main render
   return (
     <SafeAreaView style={styles.container}>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

@@ -24,7 +24,11 @@ const CartHeader: React.FC<CartHeaderProps> = ({ totalItems, totalCarts, multipl
           style={styles.wishlistButton}
           onPress={() => router.push("/(tabs)/account/wishlist")}
         >
-          <Text style={styles.wishlistText}>Wishlist</Text>
+          <MaterialCommunityIcons
+          name="heart-outline"
+          size={24}
+           color="red"
+          />
         </TouchableOpacity>
       </View>
 

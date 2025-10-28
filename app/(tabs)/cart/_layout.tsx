@@ -1,7 +1,6 @@
 import { Slot } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
 import { ToastProvider } from "react-native-toast-notifications";
 
@@ -17,7 +16,6 @@ export default function Layout() {
         >
           <Slot />
         </ToastProvider>
-        <StatusBar style="dark" hidden={false} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,4 +1,4 @@
-import React, { FC, useState, useRef, useEffect } from "react";
+import React, { FC, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -12,43 +12,54 @@ interface TabBarProps {
   selectedTab?: WishlistTab;
   itemsCount?: number;
   outletsCount?: number;
+  animatedValue?: Animated.Value; // 🔥 Added
 }
 
-const tabOptions = [
-  { id: 1, title: "Items" },
-  { id: 2, title: "Stores" },
-];
-
-const TabBar: FC<TabBarProps> = ({ selectedTab: propSelectedTab = "Items", selectTab, itemsCount = 0, outletsCount = 0 }) => {
-  const [internalSelectedTab, setInternalSelectedTab] = useState<WishlistTab>("Items");
-  const selectedTab = propSelectedTab || internalSelectedTab;
-
+const TabBar: FC<TabBarProps> = ({
+  selectedTab: propSelectedTab = "Items",
+  selectTab,
+  itemsCount = 0,
+  outletsCount = 0,
+  animatedValue,
+}) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+  // Link slider position to external animation (translateX)
   useEffect(() => {
-    const index = selectedTab === "Items" ? 0 : 1;
-    Animated.spring(slideAnim, {
-      toValue: index * TAB_WIDTH,
-      useNativeDriver: true,
-    }).start();
-  }, [selectedTab]);
+    if (!animatedValue) return;
 
-  const handleTab = (tab: WishlistTab, index: number) => {
-    if (!propSelectedTab) setInternalSelectedTab(tab);
-    selectTab(tab);
-  };
+    const listenerId = animatedValue.addListener(({ value }) => {
+      // Map translateX (0 to -width) → slider (0 to TAB_WIDTH)
+      const mapped = (-value / width) * TAB_WIDTH;
+      slideAnim.setValue(mapped);
+    });
+
+    return () => {
+      animatedValue.removeListener(listenerId);
+    };
+  }, [animatedValue]);
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.tabContainer}>
         <Animated.View style={[styles.slider, { transform: [{ translateX: slideAnim }] }]} />
 
-        {tabOptions.map((tab, index) => (
-          <TouchableOpacity key={tab.id} style={styles.tab} onPress={() => handleTab(tab.title as WishlistTab, index)} activeOpacity={0.8}>
-            <Text style={[styles.tabText, selectedTab === tab.title && styles.tabTextActive]}>
-              {tab.title}
-              {tab.title === "Items" && itemsCount > 0 && ` (${itemsCount})`}
-              {tab.title === "Stores" && outletsCount > 0 && ` (${outletsCount})`}
+        {["Items", "Stores"].map((tab, index) => (
+          <TouchableOpacity
+            key={tab}
+            style={styles.tab}
+            onPress={() => selectTab(tab as WishlistTab)}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                propSelectedTab === tab && styles.tabTextActive,
+              ]}
+            >
+              {tab}
+              {tab === "Items" && itemsCount > 0 && ` (${itemsCount})`}
+              {tab === "Stores" && outletsCount > 0 && ` (${outletsCount})`}
             </Text>
           </TouchableOpacity>
         ))}

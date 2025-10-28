@@ -40,7 +40,6 @@ export const fetchFavs = async (
 ): Promise<FetchFavsResponseType | null> => {
   try {
     const url = `${process.env.EXPO_PUBLIC_API_URL}/users/favs`;
-    console.log("Fetching favorites from:", url);
 
     const res = await fetch(url, {
       method: "GET",
@@ -53,14 +52,13 @@ export const fetchFavs = async (
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
       console.warn("⚠️ fetchFavs failed:", res.status, errBody);
-      return null; // <-- don’t throw, return null
+      return null;
     }
 
     const data = (await res.json()) as FetchFavsResponseType;
-    console.log("✅ Favorites fetched:", data);
     return data;
   } catch (error) {
     console.error("❌ Network/parse error in fetchFavs:", error);
-    return null; // <-- safe fallback
+    return null;
   }
 };
