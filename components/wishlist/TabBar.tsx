@@ -1,108 +1,152 @@
-import React, { FC, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from "react-native";
+import React, { FC } from "react";
+import { Animated, TouchableOpacity, View, Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
-const CONTAINER_WIDTH = width * 0.6;
-const TAB_WIDTH = CONTAINER_WIDTH / 2;
-
-export type WishlistTab = "Items" | "Stores";
 
 interface TabBarProps {
-  selectTab: (tab: WishlistTab) => void;
-  selectedTab?: WishlistTab;
-  itemsCount?: number;
-  outletsCount?: number;
-  animatedValue?: Animated.Value; // 🔥 Added
+  isItem: boolean;
+  tabAnim: Animated.AnimatedInterpolation<number>;
+  itemsCount: number;
+  storesCount: number;
+  setIsItem: (val: boolean) => void;
 }
 
 const TabBar: FC<TabBarProps> = ({
-  selectedTab: propSelectedTab = "Items",
-  selectTab,
-  itemsCount = 0,
-  outletsCount = 0,
-  animatedValue,
+  isItem,
+  tabAnim,
+  itemsCount,
+  storesCount,
+  setIsItem,
 }) => {
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const containerWidth = width * 0.9; // full width with slight padding
+  const TAB_WIDTH = containerWidth / 2;
 
-  // Link slider position to external animation (translateX)
-  useEffect(() => {
-    if (!animatedValue) return;
+  // Slider movement
+  const sliderTranslateX = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, TAB_WIDTH],
+    extrapolate: "clamp",
+  });
 
-    const listenerId = animatedValue.addListener(({ value }) => {
-      // Map translateX (0 to -width) → slider (0 to TAB_WIDTH)
-      const mapped = (-value / width) * TAB_WIDTH;
-      slideAnim.setValue(mapped);
-    });
+  // Tab scale animations (safe for native driver)
+  const itemsScale = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1.05, 0.95],
+    extrapolate: "clamp",
+  });
 
-    return () => {
-      animatedValue.removeListener(listenerId);
-    };
-  }, [animatedValue]);
+  const storesScale = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1.05],
+    extrapolate: "clamp",
+  });
+
+  // Text colors
+  const itemsTextColor = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#fff", "#1f0404"],
+    extrapolate: "clamp",
+  });
+
+  const storesTextColor = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#1f0404", "#fff"],
+    extrapolate: "clamp",
+  });
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.tabContainer}>
-        <Animated.View style={[styles.slider, { transform: [{ translateX: slideAnim }] }]} />
+    <View
+      style={{
+        flexDirection: "row",
+        alignSelf: "center",
+        width: containerWidth,
+        backgroundColor: "rgba(255,81,81,0.08)",
+        borderRadius: 22,
+        padding: 4,
+        marginTop: 8,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* 🔴 Animated slider */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: 4,
+          left: 4,
+          width: TAB_WIDTH - 8,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: "#FF5151",
+          transform: [{ translateX: sliderTranslateX }],
+        }}
+      />
 
-        {["Items", "Stores"].map((tab, index) => (
-          <TouchableOpacity
-            key={tab}
-            style={styles.tab}
-            onPress={() => selectTab(tab as WishlistTab)}
-            activeOpacity={0.8}
+      {/* 🟢 Items Tab */}
+      <Animated.View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          height: 35,
+          transform: [{ scale: itemsScale }],
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setIsItem(true)}
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <Animated.Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: itemsTextColor,
+            }}
           >
-            <Text
-              style={[
-                styles.tabText,
-                propSelectedTab === tab && styles.tabTextActive,
-              ]}
-            >
-              {tab}
-              {tab === "Items" && itemsCount > 0 && ` (${itemsCount})`}
-              {tab === "Stores" && outletsCount > 0 && ` (${outletsCount})`}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            ITEMS ({itemsCount})
+          </Animated.Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* 🟣 Stores Tab */}
+      <Animated.View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          height: 35,
+          transform: [{ scale: storesScale }],
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setIsItem(false)}
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <Animated.Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: storesTextColor,
+            }}
+          >
+            STORES ({storesCount})
+          </Animated.Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  tabContainer: {
-    width: CONTAINER_WIDTH,
-    height: 40,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 81, 81, 0.15)",
-    flexDirection: "row",
-    overflow: "hidden",
-    position: "relative",
-  },
-  slider: {
-    position: "absolute",
-    left: 0,
-    width: TAB_WIDTH,
-    height: "100%",
-    backgroundColor: "#FF5151",
-    borderRadius: 50,
-  },
-  tab: {
-    width: TAB_WIDTH,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#000",
-  },
-  tabTextActive: {
-    color: "#fff",
-  },
-});
 
 export default TabBar;

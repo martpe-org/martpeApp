@@ -9,7 +9,6 @@ interface ShareProps {
   storeId?: string;
   storeName?: string;
   type: string;
-  // incentivise: boolean;
   size?: number;
   address?: string;
 }
@@ -25,24 +24,25 @@ const ShareButton: React.FC<ShareProps> = ({
 }) => {
   const { userDetails } = useUserDetails();
 
-  const getMessage = (
-    type: string,
-    username: string,
-    productName?: string,
-    storeName?: string,
-    productId?: string,
-    storeId?: string,
-    address?: string
-  ) => {
-    switch (type) {
-      case "item":
-        return `Hey! ${username} has shared *${productName}* from *${storeName}* outlet on the app! Click on the link to view the product: https://www.martpe.in/(tabs)/home/productDetails/${productId}`;
-      case "outlet":
-        return `Hey! ${username} has shared *${storeName}* outlet on the app! Click on the link to view the outlet: https://www.martpe.in/(tabs)/home/productListing/${storeId}`;
-      default:
-        return `Hey! ${username} has shared address: ${address} on the app! Click to the link : https://www.martpe.in/addAddress`;
-    }
-  };
+const getMessage = (
+  type: string,
+  username: string,
+  productName?: string,
+  storeName?: string,
+  productId?: string,
+  storeId?: string,
+  address?: string
+) => {
+  switch (type) {
+    case "item":
+      return `Hey! ${username} has shared *${productName}* from *${storeName}* outlet on the app! Click on the link to view the product: https://www.martpe.in/product/${productId}`;
+    case "outlet":
+      return `Hey! ${username} has shared *${storeName}* outlet on the app! Click on the link to view the outlet: https://www.martpe.in/store/${storeId}`;
+    default:
+      return `Hey! ${username} has shared an address: ${address} on the app! Click here to open: https://www.martpe.in/address`;
+  }
+};
+
 
   const shareMessage = async () => {
     if (!userDetails) {

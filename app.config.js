@@ -17,14 +17,38 @@ export default {
     ios: {
       supportsTablet: true
     },
-    android: {
-      package: "com.pratham.martpe",
-      adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffff"
-      },
-      edgeToEdgeEnabled: true
-    },
+android: {
+  package: "com.pratham.martpe",
+  adaptiveIcon: {
+    foregroundImage: "./assets/images/adaptive-icon.png",
+    backgroundColor: "#ffff"
+  },
+  edgeToEdgeEnabled: true,
+  intentFilters: [
+    {
+      action: "VIEW",
+      data: [
+        {
+          scheme: "https",
+          host: "martpe.in",
+          pathPrefix: "/product/"
+        },
+        {
+          scheme: "https",
+          host: "martpe.in",
+          pathPrefix: "/store/"
+        },
+        {
+          scheme: "https",
+          host: "martpe.in",
+          pathPrefix: "/address"
+        }
+      ],
+      category: ["BROWSABLE", "DEFAULT"]
+    }
+  ]
+},
+
     web: {
       bundler: "metro",
       output: "static",

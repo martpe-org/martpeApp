@@ -64,7 +64,7 @@ const SwipeTabs: FC<SwipeTabsProps> = ({
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          height: 40,
+          height: 35,
         }}
       >
         <Animated.Text
@@ -89,7 +89,7 @@ const SwipeTabs: FC<SwipeTabsProps> = ({
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          height: 40,
+          height: 35,
         }}
       >
         <Animated.Text

@@ -1,52 +1,98 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  Text,
-  ScrollView,
-  RefreshControl,
   Animated,
   PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
+  ScrollView,
+  RefreshControl,
   Dimensions,
+  Text,
 } from "react-native";
-
 import useUserDetails from "../../../hook/useUserDetails";
 import { useFavoriteStore } from "../../../state/useFavoriteStore";
-
 import HeaderWishlist from "../../../components/wishlist/Header";
-import TabBar, { WishlistTab } from "../../../components/wishlist/TabBar";
 import FavItems from "../../../components/wishlist/FavItems";
 import FavOutlets from "../../../components/wishlist/FavOutlets";
 import Loader from "../../../components/common/Loader";
+import TabBar from "../../../components/wishlist/TabBar";
 import { styles } from "./WishlistStyles";
+import { Easing } from "react-native";
 
 const { width } = Dimensions.get("window");
-const SWIPE_THRESHOLD = width * 0.25; // must move 25% to switch tabs
+const SWIPE_THRESHOLD = width * 0.25;
 
 const Wishlist = () => {
   const { authToken } = useUserDetails();
-  const { allFavorites, isLoading, error, fetchFavs } = useFavoriteStore();
+  const { allFavorites, isLoading, fetchFavs, error } = useFavoriteStore();
 
-  const [selectedTab, setSelectedTab] = useState<WishlistTab>("Items");
+  const [isItem, setIsItem] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
   const translateX = useRef(new Animated.Value(0)).current;
   const currentOffset = useRef(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // When tab changes manually, animate to new position
+  // Auto-fetch favorites on mount
   useEffect(() => {
-    const toValue = selectedTab === "Items" ? 0 : -width;
-    Animated.spring(translateX, {
+    if (!authToken) return;
+    if (!allFavorites?.products?.length && !allFavorites?.stores?.length) {
+      fetchFavs(authToken);
+    }
+  }, [authToken]);
+
+  // Animate tab/content change on toggle
+  const animateTo = (nextIsItem: boolean) => {
+    const toValue = nextIsItem ? 0 : -width;
+    setIsAnimating(true);
+    Animated.timing(translateX, {
       toValue,
+      duration: 280,
+      easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
-      bounciness: 8,
     }).start(() => {
       currentOffset.current = toValue;
+      setIsItem(nextIsItem);
+      setIsAnimating(false);
     });
-  }, [selectedTab]);
+  };
 
-  const handleRefresh = useCallback(async () => {
+  // Swipe gesture
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderMove: (_, g) => {
+        if (isAnimating) return;
+        const newX = currentOffset.current + g.dx;
+        if (newX <= 0 && newX >= -width) translateX.setValue(newX);
+      },
+      onPanResponderRelease: (_, g) => {
+        const { dx, vx } = g;
+        const swipePower = dx + vx * 200;
+        let nextIsItem = isItem;
+        let toValue = currentOffset.current;
+
+        if (swipePower < -SWIPE_THRESHOLD) {
+          nextIsItem = false;
+          toValue = -width;
+        } else if (swipePower > SWIPE_THRESHOLD) {
+          nextIsItem = true;
+          toValue = 0;
+        }
+
+        Animated.timing(translateX, {
+          toValue,
+          duration: 280,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }).start(() => {
+          currentOffset.current = toValue;
+          setIsItem(nextIsItem);
+        });
+      },
+    })
+  ).current;
+
+  const handleRefresh = async () => {
     if (!authToken) return;
     try {
       setRefreshing(true);
@@ -54,118 +100,37 @@ const Wishlist = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [authToken, fetchFavs]);
+  };
 
   const itemsCount = allFavorites?.products?.length ?? 0;
-  const outletsCount = allFavorites?.stores?.length ?? 0;
-
-  // 🌀 Interactive drag gesture
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (
-        _evt: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        const { dx, dy } = gestureState;
-        return Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy);
-      },
-      onPanResponderMove: (
-        _evt: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        const newX = currentOffset.current + gestureState.dx;
-        // limit dragging between 0 and -width
-        if (newX <= 0 && newX >= -width) {
-          translateX.setValue(newX);
-        }
-      },
-      onPanResponderRelease: (
-        _evt: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        const { dx, vx } = gestureState;
-        let newTab: WishlistTab = selectedTab;
-        let toValue = currentOffset.current;
-
-        if (dx < -SWIPE_THRESHOLD || vx < -0.5) {
-          newTab = "Stores";
-          toValue = -width;
-        } else if (dx > SWIPE_THRESHOLD || vx > 0.5) {
-          newTab = "Items";
-          toValue = 0;
-        }
-
-        Animated.spring(translateX, {
-          toValue,
-          useNativeDriver: true,
-          bounciness: 8,
-        }).start(() => {
-          currentOffset.current = toValue;
-          setSelectedTab(newTab);
-        });
-      },
-    })
-  ).current;
-
-  const renderItemsPane = () => {
-    if (isLoading && !refreshing) return <Loader />;
-    if (!authToken)
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>🔒 Please log in to view favorites</Text>
-        </View>
-      );
-    if (error)
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>❌ {error}</Text>
-          <Text style={styles.errorSubtext}>Pull to refresh or try again later</Text>
-        </View>
-      );
-    return <FavItems favorites={allFavorites?.products ?? []} authToken={authToken} />;
-  };
-
-  const renderStoresPane = () => {
-    if (isLoading && !refreshing) return <Loader />;
-    if (!authToken)
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>🔒 Please log in to view favorites</Text>
-        </View>
-      );
-    if (error)
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>❌ {error}</Text>
-          <Text style={styles.errorSubtext}>Pull to refresh or try again later</Text>
-        </View>
-      );
-    return <FavOutlets itemsData={allFavorites?.stores ?? []} authToken={authToken} />;
-  };
+  const storesCount = allFavorites?.stores?.length ?? 0;
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
       <HeaderWishlist />
 
       <TabBar
-        selectedTab={selectedTab}
-        selectTab={(tab) => setSelectedTab(tab)}
+        isItem={isItem}
+        tabAnim={translateX.interpolate({
+          inputRange: [-width, 0],
+          outputRange: [1, 0],
+          extrapolate: "clamp",
+        })}
         itemsCount={itemsCount}
-        outletsCount={outletsCount}
-        animatedValue={translateX} // 🔥 Pass animation progress
+        storesCount={storesCount}
+        setIsItem={(val) => animateTo(val)}
       />
 
       <Animated.View
-        style={[
-          styles.carousel,
-          { width: width * 2, transform: [{ translateX }] },
-        ]}
+        style={{
+          flexDirection: "row",
+          width: width * 2,
+          transform: [{ translateX }],
+        }}
       >
-        {/* Items */}
-        <View style={[styles.pane, { width }]}>
+        {/* ITEMS */}
+        <View style={{ width }}>
           <ScrollView
-            style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -176,14 +141,19 @@ const Wishlist = () => {
               />
             }
           >
-            {renderItemsPane()}
+            {isLoading && !refreshing ? (
+              <Loader />
+            ) : error ? (
+              <Text style={styles.errorText}>❌ {error}</Text>
+            ) : (
+              <FavItems favorites={allFavorites?.products ?? []} authToken={authToken} />
+            )}
           </ScrollView>
         </View>
 
-        {/* Stores */}
-        <View style={[styles.pane, { width }]}>
+        {/* STORES */}
+        <View style={{ width }}>
           <ScrollView
-            style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -194,11 +164,18 @@ const Wishlist = () => {
               />
             }
           >
-            {renderStoresPane()}
+            {isLoading && !refreshing ? (
+              <Loader />
+            ) : error ? (
+              <Text style={styles.errorText}>❌ {error}</Text>
+            ) : (
+              <FavOutlets itemsData={allFavorites?.stores ?? []} authToken={authToken} />
+            )}
           </ScrollView>
         </View>
       </Animated.View>
     </View>
   );
 };
+
 export default Wishlist;
