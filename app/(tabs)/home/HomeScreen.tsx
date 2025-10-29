@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   FlatList,
+  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -26,7 +27,6 @@ import {
 import { fetchHome } from "../../../hook/fetch-home-data";
 import { styles } from "./HomeScreenStyle";
 
-// Import the new components
 import Search from "../../../components/common/Search";
 import LocationBar from "@/components/common/LocationBar";
 import CategorySection from "@/components/Landing-Page/CategorySection";
@@ -37,8 +37,9 @@ const windowWidth = Dimensions.get("window").width;
 export default function HomeScreen() {
   const router = useRouter();
   const { selectedDetails, loadDeliveryDetails } = useDeliveryStore();
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [isAddressLoaded, setIsAddressLoaded] = useState(false);
 
-  // Import render functions including the new offers carousel
   const {
     renderCategoryItemCompact,
     renderOffersCarousel,
@@ -48,11 +49,31 @@ export default function HomeScreen() {
     renderGroceryCategories,
   } = useRenderFunctions();
 
+  // Load saved delivery details once
   useEffect(() => {
-    loadDeliveryDetails();
-  });
+    const loadData = async () => {
+      await loadDeliveryDetails();
+      setIsAddressLoaded(true);
+    };
+    loadData();
+  }, []);
 
-  // Optimized fetch home data using react-query with better caching
+  // Show modal only if address is missing and loading is complete
+  useEffect(() => {
+    if (isAddressLoaded) {
+      const hasLocation =
+        selectedDetails &&
+        (selectedDetails?.pincode ||
+          selectedDetails?.lat ||
+          selectedDetails?.lng);
+
+      if (!hasLocation) {
+        setTimeout(() => setShowLocationModal(true), 500);
+      }
+    }
+  }, [isAddressLoaded, selectedDetails]);
+
+  // Fetch home data only when address exists
   const {
     data: homeData,
     isLoading,
@@ -62,31 +83,23 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: [
       "homeData",
-      selectedDetails?.lat ?? 12.9716,
-      selectedDetails?.lng ?? 77.5946,
-      selectedDetails?.pincode ?? "560001",
+      selectedDetails?.lat ?? 0,
+      selectedDetails?.lng ?? 0,
+      selectedDetails?.pincode ?? "",
     ],
     queryFn: async () => {
-      const lat = selectedDetails?.lat ?? 12.9716; // Bangalore latitude
-      const lng = selectedDetails?.lng ?? 77.5946; // Bangalore longitude
-      const pin = selectedDetails?.pincode ?? "560001"; // Bangalore pincode
+      const lat = selectedDetails?.lat ?? 12.9716;
+      const lng = selectedDetails?.lng ?? 77.5946;
+      const pin = selectedDetails?.pincode ?? "560001";
       return fetchHome(lat, lng, pin);
     },
-    // Optimized caching configuration
-    staleTime: 1000 * 60 * 10, // 10 minutes - data stays fresh longer
-    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache longer (was cacheTime in v4)
-    enabled: true,
+    enabled: !!selectedDetails?.pincode,
+    staleTime: 1000 * 60 * 5,
     retry: 1,
-    refetchOnWindowFocus: false, // Don't refetch when app comes to foreground
-    refetchOnMount: false, // Don't refetch on component mount if cache is fresh
-    refetchOnReconnect: true, // Only refetch on network reconnect
-    // Use initialData if you have any default data
-    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
   });
 
-  // Animation value for "No Data" messages
+  // Fade animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     if (homeData) {
       if (!homeData.restaurants?.length || !homeData.stores?.length) {
@@ -95,9 +108,7 @@ export default function HomeScreen() {
           duration: 500,
           useNativeDriver: true,
         }).start();
-      } else {
-        fadeAnim.setValue(0);
-      }
+      } else fadeAnim.setValue(0);
     }
   }, [homeData, fadeAnim]);
 
@@ -109,20 +120,81 @@ export default function HomeScreen() {
     router.push("/search/search");
   };
 
-  // Pull-to-refresh handler - forces fresh data
-  const onRefresh = () => {
-    refetch();
-  };
+  const onRefresh = () => refetch();
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ✅ Location Modal (only for new users or no address) */}
+      <Modal
+        visible={showLocationModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 15,
+              padding: 25,
+              width: "90%",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 10 }}>
+              Add Your Location
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#555",
+                textAlign: "center",
+                marginBottom: 20,
+              }}
+            >
+              Please add your address to see nearby restaurants and stores.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#FB3E44",
+                paddingVertical: 12,
+                paddingHorizontal: 25,
+                borderRadius: 50,
+              }}
+              onPress={() => {
+                setShowLocationModal(false);
+                router.push("/address/SavedAddresses");
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                Add Location
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Scrollable Home Content */}
       <ScrollView
         style={styles.scrollContainer}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
       >
-        {/* Red header */}
         <View style={styles.redSection}>
           <LocationBar
             selectedDetails={selectedDetails}
@@ -141,7 +213,6 @@ export default function HomeScreen() {
           <Search onPress={handleSearchPress} />
         </View>
 
-        {/* White content */}
         <View style={styles.whiteSection}>
           {isLoading && (
             <View style={styles.loadingContainer}>
@@ -163,14 +234,12 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* NEW: Offers Carousel Section - Above restaurants, no heading */}
           {Array.isArray(homeData?.offers) && homeData.offers.length > 0 && (
             <View>{renderOffersCarousel(homeData.offers)}</View>
           )}
 
-          {/* Restaurants */}
           {Array.isArray(homeData?.restaurants) &&
-            homeData.restaurants.length > 0 ? (
+          homeData.restaurants.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Restaurants Near You</Text>
@@ -192,7 +261,6 @@ export default function HomeScreen() {
             )
           )}
 
-          {/* Stores */}
           {Array.isArray(homeData?.stores) && homeData.stores.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -215,7 +283,7 @@ export default function HomeScreen() {
             )
           )}
 
-          {/* Grocery Section */}
+          {/* Grocery + Food + Other Categories */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
               <Text style={styles.sectionTitleCentered}>Shop for Groceries</Text>
@@ -225,30 +293,25 @@ export default function HomeScreen() {
               renderItem={renderGroceryCategories}
               keyExtractor={(item) => item.id.toString()}
               horizontal
-              snapToAlignment="start"
-              snapToInterval={windowWidth / 2}
-              decelerationRate="fast"
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoryList}
             />
           </View>
-          {/* Explore Categories Section */}
+
           <View style={styles.section}>
             <View style={styles.sectionHeaderWithLine}>
-              <Text style={styles.sectionTitleCentered}>Shop for food</Text>
+              <Text style={styles.sectionTitleCentered}>Shop for Food</Text>
             </View>
             <FlatList
               data={foodCategoryData}
               renderItem={renderFoodCategories}
               keyExtractor={(item) => item.id.toString()}
               horizontal
-              snapToAlignment="start"
-              snapToInterval={windowWidth / 2}
-              decelerationRate="fast"
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoryList}
             />
           </View>
+
           <CategorySection
             title="Shop for Fashion"
             data={fashionCategoryData}
@@ -269,6 +332,7 @@ export default function HomeScreen() {
             data={homeAndDecorCategoryData}
             containerStyle="homeDecor"
           />
+
           <FooterSection />
         </View>
       </ScrollView>

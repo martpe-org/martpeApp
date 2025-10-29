@@ -1,4 +1,4 @@
-import { AddressType, ApiErrorResponseType } from '../../common-types';
+import { AddressType } from '../../common-types';
 
 export const createAddress = async (
   authToken: string,
