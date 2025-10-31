@@ -18,7 +18,7 @@ export default {
       supportsTablet: true
     },
 android: {
-  package: "com.pratham.martpe",
+  package: "in.martpe",
   adaptiveIcon: {
     foregroundImage: "./assets/images/adaptive-icon.png",
     backgroundColor: "#ffff"

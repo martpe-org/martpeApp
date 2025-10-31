@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Dimensions,
   FlatList,
   Modal,
   RefreshControl,
@@ -32,7 +31,6 @@ import LocationBar from "@/components/common/LocationBar";
 import CategorySection from "@/components/Landing-Page/CategorySection";
 import FooterSection from "@/components/Landing-Page/FooterSection";
 
-const windowWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -318,6 +316,7 @@ export default function HomeScreen() {
             containerStyle="twoColumn"
           />
           <CategorySection
+
             title="Shop for Personal Care"
             data={personalCareCategoryData}
             containerStyle="personalCare"
